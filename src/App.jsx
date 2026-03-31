@@ -4,7 +4,8 @@ import PlayerSetup from './components/PlayerSetup';
 import CalculatedStats from './components/CalculatedStats';
 import BlockCompendium from './components/BlockCompendium';
 
-const TABS =[  { id: 'welcome', label: '🏠 Welcome' },
+const TABS =[
+  { id: 'welcome', label: '🏠 Welcome' },
   { id: 'setup', label: '⚙️ Player Setup' },
   { id: 'calc_stats', label: '📋 Calculated Stats' },
   { id: 'block_stats', label: '🪨 Block Compendium' },
@@ -13,13 +14,14 @@ const TABS =[  { id: 'welcome', label: '🏠 Welcome' },
 ];
 
 function App() {
-  const [activeTab, setActiveTab] = useState('setup'); 
+  const[activeTab, setActiveTab] = useState('setup'); 
   const store = useStore();
   const calcWorkerRef = useRef(null);
 
   // Initialize the Calculation Worker
   useEffect(() => {
     calcWorkerRef.current = new Worker('/calc_worker.js');
+    
     calcWorkerRef.current.onmessage = (e) => {
       if (e.data.type === 'CALC_RESULT') {
         store.setCalculatedStats(e.data.payload);
@@ -27,8 +29,9 @@ function App() {
         console.error("🚨 Python Math Worker Crashed:", e.data.payload);
       }
     };
+    
     return () => calcWorkerRef.current.terminate();
-  }, [ ]); // Only runs once on mount
+  },[]); // Only runs once on mount
 
   // Trigger calculations automatically whenever the player's inputs change
   useEffect(() => {
@@ -74,7 +77,7 @@ function App() {
               className={`px-4 py-2 font-medium whitespace-nowrap transition-colors duration-200 border-b-2 ${
                 isActive 
                   ? 'border-st-orange text-st-text' 
-                  : 'border-transparent text-st-text hover:text-st-orange hover:border-gray-300'
+                  : 'border-transparent text-st-text-light hover:text-st-orange hover:border-gray-300'
               }`}
             >
               {tab.label}
