@@ -1,9 +1,11 @@
 import { useState } from 'react';
 import useStore from '../store';
-import { UI_STAT_IMG_WIDTH } from '../ui_config';
+import { UI_STAT_IMG_WIDTH, UI_BLOCK_CARD_WIDTH } from '../ui_config';
+import { INTERNAL_UPGRADE_CAPS, UPGRADE_NAMES, ASC1_LOCKED_UPGS, ASC2_LOCKED_UPGS, CARD_TYPES } from '../game_data';
 
 export default function PlayerSetup() {
-  const { asc1_unlocked, asc2_unlocked, arch_level, current_max_floor, base_stats, setSetting, setBaseStat, loadStateFromJson } = useStore();
+  const { asc1_unlocked, asc2_unlocked, arch_level, current_max_floor, base_stats, upgrade_levels, cards, setSetting, setBaseStat, setUpgradeLevel, setCardLevel, loadStateFromJson } = useStore();
+  const[hideMaxed, setHideMaxed] = useState(false);
   const [activeSubTab, setActiveSubTab] = useState('stats');
   const [isDragging, setIsDragging] = useState(false);
 
@@ -245,9 +247,122 @@ export default function PlayerSetup() {
           </div>
         )}
 
-        {activeSubTab !== 'stats' && (
+        {/* --- TAB: UPGRADES --- */}
+        {activeSubTab === 'upgrades' && (
+          <div>
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-xl font-bold">Internal Upgrades</h3>
+              <label className="flex items-center gap-2 cursor-pointer text-sm font-medium">
+                <input type="checkbox" checked={hideMaxed} onChange={(e) => setHideMaxed(e.target.checked)} className="w-4 h-4 accent-st-orange" />
+                👀 Hide Maxed Upgrades
+              </label>
+            </div>
+            <hr className="border-st-border mb-6" />
+
+            {/* In Streamlit we centered this via ratio. In React we can use a centered responsive grid. */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              {Object.entries(INTERNAL_UPGRADE_CAPS).map(([upg_id, max_lvl]) => {
+                const id = parseInt(upg_id);
+                if (!asc1_unlocked && ASC1_LOCKED_UPGS.includes(id)) return null;
+                if (!asc2_unlocked && ASC2_LOCKED_UPGS.includes(id)) return null;
+                
+                const current_lvl = upgrade_levels[id] || 0;
+                if (hideMaxed && current_lvl >= max_lvl) return null;
+
+                const name = UPGRADE_NAMES[id] || `Upgrade ${id}`;
+
+                return (
+                  <div key={id} className="st-container flex flex-col items-center justify-center p-4">
+                    <div className="text-center mb-2 h-10 flex flex-col justify-end">
+                      <span className="font-bold text-sm">{name}</span>
+                      <span className="text-xs text-st-text-light">(Max: {max_lvl})</span>
+                    </div>
+                    
+                    <div className="w-full flex justify-center mb-4">
+                      <img 
+                        src={`/assets/upgrades/internal/${id}.png`} 
+                        alt={name}
+                        className="w-full max-w-[120px] object-contain"
+                        style={{ imageRendering: 'pixelated' }}
+                        onError={(e) => { e.target.style.display = 'none'; }}
+                      />
+                    </div>
+
+                    <input 
+                      type="number" 
+                      className="st-input"
+                      value={current_lvl}
+                      onChange={(e) => setUpgradeLevel(id, e.target.value)}
+                      min="0"
+                      max={max_lvl}
+                    />
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* --- TAB: CARDS --- */}
+        {activeSubTab === 'cards' && (
+          <div>
+            <h3 className="text-xl font-bold mb-4 flex items-center gap-2">
+              <img src="/assets/cards/cores/div1.png" alt="icon" className="w-8 h-8" style={{ imageRendering: 'pixelated' }} onError={(e) => e.target.style.display = 'none'}/>
+              Block Card Collection
+            </h3>
+            <hr className="border-st-border mb-6" />
+
+            {/* Responsive grid: 3 cols on mobile, 6 on tablet, 9 on desktop! */}
+            <div className="grid grid-cols-3 sm:grid-cols-6 lg:grid-cols-9 gap-2">
+              {CARD_TYPES.map(o_type => {
+                return[1, 2, 3, 4].map(tier_num => {
+                  const card_id = `${o_type}${tier_num}`;
+                  
+                  // Lock logic identical to Streamlit
+                  let is_locked = false;
+                  if (tier_num === 4 && !asc2_unlocked) is_locked = true;
+                  if (o_type === 'div' && !asc1_unlocked) is_locked = true;
+
+                  const user_tier = cards[card_id] || 0;
+                  const max_card_level = asc1_unlocked ? 4 : 3;
+
+                  return (
+                    <div key={card_id} className={`st-container p-2 flex flex-col items-center ${is_locked ? 'opacity-40' : ''}`}>
+                      <div className="font-bold text-xs mb-2 capitalize">{card_id}</div>
+                      
+                      {/* CSS Magic: Overlaying background and core instantly */}
+                      <div className="relative mb-3 flex items-center justify-center" style={{ width: UI_BLOCK_CARD_WIDTH * 0.6, height: UI_BLOCK_CARD_WIDTH * 0.8 }}>
+                        {user_tier > 0 && !is_locked ? (
+                          <>
+                            <img src={`/assets/cards/backgrounds/${user_tier}.png`} className="absolute inset-0 w-full h-full object-contain" style={{ imageRendering: 'pixelated' }} />
+                            <img src={`/assets/cards/cores/${card_id}.png`} className="absolute inset-0 w-full h-full object-contain drop-shadow-md" style={{ imageRendering: 'pixelated', transform: 'translate(1px, -4px)' }} />
+                          </>
+                        ) : (
+                          <div className="text-xs text-st-text-light mt-4">(Locked)</div>
+                        )}
+                      </div>
+
+                      <input 
+                        type="number" 
+                        className="st-input p-1 text-sm"
+                        value={is_locked ? 0 : user_tier}
+                        onChange={(e) => setCardLevel(card_id, e.target.value)}
+                        min="0"
+                        max={max_card_level}
+                        disabled={is_locked}
+                      />
+                    </div>
+                  );
+                });
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* --- TAB: IDOLS --- */}
+        {activeSubTab === 'idols' && (
           <div className="st-container text-center text-st-text-light py-10">
-            🚧 {activeSubTab} tab coming soon...
+            🚧 Arch Idols coming soon...
           </div>
         )}
 
