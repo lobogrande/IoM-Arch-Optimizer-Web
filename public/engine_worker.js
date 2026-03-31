@@ -5,12 +5,12 @@ postMessage({ type: 'STATUS', payload: 'Booting Core...' });
 importScripts("https://cdn.jsdelivr.net/pyodide/v0.25.0/full/pyodide.js");
 
 let pyodide;
-let run_sim; // Persistent reference to the compiled Python function
+let run_sim; 
+let sync_player;
 
 async function initEngine() {
     pyodide = await loadPyodide();
     
-    // Create the virtual folder structure
     pyodide.FS.mkdir("core");
     pyodide.FS.mkdir("engine");
 
@@ -20,7 +20,6 @@ async function initEngine() {
         pyodide.FS.writeFile(filepath, text);
     }
 
-    // Mount the architecture
     await fetchAndWrite("project_config.py");
     await fetchAndWrite("core/player.py");
     await fetchAndWrite("core/block.py");
@@ -28,21 +27,19 @@ async function initEngine() {
     await fetchAndWrite("engine/floor_map.py");
     await fetchAndWrite("engine/combat_loop.py");
 
-    // Pre-compile the simulation function into Pyodide's memory.
-    // This entirely eliminates Python compilation overhead during the tight loops.
     const pythonScript = `
 import sys
+import copy
 from core.player import Player
 from engine.combat_loop import CombatSimulator
 
-def execute_simulation(state_proxy, test_stats_proxy):
-    # Convert Pyodide JsProxy objects to native Python dicts
+base_player = None
+
+def sync_base_player(state_proxy):
+    global base_player
     state_dict = state_proxy.to_py()
-    test_stats = test_stats_proxy.to_py()
-    
     p = Player()
     
-    # 1. Map Global Settings
     p.asc1_unlocked = state_dict.get('asc1_unlocked', False)
     p.asc2_unlocked = state_dict.get('asc2_unlocked', False)
     p.arch_level = int(state_dict.get('arch_level', 1))
@@ -51,11 +48,8 @@ def execute_simulation(state_proxy, test_stats_proxy):
     p.arch_ability_infernal_bonus = float(state_dict.get('arch_ability_infernal_bonus', 0.0))
     p.total_infernal_cards = int(state_dict.get('total_infernal_cards', 0))
     
-    # Base stats mapping
     for k, v in state_dict.get('base_stats', {}).items():
         p.base_stats[str(k)] = int(v)
-    
-    # 2. Map Upgrades & Cards (Explicitly casting JS string keys back to Python Integers!)
     for k, v in state_dict.get('upgrade_levels', {}).items():
         p.set_upgrade_level(int(k), int(v))
     for k, v in state_dict.get('external_levels', {}).items():
@@ -63,11 +57,22 @@ def execute_simulation(state_proxy, test_stats_proxy):
     for k, v in state_dict.get('cards', {}).items():
         p.set_card_level(str(k), int(v))
         
-    # 3. Inject the specific stat distribution being tested by the grid search
+    base_player = p
+
+def execute_simulation(test_stats_proxy, test_upgrades_proxy):
+    global base_player
+    # Blazing fast memory clone prevents re-parsing the giant JS dictionary!
+    p = copy.deepcopy(base_player)
+    
+    test_stats = test_stats_proxy.to_py()
     for k, v in test_stats.items():
         p.base_stats[str(k)] = int(v)
         
-    # 4. Run the Engine
+    test_upgrades = test_upgrades_proxy.to_py()
+    if test_upgrades:
+        for k, v in test_upgrades.items():
+            p.set_upgrade_level(int(k), int(v))
+            
     sim = CombatSimulator(p)
     result = sim.run_simulation()
     
@@ -77,7 +82,9 @@ def execute_simulation(state_proxy, test_stats_proxy):
         "highest_floor": result.highest_floor,
         "xp_per_min": result.total_xp / runtime_mins,
         "blocks_per_min": result.blocks_mined / runtime_mins,
-        "total_time": result.total_time
+        "total_time": result.total_time,
+        "stamina_trace_floor": result.history['floor'],
+        "stamina_trace_stamina": result.history['stamina']
     }
     
     for frag_tier, amt in result.total_frags.items():
@@ -87,15 +94,12 @@ def execute_simulation(state_proxy, test_stats_proxy):
         for block_id, count in result.specific_blocks_mined.items():
             metrics[f"block_{block_id}_per_min"] = count / runtime_mins
             
-    # Include stamina trace for the dashboard profiling runs
-    metrics["stamina_trace_floor"] = result.history['floor']
-    metrics["stamina_trace_stamina"] = result.history['stamina']
-            
     return metrics
     `;
     
     await pyodide.runPythonAsync(pythonScript);
     run_sim = pyodide.globals.get('execute_simulation');
+    sync_player = pyodide.globals.get('sync_base_player');
 
     postMessage({ type: 'READY' });
 }
@@ -103,21 +107,20 @@ def execute_simulation(state_proxy, test_stats_proxy):
 initEngine().catch(err => postMessage({ type: 'ERROR', payload: err.message }));
 
 self.onmessage = function(e) {
-    if (e.data.command === 'RUN_TASK') {
-        const { taskId, state_dict, test_stats } = e.data;
-        
+    if (e.data.command === 'SYNC_STATE') {
         try {
-            // Call the pre-compiled Python function
-            const resultProxy = run_sim(state_dict, test_stats);
-            
-            // Convert Python dict back to JS Object
+            sync_player(e.data.state_dict);
+            postMessage({ type: 'SYNC_COMPLETE', syncId: e.data.syncId });
+        } catch (err) {
+            postMessage({ type: 'ERROR', payload: err.message });
+        }
+    } else if (e.data.command === 'RUN_TASK') {
+        const { taskId, test_stats, test_upgrades } = e.data;
+        try {
+            const resultProxy = run_sim(test_stats, test_upgrades || {});
             const result = resultProxy.toJs({ dict_converter: Object.fromEntries });
-            
-            // Destroy proxies to prevent memory leaks in the tight loops!
             resultProxy.destroy(); 
-            
             postMessage({ type: 'RESULT', taskId: taskId, payload: result });
-            
         } catch (err) {
             postMessage({ type: 'ERROR', payload: err.message });
         }
