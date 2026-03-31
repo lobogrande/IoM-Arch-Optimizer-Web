@@ -231,19 +231,33 @@ export default function PlayerSetup() {
           </div>
         )}
 
+        {/* --- TAB: UPGRADES --- */}
         {activeSubTab === 'upgrades' && (
           <div>
-            <div className="flex items-center justify-between mb-4">
-              <div className="flex bg-st-secondary rounded-lg p-1">
+            <div className="flex flex-col gap-4 mb-4">
+              
+              <div className="flex bg-st-secondary rounded-lg p-1 w-fit">
                 <button onClick={() => setUpgradeView('internal')} className={`px-4 py-1 text-sm font-bold rounded-md transition-colors ${upgradeView === 'internal' ? 'bg-white text-st-text shadow-sm' : 'text-st-text-light hover:text-st-text'}`}>Internal</button>
                 <button onClick={() => setUpgradeView('external')} className={`px-4 py-1 text-sm font-bold rounded-md transition-colors ${upgradeView === 'external' ? 'bg-white text-st-text shadow-sm' : 'text-st-text-light hover:text-st-text'}`}>External</button>
               </div>
+              
               {upgradeView === 'internal' && (
-                <label className="flex items-center gap-2 cursor-pointer text-sm font-medium">
-                  <input type="checkbox" checked={hideMaxed} onChange={(e) => setHideMaxed(e.target.checked)} className="w-4 h-4 accent-st-orange" />
-                  👀 Hide Maxed Upgrades
-                </label>
+                <div className="flex items-center gap-3">
+                  <button 
+                    onClick={() => setHideMaxed(!hideMaxed)}
+                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors duration-200 focus:outline-none ${hideMaxed ? 'bg-st-orange' : 'bg-gray-300'}`}
+                  >
+                    <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform duration-200 shadow-sm ${hideMaxed ? 'translate-x-6' : 'translate-x-1'}`} />
+                  </button>
+                  <span 
+                    className="text-sm font-medium cursor-pointer select-none" 
+                    onClick={() => setHideMaxed(!hideMaxed)}
+                  >
+                    👀 Hide Maxed Upgrades
+                  </span>
+                </div>
               )}
+              
             </div>
             <hr className="border-st-border mb-6" />
 
