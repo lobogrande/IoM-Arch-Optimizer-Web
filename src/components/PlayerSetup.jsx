@@ -3,8 +3,30 @@ import useStore from '../store';
 import { UI_STAT_IMG_WIDTH } from '../ui_config';
 
 export default function PlayerSetup() {
-  const { asc1_unlocked, asc2_unlocked, arch_level, current_max_floor, base_stats, setSetting, setBaseStat } = useStore();
+  const { asc1_unlocked, asc2_unlocked, arch_level, current_max_floor, base_stats, setSetting, setBaseStat, loadStateFromJson } = useStore();
   const [activeSubTab, setActiveSubTab] = useState('stats');
+
+  const handleFileUpload = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      try {
+        const json = JSON.parse(event.target.result);
+        loadStateFromJson(json);
+        // Optional: Replace with a nice toast notification later
+        console.log("✅ Player state loaded successfully!");
+      } catch (err) {
+        alert("❌ Error parsing JSON file.");
+        console.error(err);
+      }
+    };
+    reader.readAsText(file);
+    
+    // Reset the input so the same file can be uploaded again if needed
+    e.target.value = null;
+  };
 
   // Replicate the Budget Tracker Logic
   const total_allowed = arch_level; // (Skipping upgrade 12 for this quick mockup)
@@ -96,6 +118,7 @@ export default function PlayerSetup() {
           <input 
             type="file" 
             accept=".json" 
+            onChange={handleFileUpload}
             className="block w-full text-sm text-st-text-light file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:font-semibold file:bg-st-secondary file:text-st-text hover:file:bg-gray-200 cursor-pointer"
           />
         </div>
