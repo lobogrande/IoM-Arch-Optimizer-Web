@@ -183,13 +183,18 @@ export function getOptimalStepProfile(statsList, budget, bounds, simsPerSecond, 
         const remP1 = (budget - lockedSum) % step1;
         const p1Budget = budget - remP1;
 
+        // --- PREVENT ASC2 DIMENSIONALITY EXPLOSION ---
+        // If the player has 7 free variables, the Phase 2 box must be physically tighter 
+        // to prevent combinations from exploding past 150+ seconds baseline.
+        const divisor = numFree >= 6 ? 1.2 : 1.5;
+
         let step2;
         if (step1 <= 15) step2 = Math.max(2, Math.floor(step1 / 3));
         else if (step1 <= 30) step2 = Math.max(2, Math.floor(step1 / 2.5));
         else if (step1 <= 50) step2 = Math.max(2, Math.floor(step1 / 2));
-        else step2 = Math.max(2, Math.floor(step1 / 1.5));
+        else step2 = Math.max(2, Math.floor(step1 / divisor));
             
-        const p3Configs = [ [2, 1], [1, 1], [2, 2] ];
+        const p3Configs = [[2, 1], [1, 1], [2, 2], [1, 2] ];
         
         for (const [p3Radius, step3] of p3Configs) {
             // Use the memory-safe counter function!
@@ -237,8 +242,9 @@ export function getOptimalStepProfile(statsList, budget, bounds, simsPerSecond, 
             } else {
                 timeStr = `~${(estimatedSeconds / 60).toFixed(1)} minutes`;
             }
-                
-            bestProfile = {
+            
+            // Track the safest profile found so far in case we never hit the strict time limit
+            const currentProfile = {
                 step_1: step1,
                 step_2: step2,
                 step_3: step3,
@@ -247,13 +253,20 @@ export function getOptimalStepProfile(statsList, budget, bounds, simsPerSecond, 
                 eta_seconds: estimatedSeconds,
                 time_label: timeStr
             };
+
+            // If this is the absolute first valid profile, or if it's closer to our target time than the last one, keep it as a fallback!
+            if (!bestProfile || estimatedSeconds <= targetTimeSeconds) {
+                bestProfile = currentProfile;
+            }
             
             // STRICT BUFFER: Enforce a strict 20% safety margin (0.80) to guarantee completion
             if (estimatedSeconds <= (targetTimeSeconds * 0.80)) {
-                return bestProfile;
+                return currentProfile;
             }
         }
     }
+    
+    // Fallback: If no combination was fast enough (e.g., target time is 10s), return the fastest one we found
     return bestProfile;
 }
 
