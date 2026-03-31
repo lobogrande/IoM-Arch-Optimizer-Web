@@ -216,3 +216,175 @@ export function getOptimalStepProfile(statsList, budget, bounds, simsPerSecond, 
     }
     return bestProfile;
 }
+
+/**
+ * Runs a grid search phase using Successive Halving.
+ * Directly translated from parallel_worker.py run_optimization_phase.
+ */
+export async function runOptimizationPhase(
+    phaseName, targetMetric, statsList, budget, step, iterations, pool,
+    fixedStats, bounds, baseStateDict, timeLimitSeconds, globalStartTime, onProgress
+) {
+    const dists = generateDistributions(statsList, budget, step, bounds);
+    if (!dists || dists.length === 0) return { bestDist: null, summary: null };
+
+    const tracker = { };
+    dists.forEach(d => {
+        const key = JSON.stringify(d);
+        tracker[key] = { dist: d, sumTarget: 0.0, sumFloor: 0.0, runs: 0, metricsSum: { }, floors: [ ] };
+    });
+
+    let activeKeys = Object.keys(tracker);
+    let rounds = [ ];
+    if (dists.length <= 20 || iterations <= 10) {
+        rounds = [ [iterations, 1.0] ];
+    } else {
+        const r1 = Math.max(1, Math.floor(iterations * 0.15));
+        const r2 = Math.max(1, Math.floor(iterations * 0.35));
+        const r3 = iterations - r1 - r2;
+        rounds = [[r1, 0.20], [r2, 0.10], [r3, 1.0] ];
+    }
+
+    let hardAbortTriggered = false;
+
+    for (let roundIdx = 0; roundIdx < rounds.length; roundIdx++) {
+        if (activeKeys.length === 0 || hardAbortTriggered) break;
+
+        const [runCount, keepRatio] = rounds[roundIdx];
+        const totalTasks = activeKeys.length * runCount;
+        let completedTasks = 0;
+
+        const roundPromises = [ ];
+
+        for (const key of activeKeys) {
+            const testStats = { ...tracker[key].dist, ...fixedStats };
+
+            for (let i = 0; i < runCount; i++) {
+                // Shoot task to Worker Pool
+                const p = pool.runTask(baseStateDict, testStats).then(result => {
+                    const tr = tracker[key];
+                    tr.sumTarget += (result[targetMetric] || 0.0);
+                    tr.sumFloor += (result.highest_floor || 0.0);
+                    tr.runs += 1;
+                    tr.floors.push(result.highest_floor || 0);
+
+                    for (const [mk, mv] of Object.entries(result)) {
+                        if (mk !== 'stamina_trace_floor' && mk !== 'stamina_trace_stamina' && mk !== 'total_time') {
+                            tr.metricsSum[mk] = (tr.metricsSum[mk] || 0.0) + mv;
+                        }
+                    }
+
+                    // Profile stamina trace from the last run for telemetry
+                    if (!tr.staminaTrace && result.stamina_trace_floor) {
+                        tr.staminaTrace = {
+                            floor: result.stamina_trace_floor,
+                            stamina: result.stamina_trace_stamina
+                        };
+                    }
+
+                    completedTasks++;
+                    if (onProgress && (completedTasks % Math.max(1, Math.floor(totalTasks / 20)) === 0 || completedTasks === totalTasks)) {
+                        onProgress(phaseName, roundIdx + 1, rounds.length, completedTasks, totalTasks);
+                    }
+
+                    // Mid-round abort check
+                    if (globalStartTime && timeLimitSeconds) {
+                        if ((Date.now() - globalStartTime) / 1000 >= timeLimitSeconds) {
+                            hardAbortTriggered = true;
+                        }
+                    }
+                });
+                roundPromises.push(p);
+            }
+        }
+
+        // The Engine Worker Pool internally bottlenecks execution to your exact hardware cores
+        await Promise.all(roundPromises);
+
+        // Sort & Drop Losers
+        activeKeys.sort((a, b) => {
+            const ta = tracker[a], tb = tracker[b];
+            if (targetMetric === 'highest_floor') {
+                const maxA = ta.floors.length ? Math.max(...ta.floors) : 0;
+                const maxB = tb.floors.length ? Math.max(...tb.floors) : 0;
+                if (maxA !== maxB) return maxB - maxA;
+                const avgA = ta.floors.length ? ta.sumFloor / ta.floors.length : 0;
+                const avgB = tb.floors.length ? tb.sumFloor / tb.floors.length : 0;
+                return avgB - avgA;
+            } else {
+                const scoreA = ta.runs ? ta.sumTarget / ta.runs : 0;
+                const scoreB = tb.runs ? tb.sumTarget / tb.runs : 0;
+                if (scoreA !== scoreB) return scoreB - scoreA;
+                const avgA = ta.floors.length ? ta.sumFloor / ta.floors.length : 0;
+                const avgB = tb.floors.length ? tb.sumFloor / tb.floors.length : 0;
+                return avgB - avgA;
+            }
+        });
+
+        if (roundIdx < rounds.length - 1 && !hardAbortTriggered) {
+            const keepCount = Math.max(3, Math.floor(activeKeys.length * keepRatio));
+            activeKeys = activeKeys.slice(0, keepCount);
+        }
+    }
+
+    if (activeKeys.length === 0) return { bestDist: null, summary: null };
+
+    const bestKey = activeKeys[0];
+    const bestData = tracker[bestKey];
+    const bestDist = bestData.dist;
+    const runsCompleted = Math.max(1, bestData.runs);
+
+    const allScores = Object.values(tracker).filter(d => d.runs > 0).map(d => d.sumTarget / d.runs).sort((a, b) => b - a);
+    const worst = allScores.length > 0 ? allScores[allScores.length - 1] : 0;
+    const avgScore = allScores.length > 0 ? allScores.reduce((a,b)=>a+b,0) / allScores.length : 0;
+    const runnerUp = allScores.length > 1 ? allScores[1] : (allScores.length > 0 ? allScores[0] : 0);
+
+    const absMaxFloor = bestData.floors.length ? Math.max(...bestData.floors) : 0;
+    const absMaxChance = bestData.floors.length ? (bestData.floors.filter(f => f === absMaxFloor).length / bestData.floors.length) : 0;
+
+    const avgMetrics = { };
+    for (const [mk, mv] of Object.entries(bestData.metricsSum)) {
+        avgMetrics[mk] = mv / runsCompleted;
+    }
+
+    const summary = {
+        [targetMetric]: bestData.sumTarget / runsCompleted,
+        avg_floor: bestData.sumFloor / runsCompleted,
+        abs_max_floor: absMaxFloor,
+        abs_max_chance: absMaxChance,
+        worst_val: worst,
+        avg_val: avgScore,
+        runner_up_val: runnerUp,
+        floors: bestData.floors,
+        avg_metrics: avgMetrics,
+        stamina_trace: bestData.staminaTrace
+    };
+
+    return { bestDist, summary };
+}
+
+/**
+ * Ensures any points stripped by the Modulo Aligner are mathematically placed back into the build
+ */
+export function topUpBuild(build, statsList, totalBudget, effectiveCaps, lockedStats) {
+    if (!build) return build;
+    const b = { ...build };
+    let currentSum = statsList.reduce((acc, s) => acc + (b[s] || 0), 0);
+    let missing = totalBudget - currentSum;
+
+    if (missing > 0) {
+        const unlockedStats = statsList.filter(s => lockedStats[s] === undefined);
+        unlockedStats.sort((s1, s2) => (b[s2] || 0) - (b[s1] || 0));
+
+        for (const s of unlockedStats) {
+            if (missing <= 0) break;
+            const room = (effectiveCaps[s] || 0) - (b[s] || 0);
+            if (room > 0) {
+                const add = Math.min(room, missing);
+                b[s] += add;
+                missing -= add;
+            }
+        }
+    }
+    return b;
+}
