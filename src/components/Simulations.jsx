@@ -434,6 +434,18 @@ export default function Simulations() {
             </p>
           </div>
 
+          <details className="st-container group cursor-pointer marker:text-st-orange mb-4">
+            <summary className="font-bold">ℹ️ How accurate are these projections?</summary>
+            <div className="mt-4 text-sm space-y-3 cursor-default">
+              <p><strong>The Good News:</strong> The environment generation in this engine is now <strong>100% identical</strong> to the live game's source code! The stat distributions this tool provides are mathematically perfect for your current upgrades.</p>
+              <p><strong>The Reality Check #1:</strong> While the combat math is exact, the absolute output numbers (Max Floor, Kills/hr) are built on <strong>Statistical Averages</strong>. The AI runs hundreds of simulations and optimizes for <em>consistent, reliable farming</em>. Treat these numbers as your highly accurate, reliable baseline!</p>
+              <p><strong>The Reality Check #2:</strong> The engine calculates <strong>100% Theoretical Efficiency</strong>. In the simulator, 0.000 seconds pass between killing an ore and hitting the next one. In the actual live game, minor animation delays and frame drops consume fractions of a second. Expect your actual real-world Yields to be roughly <strong>~5% to 10% lower</strong> than the mathematical perfection projected here.</p>
+              {store.asc2_unlocked && (
+                <p>🌌 <strong>Ascension 2 Note:</strong> Because Asc2 unlocks the <em>Corruption</em> stat, the AI must search an entire extra dimension of math. Optimizations will naturally take longer to compute than Asc1 runs!</p>
+              )}
+            </div>
+          </details>
+
           <hr className="border-st-border" />
 
           {/* Target Selection */}
@@ -477,6 +489,15 @@ export default function Simulations() {
                 </>
               )}
             </div>
+          </div>
+
+          {/* Strategy Tip */}
+          <div className="bg-blue-900/20 border-l-4 border-blue-500 p-3 rounded text-sm text-blue-800 bg-blue-50 mt-4">
+            {optGoal === "Max Floor Push" ? (
+              <p>💡 <strong>Strategy Tip:</strong> Pushing deep floors requires balancing Damage, Armor Pen, Max Stamina and Crits. To force the AI to scan at an extreme precision, try opening the <strong>Stat Constraints</strong> below and locking <strong>Intelligence</strong> to 0 and <strong>Luck</strong> to your max stat cap!</p>
+            ) : (
+              <p>💡 <strong>Strategy Tip:</strong> If your target spawns on early floors (e.g., Dirt), you don't need Max Stamina or Armor Pen to reach it! Lock <strong>Agility</strong> and <strong>Perception</strong> to 0 to massively increase the precision of the AI's search.<br/><br/>⚠️ <strong>Wait, what if my target is late-game?</strong> If you are farming Tier 4 blocks (which spawn on Floor 81+), you STILL have to survive the gauntlet of tough ores to get there. Do not lock your survival stats to 0, or the AI will die before reaching your target!</p>
+            )}
           </div>
 
           <hr className="border-st-border" />
@@ -530,7 +551,7 @@ export default function Simulations() {
           {/* Time Target Slider */}
           <div>
             <label className="block font-bold mb-2">⏱️ Target Compute Time</label>
-            <div className="flex items-center space-x-4">
+            <div className="flex items-center space-x-4 mb-6">
               <input 
                 type="range" 
                 min="10" 
@@ -544,6 +565,65 @@ export default function Simulations() {
                 {timeLimit}s
               </span>
             </div>
+
+            {/* Precision Gauge */}
+            {(() => {
+              let gColor, gBg, gIcon, gTitle, gDesc;
+              if (step1 >= 15) {
+                gColor = "#ff4b4b"; gBg = "rgba(255, 75, 75, 0.1)"; gIcon = "🔴";
+                gTitle = "Low Precision (Scout Only)";
+                gDesc = `The search grid is too massive. The AI must take huge leaps of ${step1} stat points. This run is only useful for spotting which stats the AI completely ignores. Do not trust the final numbers! Increase time or lock stats.`;
+              } else if (step1 >= 5) {
+                gColor = "#ffa229"; gBg = "rgba(255, 162, 41, 0.1)"; gIcon = "🟡";
+                gTitle = "Moderate Precision";
+                gDesc = `The AI is searching in leaps of ${step1} stat points. It will find a strong general build, but might miss the absolute mathematical peak. Safe to use as a Scout Run.`;
+              } else {
+                gColor = "#4CAF50"; gBg = "rgba(76, 175, 80, 0.1)"; gIcon = "🟢";
+                gTitle = "High Precision (Recommended)";
+                gDesc = `The search area is extremely tight (leaps of ${step1} stat points). The AI has enough time to pinpoint the mathematically perfect build. Safe to trust!`;
+              }
+
+              return (
+                <div style={{ border: `1px solid ${gColor}`, borderLeft: `5px solid ${gColor}`, backgroundColor: gBg }} className="p-4 rounded mb-4">
+                  <div className="font-bold text-lg mb-1">{gIcon} Precision Gauge: {gTitle}</div>
+                  <div className="text-sm">{gDesc}</div>
+                </div>
+              );
+            })()}
+          </div>
+
+          {/* Engine Tuning */}
+          <details className="st-container group cursor-pointer marker:text-st-orange mb-6">
+            <summary className="font-bold">⚙️ Advanced: Engine Tuning & Hardware Benchmark</summary>
+            <div className="mt-4 text-sm cursor-default space-y-4">
+              <p>
+                <strong>🧠 How does the Auto-Scaler work?</strong><br/>
+                Testing every stat combination point-by-point would take days. Instead, we "zoom in":<br/>
+                • <strong>Phase 1 (Coarse):</strong> Casts a wide net across your stat budget in large leaps.<br/>
+                • <strong>Phase 2 (Fine):</strong> Draws a tight box around the Phase 1 winner and tests smaller leaps.<br/>
+                • <strong>Phase 3 (Exact):</strong> Pinpoints the mathematical peak by testing every single point in that final box.
+              </p>
+              <p className="italic text-st-text-light">
+                (Execution Plan: Phase 1 leaps by {step1} ➔ Phase 2 leaps by {profData?.step_2 || '?'} ➔ Phase 3 leaps by {profData?.step_3 || '?'})
+              </p>
+              <hr className="border-st-border" />
+              <div className="flex items-center justify-between">
+                <span>⚡ <strong>Hardware Speed:</strong> {simsPerSec} sims / second <em>(Auto-calibrated)</em></span>
+                <button 
+                  onClick={() => setSimsPerSec(150)}
+                  className="px-4 py-1 bg-st-secondary border border-st-border rounded hover:border-st-orange text-xs font-bold transition-colors"
+                >
+                  🔄 Reset Calibration
+                </button>
+              </div>
+            </div>
+          </details>
+
+          <hr className="border-st-border" />
+
+          {/* Run Warning (Updated for Web Workers!) */}
+          <div className="bg-yellow-900/20 border-l-4 border-yellow-500 p-3 rounded text-sm text-yellow-800 bg-yellow-50 mb-4">
+            ⚠️ <strong>CRITICAL:</strong> Unlike the old server version, you <strong>CAN</strong> safely change tabs while the AI is running! However, do not refresh or close this browser window or the simulation will be aborted.
           </div>
 
           {!isOptimizing ? (
