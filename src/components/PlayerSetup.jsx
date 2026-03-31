@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import useStore from '../store';
-import { UI_STAT_IMG_WIDTH, UI_BLOCK_CARD_WIDTH } from '../ui_config';
+import { UI_STAT_IMG_WIDTH, UI_BLOCK_CARD_WIDTH, UI_BLOCK_CARD_X_OFFSET, UI_BLOCK_CARD_Y_OFFSET } from '../ui_config';
 import { INTERNAL_UPGRADE_CAPS, UPGRADE_NAMES, ASC1_LOCKED_UPGS, ASC2_LOCKED_UPGS, CARD_TYPES } from '../game_data';
 
 export default function PlayerSetup() {
@@ -336,7 +336,7 @@ export default function PlayerSetup() {
                         {user_tier > 0 && !is_locked ? (
                           <>
                             <img src={`/assets/cards/backgrounds/${user_tier}.png`} className="absolute inset-0 w-full h-full object-contain" style={{ imageRendering: 'pixelated' }} />
-                            <img src={`/assets/cards/cores/${card_id}.png`} className="absolute inset-0 w-full h-full object-contain drop-shadow-md" style={{ imageRendering: 'pixelated', transform: 'translate(1px, -4px)' }} />
+                            <img src={`/assets/cards/cores/${card_id}.png`} className="absolute inset-0 w-full h-full object-contain drop-shadow-md" style={{ imageRendering: 'pixelated', transform: `translate(${UI_BLOCK_CARD_X_OFFSET}px, ${UI_BLOCK_CARD_Y_OFFSET}px)` }} />
                           </>
                         ) : (
                           <div className="text-xs text-st-text-light mt-4">(Locked)</div>
