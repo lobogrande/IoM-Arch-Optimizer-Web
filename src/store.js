@@ -12,6 +12,13 @@ const useStore = create((set) => ({
   base_stats: {
     Str: 0, Agi: 0, Per: 0, Int: 0, Luck: 0, Div: 0, Corr: 0
   },
+  
+  // Upgrades & Cards
+  upgrade_levels: {},
+  external_levels: {},
+  cards: {},
+  arch_ability_infernal_bonus: 0.0,
+  total_infernal_cards: 0,
 
   // Actions (Equivalent to updating st.session_state)
   setSetting: (key, value) => set({ [key]: value }),
@@ -37,7 +44,28 @@ const useStore = create((set) => ({
       newState.base_stats = { ...state.base_stats, ...data.base_stats };
     }
     
-    // (We will add upgrades and cards here later!)
+    // Parse Upgrades (Map strings like "3 - Gem Stamina" to integer ID 3)
+    if (data.internal_upgrades) {
+      const parsedUpgs = {};
+      Object.entries(data.internal_upgrades).forEach(([k, v]) => {
+        const id = parseInt(k.split(" - ")[0]);
+        if (!isNaN(id)) parsedUpgs[id] = v;
+      });
+      newState.upgrade_levels = parsedUpgs;
+    }
+    
+    // Parse Cards
+    if (data.cards) {
+      newState.cards = { ...data.cards };
+    }
+    
+    // Parse External (Idols/Pets)
+    if (data.external_upgrades) {
+      // We will map these carefully when we build the External Upgrades UI
+      newState.raw_external_import = data.external_upgrades;
+    }
+    
+    if (data.settings?.total_infernal_cards !== undefined) newState.total_infernal_cards = data.settings.total_infernal_cards;
     
     return newState;
   }),
