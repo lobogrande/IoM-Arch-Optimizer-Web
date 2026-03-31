@@ -1,8 +1,11 @@
 import { useState } from 'react';
 import useStore from '../store';
 import { EngineWorkerPool, getOptimalStepProfile, runOptimizationPhase, topUpBuild } from '../utils/optimizer';
-import Plot from 'react-plotly.js';
+import PlotWrapper from 'react-plotly.js';
 import { INTERNAL_UPGRADE_CAPS, UPGRADE_NAMES } from '../game_data';
+
+// Vite CommonJS interop fix: Unwrap the default export if it was packaged as an object
+const Plot = PlotWrapper.default || PlotWrapper;
 
 const OPT_GOALS =[
   "Max Floor Push", 
