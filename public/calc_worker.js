@@ -37,8 +37,16 @@ def calculate_all_stats(js_data):
     
     # Inject Dictionaries
     p.base_stats = data.get('base_stats', {})
-    p.external_levels = data.get('external_levels', {})
-    p.cards = data.get('cards', {})
+    
+    # Set External Upgrades natively (JS object keys are strings, must cast to int)
+    ext_levels = data.get('external_levels', {})
+    for k, v in ext_levels.items():
+        p.set_external_level(int(k), v)
+        
+    # Set Cards natively
+    cards_in = data.get('cards', {})
+    for k, v in cards_in.items():
+        p.set_card_level(k, v)
     
     # Set Internal Upgrades natively
     upgrades = data.get('upgrade_levels', {})
