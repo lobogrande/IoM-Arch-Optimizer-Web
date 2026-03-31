@@ -22,34 +22,40 @@ export class EngineWorkerPool {
     }
 
     // Spawns Pyodide workers and waits for them to compile the Python environment
-    async init(onReady, onProgress) {
-        for (let i = 0; i < this.size; i++) {
-            const w = new Worker('/engine_worker.js');
-            w.onmessage = (e) => {
-                if (e.data.type === 'READY') {
-                    this.readyCount++;
-                    this.idleWorkers.push(w);
-                    if (onProgress) onProgress(this.readyCount, this.size);
-                    if (this.readyCount === this.size && onReady) onReady();
-                    this.pump();
-                } else if (e.data.type === 'RESULT' || e.data.type === 'ERROR') {
-                    const cb = this.callbacks.get(e.data.taskId);
-                    if (cb) {
-                        this.callbacks.delete(e.data.taskId);
-                        cb(e.data);
+    init(onReady, onProgress) {
+        return new Promise((resolve) => {
+            for (let i = 0; i < this.size; i++) {
+                const w = new Worker('/engine_worker.js');
+                w.onmessage = (e) => {
+                    if (e.data.type === 'READY') {
+                        this.readyCount++;
+                        this.idleWorkers.push(w);
+                        if (onProgress) onProgress(this.readyCount, this.size);
+                        
+                        if (this.readyCount === this.size) {
+                            if (onReady) onReady();
+                            resolve(); // Unblocks React's 'await pool.init()'
+                        }
+                        this.pump();
+                    } else if (e.data.type === 'RESULT' || e.data.type === 'ERROR') {
+                        const cb = this.callbacks.get(e.data.taskId);
+                        if (cb) {
+                            this.callbacks.delete(e.data.taskId);
+                            cb(e.data);
+                        }
+                        this.idleWorkers.push(w);
+                        this.pump(); // Worker is free, immediately grab next task
+                    } else if (e.data.type === 'SYNC_COMPLETE') {
+                        const cb = this.callbacks.get(e.data.syncId);
+                        if (cb) {
+                            this.callbacks.delete(e.data.syncId);
+                            cb();
+                        }
                     }
-                    this.idleWorkers.push(w);
-                    this.pump(); // Worker is free, immediately grab next task
-                } else if (e.data.type === 'SYNC_COMPLETE') {
-                    const cb = this.callbacks.get(e.data.syncId);
-                    if (cb) {
-                        this.callbacks.delete(e.data.syncId);
-                        cb();
-                    }
-                }
-            };
-            this.workers.push(w);
-        }
+                };
+                this.workers.push(w);
+            }
+        });
     }
 
     async syncState(state_dict) {
