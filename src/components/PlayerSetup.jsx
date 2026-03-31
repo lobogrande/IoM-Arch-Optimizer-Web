@@ -345,6 +345,28 @@ export default function PlayerSetup() {
 
         {activeSubTab === 'cards' && (
           <div>
+            
+            {/* INFERNAL CARDS UI HEADER */}
+            <div className="st-container mb-6 flex flex-col sm:flex-row gap-4 items-center bg-st-secondary/50">
+              <div className="w-full sm:w-1/2">
+                <label className="font-bold text-sm block mb-1">Total Infernal Cards (Global)</label>
+                <span className="text-xs text-st-text-light block mb-2 leading-tight">Sum of all Infernal cards you own across all categories (Archaeology, Fishing, etc). Used for the Infernal Multiplier.</span>
+                <input 
+                  type="number" 
+                  className="st-input bg-st-bg" 
+                  value={total_infernal_cards} 
+                  onChange={(e) => setSetting('total_infernal_cards', parseInt(e.target.value) || 0)} 
+                  min="0" 
+                />
+              </div>
+              <div className="w-full sm:w-1/2 sm:border-l border-st-border sm:pl-6 text-center sm:text-left">
+                <span className="text-sm font-bold block mb-1">🔥 Infernal Arch Card Bonus</span>
+                <span className="text-lg font-bold text-st-orange">
+                  (Syncs with Engine...)
+                </span>
+              </div>
+            </div>
+
             <h3 className="text-xl font-bold mb-4 flex items-center gap-2">
               <img src="/assets/cards/cores/div1.png" alt="icon" className="w-8 h-8" style={{ imageRendering: 'pixelated' }} onError={(e) => e.target.style.display = 'none'}/>
               Block Card Collection
