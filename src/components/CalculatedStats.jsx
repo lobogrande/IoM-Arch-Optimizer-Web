@@ -4,8 +4,8 @@ import useStore from '../store';
 import { UPGRADE_NAMES, EXTERNAL_UI_GROUPS } from '../game_data';
 
 export default function CalculatedStats() {
-  const { asc1_unlocked, asc2_unlocked, base_stats, upgrade_levels, external_levels, cards, calculated_stats } = useStore();
-  const [troubleshootStat, setTroubleshootStat] = useState("");
+  const { asc1_unlocked, asc2_unlocked, current_max_floor, base_stats, upgrade_levels, external_levels, cards, calculated_stats } = useStore();
+  const[troubleshootStat, setTroubleshootStat] = useState("");
   const [showTroubleshooter, setShowTroubleshooter] = useState(false);
 
   // Helper to safely format numbers and prevent NaN errors while Pyodide is booting
@@ -53,27 +53,51 @@ export default function CalculatedStats() {
             </select>
 
             {troubleshootStat && (() => {
+              // Enhanced map to support settings tracking and block bonker inclusion
               const TROUBLESHOOT_MAP = {
-                "Damage": { stats: ["Str", "Corr", "Div"], upgs:[9, 15, 20, 25, 32, 34, 36, 47, 49, 51, 52], exts: ["Dino Skin", "Hestia Idol"], infs: ["rare2", "div1"] },
-                "Armor Pen": { stats:["Per", "Int"], upgs: [10, 17, 29, 33, 36], exts: [], infs: ["leg3", "rare3"] },
-                "Max Stamina": { stats: ["Agi", "Corr"], upgs:[3, 14, 23, 26, 28, 39, 54], exts: [], infs:["epic3"] },
-                "Crit Chances & Multipliers": { stats: ["Luck", "Div"], upgs:[13, 18, 20, 30, 37, 40, 47, 49, 53], exts: [], infs:["com1", "com2", "com3", "epic2"] },
-                "EXP & Fragment Gain": { stats:["Int", "Per", "Div"], upgs:[4, 11, 21, 28, 35, 42, 45, 51], exts:["Axolotl Skin", "Geoduck Tribute"], infs: ["dirt2", "dirt3", "leg1"] },
-                "Mod Chances & Multipliers": { stats: ["Luck", "Div", "Corr"], upgs:[5, 14, 16, 23, 24, 26, 33, 35, 38, 40, 43, 44, 48, 50, 52, 53, 54, 55], exts:["Archaeology Bundle"], infs:["dirt1", "rare1", "epic1", "leg2", "myth2", "myth3", "div3"] },
-                "Abilities": { stats: ["Int", "Div"], upgs:[18, 22, 29, 31, 32, 39, 50], exts:["Arch Ability Card", "Avada Keda- Skill", "Block Bonker Skill"], infs:[] }
+                "Damage": { settings: [], stats: ["Str", "Corr", "Div"], upgs:[9, 15, 20, 25, 32, 34, 36, 47, 49, 51, 52], exts: ["Dino Skin", "Hestia Idol"], infs: ["rare2", "div1"] },
+                "Armor Pen": { settings: [], stats:["Per", "Int"], upgs:[10, 17, 29, 33, 36], exts: [], infs: ["leg3", "rare3"] },
+                "Max Stamina": { settings: ["current_max_floor"], stats: ["Agi", "Corr"], upgs:[3, 14, 23, 26, 28, 39, 54], exts: ["Block Bonker Skill"], infs:["epic3"] },
+                "Crit Chances & Multipliers": { settings: [], stats: ["Luck", "Div"], upgs:[13, 18, 20, 30, 37, 40, 47, 49, 53], exts: [], infs:["com1", "com2", "com3", "epic2"] },
+                "EXP & Fragment Gain": { settings: [], stats:["Int", "Per", "Div"], upgs:[4, 11, 21, 28, 35, 42, 45, 51], exts:["Axolotl Skin", "Geoduck Tribute"], infs: ["dirt2", "dirt3", "leg1"] },
+                "Mod Chances & Multipliers": { settings: [], stats: ["Luck", "Div", "Corr"], upgs:[5, 14, 16, 23, 24, 26, 33, 35, 38, 40, 43, 44, 48, 50, 52, 53, 54, 55], exts:["Archaeology Bundle"], infs:["dirt1", "rare1", "epic1", "leg2", "myth2", "myth3", "div3"] },
+                "Abilities": { settings: [], stats:["Int", "Div"], upgs:[18, 22, 29, 31, 32, 39, 50], exts:["Arch Ability Card", "Avada Keda- Skill", "Block Bonker Skill"], infs:[] }
               };
               
               const data = TROUBLESHOOT_MAP[troubleshootStat];
               if (!data) return null;
 
+              // Helper function to calculate the visual contribution string!
+              const getEffectStr = (type, key, val) => {
+                if (val === 0) return "";
+                if (type === 'stat' && key === 'Agi' && troubleshootStat === "Max Stamina") return `(+${val} Flat)`;
+                if (type === 'stat' && key === 'Corr' && troubleshootStat === "Max Stamina") return `(-${val}% Multi)`;
+                
+                if (type === 'upg' && troubleshootStat === "Max Stamina") {
+                  const mults = { 3: 5, 14: 5, 23: 5, 26: 10, 28: 20, 39: 20, 54: 50 };
+                  if (mults[key]) return `(+${val * mults[key]} Flat)`;
+                }
+
+                if (type === 'ext' && key === "Block Bonker Skill" && troubleshootStat === "Max Stamina") {
+                  return `(+${Math.min(current_max_floor, 100)}% Multi)`;
+                }
+
+                return ""; // Fallback if no specific string is mapped yet
+              };
+
               return (
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-4 bg-st-secondary p-4 rounded-lg">
                   <div>
                     <h5 className="font-bold border-b border-gray-300 pb-1 mb-2">📊 Base Stats</h5>
+                    {data.settings.map(s => {
+                      if (s === 'current_max_floor') return <div key={s} className="text-sm mb-1 text-st-orange"><strong>Max Floor:</strong> <code className="bg-gray-200 px-1 rounded text-st-text">{current_max_floor}</code></div>;
+                      return null;
+                    })}
                     {data.stats.map(s => {
                       if (s === 'Corr' && !asc2_unlocked) return null;
                       if (s === 'Div' && !asc1_unlocked) return null;
-                      return <div key={s} className="text-sm mb-1"><strong>{s}:</strong> <code className="bg-gray-200 px-1 rounded">{base_stats[s] || 0}</code></div>;
+                      const val = base_stats[s] || 0;
+                      return <div key={s} className="text-sm mb-1"><strong>{s}:</strong> <code className="bg-gray-200 px-1 rounded">{val}</code> <span className="text-xs text-st-text-light">{getEffectStr('stat', s, val)}</span></div>;
                     })}
                   </div>
                   <div>
@@ -81,17 +105,17 @@ export default function CalculatedStats() {
                     {data.upgs.map(u => {
                       const asc2_locked =[19, 27, 34, 46, 52, 55];
                       if (!asc2_unlocked && asc2_locked.includes(u)) return null;
+                      const val = upgrade_levels[u] || 0;
                       const name = UPGRADE_NAMES[u] || `Upg ${u}`;
-                      return <div key={u} className="text-sm mb-1"><strong>{name}:</strong> <code className="bg-gray-200 px-1 rounded">{upgrade_levels[u] || 0}</code></div>;
+                      return <div key={u} className="text-sm mb-1"><strong>{name}:</strong> <code className="bg-gray-200 px-1 rounded">{val}</code> <span className="text-xs text-st-text-light">{getEffectStr('upg', u, val)}</span></div>;
                     })}
                   </div>
                   <div>
                     <h5 className="font-bold border-b border-gray-300 pb-1 mb-2">🌟 External Upgrades</h5>
                     {data.exts.length === 0 ? <div className="text-sm italic text-gray-500">(None apply)</div> : data.exts.map(e => {
-                      // Find the group to get the exact row ID
                       const group = EXTERNAL_UI_GROUPS.find(g => g.name === e);
                       const val = group ? (external_levels[group.rows[0]] || 0) : 0;
-                      return <div key={e} className="text-sm mb-1"><strong>{e}:</strong> <code className="bg-gray-200 px-1 rounded">{val}</code></div>;
+                      return <div key={e} className="text-sm mb-1"><strong>{e}:</strong> <code className="bg-gray-200 px-1 rounded">{val}</code> <span className="text-xs text-st-text-light">{getEffectStr('ext', e, val)}</span></div>;
                     })}
                   </div>
                   <div>
