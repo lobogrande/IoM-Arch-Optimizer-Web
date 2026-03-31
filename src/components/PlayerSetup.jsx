@@ -483,23 +483,27 @@ export default function PlayerSetup() {
                 🔒 Arch Idols are locked until Ascension 1.
               </div>
             ) : (
-              <div className="flex flex-col sm:flex-row gap-6 justify-center">
-                <div className="st-container flex flex-col items-center p-6 w-full sm:w-64">
+              <div className="flex flex-col sm:flex-row gap-6 justify-start">
+                <div className="st-container flex flex-col items-center justify-between p-4 w-full sm:w-64">
                   <span className="font-bold mb-4">Hestia Idol</span>
-                  <div className="h-32 mb-4 flex items-center justify-center">
-                    <img src="/assets/upgrades/idols/hestia_idol.png" alt="Hestia" style={{ width: UI_EXT_IMG_STD, imageRendering: 'pixelated' }} onError={(e) => e.target.style.display = 'none'} />
+                  <div className="w-full flex justify-center mb-4">
+                    <img src="/assets/upgrades/idols/hestia_idol.png" alt="Hestia" className="h-auto object-contain" style={{ width: UI_EXT_IMG_STD, imageRendering: 'pixelated' }} onError={(e) => e.target.style.display = 'none'} />
                   </div>
-                  <hr className="w-full border-st-border mb-4"/>
-                  <input type="number" className="st-input" value={external_levels[4] || 0} onChange={(e) => setExternalGroup([4], e.target.value)} min="0" />
+                  <div className="w-full">
+                    <hr className="border-st-border mb-4"/>
+                    <input type="number" className="st-input" value={external_levels[4] || 0} onChange={(e) => setExternalGroup([4], e.target.value)} min="0" />
+                  </div>
                 </div>
 
-                <div className="st-container flex flex-col items-center p-6 w-full sm:w-64">
+                <div className="st-container flex flex-col items-center justify-between p-4 w-full sm:w-64">
                   <span className="font-bold mb-4">Hades Idol</span>
-                  <div className="h-32 mb-4 flex items-center justify-center">
-                    <img src="/assets/upgrades/idols/hades_idol.png" alt="Hades" style={{ width: UI_EXT_IMG_STD, imageRendering: 'pixelated' }} onError={(e) => e.target.style.display = 'none'} />
+                  <div className="w-full flex justify-center mb-4">
+                    <img src="/assets/upgrades/idols/hades_idol.png" alt="Hades" className="h-auto object-contain" style={{ width: UI_EXT_IMG_STD, imageRendering: 'pixelated' }} onError={(e) => e.target.style.display = 'none'} />
                   </div>
-                  <hr className="w-full border-st-border mb-4"/>
-                  <input type="number" className="st-input" value={hades_idol_level} onChange={(e) => setSetting('hades_idol_level', parseInt(e.target.value)||0)} min="0" />
+                  <div className="w-full">
+                    <hr className="border-st-border mb-4"/>
+                    <input type="number" className="st-input" value={hades_idol_level} onChange={(e) => setSetting('hades_idol_level', parseInt(e.target.value)||0)} min="0" />
+                  </div>
                 </div>
               </div>
             )}
