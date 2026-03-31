@@ -48,17 +48,32 @@ const useStore = create((set) => ({
   loadStateFromJson: (data) => set((state) => {
     const newState = { ...state };
     
-    // 🕵️‍♂️ AGGRESSIVE INFERNAL BONUS HUNTING
-    // Python and React export this in different places depending on the version. We check everywhere!
+    // 🕵️‍♂️ RECURSIVE HYBRID-KEY PARSER
+    // Mimics verify_player.py to support legacy JSON files from Streamlit
     let foundInfernalRaw = null;
-    if (data.external_upgrades && data.external_upgrades["Arch Ability Infernal Bonus"] !== undefined) {
-      foundInfernalRaw = data.external_upgrades["Arch Ability Infernal Bonus"];
-    } else if (data.settings && data.settings.arch_ability_infernal_bonus !== undefined) {
-      foundInfernalRaw = data.settings.arch_ability_infernal_bonus;
-    } else if (data.arch_ability_infernal_bonus !== undefined) {
-      foundInfernalRaw = data.arch_ability_infernal_bonus;
-    }
+    const legacyKeys =[
+      "Arch Ability Infernal Bonus", 
+      "arch_ability_infernal_bonus", 
+      "infernal_bonus", 
+      "Arch_Ability_Infernal_Bonus",
+      "Infernal Bonus"
+    ];
+
+    const searchJson = (obj) => {
+      if (!obj || typeof obj !== 'object') return;
+      for (const [k, v] of Object.entries(obj)) {
+        if (legacyKeys.includes(k)) {
+          foundInfernalRaw = v;
+          return;
+        }
+        if (typeof v === 'object') {
+          searchJson(v);
+        }
+      }
+    };
     
+    searchJson(data);
+
     if (foundInfernalRaw !== null) {
       let rawFloat = parseFloat(foundInfernalRaw);
       if (!isNaN(rawFloat)) {
