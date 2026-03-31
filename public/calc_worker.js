@@ -29,11 +29,11 @@ def calculate_all_stats(js_data):
     # Inject Settings
     p.asc1_unlocked = data.get('asc1_unlocked', True)
     p.asc2_unlocked = data.get('asc2_unlocked', False)
-    p.arch_level = data.get('arch_level', 1)
-    p.current_max_floor = data.get('current_max_floor', 1)
-    p.hades_idol_level = data.get('hades_idol_level', 0)
-    p.arch_ability_infernal_bonus = data.get('arch_ability_infernal_bonus', 0.0)
-    p.total_infernal_cards = data.get('total_infernal_cards', 0)
+    p.arch_level = int(data.get('arch_level', 1))
+    p.current_max_floor = int(data.get('current_max_floor', 1))
+    p.hades_idol_level = int(data.get('hades_idol_level', 0))
+    p.arch_ability_infernal_bonus = float(data.get('arch_ability_infernal_bonus', 0.0))
+    p.total_infernal_cards = int(data.get('total_infernal_cards', 0))
     
     # Inject Dictionaries
     p.base_stats = data.get('base_stats', {})
