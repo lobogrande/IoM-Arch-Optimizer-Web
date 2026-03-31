@@ -133,13 +133,31 @@ export default function PlayerSetup() {
         {/* --- 2. IMPORT DATA --- */}
         <div className="st-container">
           <h3 className="font-bold mb-4 flex items-center gap-2">📂 Import Data</h3>
-          <p className="text-sm text-st-text-light mb-4">Upload your player_state.json</p>
-          <input 
-            type="file" 
-            accept=".json" 
-            onChange={handleFileUpload}
-            className="block w-full text-sm text-st-text-light file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:font-semibold file:bg-st-secondary file:text-st-text hover:file:bg-gray-200 cursor-pointer"
-          />
+          
+          <div 
+            onDragOver={handleDragOver}
+            onDragLeave={handleDragLeave}
+            onDrop={handleDrop}
+            className={`border-2 border-dashed rounded-lg p-6 flex flex-col items-center justify-center transition-colors duration-200 ${
+              isDragging 
+                ? 'border-st-orange bg-orange-50/50' 
+                : 'border-gray-300 hover:border-st-orange bg-st-bg'
+            }`}
+          >
+            <div className="text-4xl mb-2 opacity-50">📄</div>
+            <p className="text-st-text font-medium mb-1">Drag and drop file here</p>
+            <p className="text-st-text-light text-sm mb-4">Limit 200MB per file • JSON</p>
+            
+            <label className="cursor-pointer bg-st-bg text-st-text border border-st-border rounded px-4 py-2 hover:border-st-orange hover:text-st-orange transition-colors font-medium text-sm shadow-sm">
+              Browse files
+              <input 
+                type="file" 
+                accept=".json" 
+                onChange={handleFileUpload}
+                className="hidden"
+              />
+            </label>
+          </div>
         </div>
 
         {/* --- 3. EXPORT DATA --- */}
