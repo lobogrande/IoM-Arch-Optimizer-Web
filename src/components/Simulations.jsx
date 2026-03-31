@@ -2,6 +2,7 @@ import { useState } from 'react';
 import useStore from '../store';
 import { EngineWorkerPool, getOptimalStepProfile, runOptimizationPhase, topUpBuild } from '../utils/optimizer';
 import Plot from 'react-plotly.js';
+import { INTERNAL_UPGRADE_CAPS, UPGRADE_NAMES } from '../game_data';
 
 const OPT_GOALS =[
   "Max Floor Push", 
@@ -32,6 +33,141 @@ export default function Simulations() {
   const[progressMsg, setProgressMsg] = useState("");
   const [progressPct, setProgressPct] = useState(0);
   const [simsPerSec, setSimsPerSec] = useState(150); // Fallback assumption until auto-calibrated
+
+  // Results Dashboard & ROI State
+  const[resTab, setResTab] = useState('build');
+  const [roiStatResults, setRoiStatResults] = useState(null);
+  const [roiUpgResults, setRoiUpgResults] = useState(null);
+  const [isRoiLoading, setIsRoiLoading] = useState(false);
+  const[roiProgressMsg, setRoiProgressMsg] = useState("");
+
+  const handleAnalyzeStats = async () => {
+    setIsRoiLoading(true);
+    setRoiProgressMsg("Testing marginal stat values (15 sims each)...");
+    
+    try {
+      const pool = new EngineWorkerPool();
+      await pool.init();
+      const statResults = { };
+      const promises = [ ];
+      const targetMetric = store.opt_results.run_target_metric;
+      const baseVal = store.opt_results.final_summary_out[targetMetric];
+      const bestFinal = store.opt_results.best_final;
+      
+      const baseStateDict = {
+        asc1_unlocked: store.asc1_unlocked,
+        asc2_unlocked: store.asc2_unlocked,
+        arch_level: store.arch_level,
+        current_max_floor: store.current_max_floor,
+        hades_idol_level: store.hades_idol_level,
+        arch_ability_infernal_bonus: parseFloat(store.arch_ability_infernal_bonus) / 100.0,
+        total_infernal_cards: store.total_infernal_cards,
+        base_stats: store.base_stats,
+        upgrade_levels: store.upgrade_levels,
+        external_levels: store.external_levels,
+        cards: store.cards
+      };
+
+      activeStats.forEach(stat => {
+        const maxCap = STAT_CAPS[stat] || 99;
+        if (bestFinal[stat] < maxCap) {
+          statResults[stat] = { sum: 0, count: 0 };
+          for (let i = 0; i < 15; i++) {
+            const testStats = { ...bestFinal,[stat]: bestFinal[stat] + 1 };
+            const p = pool.runTask(baseStateDict, testStats).then(res => {
+              statResults[stat].sum += (res[targetMetric] || 0);
+              statResults[stat].count++;
+            });
+            promises.push(p);
+          }
+        }
+      });
+
+      if (promises.length > 0) {
+        await Promise.all(promises);
+        const finalRes = Object.keys(statResults).map(k => {
+          const avg = statResults[k].sum / statResults[k].count;
+          const gain = ((avg - baseVal) / 60.0) * 1000.0;
+          return { stat: k, gain: gain };
+        }).sort((a, b) => b.gain - a.gain);
+        setRoiStatResults(finalRes);
+      } else {
+        alert("All stats are already maxed out! No further points can be tested.");
+      }
+      pool.terminate();
+    } catch (err) {
+      console.error(err);
+      alert("ROI Analyzer failed: " + err.message);
+    }
+    setIsRoiLoading(false);
+  };
+
+  const handleAnalyzeUpgrades = async () => {
+    setIsRoiLoading(true);
+    setRoiProgressMsg("Testing marginal upgrade values (This may take a minute)...");
+    
+    try {
+      const pool = new EngineWorkerPool();
+      await pool.init();
+      const upgResults = { };
+      const promises = [ ];
+      const targetMetric = store.opt_results.run_target_metric;
+      const baseVal = store.opt_results.final_summary_out[targetMetric];
+      const bestFinal = store.opt_results.best_final;
+      const asc2LockedRows =[ 19, 27, 34, 46, 52, 55 ];
+
+      Object.keys(INTERNAL_UPGRADE_CAPS || { }).forEach(upgIdStr => {
+        const upgId = parseInt(upgIdStr);
+        const currentLvl = store.upgrade_levels[upgId] || 0;
+        const maxLvl = INTERNAL_UPGRADE_CAPS[upgId] || 99;
+
+        if (!store.asc2_unlocked && asc2LockedRows.includes(upgId)) return;
+        if (currentLvl >= maxLvl) return;
+
+        const upgName = (UPGRADE_NAMES && UPGRADE_NAMES[upgId]) ? UPGRADE_NAMES[upgId][0] : `Upg ${upgId}`;
+        upgResults[upgId] = { sum: 0, count: 0, name: upgName };
+
+        for (let i = 0; i < 15; i++) {
+          const modStateDict = {
+            asc1_unlocked: store.asc1_unlocked,
+            asc2_unlocked: store.asc2_unlocked,
+            arch_level: store.arch_level,
+            current_max_floor: store.current_max_floor,
+            hades_idol_level: store.hades_idol_level,
+            arch_ability_infernal_bonus: parseFloat(store.arch_ability_infernal_bonus) / 100.0,
+            total_infernal_cards: store.total_infernal_cards,
+            base_stats: store.base_stats,
+            upgrade_levels: { ...store.upgrade_levels, [upgId]: currentLvl + 1 },
+            external_levels: store.external_levels,
+            cards: store.cards
+          };
+          
+          const p = pool.runTask(modStateDict, bestFinal).then(res => {
+            upgResults[upgId].sum += (res[targetMetric] || 0);
+            upgResults[upgId].count++;
+          });
+          promises.push(p);
+        }
+      });
+
+      if (promises.length > 0) {
+        await Promise.all(promises);
+        const finalRes = Object.keys(upgResults).map(k => {
+          const avg = upgResults[k].sum / upgResults[k].count;
+          const gain = ((avg - baseVal) / 60.0) * 1000.0;
+          return { id: k, name: upgResults[k].name, gain: gain };
+        }).sort((a, b) => b.gain - a.gain);
+        setRoiUpgResults(finalRes.slice(0, 10)); // Top 10 upgrades
+      } else {
+        alert("All internal upgrades are maxed out! No further upgrades can be tested.");
+      }
+      pool.terminate();
+    } catch (err) {
+      console.error(err);
+      alert("ROI Analyzer failed: " + err.message);
+    }
+    setIsRoiLoading(false);
+  };
 
   const handleRunOptimizer = async () => {
     setIsOptimizing(true);
@@ -432,13 +568,35 @@ export default function Simulations() {
               RESULTS DASHBOARD
           ========================================= */}
           {store.opt_results && !isOptimizing && (
-            <div className="mt-8 animate-fade-in space-y-6">
+            <div className="mt-8 animate-fade-in space-y-6" id="dashboard-anchor-optimizer">
               <div className="bg-[#1e1e1e] border-l-4 border-l-green-500 p-4 rounded shadow">
                 <h3 className="text-xl font-bold text-green-400">✅ Simulation Complete in {store.opt_results.elapsed.toFixed(1)} seconds!</h3>
               </div>
 
+              {/* Sub-Tabs for Results */}
+              <div className="flex overflow-x-auto border-b border-st-border mb-6 no-scrollbar">
+                {[
+                  { id: 'build', label: '🏆 The Build' },
+                  { id: 'data', label: '📊 Simulation Data' },
+                  { id: 'roi', label: '🔮 Upgrade Guide (ROI)' }
+                ].map((t) => (
+                  <button
+                    key={t.id}
+                    onClick={() => setResTab(t.id)}
+                    className={`px-4 py-2 font-medium whitespace-nowrap transition-colors duration-200 border-b-2 ${
+                      resTab === t.id 
+                        ? 'border-st-orange text-st-text' 
+                        : 'border-transparent text-st-text-light hover:text-st-orange hover:border-gray-300'
+                    }`}
+                  >
+                    {t.label}
+                  </button>
+                ))}
+              </div>
+
               {/* 🏆 THE BUILD */}
-              <div className="st-container">
+              {resTab === 'build' && (
+              <div className="st-container animate-fade-in">
                 <h3 className="text-2xl font-bold mb-4">🏆 Optimal Stat Build</h3>
                 <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-4">
                   {activeStats.map(stat => {
@@ -475,9 +633,11 @@ export default function Simulations() {
                   </button>
                 </div>
               </div>
+              )}
 
               {/* 📊 ADVANCED ANALYTICS */}
-              <div className="st-container">
+              {resTab === 'data' && (
+              <div className="st-container animate-fade-in">
                 <h3 className="text-2xl font-bold mb-4">📊 Advanced Analytics</h3>
                 
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -539,6 +699,107 @@ export default function Simulations() {
 
                 </div>
               </div>
+              )}
+
+              {/* 🔮 UPGRADE GUIDE (ROI) */}
+              {resTab === 'roi' && (
+              <div className="st-container animate-fade-in">
+                <h3 className="text-2xl font-bold mb-4">🔮 Upgrade Guide (Marginal ROI)</h3>
+                
+                {store.opt_results.run_target_metric === 'highest_floor' ? (
+                  <div className="bg-yellow-900/40 border-l-4 border-yellow-500 p-4 rounded">
+                    <p className="font-bold text-yellow-500">⚠️ ROI Analyzer is Disabled for Max Floor Push</p>
+                    <p className="text-sm mt-2">Because floor progression relies on large, discrete math 'Breakpoints', adding a single +1 to a stat rarely shows an immediate gain. To calculate exactly what stats you need to beat your current wall, send your build to Tab 6 (Hit Calculator Sandbox) and manually inspect the HP and Armor Breakpoints!</p>
+                  </div>
+                ) : (
+                  <div>
+                    <p className="text-st-text-light mb-4">Wondering what to buy next? The ROI Analyzer runs isolated micro-simulations, adding <strong>+1 Level</strong> to every stat and un-maxed upgrade, then ranks them by their immediate raw boost to your yields.</p>
+                    <div className="bg-yellow-900/40 border-l-4 border-yellow-500 p-3 rounded mb-6 text-sm">
+                      ⚠️ <strong>Note:</strong> This engine ranks <strong>raw output gain</strong>, not cost efficiency. You must weigh the AI's top recommendations against your actual in-game fragment costs!
+                    </div>
+
+                    {isRoiLoading && (
+                      <div className="flex flex-col items-center justify-center p-6 border border-st-border rounded bg-st-bg mb-6">
+                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-st-orange mb-4"></div>
+                        <p className="text-st-orange font-bold animate-pulse">{roiProgressMsg}</p>
+                      </div>
+                    )}
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      
+                      {/* STATS ROI */}
+                      <div className="border border-st-border rounded p-4 bg-black/20">
+                        <h4 className="font-bold mb-2">1. Next Stat Point</h4>
+                        <p className="text-sm text-st-text-light mb-4">Tests adding +1 to every stat to see which yields the highest increase.</p>
+                        <button 
+                          onClick={handleAnalyzeStats}
+                          disabled={isRoiLoading}
+                          className="w-full py-2 bg-[#2b2b2b] border border-st-border text-st-text font-bold rounded hover:border-st-orange hover:text-st-orange transition-colors disabled:opacity-50 disabled:cursor-not-allowed mb-4"
+                        >
+                          🔍 Analyze Next Stat Point
+                        </button>
+                        
+                        {roiStatResults && (
+                          <div className="overflow-x-auto">
+                            <table className="w-full text-left border-collapse">
+                              <thead>
+                                <tr className="border-b border-st-border text-st-text-light text-sm">
+                                  <th className="py-2 pr-4">Stat (+1)</th>
+                                  <th className="py-2">Marginal Gain (per 1k Arch Secs)</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {roiStatResults.map((r, i) => (
+                                  <tr key={r.stat} className="border-b border-st-border/50 hover:bg-white/5 transition-colors">
+                                    <td className="py-2 pr-4 font-bold">{r.stat}</td>
+                                    <td className="py-2 font-mono text-st-orange">+{r.gain.toFixed(2)}</td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* UPGRADES ROI */}
+                      <div className="border border-st-border rounded p-4 bg-black/20">
+                        <h4 className="font-bold mb-2">2. Upgrade ROI (Internal)</h4>
+                        <p className="text-sm text-st-text-light mb-4">Tests adding +1 level to every un-maxed internal upgrade.</p>
+                        <button 
+                          onClick={handleAnalyzeUpgrades}
+                          disabled={isRoiLoading}
+                          className="w-full py-2 bg-[#2b2b2b] border border-st-border text-st-text font-bold rounded hover:border-st-orange hover:text-st-orange transition-colors disabled:opacity-50 disabled:cursor-not-allowed mb-4"
+                        >
+                          🔍 Analyze Upgrades
+                        </button>
+                        
+                        {roiUpgResults && (
+                          <div className="overflow-x-auto">
+                            <table className="w-full text-left border-collapse">
+                              <thead>
+                                <tr className="border-b border-st-border text-st-text-light text-sm">
+                                  <th className="py-2 pr-4">Upgrade (+1 Lvl)</th>
+                                  <th className="py-2">Marginal Gain (per 1k Arch Secs)</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {roiUpgResults.map((r, i) => (
+                                  <tr key={r.id} className="border-b border-st-border/50 hover:bg-white/5 transition-colors">
+                                    <td className="py-2 pr-4 text-sm font-bold">{r.name}</td>
+                                    <td className="py-2 font-mono text-st-orange">+{r.gain.toFixed(2)}</td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                          </div>
+                        )}
+                      </div>
+
+                    </div>
+                  </div>
+                )}
+              </div>
+              )}
 
             </div>
           )}
