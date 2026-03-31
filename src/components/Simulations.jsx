@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import useStore from '../store';
 import { EngineWorkerPool, getOptimalStepProfile, runOptimizationPhase, topUpBuild } from '../utils/optimizer';
 import PlotWrapper from 'react-plotly.js';
@@ -23,11 +23,19 @@ export default function Simulations() {
   const [activeSubTab, setActiveSubTab] = useState('optimizer');
   
   // Optimizer Settings State
-  const [optGoal, setOptGoal] = useState("Max Floor Push");
-  const[targetFrag, setTargetFrag] = useState(0);
+  const[optGoal, setOptGoal] = useState("Max Floor Push");
+  const [targetFrag, setTargetFrag] = useState(0);
   const [targetBlock, setTargetBlock] = useState("myth3");
   const [displayTime, setDisplayTime] = useState(60); // Visual slider state
-  const [timeLimit, setTimeLimit] = useState(60); // Engine committed state
+  const[timeLimit, setTimeLimit] = useState(60); // Engine committed state
+
+  // Debounce the visual slider so it reliably updates the engine math without freezing the browser
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setTimeLimit(displayTime);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [displayTime]);
   
   // Stat Locking State
   const[lockedStats, setLockedStats] = useState({ });
@@ -566,8 +574,6 @@ export default function Simulations() {
                 step="10" 
                 value={displayTime} 
                 onChange={(e) => setDisplayTime(parseInt(e.target.value) || 10)}
-                onMouseUp={() => setTimeLimit(displayTime)}
-                onTouchEnd={() => setTimeLimit(displayTime)}
                 className="w-full accent-st-orange cursor-pointer"
               />
               <input 

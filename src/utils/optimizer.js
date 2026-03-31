@@ -113,6 +113,38 @@ export function generateDistributions(statsList, totalBudget, step, bounds = nul
 }
 
 /**
+ * Fast mathematical counter for combinations (prevents array allocation OOM crashes during ETA calculation)
+ */
+export function countDistributions(statsList, totalBudget, step, bounds = null) {
+    let count = 0;
+
+    function backtrack(idx, currentSum) {
+        if (idx === statsList.length - 1) {
+            const remainder = totalBudget - currentSum;
+            if (bounds) {
+                const[minV, maxV] = bounds[statsList[idx]];
+                if (remainder >= minV && remainder <= maxV) count++;
+            } else if (remainder >= 0) {
+                count++;
+            }
+            return;
+        }
+
+        const statName = statsList[idx];
+        const minV = bounds ? bounds[statName][0] : 0;
+        const maxV = bounds ? bounds[statName][1] : totalBudget;
+        const maxPossible = Math.min(maxV, totalBudget - currentSum);
+
+        for (let val = minV; val <= maxPossible; val += step) {
+            backtrack(idx + 1, currentSum + val);
+        }
+    }
+
+    backtrack(0, 0);
+    return count;
+}
+
+/**
  * Calculates the exact number of runs executed through Successive Halving drops.
  */
 export function getExpectedRuns(builds, maxIter) {
@@ -139,43 +171,52 @@ export function getOptimalStepProfile(statsList, budget, bounds, simsPerSecond, 
     const freeStats = statsList.filter(s => bounds[s][0] !== bounds[s][1]);
     const numFree = freeStats.length;
     
+    let lockedSum = 0;
+    statsList.forEach(s => { if (bounds[s][0] === bounds[s][1]) lockedSum += bounds[s][0]; });
+
     const effectiveSimsSec = Math.max(1.0, parseFloat(simsPerSecond));
     let bestProfile = null;
     
-    // Start from the finest possible step and get coarser until it safely fits the time budget
     for (let step1 = 3; step1 <= Math.max(100, budget + 1); step1++) {
         
-        // Compress Phase 2 bounding boxes dynamically based on coarse size
+        // --- PROPER MODULO ALIGNMENT FOR PHASE 1 ETA ---
+        const remP1 = (budget - lockedSum) % step1;
+        const p1Budget = budget - remP1;
+
         let step2;
         if (step1 <= 15) step2 = Math.max(2, Math.floor(step1 / 3));
         else if (step1 <= 30) step2 = Math.max(2, Math.floor(step1 / 2.5));
         else if (step1 <= 50) step2 = Math.max(2, Math.floor(step1 / 2));
         else step2 = Math.max(2, Math.floor(step1 / 1.5));
             
-        // DYNAMIC PHASE 3: With 7 free stats, a radius of 2 explodes into millions of combinations.
-        // We allow the engine to fallback to a tighter radius (1) if it cannot fit the time limit.
-        const p3Configs = [ [2, 1],[1, 1], [2, 2] ];
+        const p3Configs = [ [2, 1], [1, 1], [2, 2] ];
         
-        for (const[p3Radius, step3] of p3Configs) {
-            const p1Builds = generateDistributions(statsList, budget, step1, bounds).length;
-            const p1Sims = getExpectedRuns(p1Builds, iterP1);
+        for (const [p3Radius, step3] of p3Configs) {
+            // Use the memory-safe counter function!
+            const p1Builds = countDistributions(statsList, p1Budget, step1, bounds);
             
+            // If mathematically impossible to build arrays (modulo mismatch), skip it!
+            if (p1Builds === 0) continue; 
+            
+            const p1Sims = getExpectedRuns(p1Builds, iterP1);
             let p2Builds = 0, p3Builds = 0;
             
-            // Positive-Shifted Bounds with Edge-Clipping Factor
             if (numFree > 0) {
-                const p2MockBounds = { };
-                const p3MockBounds = { };
+                const p2MockBounds = {};
+                const p3MockBounds = {};
+                
                 freeStats.forEach(s => {
-                    p2MockBounds[s] =[0, 2 * step1];
-                    p3MockBounds[s] =[0, 2 * p3Radius];
+                    // Respect the actual True Caps so Phase 2/3 ETA doesn't explode!
+                    const trueCap = bounds[s][1] - bounds[s][0];
+                    p2MockBounds[s] =[0, Math.min(trueCap, 2 * step1)];
+                    p3MockBounds[s] =[0, Math.min(trueCap, 2 * p3Radius)];
                 });
                 
                 const p2Budget = Math.floor((numFree * step1) / step2) * step2;
-                const rawP2Builds = generateDistributions(freeStats, p2Budget, step2, p2MockBounds).length;
+                const rawP2Builds = countDistributions(freeStats, p2Budget, step2, p2MockBounds);
                 
                 const p3Budget = Math.floor((numFree * p3Radius) / step3) * step3;
-                const rawP3Builds = generateDistributions(freeStats, p3Budget, step3, p3MockBounds).length;
+                const rawP3Builds = countDistributions(freeStats, p3Budget, step3, p3MockBounds);
                 
                 const EDGE_CLIP = 0.25;
                 p2Builds = Math.max(1, Math.floor(rawP2Builds * EDGE_CLIP));
@@ -188,7 +229,6 @@ export function getOptimalStepProfile(statsList, budget, bounds, simsPerSecond, 
             const totalEstimatedBuilds = p1Builds + p2Builds + p3Builds;
             const totalExpectedSims = p1Sims + p2Sims + p3Sims;
             
-            // Add a flat 3.0s penalty for Pool spin-up/teardown overhead
             const estimatedSeconds = (totalExpectedSims / effectiveSimsSec) + 3.0;
             
             let timeStr = "";
