@@ -30,3 +30,15 @@ export const ASC1_LOCKED_UPGS =[12, 17, 24, 32, 40, 47, 48, 49, 50, 51, 53, 54];
 export const ASC2_LOCKED_UPGS =[19, 27, 34, 46, 52, 55];
 
 export const CARD_TYPES =['dirt', 'com', 'rare', 'epic', 'leg', 'myth', 'div'];
+
+export const EXTERNAL_UI_GROUPS = [
+    {id: "hestia", name: "Hestia Idol", rows:[4], ui_type: "number", max: 9999, img: "4_hestia.png"},
+    {id: "axolotl", name: "Axolotl Skin", rows:[5], ui_type: "pet", max: 11, img: "5_axolotl.png"},
+    {id: "dino", name: "Dino Skin", rows: [6, 7], ui_type: "pet", max: 11, img: "6_7_dino.png"},
+    {id: "geoduck", name: "Geoduck Tribute", rows: [8], ui_type: "number", max: 9999, img: "8_geoduck.png"},
+    {id: "avada", name: "Avada Keda- Skill", rows:[9, 10, 11], ui_type: "skill", imgs:["9_11_avada-keda_1.png", "9_11_avada-keda_2.png"]},
+    {id: "block", name: "Block Bonker Skill", rows:[12, 13, 14], ui_type: "skill", imgs:["12_14_block-bonker_1.png", "12_14_block-bonker_2.png"]},
+    {id: "arch_bundle", name: "Archaeology Bundle", rows: [15], ui_type: "bundle"},
+    {id: "asc_bundle", "name": "Ascension Bundle", rows:[16, 17, 18, 19], ui_type: "bundle"},
+    {id: "arch_card", name: "Arch Ability Card", rows: [20], ui_type: "card", max: 4}
+];

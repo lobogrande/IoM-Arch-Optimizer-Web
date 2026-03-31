@@ -31,6 +31,11 @@ const useStore = create((set) => ({
   setCardLevel: (id, value) => set((state) => ({
     cards: { ...state.cards, [id]: parseInt(value) || 0 }
   })),
+  setExternalGroup: (rows, value) => set((state) => {
+    const newExt = { ...state.external_levels };
+    rows.forEach(r => newExt[r] = parseInt(value) || 0);
+    return { external_levels: newExt };
+  }),
   
   // Bulk load from JSON file
   loadStateFromJson: (data) => set((state) => {
