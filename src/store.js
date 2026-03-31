@@ -25,6 +25,12 @@ const useStore = create((set) => ({
   setBaseStat: (stat, value) => set((state) => ({
     base_stats: { ...state.base_stats, [stat]: parseInt(value) || 0 }
   })),
+  setUpgradeLevel: (id, value) => set((state) => ({
+    upgrade_levels: { ...state.upgrade_levels, [id]: parseInt(value) || 0 }
+  })),
+  setCardLevel: (id, value) => set((state) => ({
+    cards: { ...state.cards, [id]: parseInt(value) || 0 }
+  })),
   
   // Bulk load from JSON file
   loadStateFromJson: (data) => set((state) => {
