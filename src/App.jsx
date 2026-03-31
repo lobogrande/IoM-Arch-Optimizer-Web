@@ -1,8 +1,8 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
+import useStore from './store';
 import PlayerSetup from './components/PlayerSetup';
 
-const TABS =[
-  { id: 'welcome', label: '🏠 Welcome' },
+const TABS =[  { id: 'welcome', label: '🏠 Welcome' },
   { id: 'setup', label: '⚙️ Player Setup' },
   { id: 'calc_stats', label: '📋 Calculated Stats' },
   { id: 'block_stats', label: '🪨 Block Compendium' },
@@ -11,7 +11,45 @@ const TABS =[
 ];
 
 function App() {
-  const[activeTab, setActiveTab] = useState('setup'); 
+  const [activeTab, setActiveTab] = useState('setup'); 
+  const store = useStore();
+  const calcWorkerRef = useRef(null);
+
+  // Initialize the Calculation Worker
+  useEffect(() => {
+    calcWorkerRef.current = new Worker('/calc_worker.js');
+    calcWorkerRef.current.onmessage = (e) => {
+      if (e.data.type === 'CALC_RESULT') {
+        store.setCalculatedStats(e.data.payload);
+      }
+    };
+    return () => calcWorkerRef.current.terminate();
+  },[]); // Only runs once on mount
+
+  // Trigger calculations automatically whenever the player's inputs change
+  useEffect(() => {
+    if (calcWorkerRef.current) {
+      calcWorkerRef.current.postMessage({
+        command: 'CALC_STATS',
+        payload: {
+          asc1_unlocked: store.asc1_unlocked,
+          asc2_unlocked: store.asc2_unlocked,
+          arch_level: store.arch_level,
+          hades_idol_level: store.hades_idol_level,
+          arch_ability_infernal_bonus: store.arch_ability_infernal_bonus,
+          total_infernal_cards: store.total_infernal_cards,
+          base_stats: store.base_stats,
+          upgrade_levels: store.upgrade_levels,
+          external_levels: store.external_levels,
+          cards: store.cards
+        }
+      });
+    }
+  },[
+    store.asc1_unlocked, store.asc2_unlocked, store.arch_level, store.hades_idol_level, 
+    store.arch_ability_infernal_bonus, store.total_infernal_cards, store.base_stats, 
+    store.upgrade_levels, store.external_levels, store.cards
+  ]);
 
   return (
     <div className="min-h-screen bg-st-bg text-st-text p-4 md:p-8">
