@@ -395,7 +395,7 @@ export default function Simulations() {
   };
 
   return (
-    <div className="animate-fade-in">
+    <div className="animate-fade-in pb-24">
       
       {/* SUB-TABS ROUTING */}
       <div className="flex overflow-x-auto border-b border-st-border mb-6 no-scrollbar">
@@ -727,7 +727,7 @@ export default function Simulations() {
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                   
                   {/* Death Histogram (Progression Wall) */}
-                  <div className="w-full h-[300px] border border-st-border rounded bg-black/20 p-2">
+                  <div className="w-full h-[300px] border border-st-border rounded bg-st-bg p-2">
                     <Plot
                       data={[ {
                         x: Object.keys(store.opt_results.chart_hist),
@@ -741,7 +741,6 @@ export default function Simulations() {
                         title: 'Progression Wall (Death Distribution)',
                         paper_bgcolor: 'rgba(0,0,0,0)',
                         plot_bgcolor: 'rgba(0,0,0,0)',
-                        font: { color: '#e0e0e0' },
                         margin: { t: 40, b: 40, l: 40, r: 20 },
                         xaxis: { type: 'category', title: 'Floor' },
                         yaxis: { title: 'Deaths' }
@@ -754,7 +753,7 @@ export default function Simulations() {
 
                   {/* Stamina Trace (Sample Run) */}
                   {store.opt_results.final_summary_out.stamina_trace && (
-                    <div className="w-full h-[300px] border border-st-border rounded bg-black/20 p-2">
+                    <div className="w-full h-[300px] border border-st-border rounded bg-st-bg p-2">
                       <Plot
                         data={[ {
                           x: store.opt_results.final_summary_out.stamina_trace.floor,
@@ -769,7 +768,6 @@ export default function Simulations() {
                           title: 'Stamina Depletion Trace (Sample Run)',
                           paper_bgcolor: 'rgba(0,0,0,0)',
                           plot_bgcolor: 'rgba(0,0,0,0)',
-                          font: { color: '#e0e0e0' },
                           margin: { t: 40, b: 40, l: 40, r: 20 },
                           xaxis: { title: 'Floor Level' },
                           yaxis: { title: 'Stamina Remaining' }
