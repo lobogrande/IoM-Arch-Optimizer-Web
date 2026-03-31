@@ -4,7 +4,7 @@ import { UI_STAT_IMG_WIDTH, UI_BLOCK_CARD_WIDTH, UI_BLOCK_CARD_X_OFFSET, UI_BLOC
 import { INTERNAL_UPGRADE_CAPS, UPGRADE_NAMES, ASC1_LOCKED_UPGS, ASC2_LOCKED_UPGS, CARD_TYPES, EXTERNAL_UI_GROUPS } from '../game_data';
 
 export default function PlayerSetup() {
-  const { asc1_unlocked, asc2_unlocked, arch_level, current_max_floor, base_stats, upgrade_levels, external_levels, cards, arch_ability_infernal_bonus, total_infernal_cards, hades_idol_level, setSetting, setBaseStat, setUpgradeLevel, setCardLevel, setExternalGroup, loadStateFromJson } = useStore();
+  const { asc1_unlocked, asc2_unlocked, arch_level, current_max_floor, base_stats, upgrade_levels, external_levels, cards, arch_ability_infernal_bonus, total_infernal_cards, hades_idol_level, calculated_stats, setSetting, setBaseStat, setUpgradeLevel, setCardLevel, setExternalGroup, loadStateFromJson } = useStore();
   const [activeSubTab, setActiveSubTab] = useState('stats');
   const [hideMaxed, setHideMaxed] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
@@ -362,7 +362,7 @@ export default function PlayerSetup() {
               <div className="w-full sm:w-1/2 sm:border-l border-st-border sm:pl-6 text-center sm:text-left">
                 <span className="text-sm font-bold block mb-1">🔥 Infernal Arch Card Bonus</span>
                 <span className="text-lg font-bold text-st-orange">
-                  (Syncs with Engine...)
+                  {calculated_stats?.infernal_multiplier ? `${Number(calculated_stats.infernal_multiplier).toLocaleString(undefined, {minimumFractionDigits: 4, maximumFractionDigits: 4})}x` : "(Calculating...)"}
                 </span>
               </div>
             </div>
