@@ -43,9 +43,9 @@ export default function CalculatedStats() {
               onChange={(e) => setTroubleshootStat(e.target.value)}
             >
               <option value="">(Select a Stat...)</option>
+              <option value="Max Stamina">Max Stamina</option>
               <option value="Damage">Damage</option>
               <option value="Armor Pen">Armor Pen</option>
-              <option value="Max Stamina">Max Stamina</option>
               <option value="Crit Chances & Multipliers">Crit Chances & Multipliers</option>
               <option value="EXP & Fragment Gain">EXP & Fragment Gain</option>
               <option value="Mod Chances & Multipliers">Mod Chances & Multipliers</option>
@@ -55,9 +55,9 @@ export default function CalculatedStats() {
             {troubleshootStat && (() => {
               // Enhanced map to support settings tracking and block bonker inclusion
               const TROUBLESHOOT_MAP = {
-                "Damage": { settings: [], stats: ["Str", "Corr", "Div"], upgs:[9, 15, 20, 25, 32, 34, 36, 47, 49, 51, 52], exts: ["Dino Skin", "Hestia Idol"], infs: ["rare2", "div1"] },
-                "Armor Pen": { settings: [], stats:["Per", "Int"], upgs:[10, 17, 29, 33, 36], exts: [], infs: ["leg3", "rare3"] },
-                "Max Stamina": { settings: ["current_max_floor"], stats: ["Agi", "Corr"], upgs:[3, 14, 23, 26, 28, 39, 54], exts: ["Block Bonker Skill"], infs:["epic3"] },
+                "Max Stamina": { settings:["current_max_floor"], stats: ["Agi", "Corr"], upgs:[3, 14, 23, 26, 28, 39, 54], exts:["Block Bonker Skill"], infs:["epic3"] },
+                "Damage": { settings: [], stats:["Str", "Corr", "Div"], upgs:[9, 15, 20, 25, 32, 34, 36, 47, 49, 51, 52], exts: ["Dino Skin", "Hestia Idol"], infs:["rare2", "div1"] },
+                "Armor Pen": { settings: [], stats:["Per", "Int"], upgs:[10, 17, 29, 33, 36], exts:[], infs: ["leg3", "rare3"] },
                 "Crit Chances & Multipliers": { settings: [], stats: ["Luck", "Div"], upgs:[13, 18, 20, 30, 37, 40, 47, 49, 53], exts: [], infs:["com1", "com2", "com3", "epic2"] },
                 "EXP & Fragment Gain": { settings: [], stats:["Int", "Per", "Div"], upgs:[4, 11, 21, 28, 35, 42, 45, 51], exts:["Axolotl Skin", "Geoduck Tribute"], infs: ["dirt2", "dirt3", "leg1"] },
                 "Mod Chances & Multipliers": { settings: [], stats: ["Luck", "Div", "Corr"], upgs:[5, 14, 16, 23, 24, 26, 33, 35, 38, 40, 43, 44, 48, 50, 52, 53, 54, 55], exts:["Archaeology Bundle"], infs:["dirt1", "rare1", "epic1", "leg2", "myth2", "myth3", "div3"] },
