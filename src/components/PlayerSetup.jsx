@@ -47,6 +47,36 @@ export default function PlayerSetup() {
     setIsDragging(false);
   };
 
+  const handleExport = () => {
+    // Construct the JSON exactly how Python expects it
+    const exportData = {
+      settings: {
+        asc1_unlocked: useStore.getState().asc1_unlocked,
+        asc2_unlocked: useStore.getState().asc2_unlocked,
+        arch_level: useStore.getState().arch_level,
+        current_max_floor: useStore.getState().current_max_floor,
+        hades_idol_level: useStore.getState().hades_idol_level,
+        total_infernal_cards: useStore.getState().total_infernal_cards
+      },
+      base_stats: useStore.getState().base_stats,
+      cards: useStore.getState().cards,
+      // We reconstruct the "ID - Name" format for internal upgrades
+      internal_upgrades: Object.fromEntries(
+        Object.entries(useStore.getState().upgrade_levels).map(([id, val]) => [`${id} - Upg`, val])
+      ),
+      external_upgrades: useStore.getState().raw_external_import || {}
+    };
+
+    // Trigger browser download
+    const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(exportData, null, 4));
+    const downloadAnchorNode = document.createElement('a');
+    downloadAnchorNode.setAttribute("href", dataStr);
+    downloadAnchorNode.setAttribute("download", "player_state.json");
+    document.body.appendChild(downloadAnchorNode);
+    downloadAnchorNode.click();
+    downloadAnchorNode.remove();
+  };
+
   // Replicate the Budget Tracker Logic
   const total_allowed = arch_level; // (Skipping upgrade 12 for this quick mockup)
   const current_allocated = Object.values(base_stats).reduce((a, b) => a + b, 0);
@@ -164,11 +194,13 @@ export default function PlayerSetup() {
         <div className="st-container">
           <h3 className="font-bold mb-4 flex items-center gap-2">💾 Export Data</h3>
           <p className="text-sm text-st-text-light mb-4">Download your current UI configuration.</p>
-          <button className="w-full px-4 py-2 bg-st-secondary text-st-text border border-st-border rounded hover:border-st-orange transition-colors font-medium">
+          <button 
+            onClick={handleExport}
+            className="w-full px-4 py-2 bg-st-secondary text-st-text border border-st-border rounded hover:border-st-orange transition-colors font-medium shadow-sm cursor-pointer"
+          >
             📥 Download JSON
           </button>
         </div>
-
       </div>
 
       {/* RIGHT COLUMN: col_setup_content (Ratio 3) */}
