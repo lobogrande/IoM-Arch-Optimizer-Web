@@ -97,6 +97,14 @@ function App() {
         )}
       </div>
 
+      {/* Floating Back to Top Button */}
+      <button 
+        onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+        className="back-to-top"
+      >
+        ⬆️ Back to Tabs
+      </button>
+
     </div>
   );
 }
