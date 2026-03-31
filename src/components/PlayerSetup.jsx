@@ -1,6 +1,12 @@
 import { useState } from 'react';
 import useStore from '../store';
-import { UI_STAT_IMG_WIDTH, UI_BLOCK_CARD_WIDTH, UI_BLOCK_CARD_X_OFFSET, UI_BLOCK_CARD_Y_OFFSET, UI_EXT_IMG_STD, UI_EXT_SKILL_ICON, UI_EXT_SKILL_TEXT } from '../ui_config';
+import { 
+  UI_STAT_IMG_WIDTH, UI_BLOCK_CARD_WIDTH, 
+  UI_BLOCK_CARD_X_OFFSET, UI_BLOCK_CARD_Y_OFFSET, 
+  UI_EXT_IMG_STD, UI_EXT_SKILL_ICON, UI_EXT_SKILL_TEXT,
+  UI_EXT_CARD_CBLOCK_X_OFFSET, UI_EXT_CARD_CBLOCK_Y_OFFSET,
+  UI_CARD_CBLOCK_SCALE
+} from '../ui_config';
 import { INTERNAL_UPGRADE_CAPS, UPGRADE_NAMES, ASC1_LOCKED_UPGS, ASC2_LOCKED_UPGS, CARD_TYPES, EXTERNAL_UI_GROUPS } from '../game_data';
 
 export default function PlayerSetup() {
@@ -324,7 +330,7 @@ export default function PlayerSetup() {
                         {group.ui_type === 'card' && current_val > 0 && (
                           <div className="relative flex items-center justify-center" style={{ width: UI_BLOCK_CARD_WIDTH * 0.8, height: UI_BLOCK_CARD_WIDTH * 1.0 }}>
                             <img src={`/assets/cards/backgrounds/${current_val}.png`} className="absolute inset-0 w-full h-full object-contain" style={{ imageRendering: 'pixelated' }} />
-                            <img src={`/assets/cards/cores/20_Misc_Arch_Ability_face.png`} className="absolute inset-0 w-full h-full object-contain drop-shadow-md" style={{ imageRendering: 'pixelated', transform: `translate(${UI_EXT_CARD_CBLOCK_X_OFFSET}px, ${UI_EXT_CARD_CBLOCK_Y_OFFSET}px)` }} onError={(e) => e.target.style.display = 'none'}/>
+                            <img src={`/assets/cards/cores/20_Misc_Arch_Ability_face.png`} className="absolute inset-0 w-full h-full object-contain drop-shadow-md" style={{ imageRendering: 'pixelated', transform: `translate(${UI_EXT_CARD_CBLOCK_X_OFFSET}px, ${UI_EXT_CARD_CBLOCK_Y_OFFSET}px) scale(${UI_CARD_CBLOCK_SCALE})` }} onError={(e) => e.target.style.display = 'none'}/>
                           </div>
                         )}
                         {group.ui_type === 'card' && current_val === 0 && <span className="text-xs text-st-text-light">(Card Not Unlocked)</span>}
