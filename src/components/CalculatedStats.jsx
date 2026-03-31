@@ -70,19 +70,83 @@ export default function CalculatedStats() {
               // Helper function to calculate the visual contribution string!
               const getEffectStr = (type, key, val) => {
                 if (val === 0) return "";
-                if (type === 'stat' && key === 'Agi' && troubleshootStat === "Max Stamina") return `(+${val} Flat)`;
-                if (type === 'stat' && key === 'Corr' && troubleshootStat === "Max Stamina") return `(-${val}% Multi)`;
-                
-                if (type === 'upg' && troubleshootStat === "Max Stamina") {
-                  const mults = { 3: 5, 14: 5, 23: 5, 26: 10, 28: 20, 39: 20, 54: 50 };
-                  if (mults[key]) return `(+${val * mults[key]} Flat)`;
+
+                // --- BASE STATS ---
+                if (type === 'stat') {
+                  if (troubleshootStat === "Max Stamina") {
+                    if (key === 'Agi') return `(+${val} Flat)`;
+                    if (key === 'Corr') return `(-${val}% Multi)`;
+                  }
+                  if (troubleshootStat === "Damage") {
+                    if (key === 'Str') return `(+${val} Flat & +${val}% Multi)`;
+                    if (key === 'Div') return `(+${val} Flat)`;
+                    if (key === 'Corr') return `(+${val}% Multi)`;
+                  }
+                  if (troubleshootStat === "Armor Pen") {
+                    if (key === 'Per') return `(+${val} Flat)`;
+                    if (key === 'Int') return `(+${val}% Multi)`;
+                  }
+                  if (troubleshootStat === "EXP & Fragment Gain") {
+                    if (key === 'Int') return `(+${val}% EXP)`;
+                    if (key === 'Per') return `(+${val}% Frag)`;
+                    if (key === 'Div') return `(+${val}% EXP)`;
+                  }
+                  if (troubleshootStat === "Crit Chances & Multipliers") {
+                    if (key === 'Luck') return `(+${val}% Crit)`;
+                    if (key === 'Div') return `(+${val}% Super)`;
+                  }
+                  if (troubleshootStat === "Mod Chances & Multipliers") {
+                    if (key === 'Luck') return `(+${val}% All)`;
+                    if (key === 'Corr') return `(+${val}% Multis)`;
+                  }
+                  if (troubleshootStat === "Abilities") {
+                    if (key === 'Int' || key === 'Div') return `(+${val}% Insta)`;
+                  }
                 }
 
-                if (type === 'ext' && key === "Block Bonker Skill" && troubleshootStat === "Max Stamina") {
-                  return `(+${Math.min(current_max_floor, 100)}% Multi)`;
+                // --- INTERNAL UPGRADES ---
+                if (type === 'upg') {
+                  if (troubleshootStat === "Max Stamina") {
+                    const mults = { 3: 5, 14: 5, 23: 5, 26: 10, 28: 20, 39: 20, 54: 50 };
+                    if (mults[key]) return `(+${val * mults[key]} Flat)`;
+                  }
+                  if (troubleshootStat === "Damage") {
+                    const flat = { 9: 1, 15: 2, 20: 5, 25: 25, 32: 50, 49: 500 };
+                    const multi = { 25: 2.5, 36: 1, 47: 1, 51: 5, 52: 1 };
+                    let res = [];
+                    if (flat[key]) res.push(`+${val * flat[key]} Flat`);
+                    if (multi[key]) res.push(`+${val * multi[key]}% Multi`);
+                    if (res.length > 0) return `(${res.join(' & ')})`;
+                  }
+                  if (troubleshootStat === "Armor Pen") {
+                    const flat = { 10: 1, 17: 2, 29: 10, 33: 25, 36: 100 };
+                    if (flat[key]) return `(+${val * flat[key]} Flat)`;
+                  }
+                  if (troubleshootStat === "EXP & Fragment Gain") {
+                    const exp = { 4: 1, 11: 2, 21: 5, 28: 10, 35: 25, 45: 50, 51: 50 };
+                    const frag = { 21: 1, 42: 10 };
+                    let res = [];
+                    if (exp[key]) res.push(`+${val * exp[key]}% EXP`);
+                    if (frag[key]) res.push(`+${val * frag[key]}% Frag`);
+                    if (res.length > 0) return `(${res.join(' & ')})`;
+                  }
+                  if (troubleshootStat === "Crit Chances & Multipliers") {
+                    const flat = { 13: 1, 18: 1, 20: 1, 30: 1, 37: 1, 40: 1, 47: 1, 49: 1, 53: 1 };
+                    if (flat[key]) return `(+${val * flat[key]}% / x)`;
+                  }
+                  if (troubleshootStat === "Mod Chances & Multipliers") {
+                    return `(+Scaling)`; // Generic fallback for mod chance clusters
+                  }
                 }
 
-                return ""; // Fallback if no specific string is mapped yet
+                // --- EXTERNAL UPGRADES ---
+                if (type === 'ext') {
+                  if (troubleshootStat === "Max Stamina" && key === "Block Bonker Skill") return `(+${Math.min(current_max_floor, 100)}% Multi)`;
+                  if (troubleshootStat === "Damage" && key === "Dino Skin") return `(+${val * 5}% Multi)`;
+                  if (troubleshootStat === "EXP & Fragment Gain" && key === "Axolotl Skin") return `(+${val * 5}% Multi)`;
+                }
+
+                return ""; 
               };
 
               return (
