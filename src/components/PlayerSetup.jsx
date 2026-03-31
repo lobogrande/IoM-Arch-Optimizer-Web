@@ -5,17 +5,15 @@ import { UI_STAT_IMG_WIDTH } from '../ui_config';
 export default function PlayerSetup() {
   const { asc1_unlocked, asc2_unlocked, arch_level, current_max_floor, base_stats, setSetting, setBaseStat, loadStateFromJson } = useStore();
   const [activeSubTab, setActiveSubTab] = useState('stats');
+  const [isDragging, setIsDragging] = useState(false);
 
-  const handleFileUpload = (e) => {
-    const file = e.target.files[0];
+  const processFile = (file) => {
     if (!file) return;
-
     const reader = new FileReader();
     reader.onload = (event) => {
       try {
         const json = JSON.parse(event.target.result);
         loadStateFromJson(json);
-        // Optional: Replace with a nice toast notification later
         console.log("✅ Player state loaded successfully!");
       } catch (err) {
         alert("❌ Error parsing JSON file.");
@@ -23,9 +21,30 @@ export default function PlayerSetup() {
       }
     };
     reader.readAsText(file);
-    
-    // Reset the input so the same file can be uploaded again if needed
-    e.target.value = null;
+  };
+
+  const handleFileUpload = (e) => {
+    processFile(e.target.files[0]);
+    e.target.value = null; // Reset input
+  };
+
+  const handleDrop = (e) => {
+    e.preventDefault();
+    setIsDragging(false);
+    if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+      processFile(e.dataTransfer.files[0]);
+      e.dataTransfer.clearData();
+    }
+  };
+
+  const handleDragOver = (e) => {
+    e.preventDefault();
+    setIsDragging(true);
+  };
+
+  const handleDragLeave = (e) => {
+    e.preventDefault();
+    setIsDragging(false);
   };
 
   // Replicate the Budget Tracker Logic
