@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import useStore from './store';
 import PlayerSetup from './components/PlayerSetup';
 import CalculatedStats from './components/CalculatedStats';
+import BlockCompendium from './components/BlockCompendium';
 
 const TABS =[  { id: 'welcome', label: '🏠 Welcome' },
   { id: 'setup', label: '⚙️ Player Setup' },
@@ -83,7 +84,8 @@ function App() {
       <div className="w-full">
         {activeTab === 'setup' && <PlayerSetup />}
         {activeTab === 'calc_stats' && <CalculatedStats />}
-        {(activeTab !== 'setup' && activeTab !== 'calc_stats') && (
+        {activeTab === 'block_stats' && <BlockCompendium />}
+        {(activeTab !== 'setup' && activeTab !== 'calc_stats' && activeTab !== 'block_stats') && (
           <div className="st-container text-center text-st-text-light py-20">
             🚧 Content for {activeTab} coming soon!
           </div>
