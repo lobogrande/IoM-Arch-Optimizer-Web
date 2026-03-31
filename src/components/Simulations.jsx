@@ -20,22 +20,35 @@ const FRAG_NAMES = {
 
 export default function Simulations() {
   const store = useStore();
-  const[activeSubTab, setActiveSubTab] = useState('optimizer');
+  const [activeSubTab, setActiveSubTab] = useState('optimizer');
   
   // Optimizer Settings State
-  const[optGoal, setOptGoal] = useState("Max Floor Push");
+  const [optGoal, setOptGoal] = useState("Max Floor Push");
   const [targetFrag, setTargetFrag] = useState(0);
-  const [targetBlock, setTargetBlock] = useState("myth3");
-  const[timeLimit, setTimeLimit] = useState(60); // 1 Minute default
+  const[targetBlock, setTargetBlock] = useState("myth3");
+  const [timeLimit, setTimeLimit] = useState(60); // 1 Minute default
   
   // Stat Locking State
-  const [lockedStats, setLockedStats] = useState({ });
+  const[lockedStats, setLockedStats] = useState({ });
 
   // Execution Engine State
-  const [isOptimizing, setIsOptimizing] = useState(false);
-  const[progressMsg, setProgressMsg] = useState("");
+  const[isOptimizing, setIsOptimizing] = useState(false);
+  const [progressMsg, setProgressMsg] = useState("");
   const [progressPct, setProgressPct] = useState(0);
   const[simsPerSec, setSimsPerSec] = useState(150); // Fallback assumption until auto-calibrated
+
+  // Dynamic Limits based on Ascensions and Caps
+  const totalAllowed = parseInt(store.arch_level) + parseInt(store.upgrade_levels[12] || 0);
+  const capInc = parseInt(store.upgrade_levels[45] || 0) * 5; // H45 scales by 5
+  const STAT_CAPS = {
+    Str: 50 + capInc, Agi: 50 + capInc, Per: 25 + capInc, Int: 25 + capInc, Luck: 25 + capInc,
+    Div: store.asc1_unlocked ? (10 + capInc) : 0, 
+    Corr: store.asc2_unlocked ? (10 + capInc) : 0
+  };
+
+  const activeStats =['Str', 'Agi', 'Per', 'Int', 'Luck'];
+  if (store.asc1_unlocked) activeStats.push('Div');
+  if (store.asc2_unlocked) activeStats.push('Corr');
 
   // --- REACTIVE AI CALIBRATION ---
   const dynamicBudget = parseInt(store.arch_level) + parseInt(store.upgrade_levels[12] || 0);
@@ -46,7 +59,7 @@ export default function Simulations() {
       bounds[s] = [ lockedStats[s], lockedStats[s] ];
       lockedSum += lockedStats[s];
     } else {
-      bounds[s] = [ 0, STAT_CAPS[s] ];
+      bounds[s] =[ 0, STAT_CAPS[s] ];
     }
   });
   const profData = getOptimalStepProfile(activeStats, dynamicBudget, bounds, simsPerSec, timeLimit);
@@ -54,10 +67,10 @@ export default function Simulations() {
   const isOverBudget = lockedSum > dynamicBudget;
 
   // Results Dashboard & ROI State
-  const[resTab, setResTab] = useState('build');
+  const [resTab, setResTab] = useState('build');
   const [roiStatResults, setRoiStatResults] = useState(null);
   const [roiUpgResults, setRoiUpgResults] = useState(null);
-  const [isRoiLoading, setIsRoiLoading] = useState(false);
+  const[isRoiLoading, setIsRoiLoading] = useState(false);
   const[roiProgressMsg, setRoiProgressMsg] = useState("");
 
   const handleAnalyzeStats = async () => {
@@ -363,19 +376,6 @@ export default function Simulations() {
     }
   };
   
-  // Dynamic Limits based on Ascensions and Caps
-  const totalAllowed = parseInt(store.arch_level) + parseInt(store.upgrade_levels[12] || 0);
-  const capInc = parseInt(store.upgrade_levels[45] || 0) * 5; // H45 scales by 5
-  const STAT_CAPS = {
-    Str: 50 + capInc, Agi: 50 + capInc, Per: 25 + capInc, Int: 25 + capInc, Luck: 25 + capInc,
-    Div: store.asc1_unlocked ? (10 + capInc) : 0, 
-    Corr: store.asc2_unlocked ? (10 + capInc) : 0
-  };
-
-  const activeStats =['Str', 'Agi', 'Per', 'Int', 'Luck'];
-  if (store.asc1_unlocked) activeStats.push('Div');
-  if (store.asc2_unlocked) activeStats.push('Corr');
-
   const handleLockToggle = (stat) => {
     const newLocks = { ...lockedStats };
     if (newLocks[stat] !== undefined) {
