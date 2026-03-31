@@ -63,21 +63,46 @@ export default function PlayerSetup() {
   };
 
   const handleExport = () => {
+    const state = useStore.getState();
+
+    // 1. Format Internal Upgrades with full names (Export ALL, default to 0)
+    const internal_upgrades = {};
+    Object.keys(INTERNAL_UPGRADE_CAPS).forEach((idStr) => {
+      const id = parseInt(idStr);
+      const val = state.upgrade_levels[id] || 0;
+      const name = UPGRADE_NAMES[id] || "Upg";
+      internal_upgrades[`${id} - ${name}`] = val;
+    });
+
+    // 2. Format External Upgrades back to string keys
+    const external_upgrades = {};
+    EXTERNAL_UI_GROUPS.forEach(group => {
+      external_upgrades[group.name] = state.external_levels[group.rows[0]] || 0;
+    });
+    external_upgrades["Arch Ability Infernal Bonus"] = state.arch_ability_infernal_bonus;
+
+    // 3. Strictly Order Cards (Dirt1 -> Div4) (Export ALL, default to 0)
+    const ordered_cards = {};
+    CARD_TYPES.forEach(ot => {
+      [1, 2, 3, 4].forEach(tier => {
+        const cid = `${ot}${tier}`;
+        ordered_cards[cid] = state.cards[cid] || 0;
+      });
+    });
+
     const exportData = {
       settings: {
-        asc1_unlocked: useStore.getState().asc1_unlocked,
-        asc2_unlocked: useStore.getState().asc2_unlocked,
-        arch_level: useStore.getState().arch_level,
-        current_max_floor: useStore.getState().current_max_floor,
-        hades_idol_level: useStore.getState().hades_idol_level,
-        total_infernal_cards: useStore.getState().total_infernal_cards
+        asc1_unlocked: state.asc1_unlocked,
+        asc2_unlocked: state.asc2_unlocked,
+        arch_level: state.arch_level,
+        current_max_floor: state.current_max_floor,
+        hades_idol_level: state.hades_idol_level,
+        total_infernal_cards: state.total_infernal_cards
       },
-      base_stats: useStore.getState().base_stats,
-      cards: useStore.getState().cards,
-      internal_upgrades: Object.fromEntries(
-        Object.entries(useStore.getState().upgrade_levels).map(([id, val]) =>[`${id} - Upg`, val])
-      ),
-      external_upgrades: useStore.getState().raw_external_import || {}
+      base_stats: state.base_stats,
+      internal_upgrades: internal_upgrades,
+      external_upgrades: external_upgrades,
+      cards: ordered_cards
     };
 
     const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(exportData, null, 4));

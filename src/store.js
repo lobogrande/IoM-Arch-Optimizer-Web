@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { EXTERNAL_UI_GROUPS } from './game_data';
 
 const useStore = create((set) => ({
   // Global Settings
@@ -76,8 +77,18 @@ const useStore = create((set) => ({
     
     // Parse External (Idols/Pets)
     if (data.external_upgrades) {
-      // We will map these carefully when we build the External Upgrades UI
-      newState.raw_external_import = data.external_upgrades;
+      const newExt = {};
+      EXTERNAL_UI_GROUPS.forEach(group => {
+        if (data.external_upgrades[group.name] !== undefined) {
+          group.rows.forEach(r => newExt[r] = data.external_upgrades[group.name]);
+        }
+      });
+      
+      // The Infernal bonus is stored inside external_upgrades in the Python JSON!
+      if (data.external_upgrades["Arch Ability Infernal Bonus"] !== undefined) {
+        newState.arch_ability_infernal_bonus = data.external_upgrades["Arch Ability Infernal Bonus"];
+      }
+      newState.external_levels = newExt;
     }
     
     if (data.settings?.total_infernal_cards !== undefined) newState.total_infernal_cards = data.settings.total_infernal_cards;
