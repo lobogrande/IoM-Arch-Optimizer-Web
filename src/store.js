@@ -18,7 +18,7 @@ const useStore = create((set) => ({
   upgrade_levels: {},
   external_levels: {},
   cards: {},
-  arch_ability_infernal_bonus: 0.0,
+  arch_ability_infernal_bonus: "0",
   total_infernal_cards: 0,
 
   // Stores the live output from Pyodide (damage, crit_chance, etc.)
@@ -88,7 +88,10 @@ const useStore = create((set) => ({
       
       // The Infernal bonus is stored inside external_upgrades in the Python JSON!
       if (data.external_upgrades["Arch Ability Infernal Bonus"] !== undefined) {
-        newState.arch_ability_infernal_bonus = data.external_upgrades["Arch Ability Infernal Bonus"];
+        let rawFloat = parseFloat(data.external_upgrades["Arch Ability Infernal Bonus"]);
+      if (isNaN(rawFloat)) rawFloat = 0.0;
+        // Store as a string percentage so React doesn't fight the user's typing
+        newState.arch_ability_infernal_bonus = (rawFloat * 100).toString();
       }
       newState.external_levels = newExt;
     }

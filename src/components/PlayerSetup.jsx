@@ -79,7 +79,7 @@ export default function PlayerSetup() {
     EXTERNAL_UI_GROUPS.forEach(group => {
       external_upgrades[group.name] = state.external_levels[group.rows[0]] || 0;
     });
-    external_upgrades["Arch Ability Infernal Bonus"] = state.arch_ability_infernal_bonus;
+    external_upgrades["Arch Ability Infernal Bonus"] = parseFloat(state.arch_ability_infernal_bonus) / 100.0 || 0.0;
 
     // 3. Strictly Order Cards (Dirt1 -> Div4) (Export ALL, default to 0)
     const ordered_cards = {};
@@ -374,10 +374,16 @@ export default function PlayerSetup() {
                         </label>
                       )}
 
+                      {/* Arch Ability Infernal Bonus Special UI */}
                       {group.id === 'arch_card' && current_val === 4 && (
                         <div className="mt-4 w-full">
                           <span className="text-xs font-bold text-st-red mb-1 block">Infernal Cooldown Bonus %</span>
-                          <input type="number" className="st-input" value={(arch_ability_infernal_bonus * 100).toFixed(2)} step="0.01" onChange={(e) => setSetting('arch_ability_infernal_bonus', parseFloat(e.target.value) / 100.0 || 0)} />
+                          <input 
+                            type="text" 
+                            className="st-input" 
+                            value={arch_ability_infernal_bonus} 
+                            onChange={(e) => setSetting('arch_ability_infernal_bonus', e.target.value)} 
+                          />
                         </div>
                       )}
                     </div>

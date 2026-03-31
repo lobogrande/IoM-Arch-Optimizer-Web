@@ -43,7 +43,7 @@ function App() {
           asc2_unlocked: store.asc2_unlocked,
           arch_level: store.arch_level,
           hades_idol_level: store.hades_idol_level,
-          arch_ability_infernal_bonus: store.arch_ability_infernal_bonus,
+          arch_ability_infernal_bonus: parseFloat(store.arch_ability_infernal_bonus) / 100.0 || 0.0,
           total_infernal_cards: store.total_infernal_cards,
           base_stats: store.base_stats,
           upgrade_levels: store.upgrade_levels,
