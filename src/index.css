@@ -44,3 +44,10 @@ body {
 .st-input:focus {
   border-color: var(--color-st-orange);
 }
+
+/* Force native spin buttons to always be visible (override WebKit default) */
+.st-input::-webkit-outer-spin-button,
+.st-input::-webkit-inner-spin-button {
+  opacity: 1;
+  display: block;
+}
