@@ -3,6 +3,7 @@ import useStore from './store';
 import PlayerSetup from './components/PlayerSetup';
 import CalculatedStats from './components/CalculatedStats';
 import BlockCompendium from './components/BlockCompendium';
+import Simulations from './components/Simulations';
 
 const TABS =[
   { id: 'welcome', label: '🏠 Welcome' },
@@ -91,7 +92,8 @@ function App() {
         {activeTab === 'setup' && <PlayerSetup />}
         {activeTab === 'calc_stats' && <CalculatedStats />}
         {activeTab === 'block_stats' && <BlockCompendium />}
-        {(activeTab !== 'setup' && activeTab !== 'calc_stats' && activeTab !== 'block_stats') && (
+        {activeTab === 'simulations' && <Simulations />}
+        {(activeTab !== 'setup' && activeTab !== 'calc_stats' && activeTab !== 'block_stats' && activeTab !== 'simulations') && (
           <div className="st-container text-center text-st-text-light py-20">
             🚧 Content for {activeTab} coming soon!
           </div>
