@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import useStore from '../store';
 import { EngineWorkerPool, getOptimalStepProfile, runOptimizationPhase, topUpBuild } from '../utils/optimizer';
 import PlotWrapper from 'react-plotly.js';
@@ -24,9 +24,10 @@ export default function Simulations() {
   
   // Optimizer Settings State
   const [optGoal, setOptGoal] = useState("Max Floor Push");
-  const [targetFrag, setTargetFrag] = useState(0);
-  const[targetBlock, setTargetBlock] = useState("myth3");
-  const [timeLimit, setTimeLimit] = useState(60); // 1 Minute default
+  const[targetFrag, setTargetFrag] = useState(0);
+  const [targetBlock, setTargetBlock] = useState("myth3");
+  const [displayTime, setDisplayTime] = useState(60); // Visual slider state
+  const [timeLimit, setTimeLimit] = useState(60); // Engine committed state
   
   // Stat Locking State
   const[lockedStats, setLockedStats] = useState({ });
@@ -62,9 +63,15 @@ export default function Simulations() {
       bounds[s] =[ 0, STAT_CAPS[s] ];
     }
   });
-  const profData = getOptimalStepProfile(activeStats, dynamicBudget, bounds, simsPerSec, timeLimit);
-  const step1 = profData ? profData.step_1 : 100;
   const isOverBudget = lockedSum > dynamicBudget;
+
+  // Memoize the heavy AI Profile calculation so it doesn't freeze the browser thread!
+  const profData = useMemo(() => {
+    if (isOverBudget) return null;
+    return getOptimalStepProfile(activeStats, dynamicBudget, bounds, simsPerSec, timeLimit);
+  },[ JSON.stringify(activeStats), dynamicBudget, JSON.stringify(bounds), simsPerSec, timeLimit, isOverBudget ]);
+  
+  const step1 = profData ? profData.step_1 : 100;
 
   // Results Dashboard & ROI State
   const [resTab, setResTab] = useState('build');
@@ -550,20 +557,30 @@ export default function Simulations() {
 
           {/* Time Target Slider */}
           <div>
-            <label className="block font-bold mb-2">⏱️ Target Compute Time</label>
+            <label className="block font-bold mb-2">⏱️ Target Compute Time (Seconds)</label>
             <div className="flex items-center space-x-4 mb-6">
               <input 
                 type="range" 
                 min="10" 
-                max="300" 
+                max="600" 
                 step="10" 
-                value={timeLimit} 
-                onChange={(e) => setTimeLimit(parseInt(e.target.value))}
-                className="w-full accent-st-orange"
+                value={displayTime} 
+                onChange={(e) => setDisplayTime(parseInt(e.target.value) || 10)}
+                onMouseUp={() => setTimeLimit(displayTime)}
+                onTouchEnd={() => setTimeLimit(displayTime)}
+                className="w-full accent-st-orange cursor-pointer"
               />
-              <span className="font-mono bg-st-bg border border-st-border px-3 py-1 rounded min-w-[80px] text-center">
-                {timeLimit}s
-              </span>
+              <input 
+                type="number"
+                min="10"
+                max="1800"
+                step="10"
+                value={displayTime === 0 ? '' : displayTime}
+                onChange={(e) => setDisplayTime(e.target.value === '' ? 0 : parseInt(e.target.value))}
+                onBlur={() => { const val = Math.max(10, displayTime); setDisplayTime(val); setTimeLimit(val); }}
+                onKeyDown={(e) => { if(e.key === 'Enter') { const val = Math.max(10, displayTime); setDisplayTime(val); setTimeLimit(val); } }}
+                className="st-input font-mono max-w-[120px]"
+              />
             </div>
 
             {/* Precision Gauge */}
