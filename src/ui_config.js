@@ -20,8 +20,8 @@ export const UI_CARD_CBLOCK_SCALE = 0.7;
 
 // --- BLOCK CARDS ---
 export const UI_BLOCK_CARD_WIDTH = 100;
-export const UI_BLOCK_CARD_X_OFFSET = 1;
-export const UI_BLOCK_CARD_Y_OFFSET = -7;
+export const UI_BLOCK_CARD_X_OFFSET = 2;
+export const UI_BLOCK_CARD_Y_OFFSET = -8;
 
 // --- BLOCK STATS TABLE ---
 export const UI_BLOCK_TABLE_IMG_WIDTH = 40;
