@@ -1,13 +1,20 @@
 import { useState } from 'react';
 import useStore from '../store';
-import { UI_STAT_IMG_WIDTH, UI_BLOCK_CARD_WIDTH, UI_BLOCK_CARD_X_OFFSET, UI_BLOCK_CARD_Y_OFFSET } from '../ui_config';
-import { INTERNAL_UPGRADE_CAPS, UPGRADE_NAMES, ASC1_LOCKED_UPGS, ASC2_LOCKED_UPGS, CARD_TYPES } from '../game_data';
+import { UI_STAT_IMG_WIDTH, UI_BLOCK_CARD_WIDTH, UI_BLOCK_CARD_X_OFFSET, UI_BLOCK_CARD_Y_OFFSET, UI_EXT_IMG_STD, UI_EXT_SKILL_ICON, UI_EXT_SKILL_TEXT } from '../ui_config';
+import { INTERNAL_UPGRADE_CAPS, UPGRADE_NAMES, ASC1_LOCKED_UPGS, ASC2_LOCKED_UPGS, CARD_TYPES, EXTERNAL_UI_GROUPS } from '../game_data';
 
 export default function PlayerSetup() {
-  const { asc1_unlocked, asc2_unlocked, arch_level, current_max_floor, base_stats, upgrade_levels, cards, setSetting, setBaseStat, setUpgradeLevel, setCardLevel, loadStateFromJson } = useStore();
-  const[hideMaxed, setHideMaxed] = useState(false);
+  const { asc1_unlocked, asc2_unlocked, arch_level, current_max_floor, base_stats, upgrade_levels, external_levels, cards, arch_ability_infernal_bonus, total_infernal_cards, hades_idol_level, setSetting, setBaseStat, setUpgradeLevel, setCardLevel, setExternalGroup, loadStateFromJson } = useStore();
   const [activeSubTab, setActiveSubTab] = useState('stats');
+  const [hideMaxed, setHideMaxed] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
+  const [upgradeView, setUpgradeView] = useState('internal');
+
+  const total_allowed = arch_level; 
+  const current_allocated = Object.values(base_stats).reduce((a, b) => a + b, 0);
+  const remaining = total_allowed - current_allocated;
+
+  const STAT_CAPS = { Str: 50, Agi: 50, Per: 25, Int: 25, Luck: 25, Div: 10, Corr: 10 };
 
   const processFile = (file) => {
     if (!file) return;
@@ -27,7 +34,7 @@ export default function PlayerSetup() {
 
   const handleFileUpload = (e) => {
     processFile(e.target.files[0]);
-    e.target.value = null; // Reset input
+    e.target.value = null; 
   };
 
   const handleDrop = (e) => {
@@ -50,7 +57,6 @@ export default function PlayerSetup() {
   };
 
   const handleExport = () => {
-    // Construct the JSON exactly how Python expects it
     const exportData = {
       settings: {
         asc1_unlocked: useStore.getState().asc1_unlocked,
@@ -62,14 +68,12 @@ export default function PlayerSetup() {
       },
       base_stats: useStore.getState().base_stats,
       cards: useStore.getState().cards,
-      // We reconstruct the "ID - Name" format for internal upgrades
       internal_upgrades: Object.fromEntries(
-        Object.entries(useStore.getState().upgrade_levels).map(([id, val]) => [`${id} - Upg`, val])
+        Object.entries(useStore.getState().upgrade_levels).map(([id, val]) =>[`${id} - Upg`, val])
       ),
       external_upgrades: useStore.getState().raw_external_import || {}
     };
 
-    // Trigger browser download
     const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(exportData, null, 4));
     const downloadAnchorNode = document.createElement('a');
     downloadAnchorNode.setAttribute("href", dataStr);
@@ -79,47 +83,31 @@ export default function PlayerSetup() {
     downloadAnchorNode.remove();
   };
 
-  // Replicate the Budget Tracker Logic
-  const total_allowed = arch_level; // (Skipping upgrade 12 for this quick mockup)
-  const current_allocated = Object.values(base_stats).reduce((a, b) => a + b, 0);
-  const remaining = total_allowed - current_allocated;
-
-  const STAT_CAPS = {
-    Str: 50, Agi: 50, Per: 25, Int: 25, Luck: 25, Div: 10, Corr: 10
-  };
-
   const renderStat = (label, statKey) => {
-    // Only show Div if Asc1, only show Corr if Asc2
     if (statKey === 'Div' && !asc1_unlocked) return null;
     if (statKey === 'Corr' && !asc2_unlocked) return null;
 
     return (
       <div className="st-container flex flex-col items-center justify-center p-4">
         <div className="text-center mb-2">
-          <span className="font-bold">{label}</span>
-          <br/>
+          <span className="font-bold">{label}</span><br/>
           <span className="text-sm text-st-text-light">(Max: {STAT_CAPS[statKey]})</span>
         </div>
         
-        {/* Crisp Pixel-Art Image Rendering */}
         <div style={{ width: UI_STAT_IMG_WIDTH }} className="flex items-center justify-center mb-4 mx-auto">
           <img 
             src={`/assets/stats/${statKey.toLowerCase()}.png`} 
             alt={label}
             className="w-full object-contain"
             style={{ imageRendering: 'pixelated' }}
-            onError={(e) => {
-              // Fallback if the image is missing
-              e.target.style.display = 'none';
-              e.target.parentNode.innerHTML = '<span class="text-xs text-gray-400">No Img</span>';
-            }}
+            onError={(e) => { e.target.style.display = 'none'; e.target.parentNode.innerHTML = '<span class="text-xs text-gray-400">No Img</span>'; }}
           />
         </div>
 
         <input 
           type="number" 
           className="st-input"
-          value={base_stats[statKey]}
+          value={base_stats[statKey] || 0}
           onChange={(e) => setBaseStat(statKey, e.target.value)}
           min="0"
           max={STAT_CAPS[statKey]}
@@ -131,10 +119,9 @@ export default function PlayerSetup() {
   return (
     <div className="flex flex-col md:flex-row gap-6">
       
-      {/* LEFT COLUMN: col_setup_menu (Ratio 1) */}
+      {/* LEFT COLUMN: Global Settings & Data Sync */}
       <div className="w-full md:w-1/4 flex flex-col gap-4">
         
-        {/* st.expander("⚙️ Global Settings") */}
         <div className="st-container">
           <h3 className="font-bold mb-4 flex items-center gap-2">⚙️ Global Settings</h3>
           
@@ -162,7 +149,6 @@ export default function PlayerSetup() {
           </div>
         </div>
 
-        {/* --- 2. IMPORT DATA --- */}
         <div className="st-container">
           <h3 className="font-bold mb-4 flex items-center gap-2">📂 Import Data</h3>
           
@@ -192,7 +178,6 @@ export default function PlayerSetup() {
           </div>
         </div>
 
-        {/* --- 3. EXPORT DATA --- */}
         <div className="st-container">
           <h3 className="font-bold mb-4 flex items-center gap-2">💾 Export Data</h3>
           <p className="text-sm text-st-text-light mb-4">Download your current UI configuration.</p>
@@ -203,15 +188,15 @@ export default function PlayerSetup() {
             📥 Download JSON
           </button>
         </div>
+
       </div>
 
-      {/* RIGHT COLUMN: col_setup_content (Ratio 3) */}
+      {/* RIGHT COLUMN: Setup Data Sub-Tabs */}
       <div className="w-full md:w-3/4">
         
-        {/* Sub-Tabs exactly like Streamlit */}
         <div className="flex border-b border-st-border mb-4">
           {['📊 Base Stats', '⬆️ Upgrades', '🎴 Block Cards', '🗿 Arch Idols'].map((tab, idx) => {
-            const tabId = ['stats', 'upgrades', 'cards', 'idols'][idx];
+            const tabId =['stats', 'upgrades', 'cards', 'idols'][idx];
             const isActive = activeSubTab === tabId;
             return (
               <button key={tabId} onClick={() => setActiveSubTab(tabId)}
@@ -222,7 +207,6 @@ export default function PlayerSetup() {
           })}
         </div>
 
-        {/* Sub-Tab Content */}
         {activeSubTab === 'stats' && (
           <div>
             <div className="flex justify-between items-center mb-4">
@@ -247,64 +231,118 @@ export default function PlayerSetup() {
           </div>
         )}
 
-        {/* --- TAB: UPGRADES --- */}
         {activeSubTab === 'upgrades' && (
           <div>
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-xl font-bold">Internal Upgrades</h3>
-              <label className="flex items-center gap-2 cursor-pointer text-sm font-medium">
-                <input type="checkbox" checked={hideMaxed} onChange={(e) => setHideMaxed(e.target.checked)} className="w-4 h-4 accent-st-orange" />
-                👀 Hide Maxed Upgrades
-              </label>
+              <div className="flex bg-st-secondary rounded-lg p-1">
+                <button onClick={() => setUpgradeView('internal')} className={`px-4 py-1 text-sm font-bold rounded-md transition-colors ${upgradeView === 'internal' ? 'bg-white text-st-text shadow-sm' : 'text-st-text-light hover:text-st-text'}`}>Internal</button>
+                <button onClick={() => setUpgradeView('external')} className={`px-4 py-1 text-sm font-bold rounded-md transition-colors ${upgradeView === 'external' ? 'bg-white text-st-text shadow-sm' : 'text-st-text-light hover:text-st-text'}`}>External</button>
+              </div>
+              {upgradeView === 'internal' && (
+                <label className="flex items-center gap-2 cursor-pointer text-sm font-medium">
+                  <input type="checkbox" checked={hideMaxed} onChange={(e) => setHideMaxed(e.target.checked)} className="w-4 h-4 accent-st-orange" />
+                  👀 Hide Maxed Upgrades
+                </label>
+              )}
             </div>
             <hr className="border-st-border mb-6" />
 
-            {/* Replicate Streamlit UI_INT_COL_RATIO[1,1,1] - Single centered column */}
-            <div className="w-full md:w-1/2 lg:w-1/3 mx-auto flex flex-col gap-4">
-              {Object.entries(INTERNAL_UPGRADE_CAPS).map(([upg_id, max_lvl]) => {
-                const id = parseInt(upg_id);
-                if (!asc1_unlocked && ASC1_LOCKED_UPGS.includes(id)) return null;
-                if (!asc2_unlocked && ASC2_LOCKED_UPGS.includes(id)) return null;
-                
-                const current_lvl = upgrade_levels[id] || 0;
-                if (hideMaxed && current_lvl >= max_lvl) return null;
+            {upgradeView === 'internal' && (
+              <div className="w-full md:w-1/2 lg:w-1/3 mx-auto flex flex-col gap-4">
+                {Object.entries(INTERNAL_UPGRADE_CAPS).map(([upg_id, max_lvl]) => {
+                  const id = parseInt(upg_id);
+                  if (!asc1_unlocked && ASC1_LOCKED_UPGS.includes(id)) return null;
+                  if (!asc2_unlocked && ASC2_LOCKED_UPGS.includes(id)) return null;
+                  
+                  const current_lvl = upgrade_levels[id] || 0;
+                  if (hideMaxed && current_lvl >= max_lvl) return null;
 
-                const name = UPGRADE_NAMES[id] || `Upgrade ${id}`;
+                  const name = UPGRADE_NAMES[id] || `Upgrade ${id}`;
 
-                return (
-                  <div key={id} className="st-container flex flex-col items-center justify-center p-4">
-                    <div className="text-center mb-2">
-                      <span className="font-bold text-sm">{name}</span><br/>
-                      <span className="text-xs text-st-text-light">(Max: {max_lvl})</span>
-                    </div>
-                    
-                    {/* Let the image stretch to the container width just like st.image(width="stretch") */}
-                    <div className="w-full flex justify-center mb-4">
-                      <img 
-                        src={`/assets/upgrades/internal/${id}.png`} 
-                        alt={name}
-                        className="w-full h-auto object-contain"
-                        style={{ imageRendering: 'pixelated' }}
-                        onError={(e) => { e.target.style.display = 'none'; }}
+                  return (
+                    <div key={id} className="st-container flex flex-col items-center justify-center p-4">
+                      <div className="text-center mb-2">
+                        <span className="font-bold text-sm">{name}</span><br/>
+                        <span className="text-xs text-st-text-light">(Max: {max_lvl})</span>
+                      </div>
+                      
+                      <div className="w-full flex justify-center mb-4">
+                        <img 
+                          src={`/assets/upgrades/internal/${id}.png`} 
+                          alt={name}
+                          className="w-full h-auto object-contain"
+                          style={{ imageRendering: 'pixelated' }}
+                          onError={(e) => { e.target.style.display = 'none'; }}
+                        />
+                      </div>
+
+                      <input 
+                        type="number" 
+                        className="st-input"
+                        value={current_lvl}
+                        onChange={(e) => setUpgradeLevel(id, e.target.value)}
+                        min="0"
+                        max={max_lvl}
                       />
                     </div>
+                  );
+                })}
+              </div>
+            )}
 
-                    <input 
-                      type="number" 
-                      className="st-input"
-                      value={current_lvl}
-                      onChange={(e) => setUpgradeLevel(id, e.target.value)}
-                      min="0"
-                      max={max_lvl}
-                    />
-                  </div>
-                );
-              })}
-            </div>
+            {upgradeView === 'external' && (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {EXTERNAL_UI_GROUPS.map((group) => {
+                  if (group.id === 'hestia') return null; 
+                  const current_val = external_levels[group.rows[0]] || 0;
+                  
+                  return (
+                    <div key={group.id} className="st-container flex flex-col items-center justify-between p-4 text-center">
+                      <span className="font-bold text-sm mb-4">{group.name}</span>
+                      
+                      <div className="flex flex-col items-center justify-center flex-grow mb-4 gap-2">
+                        {group.ui_type === 'skill' && group.imgs?.map((img, i) => (
+                          <img key={i} src={`/assets/upgrades/external/${img}`} alt={group.name} style={{ imageRendering: 'pixelated', width: i === 0 ? UI_EXT_SKILL_ICON : UI_EXT_SKILL_TEXT }} onError={(e) => e.target.style.display = 'none'} />
+                        ))}
+                        {group.img && (
+                          <img src={`/assets/upgrades/external/${group.img}`} alt={group.name} style={{ imageRendering: 'pixelated', width: UI_EXT_IMG_STD }} onError={(e) => e.target.style.display = 'none'} />
+                        )}
+                        {group.ui_type === 'card' && current_val > 0 && (
+                          <div className="relative flex items-center justify-center" style={{ width: UI_BLOCK_CARD_WIDTH * 0.8, height: UI_BLOCK_CARD_WIDTH * 1.0 }}>
+                            <img src={`/assets/cards/backgrounds/${current_val}.png`} className="absolute inset-0 w-full h-full object-contain" style={{ imageRendering: 'pixelated' }} />
+                            <img src={`/assets/cards/cores/20_Misc_Arch_Ability_face.png`} className="absolute inset-0 w-full h-full object-contain drop-shadow-md" style={{ imageRendering: 'pixelated', transform: `translate(${UI_EXT_CARD_CBLOCK_X_OFFSET}px, ${UI_EXT_CARD_CBLOCK_Y_OFFSET}px)` }} onError={(e) => e.target.style.display = 'none'}/>
+                          </div>
+                        )}
+                        {group.ui_type === 'card' && current_val === 0 && <span className="text-xs text-st-text-light">(Card Not Unlocked)</span>}
+                        {group.ui_type === 'pet' && current_val === -1 && <span className="text-xs text-st-text-light">Status: Not Owned</span>}
+                        {group.id === 'geoduck' && <span className="text-xs text-st-text-light -mt-2">Enter Number of Mythic Chests Opened</span>}
+                      </div>
+
+                      {(group.ui_type === 'number' || group.ui_type === 'pet' || group.ui_type === 'card') && (
+                        <input type="number" className="st-input" value={current_val} min={group.ui_type === 'pet' ? -1 : 0} max={group.max || 999} onChange={(e) => setExternalGroup(group.rows, e.target.value)} />
+                      )}
+                      
+                      {(group.ui_type === 'skill' || group.ui_type === 'bundle') && (
+                        <label className="flex items-center gap-2 cursor-pointer font-medium mt-2">
+                          <input type="checkbox" checked={current_val === 1} onChange={(e) => setExternalGroup(group.rows, e.target.checked ? 1 : 0)} className="w-4 h-4 accent-st-orange" />
+                          Unlocked
+                        </label>
+                      )}
+
+                      {group.id === 'arch_card' && current_val === 4 && (
+                        <div className="mt-4 w-full">
+                          <span className="text-xs font-bold text-st-red mb-1 block">Infernal Cooldown Bonus %</span>
+                          <input type="number" className="st-input" value={(arch_ability_infernal_bonus * 100).toFixed(2)} step="0.01" onChange={(e) => setSetting('arch_ability_infernal_bonus', parseFloat(e.target.value) / 100.0 || 0)} />
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
         )}
 
-        {/* --- TAB: CARDS --- */}
         {activeSubTab === 'cards' && (
           <div>
             <h3 className="text-xl font-bold mb-4 flex items-center gap-2">
@@ -313,13 +351,10 @@ export default function PlayerSetup() {
             </h3>
             <hr className="border-st-border mb-6" />
 
-            {/* Responsive grid: 3 cols on mobile, 6 on tablet, 9 on desktop! */}
             <div className="grid grid-cols-3 sm:grid-cols-6 lg:grid-cols-9 gap-2">
               {CARD_TYPES.map(o_type => {
                 return[1, 2, 3, 4].map(tier_num => {
                   const card_id = `${o_type}${tier_num}`;
-                  
-                  // Lock logic identical to Streamlit
                   let is_locked = false;
                   if (tier_num === 4 && !asc2_unlocked) is_locked = true;
                   if (o_type === 'div' && !asc1_unlocked) is_locked = true;
@@ -331,7 +366,6 @@ export default function PlayerSetup() {
                     <div key={card_id} className={`st-container p-2 flex flex-col items-center ${is_locked ? 'opacity-40' : ''}`}>
                       <div className="font-bold text-xs mb-2 capitalize">{card_id}</div>
                       
-                      {/* CSS Magic: Overlaying background and core instantly */}
                       <div className="relative mb-3 flex items-center justify-center" style={{ width: UI_BLOCK_CARD_WIDTH * 0.6, height: UI_BLOCK_CARD_WIDTH * 0.8 }}>
                         {user_tier > 0 && !is_locked ? (
                           <>
@@ -360,10 +394,38 @@ export default function PlayerSetup() {
           </div>
         )}
 
-        {/* --- TAB: IDOLS --- */}
         {activeSubTab === 'idols' && (
-          <div className="st-container text-center text-st-text-light py-10">
-            🚧 Arch Idols coming soon...
+          <div>
+            <div className="text-center mb-6">
+              <h3 className="text-2xl font-bold mb-2">🗿 Arch Idols</h3>
+              <p className="text-st-text-light">Manage your Early/Late-Game Asc1 Idols here.</p>
+            </div>
+            
+            {!asc1_unlocked ? (
+              <div className="p-4 bg-yellow-50 border-l-4 border-yellow-400 text-yellow-700 rounded mb-6">
+                🔒 Arch Idols are locked until Ascension 1.
+              </div>
+            ) : (
+              <div className="flex flex-col sm:flex-row gap-6 justify-center">
+                <div className="st-container flex flex-col items-center p-6 w-full sm:w-64">
+                  <span className="font-bold mb-4">Hestia Idol</span>
+                  <div className="h-32 mb-4 flex items-center justify-center">
+                    <img src="/assets/upgrades/idols/hestia_idol.png" alt="Hestia" style={{ width: UI_EXT_IMG_STD, imageRendering: 'pixelated' }} onError={(e) => e.target.style.display = 'none'} />
+                  </div>
+                  <hr className="w-full border-st-border mb-4"/>
+                  <input type="number" className="st-input" value={external_levels[4] || 0} onChange={(e) => setExternalGroup([4], e.target.value)} min="0" />
+                </div>
+
+                <div className="st-container flex flex-col items-center p-6 w-full sm:w-64">
+                  <span className="font-bold mb-4">Hades Idol</span>
+                  <div className="h-32 mb-4 flex items-center justify-center">
+                    <img src="/assets/upgrades/idols/hades_idol.png" alt="Hades" style={{ width: UI_EXT_IMG_STD, imageRendering: 'pixelated' }} onError={(e) => e.target.style.display = 'none'} />
+                  </div>
+                  <hr className="w-full border-st-border mb-4"/>
+                  <input type="number" className="st-input" value={hades_idol_level} onChange={(e) => setSetting('hades_idol_level', parseInt(e.target.value)||0)} min="0" />
+                </div>
+              </div>
+            )}
           </div>
         )}
 
