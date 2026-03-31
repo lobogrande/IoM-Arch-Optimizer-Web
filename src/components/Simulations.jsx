@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import useStore from '../store';
 import { EngineWorkerPool, getOptimalStepProfile, runOptimizationPhase, topUpBuild } from '../utils/optimizer';
+import Plot from 'react-plotly.js';
 
 const OPT_GOALS =[
   "Max Floor Push", 
@@ -185,8 +186,31 @@ export default function Simulations() {
       
       if (bestFinal && finalSummary) {
           console.log("🏆 OPTIMIZATION COMPLETE:", bestFinal, finalSummary);
-          alert(`✅ Simulation Complete in ${elapsed.toFixed(1)}s!\nBest Build: ${JSON.stringify(bestFinal)}`);
-          // Note: In the final step we will save this payload to Zustand and render the graphs!
+          
+          const payload = {
+              best_final: bestFinal,
+              final_summary_out: finalSummary,
+              elapsed: elapsed,
+              time_limit_secs: timeLimit,
+              run_target_metric: targetMetricKey,
+              worst_val: finalSummary.worst_val || 0,
+              avg_val: finalSummary.avg_val || 0,
+              runner_up_val: finalSummary.runner_up_val || 0,
+              // Convert flat floor array into a Death Histogram map: { "120": 5, "121": 15 }
+              chart_hist: finalSummary.floors.reduce((acc, f) => { acc[f] = (acc[f] || 0) + 1; return acc; }, { }),
+          };
+
+          store.setOptResults(payload);
+          store.addRunHistory({
+              Include: true,
+              Target: targetMetricKey,
+              "Metric Score": finalSummary[targetMetricKey],
+              "Avg Floor": finalSummary.avg_floor,
+              "Max Floor": finalSummary.abs_max_floor,
+              ...bestFinal,
+              _restore_state: payload
+          });
+
       } else {
           alert("⚠️ Optimization aborted or failed to find a valid build.");
       }
@@ -401,6 +425,121 @@ export default function Simulations() {
                   style={{ width: `${progressPct}%` }}
                 ></div>
               </div>
+            </div>
+          )}
+
+          {/* =========================================
+              RESULTS DASHBOARD
+          ========================================= */}
+          {store.opt_results && !isOptimizing && (
+            <div className="mt-8 animate-fade-in space-y-6">
+              <div className="bg-[#1e1e1e] border-l-4 border-l-green-500 p-4 rounded shadow">
+                <h3 className="text-xl font-bold text-green-400">✅ Simulation Complete in {store.opt_results.elapsed.toFixed(1)} seconds!</h3>
+              </div>
+
+              {/* 🏆 THE BUILD */}
+              <div className="st-container">
+                <h3 className="text-2xl font-bold mb-4">🏆 Optimal Stat Build</h3>
+                <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-4">
+                  {activeStats.map(stat => {
+                    const allocated = store.opt_results.best_final[stat] || 0;
+                    const current = store.base_stats[stat] || 0;
+                    const delta = allocated - current;
+                    
+                    return (
+                      <div key={stat} className="st-container flex flex-col items-center text-center">
+                        <div className="font-bold">{stat}</div>
+                        <div className="text-3xl font-mono mt-2 text-st-orange">{allocated}</div>
+                        <div className={`text-sm font-bold ${delta > 0 ? 'text-green-400' : delta < 0 ? 'text-red-400' : 'text-st-text-light'}`}>
+                          {delta > 0 ? `+${delta}` : delta < 0 ? delta : '-'}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                <div className="flex flex-col md:flex-row gap-4 mt-6">
+                  <button 
+                    onClick={() => {
+                      Object.entries(store.opt_results.best_final).forEach(([k, v]) => {
+                        store.setBaseStat(k, v);
+                      });
+                      alert("✅ Optimal stats applied globally!");
+                    }}
+                    className="flex-1 py-2 bg-[#2b2b2b] border border-st-orange text-st-orange font-bold rounded hover:bg-st-orange hover:text-[#2b2b2b] transition-colors"
+                  >
+                    ✨ Apply Build Globally
+                  </button>
+                  <button className="flex-1 py-2 bg-[#2b2b2b] border border-st-border text-st-text-light font-bold rounded hover:text-st-text transition-colors cursor-not-allowed">
+                    🧪 Send to Sandbox (Coming Soon)
+                  </button>
+                </div>
+              </div>
+
+              {/* 📊 ADVANCED ANALYTICS */}
+              <div className="st-container">
+                <h3 className="text-2xl font-bold mb-4">📊 Advanced Analytics</h3>
+                
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  
+                  {/* Death Histogram (Progression Wall) */}
+                  <div className="w-full h-[300px] border border-st-border rounded bg-black/20 p-2">
+                    <Plot
+                      data={[ {
+                        x: Object.keys(store.opt_results.chart_hist),
+                        y: Object.values(store.opt_results.chart_hist),
+                        type: 'bar',
+                        marker: { color: '#ff4b4b' },
+                        text: Object.values(store.opt_results.chart_hist),
+                        textposition: 'outside'
+                      } ]}
+                      layout={{
+                        title: 'Progression Wall (Death Distribution)',
+                        paper_bgcolor: 'rgba(0,0,0,0)',
+                        plot_bgcolor: 'rgba(0,0,0,0)',
+                        font: { color: '#e0e0e0' },
+                        margin: { t: 40, b: 40, l: 40, r: 20 },
+                        xaxis: { type: 'category', title: 'Floor' },
+                        yaxis: { title: 'Deaths' }
+                      }}
+                      useResizeHandler={true}
+                      style={{ width: '100%', height: '100%' }}
+                      config={{ displayModeBar: false }}
+                    />
+                  </div>
+
+                  {/* Stamina Trace (Sample Run) */}
+                  {store.opt_results.final_summary_out.stamina_trace && (
+                    <div className="w-full h-[300px] border border-st-border rounded bg-black/20 p-2">
+                      <Plot
+                        data={[ {
+                          x: store.opt_results.final_summary_out.stamina_trace.floor,
+                          y: store.opt_results.final_summary_out.stamina_trace.stamina,
+                          type: 'scatter',
+                          mode: 'lines',
+                          fill: 'tozeroy',
+                          line: { color: '#ffa229' },
+                          fillcolor: 'rgba(255, 162, 41, 0.2)'
+                        } ]}
+                        layout={{
+                          title: 'Stamina Depletion Trace (Sample Run)',
+                          paper_bgcolor: 'rgba(0,0,0,0)',
+                          plot_bgcolor: 'rgba(0,0,0,0)',
+                          font: { color: '#e0e0e0' },
+                          margin: { t: 40, b: 40, l: 40, r: 20 },
+                          xaxis: { title: 'Floor Level' },
+                          yaxis: { title: 'Stamina Remaining' }
+                        }}
+                        useResizeHandler={true}
+                        style={{ width: '100%', height: '100%' }}
+                        config={{ displayModeBar: false }}
+                      />
+                    </div>
+                  )}
+
+                </div>
+              </div>
+
             </div>
           )}
 

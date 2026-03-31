@@ -24,6 +24,8 @@ const useStore = create((set) => ({
   // Stores the live output from Pyodide (damage, crit_chance, etc.)
   calculated_stats: {},
   compendium_target_floor: null,
+  opt_results: null,
+  run_history: [ ],
 
   // Actions (Equivalent to updating st.session_state)
   setSetting: (key, value) => set({ [key]: value }),
@@ -43,6 +45,8 @@ const useStore = create((set) => ({
   }),
   setCalculatedStats: (stats) => set({ calculated_stats: stats }),
   setCompendiumTargetFloor: (val) => set({ compendium_target_floor: parseInt(val) || 1 }),
+  setOptResults: (res) => set({ opt_results: res }),
+  addRunHistory: (run) => set((state) => ({ run_history:[ ...state.run_history, run ] })),
   
   // Bulk load from JSON file
   loadStateFromJson: (data) => set((state) => {
