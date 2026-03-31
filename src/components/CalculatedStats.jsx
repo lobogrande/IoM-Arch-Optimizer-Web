@@ -4,7 +4,7 @@ import useStore from '../store';
 import { UPGRADE_NAMES, EXTERNAL_UI_GROUPS } from '../game_data';
 
 export default function CalculatedStats() {
-  const { asc1_unlocked, asc2_unlocked, current_max_floor, base_stats, upgrade_levels, external_levels, cards, calculated_stats } = useStore();
+  const { asc1_unlocked, asc2_unlocked, current_max_floor, base_stats, upgrade_levels, external_levels, cards, calculated_stats, arch_ability_infernal_bonus } = useStore();
   const[troubleshootStat, setTroubleshootStat] = useState("");
   const [showTroubleshooter, setShowTroubleshooter] = useState(false);
 
@@ -53,15 +53,15 @@ export default function CalculatedStats() {
             </select>
 
             {troubleshootStat && (() => {
-              // Enhanced map to support settings tracking and block bonker inclusion
+              // Enhanced map perfectly aligned to player.py
               const TROUBLESHOOT_MAP = {
                 "Max Stamina": { settings:["current_max_floor"], stats: ["Agi", "Corr"], upgs:[3, 14, 23, 26, 28, 39, 54], exts:["Block Bonker Skill"], infs:["epic3"] },
-                "Damage": { settings: [], stats:["Str", "Corr", "Div"], upgs:[9, 15, 20, 25, 32, 34, 36, 47, 49, 51, 52], exts: ["Dino Skin", "Hestia Idol"], infs:["rare2", "div1"] },
+                "Damage": { settings: ["current_max_floor"], stats:["Str", "Corr", "Div"], upgs:[9, 15, 20, 25, 32, 34, 36, 47, 49, 51, 52], exts: ["Block Bonker Skill"], infs:["rare2", "div1"] },
                 "Armor Pen": { settings: [], stats:["Per", "Int"], upgs:[10, 17, 29, 33, 36], exts:[], infs: ["leg3", "rare3"] },
-                "Crit Chances & Multipliers": { settings: [], stats: ["Luck", "Div"], upgs:[13, 18, 20, 30, 37, 40, 47, 49, 53], exts: [], infs:["com1", "com2", "com3", "epic2"] },
-                "EXP & Fragment Gain": { settings: [], stats:["Int", "Per", "Div"], upgs:[4, 11, 21, 28, 35, 42, 45, 51], exts:["Axolotl Skin", "Geoduck Tribute"], infs: ["dirt2", "dirt3", "leg1"] },
-                "Mod Chances & Multipliers": { settings: [], stats: ["Luck", "Div", "Corr"], upgs:[5, 14, 16, 23, 24, 26, 33, 35, 38, 40, 43, 44, 48, 50, 52, 53, 54, 55], exts:["Archaeology Bundle"], infs:["dirt1", "rare1", "epic1", "leg2", "myth2", "myth3", "div3"] },
-                "Abilities": { settings: [], stats:["Int", "Div"], upgs:[18, 22, 29, 31, 32, 39, 50], exts:["Arch Ability Card", "Avada Keda- Skill", "Block Bonker Skill"], infs:[] }
+                "Crit Chances & Multipliers": { settings:[], stats: ["Luck", "Div"], upgs:[13, 18, 20, 30, 37, 40, 47, 49, 53], exts:[], infs:["com1", "com2", "com3", "epic2"] },
+                "EXP & Fragment Gain": { settings: [], stats:["Int", "Per", "Div"], upgs:[4, 11, 21, 28, 35, 42, 45, 51], exts:["Hestia Idol", "Axolotl Skin", "Geoduck Tribute", "Archaeology Bundle", "Ascension Bundle"], infs: ["dirt2", "dirt3", "leg1"] },
+                "Mod Chances & Multipliers": { settings: [], stats: ["Luck", "Div", "Corr"], upgs:[5, 14, 16, 23, 24, 26, 33, 35, 38, 40, 43, 44, 48, 50, 52, 53, 54, 55], exts:["Ascension Bundle", "Block Bonker Skill"], infs:["dirt1", "rare1", "epic1", "leg2", "myth2", "myth3", "div3"] },
+                "Abilities": { settings: [], stats:["Int", "Div"], upgs:[18, 22, 29, 31, 32, 39, 50], exts:["Arch Ability Card", "Avada Keda- Skill"], infs:[] }
               };
               
               const data = TROUBLESHOOT_MAP[troubleshootStat];
@@ -141,9 +141,35 @@ export default function CalculatedStats() {
 
                 // --- EXTERNAL UPGRADES ---
                 if (type === 'ext') {
-                  if (troubleshootStat === "Max Stamina" && key === "Block Bonker Skill") return `(+${Math.min(current_max_floor, 100)}% Multi)`;
-                  if (troubleshootStat === "Damage" && key === "Dino Skin") return `(+${val * 5}% Multi)`;
-                  if (troubleshootStat === "EXP & Fragment Gain" && key === "Axolotl Skin") return `(+${val * 5}% Multi)`;
+                  if (troubleshootStat === "Max Stamina" && key === "Block Bonker Skill") return `(+${val * Math.min(current_max_floor, 100)}% Multi)`;
+                  if (troubleshootStat === "Damage" && key === "Block Bonker Skill") return `(+${val * Math.min(current_max_floor, 100)}% Multi)`;
+                  
+                  if (troubleshootStat === "EXP & Fragment Gain") {
+                    if (key === "Hestia Idol") return `(+${(val * 0.01).toFixed(2)}% Frag Multi)`;
+                    if (key === "Axolotl Skin") return `(+${(val + 1) * 3}% Frag Multi)`;
+                    if (key === "Geoduck Tribute") {
+                      const cap = asc2_unlocked ? 75 : 50;
+                      return `(+${Math.min(val * 0.25, cap).toFixed(2)}% Frag Multi)`;
+                    }
+                    if (key === "Archaeology Bundle" && val === 1) return `(+25% Frag Multi)`;
+                    if (key === "Ascension Bundle" && val === 1) return `(+15% EXP Multi)`;
+                  }
+                  
+                  if (troubleshootStat === "Mod Chances & Multipliers") {
+                    if (key === "Ascension Bundle" && val === 1) return `(+2% Loot Mod Chance)`;
+                    if (key === "Block Bonker Skill") return `(+${val * 15} Flat Speed Mod Gain)`;
+                  }
+                  
+                  if (troubleshootStat === "Abilities") {
+                    if (key === "Arch Ability Card") {
+                      if (val === 1) return `(-3% CD)`;
+                      if (val === 2) return `(-6% CD)`;
+                      if (val === 3) return `(-10% CD)`;
+                      // Infernal Bonus is stored as a string percentage (e.g. "-15.09")
+                      if (val === 4) return `(${arch_ability_infernal_bonus}% CD)`; 
+                    }
+                    if (key === "Avada Keda- Skill" && val === 1) return `(+5 Charges, -10s CD, +3% Insta)`;
+                  }
                 }
 
                 return ""; 
