@@ -68,6 +68,18 @@ export class EngineWorkerPool {
         });
     }
 
+    clearQueue() {
+        // Instantly resolves all pending promises with an abort flag so Promise.all() unblocks!
+        for (const task of this.taskQueue) {
+            const cb = this.callbacks.get(task.msg.taskId);
+            if (cb) {
+                this.callbacks.delete(task.msg.taskId);
+                cb({ type: 'RESULT', taskId: task.msg.taskId, payload: { aborted: true } });
+            }
+        }
+        this.taskQueue = [ ];
+    }
+
     terminate() {
         this.workers.forEach(w => w.terminate());
         this.workers = [ ];
@@ -254,8 +266,9 @@ export function getOptimalStepProfile(statsList, budget, bounds, simsPerSecond, 
                 time_label: timeStr
             };
 
-            // If this is the absolute first valid profile, or if it's closer to our target time than the last one, keep it as a fallback!
-            if (!bestProfile || estimatedSeconds <= targetTimeSeconds) {
+            // Keep tracking the absolute fastest profile we've seen so far as our fallback!
+            // This guarantees if we miss the target, we return step_size 100, instead of getting stuck on step_size 3!
+            if (!bestProfile || estimatedSeconds < bestProfile.eta_seconds) {
                 bestProfile = currentProfile;
             }
             
@@ -315,6 +328,8 @@ export async function runOptimizationPhase(
             for (let i = 0; i < runCount; i++) {
                 // Shoot task to Worker Pool
                 const p = pool.runTask(baseStateDict, testStats).then(result => {
+                    if (result.aborted) return; // Skip dumped tasks
+
                     const tr = tracker[key];
                     tr.sumTarget += (result[targetMetric] || 0.0);
                     tr.sumFloor += (result.highest_floor || 0.0);
@@ -343,7 +358,11 @@ export async function runOptimizationPhase(
                     // Mid-round abort check
                     if (globalStartTime && timeLimitSeconds) {
                         if ((Date.now() - globalStartTime) / 1000 >= timeLimitSeconds) {
-                            hardAbortTriggered = true;
+                            if (!hardAbortTriggered) {
+                                console.warn(`[TIMEOUT] Hard Abort triggered! Emptying worker queue...`);
+                                hardAbortTriggered = true;
+                                pool.clearQueue();
+                            }
                         }
                     }
                 });
