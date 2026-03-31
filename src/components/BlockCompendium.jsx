@@ -16,7 +16,7 @@ export default function BlockCompendium() {
     <div>
       <h2 className="text-2xl font-bold mb-2">🪨 Block Compendium</h2>
       <p className="text-sm text-st-text-light mb-6">
-        📚 <strong>Data Attribution:</strong> The raw baseline stats for these blocks were meticulously compiled by the <a href="https://shminer.miraheze.org/wiki/Archaeology#Block_Stats" target="_blank" rel="noreferrer" className="text-st-orange hover:underline">IoM Wiki Team</a>. <em>(Note: Toggling 'Modified Stats' applies this engine's custom scaling math to that baseline data)</em>.
+        📚 <strong>Data Attribution:</strong> The raw baseline stats for these blocks were compiled by the IoM Wiki Team <a href="https://shminer.miraheze.org/wiki/Archaeology#Block_Stats" target="_blank" rel="noreferrer" className="text-st-orange hover:underline">here</a>. <em>(Note: Toggling 'Modified Stats' applies this engine's custom scaling math to that baseline data)</em>.
       </p>
 
       <div className="flex flex-col md:flex-row gap-6 mb-6">

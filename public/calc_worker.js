@@ -43,7 +43,7 @@ def calculate_all_stats(js_data):
     upgrades = data.get('upgrade_levels', {})
     for k, v in upgrades.items():
         p.set_upgrade_level(int(k), v)
-    
+        
     target_floor = int(data.get('compendium_target_floor', p.current_max_floor))
     
     from core.block import Block
@@ -121,18 +121,20 @@ def calculate_all_stats(js_data):
     postMessage({ type: 'READY' });
 }
 
-initCalcEngine().catch(err => postMessage({ type: 'ERROR', payload: err.message }));
+// Save the initialization to a Promise so the message listener can wait for it!
+const initPromise = initCalcEngine().catch(err => postMessage({ type: 'ERROR', payload: err.message }));
 
 self.onmessage = async function(e) {
     if (e.data.command === 'CALC_STATS') {
         try {
-            // Pass the data to Python and execute the calculation
+            // AWAIT THE PROMISE: Wait for Pyodide to finish downloading before trying to calculate!
+            await initPromise;
+            
             pyodide.globals.set("js_data", e.data.payload);
             const resultProxy = await pyodide.runPythonAsync("calculate_all_stats(js_data)");
             
-            // Convert the Python dictionary back to a standard Javascript object
             const result = resultProxy.toJs({ dict_converter: Object.fromEntries });
-            resultProxy.destroy(); // Free memory
+            resultProxy.destroy(); 
             
             postMessage({ type: 'CALC_RESULT', payload: result });
         } catch (err) {
