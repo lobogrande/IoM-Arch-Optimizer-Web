@@ -42,14 +42,15 @@ function App() {
           base_stats: store.base_stats,
           upgrade_levels: store.upgrade_levels,
           external_levels: store.external_levels,
-          cards: store.cards
+          cards: store.cards,
+          compendium_target_floor: store.compendium_target_floor || store.current_max_floor
         }
       });
     }
   },[
     store.asc1_unlocked, store.asc2_unlocked, store.arch_level, store.hades_idol_level, 
     store.arch_ability_infernal_bonus, store.total_infernal_cards, store.base_stats, 
-    store.upgrade_levels, store.external_levels, store.cards
+    store.upgrade_levels, store.external_levels, store.cards, store.compendium_target_floor, store.current_max_floor
   ]);
 
   return (

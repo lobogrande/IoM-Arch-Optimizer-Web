@@ -23,6 +23,7 @@ const useStore = create((set) => ({
 
   // Stores the live output from Pyodide (damage, crit_chance, etc.)
   calculated_stats: {},
+  compendium_target_floor: null,
 
   // Actions (Equivalent to updating st.session_state)
   setSetting: (key, value) => set({ [key]: value }),
@@ -41,6 +42,7 @@ const useStore = create((set) => ({
     return { external_levels: newExt };
   }),
   setCalculatedStats: (stats) => set({ calculated_stats: stats }),
+  setCompendiumTargetFloor: (val) => set({ compendium_target_floor: parseInt(val) || 1 }),
   
   // Bulk load from JSON file
   loadStateFromJson: (data) => set((state) => {

@@ -44,8 +44,39 @@ def calculate_all_stats(js_data):
     for k, v in upgrades.items():
         p.set_upgrade_level(int(k), v)
     
+    target_floor = int(data.get('compendium_target_floor', p.current_max_floor))
+    
+    from core.block import Block
+    import project_config as cfg
+    
+    blocks_data =[]
+    FRAG_NAMES = {0: "Dirt", 1: "Common", 2: "Rare", 3: "Epic", 4: "Legendary", 5: "Mythic", 6: "Divine"}
+    
+    for block_id, base in cfg.BLOCK_BASE_STATS.items():
+        if block_id.startswith('div') and not p.asc1_unlocked: continue
+        if block_id.endswith('4') and not p.asc2_unlocked: continue
+        
+        b = Block(block_id, target_floor, p)
+        eff_armor = max(0, b.armor - p.armor_pen)
+        
+        blocks_data.append({
+            "id": block_id,
+            "name": block_id.capitalize(),
+            "frag_name": FRAG_NAMES.get(base.get('ft', 0), "Unknown"),
+            "base_hp": base['hp'],
+            "base_armor": base['a'],
+            "base_xp": base['xp'],
+            "base_frag": base['fa'],
+            "mod_hp": b.hp,
+            "mod_eff_armor": eff_armor,
+            "mod_armor": b.armor,
+            "mod_xp": b.xp,
+            "mod_frag": b.frag_amt
+        })
+
     # Extract all calculated @property values
     return {
+        "blocks_data": blocks_data,
         "max_sta": p.max_sta,
         "damage": p.damage,
         "armor_pen": p.armor_pen,
