@@ -415,6 +415,10 @@ export default function Simulations() {
               _restore_state: payload
           });
 
+          // Force the UI back to the default result tabs for the new run
+          setResTab('build');
+          setDataTab('performance');
+
       } else {
           alert("⚠️ Optimization aborted or failed to find a valid build.");
       }
