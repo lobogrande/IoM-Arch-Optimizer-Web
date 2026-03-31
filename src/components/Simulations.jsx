@@ -42,9 +42,9 @@ export default function Simulations() {
 
   // Execution Engine State
   const[isOptimizing, setIsOptimizing] = useState(false);
-  const [progressMsg, setProgressMsg] = useState("");
+  const[progressMsg, setProgressMsg] = useState("");
   const [progressPct, setProgressPct] = useState(0);
-  const[simsPerSec, setSimsPerSec] = useState(150); // Fallback assumption until auto-calibrated
+  const[simsPerSec, setSimsPerSec] = useState(15); // Pessimistic WebAssembly baseline until auto-calibrated
 
   // Dynamic Limits based on Ascensions and Caps
   const totalAllowed = parseInt(store.arch_level) + parseInt(store.upgrade_levels[12] || 0);
@@ -270,11 +270,19 @@ export default function Simulations() {
       });
 
       let totalSimsExecuted = 0;
+      let lastProgressUpdate = 0;
+
       const onProgressCb = (phase, rnd, totRnd, comp, tot) => {
         totalSimsExecuted++;
-        const elapsed = (Date.now() - globalStartTime) / 1000;
-        setProgressMsg(`⚙️ ${phase} | Round ${rnd}/${totRnd} | ${comp}/${tot} sims | ⏱️ Elapsed: ${elapsed.toFixed(1)}s / ${timeLimit}s`);
-        setProgressPct((comp / tot) * 100);
+        const now = Date.now();
+        
+        // Throttle UI updates to twice a second to prevent React from choking
+        if (now - lastProgressUpdate > 500 || comp === tot) {
+          const elapsed = (now - globalStartTime) / 1000;
+          setProgressMsg(`⚙️ ${phase} | Round ${rnd}/${totRnd} | ${comp}/${tot} sims | ⏱️ Elapsed: ${elapsed.toFixed(1)}s / ${timeLimit}s`);
+          setProgressPct((comp / tot) * 100);
+          lastProgressUpdate = now;
+        }
       };
 
       // --- PHASE 1 (Coarse) ---

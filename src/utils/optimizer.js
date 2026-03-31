@@ -351,7 +351,8 @@ export async function runOptimizationPhase(
                     }
 
                     completedTasks++;
-                    if (onProgress && (completedTasks % Math.max(1, Math.floor(totalTasks / 20)) === 0 || completedTasks === totalTasks)) {
+                    if (onProgress) {
+                        // The UI throttle handles the render rate, so we always pass the data up safely
                         onProgress(phaseName, roundIdx + 1, rounds.length, completedTasks, totalTasks);
                     }
 
