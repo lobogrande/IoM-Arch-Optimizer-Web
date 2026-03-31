@@ -259,8 +259,8 @@ export default function PlayerSetup() {
             </div>
             <hr className="border-st-border mb-6" />
 
-            {/* In Streamlit we centered this via ratio. In React we can use a centered responsive grid. */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {/* Replicate Streamlit UI_INT_COL_RATIO[1,1,1] - Single centered column */}
+            <div className="w-full md:w-1/2 lg:w-1/3 mx-auto flex flex-col gap-4">
               {Object.entries(INTERNAL_UPGRADE_CAPS).map(([upg_id, max_lvl]) => {
                 const id = parseInt(upg_id);
                 if (!asc1_unlocked && ASC1_LOCKED_UPGS.includes(id)) return null;
@@ -273,16 +273,17 @@ export default function PlayerSetup() {
 
                 return (
                   <div key={id} className="st-container flex flex-col items-center justify-center p-4">
-                    <div className="text-center mb-2 h-10 flex flex-col justify-end">
-                      <span className="font-bold text-sm">{name}</span>
+                    <div className="text-center mb-2">
+                      <span className="font-bold text-sm">{name}</span><br/>
                       <span className="text-xs text-st-text-light">(Max: {max_lvl})</span>
                     </div>
                     
+                    {/* Let the image stretch to the container width just like st.image(width="stretch") */}
                     <div className="w-full flex justify-center mb-4">
                       <img 
                         src={`/assets/upgrades/internal/${id}.png`} 
                         alt={name}
-                        className="w-full max-w-[120px] object-contain"
+                        className="w-full h-auto object-contain"
                         style={{ imageRendering: 'pixelated' }}
                         onError={(e) => { e.target.style.display = 'none'; }}
                       />
