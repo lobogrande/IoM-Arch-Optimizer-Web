@@ -48,6 +48,24 @@ const useStore = create((set) => ({
   loadStateFromJson: (data) => set((state) => {
     const newState = { ...state };
     
+    // 🕵️‍♂️ AGGRESSIVE INFERNAL BONUS HUNTING
+    // Python and React export this in different places depending on the version. We check everywhere!
+    let foundInfernalRaw = null;
+    if (data.external_upgrades && data.external_upgrades["Arch Ability Infernal Bonus"] !== undefined) {
+      foundInfernalRaw = data.external_upgrades["Arch Ability Infernal Bonus"];
+    } else if (data.settings && data.settings.arch_ability_infernal_bonus !== undefined) {
+      foundInfernalRaw = data.settings.arch_ability_infernal_bonus;
+    } else if (data.arch_ability_infernal_bonus !== undefined) {
+      foundInfernalRaw = data.arch_ability_infernal_bonus;
+    }
+    
+    if (foundInfernalRaw !== null) {
+      let rawFloat = parseFloat(foundInfernalRaw);
+      if (!isNaN(rawFloat)) {
+        newState.arch_ability_infernal_bonus = Number((rawFloat * 100).toFixed(4)).toString();
+      }
+    }
+
     // Parse Settings
     if (data.settings) {
       if (data.settings.asc1_unlocked !== undefined) newState.asc1_unlocked = data.settings.asc1_unlocked;
@@ -55,6 +73,7 @@ const useStore = create((set) => ({
       if (data.settings.arch_level !== undefined) newState.arch_level = data.settings.arch_level;
       if (data.settings.current_max_floor !== undefined) newState.current_max_floor = data.settings.current_max_floor;
       if (data.settings.hades_idol_level !== undefined) newState.hades_idol_level = data.settings.hades_idol_level;
+      if (data.settings.total_infernal_cards !== undefined) newState.total_infernal_cards = data.settings.total_infernal_cards;
     }
     
     // Parse Base Stats
@@ -85,18 +104,8 @@ const useStore = create((set) => ({
           group.rows.forEach(r => newExt[r] = data.external_upgrades[group.name]);
         }
       });
-      
-      // The Infernal bonus is stored inside external_upgrades in the Python JSON!
-      if (data.external_upgrades["Arch Ability Infernal Bonus"] !== undefined) {
-        let rawFloat = parseFloat(data.external_upgrades["Arch Ability Infernal Bonus"]);
-      if (isNaN(rawFloat)) rawFloat = 0.0;
-        // Store as a string percentage so React doesn't fight the user's typing
-        newState.arch_ability_infernal_bonus = (rawFloat * 100).toString();
-      }
       newState.external_levels = newExt;
     }
-    
-    if (data.settings?.total_infernal_cards !== undefined) newState.total_infernal_cards = data.settings.total_infernal_cards;
     
     return newState;
   }),
