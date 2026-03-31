@@ -1,0 +1,43 @@
+@import "tailwindcss";
+@import url('https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@400;600;700&display=swap');
+
+@theme {
+  --color-st-bg: #FFFFFF;
+  --color-st-secondary: #F0F2F6;
+  --color-st-text: #31333F;
+  --color-st-text-light: #7D808D; /* Solid hex prevents emoji gray-film */
+  --color-st-border: rgba(49, 51, 63, 0.2);
+  --color-st-orange: #ffa229;
+}
+
+body {
+  background-color: var(--color-st-bg);
+  color: var(--color-st-text);
+  margin: 0;
+  font-family: "Source Sans 3", sans-serif;
+}
+
+/* Replicate st.container(border=True) */
+.st-container {
+  border: 1px solid var(--color-st-border);
+  border-radius: 0.5rem;
+  padding: 1rem;
+  background-color: var(--color-st-bg);
+}
+
+/* Replicate st.number_input */
+.st-input {
+  width: 100%;
+  background-color: var(--color-st-secondary);
+  border: 1px solid transparent;
+  border-radius: 0.5rem;
+  padding: 0.5rem;
+  text-align: center;
+  font-size: 1rem;
+  color: var(--color-st-text);
+  outline: none;
+  transition: border-color 0.2s;
+}
+.st-input:focus {
+  border-color: var(--color-st-orange);
+}
