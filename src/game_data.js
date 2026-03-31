@@ -1,7 +1,7 @@
 // src/game_data.js
 
 export const INTERNAL_UPGRADE_CAPS = {
-  3: 50, 4: 25, 5: 25, 9: 25, 10: 25, 11: 25, 12: 5, 13: 25, 
+  3: 50, 4: 25, 5: 25, 8: 3, 9: 25, 10: 25, 11: 25, 12: 5, 13: 25, 
   14: 20, 15: 20, 16: 10, 17: 15, 18: 15, 19: 30, 20: 25, 21: 20, 
   22: 10, 23: 5, 24: 30, 25: 5, 26: 5, 27: 30, 28: 15, 29: 10, 
   30: 20, 31: 10, 32: 5, 33: 5, 34: 5, 35: 5, 36: 20, 37: 20, 
@@ -11,7 +11,7 @@ export const INTERNAL_UPGRADE_CAPS = {
 };
 
 export const UPGRADE_NAMES = {
-  3: "Gem Stamina", 4: "Gem Exp", 5: "Gem Loot", 9: "Flat Damage", 10: "Armor Pen.", 
+  3: "Gem Stamina", 4: "Gem Exp", 5: "Gem Loot", 8: "Unlock New Ability", 9: "Flat Damage", 10: "Armor Pen.", 
   11: "Exp. Gain", 12: "Stat Points", 13: "Crit Chance/Damage", 14: "Max Sta/Sta Mod Chance", 
   15: "Flat Damage", 16: "Loot Mod Gain", 17: "Unlock Fairy/Armor Pen", 18: "Enrage&Crit Dmg/Enrage CD", 
   19: "Gleaming Floor Chance", 20: "Flat Dmg/Super Crit", 21: "Exp Gain/Frag Gain", 22: "Flurry Sta Gain/Flurry CD", 
