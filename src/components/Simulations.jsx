@@ -83,10 +83,15 @@ export default function Simulations() {
 
   // Results Dashboard & ROI State
   const [resTab, setResTab] = useState('build');
-  const [roiStatResults, setRoiStatResults] = useState(null);
-  const [roiUpgResults, setRoiUpgResults] = useState(null);
-  const[isRoiLoading, setIsRoiLoading] = useState(false);
-  const[roiProgressMsg, setRoiProgressMsg] = useState("");
+  const [dataTab, setDataTab] = useState('performance');
+  const[curXp, setCurXp] = useState(0);
+  const [tarXp, setTarXp] = useState(0);
+  const [cardSelBlock, setCardSelBlock] = useState('');
+  
+  const[roiStatResults, setRoiStatResults] = useState(null);
+  const[roiUpgResults, setRoiUpgResults] = useState(null);
+  const [isRoiLoading, setIsRoiLoading] = useState(false);
+  const [roiProgressMsg, setRoiProgressMsg] = useState("");
 
   const handleAnalyzeStats = async () => {
     setIsRoiLoading(true);
@@ -371,6 +376,17 @@ export default function Simulations() {
       if (bestFinal && finalSummary) {
           console.log("🏆 OPTIMIZATION COMPLETE:", bestFinal, finalSummary);
           
+          // Compile Chart Data
+          const chartHillScores = [ sumP1[targetMetricKey], sumP2 ? sumP2[targetMetricKey] : null, finalSummary[targetMetricKey] ].filter(x => x !== null);
+          const chartHillLabels =[ "P1 (Coarse)", sumP2 ? "P2 (Fine)" : null, "P3 (Exact)" ].filter(x => x !== null);
+          const chartLoot = { };
+          if (finalSummary.avg_metrics) {
+              Object.entries(FRAG_NAMES).forEach(([tier, name]) => {
+                  const k = `frag_${tier}_per_min`;
+                  if (finalSummary.avg_metrics[k] > 0) chartLoot[name] = finalSummary.avg_metrics[k];
+              });
+          }
+
           const payload = {
               best_final: bestFinal,
               final_summary_out: finalSummary,
@@ -380,8 +396,12 @@ export default function Simulations() {
               worst_val: finalSummary.worst_val || 0,
               avg_val: finalSummary.avg_val || 0,
               runner_up_val: finalSummary.runner_up_val || 0,
-              // Convert flat floor array into a Death Histogram map: { "120": 5, "121": 15 }
               chart_hist: finalSummary.floors.reduce((acc, f) => { acc[f] = (acc[f] || 0) + 1; return acc; }, { }),
+              chart_hill_scores: chartHillScores,
+              chart_hill_labels: chartHillLabels,
+              chart_loot: chartLoot,
+              show_loot: targetMetricKey !== 'highest_floor',
+              show_wall: targetMetricKey === 'highest_floor'
           };
 
           store.setOptResults(payload);
@@ -759,68 +779,300 @@ export default function Simulations() {
               )}
 
               {/* 📊 ADVANCED ANALYTICS */}
-              {resTab === 'data' && (
-              <div className="st-container animate-fade-in">
-                <h3 className="text-2xl font-bold mb-4">📊 Advanced Analytics</h3>
-                
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                  
-                  {/* Death Histogram (Progression Wall) */}
-                  <div className="w-full h-[300px] border border-st-border rounded bg-st-bg p-2">
-                    <Plot
-                      data={[ {
-                        x: Object.keys(store.opt_results.chart_hist),
-                        y: Object.values(store.opt_results.chart_hist),
-                        type: 'bar',
-                        marker: { color: '#ff4b4b' },
-                        text: Object.values(store.opt_results.chart_hist),
-                        textposition: 'outside'
-                      } ]}
-                      layout={{
-                        title: 'Progression Wall (Death Distribution)',
-                        paper_bgcolor: 'rgba(0,0,0,0)',
-                        plot_bgcolor: 'rgba(0,0,0,0)',
-                        margin: { t: 40, b: 40, l: 40, r: 20 },
-                        xaxis: { type: 'category', title: 'Floor' },
-                        yaxis: { title: 'Deaths' }
-                      }}
-                      useResizeHandler={true}
-                      style={{ width: '100%', height: '100%' }}
-                      config={{ displayModeBar: false }}
-                    />
-                  </div>
+              {resTab === 'data' && (() => {
+                const runMetric = store.opt_results.run_target_metric;
+                const isFloorTarget = runMetric === 'highest_floor';
+                const scaleScore = (v) => isFloorTarget ? v : (v / 60.0) * 1000.0;
+                const unitLabel = isFloorTarget ? "Floor Reached" : "Yield per 1k Arch Secs";
+                const finalSum = store.opt_results.final_summary_out;
 
-                  {/* Stamina Trace (Sample Run) */}
-                  {store.opt_results.final_summary_out.stamina_trace && (
-                    <div className="w-full h-[300px] border border-st-border rounded bg-st-bg p-2">
-                      <Plot
-                        data={[ {
-                          x: store.opt_results.final_summary_out.stamina_trace.floor,
-                          y: store.opt_results.final_summary_out.stamina_trace.stamina,
-                          type: 'scatter',
-                          mode: 'lines',
-                          fill: 'tozeroy',
-                          line: { color: '#ffa229' },
-                          fillcolor: 'rgba(255, 162, 41, 0.2)'
-                        } ]}
-                        layout={{
-                          title: 'Stamina Depletion Trace (Sample Run)',
-                          paper_bgcolor: 'rgba(0,0,0,0)',
-                          plot_bgcolor: 'rgba(0,0,0,0)',
-                          margin: { t: 40, b: 40, l: 40, r: 20 },
-                          xaxis: { title: 'Floor Level' },
-                          yaxis: { title: 'Stamina Remaining' }
-                        }}
-                        useResizeHandler={true}
-                        style={{ width: '100%', height: '100%' }}
-                        config={{ displayModeBar: false }}
-                      />
+                const innerTabs = [{ id: 'performance', label: '📈 Performance' }];
+                if (!isFloorTarget) innerTabs.push({ id: 'cards', label: '🃏 Card Drops' });
+                if (store.opt_results.show_loot) innerTabs.push({ id: 'loot', label: '🎒 Loot Breakdown' });
+                if (store.opt_results.show_wall) innerTabs.push({ id: 'wall', label: '🧱 Progression Wall' });
+
+                const avgMetrics = finalSum.avg_metrics || {};
+                const availableBlocks = Object.keys(avgMetrics)
+                  .filter(k => k.startsWith("block_"))
+                  .map(k => k.replace("block_", "").replace("_per_min", ""))
+                  .sort();
+
+                return (
+                  <div className="st-container animate-fade-in">
+                    <h3 className="text-2xl font-bold mb-4">📊 Advanced Analytics Dashboard</h3>
+                    
+                    <div className="flex overflow-x-auto border-b border-st-border mb-6 no-scrollbar">
+                      {innerTabs.map((t) => (
+                        <button
+                          key={t.id}
+                          onClick={() => setDataTab(t.id)}
+                          className={`px-4 py-2 font-medium whitespace-nowrap transition-colors duration-200 border-b-2 ${
+                            dataTab === t.id ? 'border-st-orange text-st-text' : 'border-transparent text-st-text-light hover:text-st-orange'
+                          }`}
+                        >
+                          {t.label}
+                        </button>
+                      ))}
                     </div>
-                  )}
 
-                </div>
-              </div>
-              )}
+                    {dataTab === 'performance' && (
+                      <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
+                        {/* LEFT COLUMN: METRICS */}
+                        <div className="lg:col-span-2 space-y-6">
+                          {isFloorTarget ? (
+                            <div className="space-y-4">
+                              <h4 className="font-bold text-lg border-b border-st-border pb-2">🏆 Push Potential</h4>
+                              <div className="flex flex-col">
+                                <span className="text-st-text-light text-sm">Theoretical Peak Floor</span>
+                                <span className="text-2xl font-bold">Floor {finalSum.abs_max_floor}</span>
+                              </div>
+                              <div className="flex flex-col">
+                                <span className="text-st-text-light text-sm">Peak Probability</span>
+                                <span className="text-2xl font-bold">{(finalSum.abs_max_chance * 100).toFixed(1)}%</span>
+                              </div>
+                              <div className="flex flex-col">
+                                <span className="text-st-text-light text-sm">Average Consistency Floor</span>
+                                <span className="text-2xl font-bold">Floor {finalSum.avg_floor.toFixed(1)}</span>
+                              </div>
+                            </div>
+                          ) : (
+                            <div className="space-y-6">
+                              <div>
+                                <h4 className="font-bold text-lg">💰 Banked Yields</h4>
+                                <p className="text-sm text-st-text-light mb-2">Target {runMetric.includes("frag") ? "Fragments" : runMetric.includes("block") ? "Kills" : "EXP"} per <b>1k Arch Seconds</b></p>
+                                <div className="text-3xl font-bold text-st-orange">{scaleScore(finalSum[runMetric]).toLocaleString(undefined, {minimumFractionDigits:1, maximumFractionDigits:1})}</div>
+                              </div>
+                              <hr className="border-st-border" />
+                              <div>
+                                <h4 className="font-bold text-lg">⏱️ Real-Time Yield</h4>
+                                <p className="text-sm text-st-text-light mb-2">{runMetric.includes("frag") ? "Fragments" : runMetric.includes("block") ? "Kills" : "EXP"} / minute</p>
+                                <div className="text-2xl font-bold">{finalSum[runMetric].toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2})}</div>
+                              </div>
+                              
+                              {runMetric === 'xp_per_min' && (
+                                <>
+                                  <hr className="border-st-border" />
+                                  <div>
+                                    <h4 className="font-bold text-lg">🆙 Level Up Calculator</h4>
+                                    <p className="text-sm text-st-text-light mb-4">Based on {finalSum[runMetric].toLocaleString(undefined, {minimumFractionDigits:2})} EXP/min</p>
+                                    <div className="grid grid-cols-2 gap-4 mb-4">
+                                      <div>
+                                        <label className="block text-sm mb-1">Current EXP</label>
+                                        <input type="number" value={curXp} onChange={(e) => setCurXp(parseFloat(e.target.value)||0)} className="st-input" min="0" step="1000"/>
+                                      </div>
+                                      <div>
+                                        <label className="block text-sm mb-1">Target EXP</label>
+                                        <input type="number" value={tarXp} onChange={(e) => setTarXp(parseFloat(e.target.value)||0)} className="st-input" min="0" step="1000"/>
+                                      </div>
+                                    </div>
+                                    {tarXp > curXp && finalSum[runMetric] > 0 && (
+                                      <div className="bg-green-900/20 border-l-4 border-green-500 p-3 rounded text-green-700 text-sm">
+                                        <strong>Required:</strong> ~{(((tarXp - curXp) / finalSum[runMetric]) * 60.0 / 1000.0).toFixed(1)}k Arch Seconds ({((tarXp - curXp) / finalSum[runMetric]).toFixed(1)} mins real-time)
+                                      </div>
+                                    )}
+                                  </div>
+                                </>
+                              )}
+                            </div>
+                          )}
+                          
+                          <hr className="border-st-border" />
+                          <div className="flex flex-col">
+                            <h4 className="font-bold text-lg mb-1">🧱 Average Death</h4>
+                            <span className="text-st-text-light text-sm mb-1">Floor reached per run</span>
+                            <span className="text-2xl font-bold">Floor {finalSum.avg_floor.toFixed(1)}</span>
+                          </div>
+                        </div>
+
+                        {/* RIGHT COLUMN: CHARTS */}
+                        <div className="lg:col-span-3 space-y-6">
+                          <div className="border border-st-border rounded bg-st-bg p-2">
+                            <h4 className="font-bold ml-2 mt-2">AI Convergence (Hill Climb)</h4>
+                            <p className="text-xs text-st-text-light ml-2 mb-2">Y-Axis: {unitLabel}</p>
+                            <Plot
+                              data={[{
+                                x: store.opt_results.chart_hill_labels,
+                                y: store.opt_results.chart_hill_scores,
+                                type: 'scatter', mode: 'lines+markers',
+                                line: { color: '#4CAF50' }, marker: { size: 10 }
+                              }]}
+                              layout={{
+                                paper_bgcolor: 'rgba(0,0,0,0)', plot_bgcolor: 'rgba(0,0,0,0)',
+                                margin: { t: 10, b: 30, l: 40, r: 20 },
+                                height: 250
+                              }}
+                              useResizeHandler={true} style={{ width: '100%' }} config={{ displayModeBar: false }}
+                            />
+                          </div>
+                          <div className="border border-st-border rounded bg-st-bg p-2">
+                            <h4 className="font-bold ml-2 mt-2">Engine Confidence Analysis</h4>
+                            <p className="text-xs text-st-text-light ml-2 mb-2">X-Axis: {unitLabel}</p>
+                            <Plot
+                              data={[{
+                                y: ["Worst Tested", "Average", "Runner-Up", "🏆 Optimal"],
+                                x:[
+                                  scaleScore(store.opt_results.worst_val),
+                                  scaleScore(store.opt_results.avg_val),
+                                  scaleScore(store.opt_results.runner_up_val),
+                                  scaleScore(finalSum[runMetric])
+                                ],
+                                type: 'bar', orientation: 'h', textposition: 'auto',
+                                marker: { color:["#ff4b4b", "#ffa229", "#6495ED", "#4CAF50"] }
+                              }]}
+                              layout={{
+                                paper_bgcolor: 'rgba(0,0,0,0)', plot_bgcolor: 'rgba(0,0,0,0)',
+                                margin: { t: 10, b: 30, l: 100, r: 20 },
+                                height: 250
+                              }}
+                              useResizeHandler={true} style={{ width: '100%' }} config={{ displayModeBar: false }}
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {dataTab === 'cards' && (
+                      <div className="space-y-6">
+                        <h4 className="font-bold text-lg">🎴 Block Card Drop Estimates</h4>
+                        {availableBlocks.length === 0 ? (
+                          <div className="text-st-text-light">No block kill data available for this run.</div>
+                        ) : (
+                          <>
+                            <div className="flex flex-col md:flex-row items-center gap-4">
+                              <label className="font-bold whitespace-nowrap">Select Block:</label>
+                              <select 
+                                value={cardSelBlock || availableBlocks[0]} 
+                                onChange={(e) => setCardSelBlock(e.target.value)}
+                                className="w-full md:w-auto bg-st-bg border border-st-border rounded p-2 text-st-text focus:border-st-orange focus:outline-none"
+                              >
+                                {availableBlocks.map(b => (
+                                  <option key={b} value={b}>{b.charAt(0).toUpperCase() + b.slice(1)}</option>
+                                ))}
+                              </select>
+                            </div>
+                            
+                            {(() => {
+                              const selB = cardSelBlock || availableBlocks[0];
+                              const valMins = avgMetrics[`block_${selB}_per_min`] || 0;
+                              
+                              const formatTime = (reqKills) => {
+                                if (valMins <= 0) return { rt: "N/A", arch: 0 };
+                                const rtMins = reqKills / valMins;
+                                const rtStr = rtMins < 60 ? `${rtMins.toFixed(1)}m` : `${(rtMins/60).toFixed(1)}h`;
+                                const arch1k = (reqKills / (valMins / 60.0)) / 1000.0;
+                                return { rt: rtStr, arch: arch1k };
+                              };
+
+                              const drops =[
+                                { name: "Base Card", odds: 1500 },
+                                { name: "Poly Fragments", odds: 7500 },
+                                { name: "Infernal Fragments", odds: 200000 }
+                              ];
+
+                              return (
+                                <div>
+                                  <div className="text-st-text-light text-sm mb-6">Based on {valMins.toFixed(2)} <b>{selB}</b> kills/min</div>
+                                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                                    {drops.map((d, i) => {
+                                      const rt50 = formatTime(0.693 * d.odds);
+                                      const rt90 = formatTime(2.302 * d.odds);
+                                      const rt99 = formatTime(4.605 * d.odds);
+                                      
+                                      return (
+                                        <div key={i} className="border border-st-border rounded bg-st-bg p-4 text-center">
+                                          <div className="font-bold mb-1">{d.name}</div>
+                                          <div className="text-xs text-st-text-light mb-4">(1 in {d.odds.toLocaleString()})</div>
+                                          <hr className="border-st-border mb-4"/>
+                                          {valMins > 0 ? (
+                                            <div className="space-y-3 text-sm">
+                                              <div><strong>50% (Lucky):</strong><br/>~{rt50.rt} | ~{rt50.arch.toFixed(1)}k Arch Secs</div>
+                                              <div><strong>90% (Safe):</strong><br/>~{rt90.rt} | ~{rt90.arch.toFixed(1)}k Arch Secs</div>
+                                              <div><strong>99% (Guaranteed):</strong><br/>~{rt99.rt} | ~{rt99.arch.toFixed(1)}k Arch Secs</div>
+                                            </div>
+                                          ) : (
+                                            <div className="text-st-text-light text-sm py-8">N/A (0 kills)</div>
+                                          )}
+                                        </div>
+                                      );
+                                    })}
+                                  </div>
+                                </div>
+                              );
+                            })()}
+                          </>
+                        )}
+                      </div>
+                    )}
+
+                    {dataTab === 'loot' && store.opt_results.chart_loot && (
+                      <div className="space-y-4">
+                        <h4 className="font-bold text-lg">🎒 Collateral Loot Distribution</h4>
+                        <p className="text-sm text-st-text-light">On average, every <b>1k Arch Seconds</b> of simulated mining yields the following collateral fragments alongside your target:</p>
+                        <div className="w-full h-[400px] border border-st-border rounded bg-st-bg p-2">
+                          <Plot
+                            data={[{
+                              x: Object.keys(store.opt_results.chart_loot),
+                              y: Object.values(store.opt_results.chart_loot).map(v => (v / 60.0) * 1000.0),
+                              type: 'bar',
+                              text: Object.values(store.opt_results.chart_loot).map(v => ((v / 60.0) * 1000.0).toFixed(1)),
+                              textposition: 'outside',
+                              marker: { color:['#636EFA', '#EF553B', '#00CC96', '#AB63FA', '#FFA15A', '#19D3F3', '#FF6692'] }
+                            }]}
+                            layout={{
+                              paper_bgcolor: 'rgba(0,0,0,0)', plot_bgcolor: 'rgba(0,0,0,0)',
+                              margin: { t: 20, b: 40, l: 40, r: 20 }
+                            }}
+                            useResizeHandler={true} style={{ width: '100%', height: '100%' }} config={{ displayModeBar: false }}
+                          />
+                        </div>
+                      </div>
+                    )}
+
+                    {dataTab === 'wall' && (
+                      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        <div className="w-full h-[350px] border border-st-border rounded bg-st-bg p-2">
+                          <Plot
+                            data={[ {
+                              x: Object.keys(store.opt_results.chart_hist),
+                              y: Object.values(store.opt_results.chart_hist),
+                              type: 'bar',
+                              marker: { color: '#ff4b4b' },
+                              text: Object.values(store.opt_results.chart_hist),
+                              textposition: 'outside'
+                            } ]}
+                            layout={{
+                              title: 'Death Distribution (Progression Wall)',
+                              paper_bgcolor: 'rgba(0,0,0,0)', plot_bgcolor: 'rgba(0,0,0,0)',
+                              margin: { t: 40, b: 40, l: 40, r: 20 },
+                              xaxis: { type: 'category', title: 'Floor' }, yaxis: { title: 'Deaths' }
+                            }}
+                            useResizeHandler={true} style={{ width: '100%', height: '100%' }} config={{ displayModeBar: false }}
+                          />
+                        </div>
+                        {store.opt_results.final_summary_out.stamina_trace && (
+                          <div className="w-full h-[350px] border border-st-border rounded bg-st-bg p-2">
+                            <Plot
+                              data={[ {
+                                x: store.opt_results.final_summary_out.stamina_trace.floor,
+                                y: store.opt_results.final_summary_out.stamina_trace.stamina,
+                                type: 'scatter', mode: 'lines', fill: 'tozeroy',
+                                line: { color: '#ffa229' }, fillcolor: 'rgba(255, 162, 41, 0.2)'
+                              } ]}
+                              layout={{
+                                title: 'Stamina Depletion Trace (Sample Run)',
+                                paper_bgcolor: 'rgba(0,0,0,0)', plot_bgcolor: 'rgba(0,0,0,0)',
+                                margin: { t: 40, b: 40, l: 40, r: 20 },
+                                xaxis: { title: 'Floor Level' }, yaxis: { title: 'Stamina Remaining' }
+                              }}
+                              useResizeHandler={true} style={{ width: '100%', height: '100%' }} config={{ displayModeBar: false }}
+                            />
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                );
+              })()}
 
               {/* 🔮 UPGRADE GUIDE (ROI) */}
               {resTab === 'roi' && (
