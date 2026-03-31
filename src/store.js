@@ -20,6 +20,9 @@ const useStore = create((set) => ({
   arch_ability_infernal_bonus: 0.0,
   total_infernal_cards: 0,
 
+  // Stores the live output from Pyodide (damage, crit_chance, etc.)
+  calculated_stats: {},
+
   // Actions (Equivalent to updating st.session_state)
   setSetting: (key, value) => set({ [key]: value }),
   setBaseStat: (stat, value) => set((state) => ({
@@ -36,6 +39,7 @@ const useStore = create((set) => ({
     rows.forEach(r => newExt[r] = parseInt(value) || 0);
     return { external_levels: newExt };
   }),
+  setCalculatedStats: (stats) => set({ calculated_stats: stats }),
   
   // Bulk load from JSON file
   loadStateFromJson: (data) => set((state) => {
