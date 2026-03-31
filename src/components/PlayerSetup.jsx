@@ -12,11 +12,12 @@ import { INTERNAL_UPGRADE_CAPS, UPGRADE_NAMES, ASC1_LOCKED_UPGS, ASC2_LOCKED_UPG
 export default function PlayerSetup() {
   const { asc1_unlocked, asc2_unlocked, arch_level, current_max_floor, base_stats, upgrade_levels, external_levels, cards, arch_ability_infernal_bonus, total_infernal_cards, hades_idol_level, calculated_stats, setSetting, setBaseStat, setUpgradeLevel, setCardLevel, setExternalGroup, loadStateFromJson } = useStore();
   const [activeSubTab, setActiveSubTab] = useState('stats');
-  const [hideMaxed, setHideMaxed] = useState(false);
+  const[hideMaxed, setHideMaxed] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
   const [upgradeView, setUpgradeView] = useState('internal');
 
-  const total_allowed = arch_level; 
+  // Add Arch Level and Internal Upgrade #12 (Stat Points) to get total budget
+  const total_allowed = arch_level + (upgrade_levels[12] || 0); 
   const current_allocated = Object.values(base_stats).reduce((a, b) => a + b, 0);
   const remaining = total_allowed - current_allocated;
 
