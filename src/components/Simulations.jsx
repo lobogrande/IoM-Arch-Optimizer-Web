@@ -35,7 +35,23 @@ export default function Simulations() {
   const [isOptimizing, setIsOptimizing] = useState(false);
   const[progressMsg, setProgressMsg] = useState("");
   const [progressPct, setProgressPct] = useState(0);
-  const [simsPerSec, setSimsPerSec] = useState(150); // Fallback assumption until auto-calibrated
+  const[simsPerSec, setSimsPerSec] = useState(150); // Fallback assumption until auto-calibrated
+
+  // --- REACTIVE AI CALIBRATION ---
+  const dynamicBudget = parseInt(store.arch_level) + parseInt(store.upgrade_levels[12] || 0);
+  const bounds = { };
+  let lockedSum = 0;
+  activeStats.forEach(s => {
+    if (lockedStats[s] !== undefined) {
+      bounds[s] = [ lockedStats[s], lockedStats[s] ];
+      lockedSum += lockedStats[s];
+    } else {
+      bounds[s] = [ 0, STAT_CAPS[s] ];
+    }
+  });
+  const profData = getOptimalStepProfile(activeStats, dynamicBudget, bounds, simsPerSec, timeLimit);
+  const step1 = profData ? profData.step_1 : 100;
+  const isOverBudget = lockedSum > dynamicBudget;
 
   // Results Dashboard & ROI State
   const[resTab, setResTab] = useState('build');
@@ -178,8 +194,6 @@ export default function Simulations() {
     setProgressPct(0);
 
     try {
-      const dynamicBudget = parseInt(store.arch_level) + parseInt(store.upgrade_levels[12] || 0);
-      
       const baseStateDict = {
         asc1_unlocked: store.asc1_unlocked,
         asc2_unlocked: store.asc2_unlocked,
@@ -194,31 +208,18 @@ export default function Simulations() {
         cards: store.cards
       };
 
-      const bounds = { };
-      let lockedSum = 0;
-      activeStats.forEach(s => {
-        if (lockedStats[s] !== undefined) {
-          bounds[s] =[lockedStats[s], lockedStats[s]];
-          lockedSum += lockedStats[s];
-        } else {
-          bounds[s] =[0, STAT_CAPS[s]];
-        }
-      });
-
-      if (lockedSum > dynamicBudget) {
+      if (isOverBudget) {
         alert(`❌ Invalid Locks: You locked ${lockedSum} points, but budget is only ${dynamicBudget}.`);
         setIsOptimizing(false);
         return;
       }
 
-      const profData = getOptimalStepProfile(activeStats, dynamicBudget, bounds, simsPerSec, timeLimit);
       if (!profData) {
         alert("❌ Curse of Dimensionality! The AI could not find a mathematical step profile to fit the time limit. Lock more stats or increase the time limit.");
         setIsOptimizing(false);
         return;
       }
 
-      const step1 = profData.step_1;
       const step2 = profData.step_2;
       const step3 = profData.step_3;
 
