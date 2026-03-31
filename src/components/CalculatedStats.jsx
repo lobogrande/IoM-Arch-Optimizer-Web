@@ -121,7 +121,25 @@ export default function CalculatedStats() {
                   <div>
                     <h5 className="font-bold border-b border-gray-300 pb-1 mb-2">🎴 Infernal Cards</h5>
                     {data.infs.length === 0 ? <div className="text-sm italic text-gray-500">(None apply)</div> : data.infs.map(c => {
-                      return <div key={c} className="text-sm mb-1 capitalize"><strong>{c}:</strong> <code className="bg-gray-200 px-1 rounded">Tier {cards[c] || 0}</code></div>;
+                      const tier = cards[c] || 0;
+                      const val = calculated_stats?.inf_bonuses?.[c] || 0;
+                      
+                      let effStr = "";
+                      if (val !== 0) {
+                        // Differentiate between Flat bonuses and Percentage multipliers exactly like Streamlit
+                        if (['rare2', 'leg3', 'div3'].includes(c)) {
+                          effStr = `(+${val.toFixed(1)} Flat)`;
+                        } else {
+                          effStr = `(+${(val * 100).toFixed(2)}% Multi)`;
+                        }
+                      }
+                      
+                      return (
+                        <div key={c} className="text-sm mb-1 capitalize">
+                          <strong>{c}:</strong> <code className="bg-gray-200 px-1 rounded">Tier {tier}</code> 
+                          {effStr && <span className="text-xs text-st-text-light ml-1">{effStr}</span>}
+                        </div>
+                      );
                     })}
                   </div>
                 </div>

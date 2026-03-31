@@ -82,10 +82,14 @@ def calculate_all_stats(js_data):
             "mod_xp": b.xp,
             "mod_frag": b.frag_amt
         })
+        
+    inf_keys =["rare2", "div1", "leg3", "rare3", "epic3", "com1", "com2", "com3", "epic2", "dirt2", "dirt3", "leg1", "dirt1", "rare1", "epic1", "leg2", "myth2", "myth3", "div3"]
+    inf_bonuses = {k: p.inf(k) for k in inf_keys}
 
     # Extract all calculated @property values
     return {
         "blocks_data": blocks_data,
+        "inf_bonuses": inf_bonuses,
         "max_sta": p.max_sta,
         "damage": p.damage,
         "armor_pen": p.armor_pen,
