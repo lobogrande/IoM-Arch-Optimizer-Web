@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import useStore from '../store';
+import { UI_STAT_IMG_WIDTH } from '../ui_config';
 
 export default function PlayerSetup() {
   const { asc1_unlocked, asc2_unlocked, arch_level, current_max_floor, base_stats, setSetting, setBaseStat } = useStore();
@@ -28,11 +29,11 @@ export default function PlayerSetup() {
         </div>
         
         {/* Crisp Pixel-Art Image Rendering */}
-        <div className="w-16 h-16 flex items-center justify-center mb-4">
+        <div style={{ width: UI_STAT_IMG_WIDTH }} className="flex items-center justify-center mb-4 mx-auto">
           <img 
             src={`/assets/stats/${statKey.toLowerCase()}.png`} 
             alt={label}
-            className="w-full h-full object-contain"
+            className="w-full object-contain"
             style={{ imageRendering: 'pixelated' }}
             onError={(e) => {
               // Fallback if the image is missing
