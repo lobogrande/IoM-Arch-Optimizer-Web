@@ -40,12 +40,28 @@ export class EngineWorkerPool {
                     }
                     this.idleWorkers.push(w);
                     this.pump(); // Worker is free, immediately grab next task
-                } else if (e.data.type === 'STATUS') {
-                    // console.log(`Worker ${i} status:`, e.data.payload);
+                } else if (e.data.type === 'SYNC_COMPLETE') {
+                    const cb = this.callbacks.get(e.data.syncId);
+                    if (cb) {
+                        this.callbacks.delete(e.data.syncId);
+                        cb();
+                    }
                 }
             };
             this.workers.push(w);
         }
+    }
+
+    async syncState(state_dict) {
+        const promises =[];
+        for (let i = 0; i < this.workers.length; i++) {
+            promises.push(new Promise(resolve => {
+                const syncId = 'sync_' + (++this.taskIdSeq);
+                this.callbacks.set(syncId, resolve);
+                this.workers[i].postMessage({ command: 'SYNC_STATE', syncId, state_dict });
+            }));
+        }
+        await Promise.all(promises);
     }
 
     pump() {
@@ -56,14 +72,14 @@ export class EngineWorkerPool {
     }
 
     // Returns a promise that resolves when the worker finishes the Python simulation
-    runTask(state_dict, test_stats) {
+    runTask(test_stats, test_upgrades = null) {
         return new Promise((resolve, reject) => {
             const id = ++this.taskIdSeq;
             this.callbacks.set(id, (data) => {
                 if (data.type === 'ERROR') reject(new Error(data.payload));
                 else resolve(data.payload);
             });
-            this.taskQueue.push({ msg: { command: 'RUN_TASK', taskId: id, state_dict, test_stats } });
+            this.taskQueue.push({ msg: { command: 'RUN_TASK', taskId: id, test_stats, test_upgrades } });
             this.pump();
         });
     }
@@ -235,7 +251,8 @@ export function getOptimalStepProfile(statsList, budget, bounds, simsPerSecond, 
                 const p3Budget = Math.floor((numFree * p3Radius) / step3) * step3;
                 const rawP3Builds = countDistributions(freeStats, p3Budget, step3, p3MockBounds);
                 
-                const EDGE_CLIP = 0.25;
+                // Increased Edge Clip to 0.40 to make JS ETA calculations far more conservative
+                const EDGE_CLIP = 0.40;
                 p2Builds = Math.max(1, Math.floor(rawP2Builds * EDGE_CLIP));
                 p3Builds = Math.max(1, Math.floor(rawP3Builds * EDGE_CLIP));
             }
@@ -272,8 +289,8 @@ export function getOptimalStepProfile(statsList, budget, bounds, simsPerSecond, 
                 bestProfile = currentProfile;
             }
             
-            // STRICT BUFFER: Enforce a strict 20% safety margin (0.80) to guarantee completion
-            if (estimatedSeconds <= (targetTimeSeconds * 0.80)) {
+            // STRICT BUFFER: Enforce a 35% safety margin (0.65) to absorb JS Garbage Collection spikes
+            if (estimatedSeconds <= (targetTimeSeconds * 0.65)) {
                 return currentProfile;
             }
         }
@@ -289,7 +306,7 @@ export function getOptimalStepProfile(statsList, budget, bounds, simsPerSecond, 
  */
 export async function runOptimizationPhase(
     phaseName, targetMetric, statsList, budget, step, iterations, pool,
-    fixedStats, bounds, baseStateDict, timeLimitSeconds, globalStartTime, onProgress
+    fixedStats, bounds, timeLimitSeconds, globalStartTime, onProgress
 ) {
     const dists = generateDistributions(statsList, budget, step, bounds);
     if (!dists || dists.length === 0) return { bestDist: null, summary: null };
@@ -326,8 +343,8 @@ export async function runOptimizationPhase(
             const testStats = { ...tracker[key].dist, ...fixedStats };
 
             for (let i = 0; i < runCount; i++) {
-                // Shoot task to Worker Pool
-                const p = pool.runTask(baseStateDict, testStats).then(result => {
+                // Shoot tiny task to Worker Pool (State is pre-cached!)
+                const p = pool.runTask(testStats).then(result => {
                     if (result.aborted) return; // Skip dumped tasks
 
                     const tr = tracker[key];

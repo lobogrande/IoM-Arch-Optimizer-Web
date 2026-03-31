@@ -115,13 +115,15 @@ export default function Simulations() {
         cards: store.cards
       };
 
+      await pool.syncState(baseStateDict);
+
       activeStats.forEach(stat => {
         const maxCap = STAT_CAPS[stat] || 99;
         if (bestFinal[stat] < maxCap) {
           statResults[stat] = { sum: 0, count: 0 };
           for (let i = 0; i < 15; i++) {
             const testStats = { ...bestFinal,[stat]: bestFinal[stat] + 1 };
-            const p = pool.runTask(baseStateDict, testStats).then(res => {
+            const p = pool.runTask(testStats).then(res => {
               statResults[stat].sum += (res[targetMetric] || 0);
               statResults[stat].count++;
             });
@@ -163,6 +165,22 @@ export default function Simulations() {
       const bestFinal = store.opt_results.best_final;
       const asc2LockedRows =[ 19, 27, 34, 46, 52, 55 ];
 
+      const baseStateDict = {
+        asc1_unlocked: store.asc1_unlocked,
+        asc2_unlocked: store.asc2_unlocked,
+        arch_level: store.arch_level,
+        current_max_floor: store.current_max_floor,
+        hades_idol_level: store.hades_idol_level,
+        arch_ability_infernal_bonus: parseFloat(store.arch_ability_infernal_bonus) / 100.0,
+        total_infernal_cards: store.total_infernal_cards,
+        base_stats: store.base_stats,
+        upgrade_levels: store.upgrade_levels,
+        external_levels: store.external_levels,
+        cards: store.cards
+      };
+
+      await pool.syncState(baseStateDict);
+
       Object.keys(INTERNAL_UPGRADE_CAPS || { }).forEach(upgIdStr => {
         const upgId = parseInt(upgIdStr);
         const currentLvl = store.upgrade_levels[upgId] || 0;
@@ -175,21 +193,8 @@ export default function Simulations() {
         upgResults[upgId] = { sum: 0, count: 0, name: upgName };
 
         for (let i = 0; i < 15; i++) {
-          const modStateDict = {
-            asc1_unlocked: store.asc1_unlocked,
-            asc2_unlocked: store.asc2_unlocked,
-            arch_level: store.arch_level,
-            current_max_floor: store.current_max_floor,
-            hades_idol_level: store.hades_idol_level,
-            arch_ability_infernal_bonus: parseFloat(store.arch_ability_infernal_bonus) / 100.0,
-            total_infernal_cards: store.total_infernal_cards,
-            base_stats: store.base_stats,
-            upgrade_levels: { ...store.upgrade_levels, [upgId]: currentLvl + 1 },
-            external_levels: store.external_levels,
-            cards: store.cards
-          };
-          
-          const p = pool.runTask(modStateDict, bestFinal).then(res => {
+          // Pass the upgrade variation directly via the test_upgrades parameter!
+          const p = pool.runTask(bestFinal, { [upgId]: currentLvl + 1 }).then(res => {
             upgResults[upgId].sum += (res[targetMetric] || 0);
             upgResults[upgId].count++;
           });
@@ -258,6 +263,9 @@ export default function Simulations() {
         (ready, total) => setProgressMsg(`Booting Engine Cores: ${ready}/${total}`)
       );
 
+      setProgressMsg(`Synchronizing Player State...`);
+      await pool.syncState(baseStateDict);
+
       const globalStartTime = Date.now();
       const targetMetricKey = (optGoal === "Fragment Farming") ? `frag_${targetFrag}_per_min` 
                             : (optGoal === "Block Card Farming") ? `block_${targetBlock}_per_min` 
@@ -291,7 +299,7 @@ export default function Simulations() {
       
       let { bestDist: bestP1, summary: sumP1 } = await runOptimizationPhase(
         "Phase 1 (Coarse)", targetMetricKey, activeStats, p1Budget, step1, 25,
-        pool, fixedStats, bounds, baseStateDict, timeLimit, globalStartTime, onProgressCb
+        pool, fixedStats, bounds, timeLimit, globalStartTime, onProgressCb
       );
 
       bestP1 = topUpBuild(bestP1, activeStats, dynamicBudget, STAT_CAPS, lockedStats);
@@ -321,7 +329,7 @@ export default function Simulations() {
 
         const res2 = await runOptimizationPhase(
           "Phase 2 (Fine)", targetMetricKey, activeStats, p2Budget, step2, 50,
-          pool, fixedStats, boundsP2, baseStateDict, timeLimit, globalStartTime, onProgressCb
+          pool, fixedStats, boundsP2, timeLimit, globalStartTime, onProgressCb
         );
         bestP2 = topUpBuild(res2.bestDist, activeStats, dynamicBudget, STAT_CAPS, lockedStats);
         sumP2 = res2.summary;
@@ -345,7 +353,7 @@ export default function Simulations() {
 
         const res3 = await runOptimizationPhase(
           `Phase 3 (Radius ±${p3Radius})`, targetMetricKey, activeStats, dynamicBudget, profData.step_3 || 1, 100,
-          pool, fixedStats, boundsP3, baseStateDict, timeLimit, globalStartTime, onProgressCb
+          pool, fixedStats, boundsP3, timeLimit, globalStartTime, onProgressCb
         );
         const bestP3 = topUpBuild(res3.bestDist, activeStats, dynamicBudget, STAT_CAPS, lockedStats);
         if (bestP3) { bestFinal = bestP3; finalSummary = res3.summary; }
