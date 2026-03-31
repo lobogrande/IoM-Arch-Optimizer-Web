@@ -517,7 +517,7 @@ export default function Simulations() {
                     disabled={lockedStats[stat] === undefined}
                     min="0"
                     max={STAT_CAPS[stat]}
-                    className="w-full bg-st-bg border border-st-border rounded p-2 text-center text-st-text focus:border-st-orange focus:outline-none disabled:opacity-50"
+                    className="st-input disabled:opacity-50 disabled:cursor-not-allowed"
                   />
                 </div>
               ))}
