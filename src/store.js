@@ -87,10 +87,12 @@ const useStore = create((set) => ({
       if (data.settings.asc2_unlocked !== undefined) newState.asc2_unlocked = data.settings.asc2_unlocked;
       if (data.settings.arch_level !== undefined) newState.arch_level = data.settings.arch_level;
       if (data.settings.current_max_floor !== undefined) newState.current_max_floor = data.settings.current_max_floor;
-      if (data.settings.hades_idol_level !== undefined) newState.hades_idol_level = data.settings.hades_idol_level;
       if (data.settings.total_infernal_cards !== undefined) newState.total_infernal_cards = data.settings.total_infernal_cards;
+      
+      // Legacy Fallback for older JSON files
+      if (data.settings.hades_idol_level !== undefined) newState.hades_idol_level = data.settings.hades_idol_level;
     }
-    
+
     // Parse Base Stats
     if (data.base_stats) {
       newState.base_stats = { ...state.base_stats, ...data.base_stats };
@@ -119,6 +121,13 @@ const useStore = create((set) => ({
           group.rows.forEach(r => newExt[r] = data.external_upgrades[group.name]);
         }
       });
+
+      // Parse Hades Idol explicitly from external block
+      if (data.external_upgrades["Hades Idol"] !== undefined) {
+        newState.hades_idol_level = parseInt(data.external_upgrades["Hades Idol"]) || 0;
+      }
+      
+      // Target the Infernal Bonus from the External dictionary
       newState.external_levels = newExt;
     }
     

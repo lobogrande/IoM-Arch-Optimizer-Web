@@ -79,6 +79,10 @@ export default function PlayerSetup() {
     const external_upgrades = {};
     EXTERNAL_UI_GROUPS.forEach(group => {
       external_upgrades[group.name] = state.external_levels[group.rows[0]] || 0;
+      // Inject Hades right after Hestia for clean grouping!
+      if (group.id === 'hestia') {
+        external_upgrades["Hades Idol"] = state.hades_idol_level || 0;
+      }
     });
     external_upgrades["Arch Ability Infernal Bonus"] = parseFloat(state.arch_ability_infernal_bonus) / 100.0 || 0.0;
 
@@ -97,7 +101,6 @@ export default function PlayerSetup() {
         asc2_unlocked: state.asc2_unlocked,
         arch_level: state.arch_level,
         current_max_floor: state.current_max_floor,
-        hades_idol_level: state.hades_idol_level,
         total_infernal_cards: state.total_infernal_cards
       },
       base_stats: state.base_stats,
