@@ -23,10 +23,12 @@ function App() {
     calcWorkerRef.current.onmessage = (e) => {
       if (e.data.type === 'CALC_RESULT') {
         store.setCalculatedStats(e.data.payload);
+      } else if (e.data.type === 'ERROR') {
+        console.error("🚨 Python Math Worker Crashed:", e.data.payload);
       }
     };
     return () => calcWorkerRef.current.terminate();
-  },[]); // Only runs once on mount
+  }, [ ]); // Only runs once on mount
 
   // Trigger calculations automatically whenever the player's inputs change
   useEffect(() => {
