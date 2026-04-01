@@ -150,7 +150,7 @@ export default function PlayerSetup() {
         </div>
 
         <input 
-          type="text" inputMode="numeric" pattern="[0-9]*"
+          type="number"
           className="st-input"
           value={base_stats[statKey] !== undefined ? base_stats[statKey] : 0}
           onFocus={(e) => e.target.select()}
@@ -186,7 +186,7 @@ export default function PlayerSetup() {
           <div className="mb-4">
             <label className="text-sm text-st-text-light block mb-1">Arch Level</label>
             <input 
-              type="text" inputMode="numeric" pattern="[0-9]*" className="st-input" 
+              type="number" className="st-input" 
               value={arch_level} 
               onFocus={(e) => e.target.select()}
               onChange={(e) => setSetting('arch_level', e.target.value === '' ? '' : parseInt(e.target.value))}
@@ -197,7 +197,7 @@ export default function PlayerSetup() {
           <div>
             <label className="text-sm text-st-text-light block mb-1">Max Floor Reached</label>
             <input 
-              type="text" inputMode="numeric" pattern="[0-9]*" className="st-input" 
+              type="number" className="st-input" 
               value={current_max_floor} 
               onFocus={(e) => e.target.select()}
               onChange={(e) => setSetting('current_max_floor', e.target.value === '' ? '' : parseInt(e.target.value))}
@@ -351,7 +351,7 @@ export default function PlayerSetup() {
                       </div>
 
                       <input 
-                        type="text" inputMode="numeric" pattern="[0-9]*"
+                        type="number"
                         className="st-input"
                         value={current_lvl}
                         onFocus={(e) => e.target.select()}
@@ -403,7 +403,7 @@ export default function PlayerSetup() {
 
                       {(group.ui_type === 'number' || group.ui_type === 'pet' || group.ui_type === 'card') && (
                         <input 
-                          type="text" inputMode={group.ui_type === 'pet' ? "text" : "numeric"} pattern={group.ui_type === 'pet' ? undefined : "[0-9]*"}
+                          type="number"
                           className={`st-input ${group.id === 'geoduck' && !geoduck_unlocked ? 'opacity-30 cursor-not-allowed' : ''}`} 
                           value={current_val} 
                           disabled={group.id === 'geoduck' && !geoduck_unlocked} 
@@ -449,7 +449,7 @@ export default function PlayerSetup() {
                 <label className="font-bold text-sm block mb-1">Total Infernal Cards (Global)</label>
                 <span className="text-xs text-st-text-light block mb-2 leading-tight">Sum of all Infernal cards you own across all categories (Archaeology, Fishing, etc). Used for the Infernal Multiplier.</span>
                 <input 
-                  type="text" inputMode="numeric" pattern="[0-9]*"
+                  type="number"
                   className="st-input bg-st-bg" 
                   value={total_infernal_cards} 
                   onFocus={(e) => e.target.select()}
@@ -498,7 +498,7 @@ export default function PlayerSetup() {
                       </div>
 
                       <input 
-                        type="text" inputMode="numeric" pattern="[0-9]*"
+                        type="number"
                         className="st-input p-1 text-sm"
                         value={is_locked ? 0 : user_tier}
                         onFocus={(e) => e.target.select()}
@@ -535,7 +535,7 @@ export default function PlayerSetup() {
                   <div className="w-full">
                     <hr className="border-st-border mb-4"/>
                     <input 
-                      type="text" inputMode="numeric" pattern="[0-9]*" className="st-input" 
+                      type="number" className="st-input" 
                       value={external_levels[4] !== undefined ? external_levels[4] : 0} 
                       onFocus={(e) => e.target.select()}
                       onChange={(e) => setExternalGroup([4], e.target.value === '' ? '' : parseInt(e.target.value))} 
@@ -552,7 +552,7 @@ export default function PlayerSetup() {
                   <div className="w-full">
                     <hr className="border-st-border mb-4"/>
                     <input 
-                      type="text" inputMode="numeric" pattern="[0-9]*" className="st-input" 
+                      type="number" className="st-input" 
                       value={hades_idol_level} 
                       onFocus={(e) => e.target.select()}
                       onChange={(e) => setSetting('hades_idol_level', e.target.value === '' ? '' : parseInt(e.target.value))}

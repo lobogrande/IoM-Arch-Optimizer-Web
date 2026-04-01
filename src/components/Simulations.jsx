@@ -722,7 +722,7 @@ export default function Simulations() {
                               <div>
                                 <label className="block text-sm mb-1">Current EXP</label>
                                 <input 
-                                  type="text" inputMode="numeric" pattern="[0-9]*" 
+                                  type="number" 
                                   value={curXp} 
                                   onFocus={(e) => e.target.select()}
                                   onChange={(e) => setCurXp(e.target.value === '' ? '' : parseFloat(e.target.value))}
@@ -733,7 +733,7 @@ export default function Simulations() {
                               <div>
                                 <label className="block text-sm mb-1">Target EXP</label>
                                 <input 
-                                  type="text" inputMode="numeric" pattern="[0-9]*" 
+                                  type="number" 
                                   value={tarXp} 
                                   onFocus={(e) => e.target.select()}
                                   onChange={(e) => setTarXp(e.target.value === '' ? '' : parseFloat(e.target.value))}
@@ -1207,7 +1207,7 @@ export default function Simulations() {
                   </label>
                   
                   <input
-                    type="text" inputMode="numeric" pattern="[0-9]*"
+                    type="number"
                     value={lockedStats[stat] !== undefined ? lockedStats[stat] : store.base_stats[stat] || 0}
                     onFocus={(e) => e.target.select()}
                     onChange={(e) => handleLockValueChange(stat, e.target.value)}
@@ -2049,7 +2049,7 @@ export default function Simulations() {
                         className="h-6 w-6 pixelated mb-2"
                       />
                       <input
-                        type="text" inputMode="numeric" pattern="[0-9]*"
+                        type="number"
                         value={store.sandbox_stats[stat] !== undefined ? store.sandbox_stats[stat] : 0}
                         onFocus={(e) => e.target.select()}
                         onChange={(e) => store.setSandboxStat(stat, e.target.value === '' ? '' : parseInt(e.target.value))}
@@ -2072,7 +2072,7 @@ export default function Simulations() {
                   <div>
                     <label className="block mb-1">Target Floor:</label>
                     <input 
-                      type="text" inputMode="numeric" pattern="[0-9]*"
+                      type="number"
                       value={store.sandbox_floor || store.current_max_floor}
                       onFocus={(e) => e.target.select()}
                       onChange={(e) => store.setSimsState('sandbox_floor', e.target.value === '' ? '' : parseInt(e.target.value))}
@@ -2083,7 +2083,7 @@ export default function Simulations() {
                   <div>
                     <label className="block mb-1">Min Avg Hits to Kill:</label>
                     <input 
-                      type="text" inputMode="numeric" pattern="[0-9]*"
+                      type="number"
                       value={sandboxMinHits}
                       onFocus={(e) => e.target.select()}
                       onChange={(e) => setSandboxMinHits(e.target.value === '' ? '' : parseInt(e.target.value))}
