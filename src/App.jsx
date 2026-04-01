@@ -17,7 +17,7 @@ const TABS =[
 ];
 
 function App() {
-  const[activeTab, setActiveTab] = useState('setup'); 
+  const[activeTab, setActiveTab] = useState('welcome'); 
   const store = useStore();
   const calcWorkerRef = useRef(null);
 
