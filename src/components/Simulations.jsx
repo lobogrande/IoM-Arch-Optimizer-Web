@@ -75,10 +75,72 @@ export default function Simulations() {
   const [viewTargets, setViewTargets] = useState(null);
 
   // Sandbox UI State
-  const [sandboxMinHits, setSandboxMinHits] = useState(1);
+  const[sandboxMinHits, setSandboxMinHits] = useState(1);
   const[sandboxShowUnreachable, setSandboxShowUnreachable] = useState(false);
   const [sandboxShowCrits, setSandboxShowCrits] = useState(false);
   const [sandboxBlockFilters, setSandboxBlockFilters] = useState([]);
+
+  // --- HOISTED SANDBOX MEMOS (Must be at the top level to obey React Hook Rules) ---
+  const sbData = store.sandbox_calculated_stats;
+  const tFloor = store.sandbox_floor || store.current_max_floor;
+
+  const sandboxBlocks = useMemo(() => {
+    if (!sbData) return[];
+    let filtered = sbData.blocks_data;
+    if (!sandboxShowUnreachable) {
+      filtered = filtered.filter(b => tFloor >= b.min_floor);
+    }
+    if (sandboxMinHits > 1) filtered = filtered.filter(b => b.avg_hits >= sandboxMinHits);
+    if (sandboxBlockFilters.length > 0) filtered = filtered.filter(b => sandboxBlockFilters.includes(b.name));
+    return filtered;
+  }, [sbData, tFloor, sandboxShowUnreachable, sandboxMinHits, sandboxBlockFilters]);
+
+  const uniqueBlockNames = sbData ? Array.from(new Set(sbData.blocks_data.map(b => b.name))) :[];
+
+  const sandboxDefaultColDef = useMemo(() => ({
+    sortable: true,
+    filter: true,
+    resizable: true,
+    suppressMenu: false
+  }),[]);
+
+  const sandboxAutoSizeStrategy = useMemo(() => ({
+    type: 'fitCellContents'
+  }),[]);
+
+  const sandboxColumns = useMemo(() => {
+    const cols =[
+      { 
+        field: "id", headerName: "Icon", pinned: "left", minWidth: 70, sortable: false, filter: false,
+        cellRenderer: (p) => (
+          <div className="flex justify-center items-center h-full">
+            <img src={`/assets/cards/cores/${p.value}.png`} alt={p.value} className="w-8 h-8 pixelated" />
+          </div>
+        )
+      },
+      { field: "name", headerName: "Block", pinned: "left" },
+      { field: "mod_hp", headerName: "HP", valueFormatter: p => Math.floor(p.value).toLocaleString(), type: 'numericColumn' },
+      { field: "mod_eff_armor", headerName: "Armor", valueFormatter: p => Math.floor(p.value).toLocaleString(), type: 'numericColumn' },
+      { field: "edps", headerName: "EDPS", valueFormatter: p => Math.floor(p.value).toLocaleString(), type: 'numericColumn', cellStyle: { color: '#ffa229', fontWeight: 'bold' } },
+      { field: "enr_edps", headerName: "Enr EDPS", valueFormatter: p => Math.floor(p.value).toLocaleString(), type: 'numericColumn', cellStyle: { color: '#f87171', fontWeight: 'bold' } },
+      { field: "reg_hit", headerName: "Reg Hit", valueFormatter: p => Math.floor(p.value).toLocaleString(), type: 'numericColumn' },
+      { field: "avg_hits", headerName: "Avg Hits", valueFormatter: p => Math.floor(p.value).toLocaleString(), type: 'numericColumn', cellStyle: { fontWeight: 'bold' } },
+      { field: "max_hits", headerName: "Max Hits", valueFormatter: p => Math.floor(p.value).toLocaleString(), type: 'numericColumn', cellStyle: { color: '#7D808D' } }
+    ];
+
+    if (sandboxShowCrits) {
+      cols.push(
+        { field: "crit", headerName: "Crit", valueFormatter: p => Math.floor(p.value).toLocaleString(), type: 'numericColumn', cellStyle: { backgroundColor: 'rgba(0,0,0,0.05)' } },
+        { field: "scrit", headerName: "sCrit", valueFormatter: p => Math.floor(p.value).toLocaleString(), type: 'numericColumn', cellStyle: { backgroundColor: 'rgba(0,0,0,0.05)' } },
+        { field: "ucrit", headerName: "uCrit", valueFormatter: p => Math.floor(p.value).toLocaleString(), type: 'numericColumn', cellStyle: { backgroundColor: 'rgba(0,0,0,0.05)' } },
+        { field: "enr_hit", headerName: "Enr Hit", valueFormatter: p => Math.floor(p.value).toLocaleString(), type: 'numericColumn', cellStyle: { color: '#fca5a5', backgroundColor: 'rgba(127,29,29,0.05)' } },
+        { field: "enr_crit", headerName: "Enr Crit", valueFormatter: p => Math.floor(p.value).toLocaleString(), type: 'numericColumn', cellStyle: { color: '#fca5a5', backgroundColor: 'rgba(127,29,29,0.05)' } },
+        { field: "enr_scrit", headerName: "Enr sCrit", valueFormatter: p => Math.floor(p.value).toLocaleString(), type: 'numericColumn', cellStyle: { color: '#fca5a5', backgroundColor: 'rgba(127,29,29,0.05)' } },
+        { field: "enr_ucrit", headerName: "Enr uCrit", valueFormatter: p => Math.floor(p.value).toLocaleString(), type: 'numericColumn', cellStyle: { color: '#fca5a5', backgroundColor: 'rgba(127,29,29,0.05)' } }
+      );
+    }
+    return cols;
+  }, [sandboxShowCrits]);
 
   // Dynamic Limits based on Ascensions and Caps
   const totalAllowed = parseInt(store.arch_level) + parseInt(store.upgrade_levels[12] || 0);
@@ -1877,72 +1939,7 @@ export default function Simulations() {
       {/* =========================================
           TAB: SANDBOX
       ========================================= */}
-      {activeSubTab === 'sandbox' && (() => {
-        const sbData = store.sandbox_calculated_stats;
-        const tFloor = store.sandbox_floor || store.current_max_floor;
-
-        // 1. Memoize the row data so AG Grid doesn't destroy the DOM on every React tick!
-        const blocks = useMemo(() => {
-          if (!sbData) return[];
-          let filtered = sbData.blocks_data;
-          if (!sandboxShowUnreachable) {
-            filtered = filtered.filter(b => tFloor >= b.min_floor);
-          }
-          if (sandboxMinHits > 1) filtered = filtered.filter(b => b.avg_hits >= sandboxMinHits);
-          if (sandboxBlockFilters.length > 0) filtered = filtered.filter(b => sandboxBlockFilters.includes(b.name));
-          return filtered;
-        }, [sbData, tFloor, sandboxShowUnreachable, sandboxMinHits, sandboxBlockFilters]);
-
-        const uniqueBlockNames = sbData ? Array.from(new Set(sbData.blocks_data.map(b => b.name))) :[];
-
-        // 2. Memoize the AG Grid configs so their memory addresses stay identical
-        const defaultColDef = useMemo(() => ({
-          sortable: true,
-          filter: true,
-          resizable: true,
-          suppressMenu: false
-        }),[]);
-
-        const autoSizeStrategy = useMemo(() => ({
-          type: 'fitCellContents'
-        }),[]);
-
-        // 3. Memoize the columns so AG Grid doesn't completely rebuild its DOM on every keystroke!
-        const sandboxColumns = useMemo(() => {
-          const cols =[
-            { 
-              field: "id", headerName: "Icon", pinned: "left", minWidth: 70, sortable: false, filter: false,
-              cellRenderer: (p) => (
-                <div className="flex justify-center items-center h-full">
-                  <img src={`/assets/cards/cores/${p.value}.png`} alt={p.value} className="w-8 h-8 pixelated" />
-                </div>
-              )
-            },
-            { field: "name", headerName: "Block", pinned: "left" },
-            { field: "mod_hp", headerName: "HP", valueFormatter: p => Math.floor(p.value).toLocaleString(), type: 'numericColumn' },
-            { field: "mod_eff_armor", headerName: "Armor", valueFormatter: p => Math.floor(p.value).toLocaleString(), type: 'numericColumn' },
-            { field: "edps", headerName: "EDPS", valueFormatter: p => Math.floor(p.value).toLocaleString(), type: 'numericColumn', cellStyle: { color: '#ffa229', fontWeight: 'bold' } },
-            { field: "enr_edps", headerName: "Enr EDPS", valueFormatter: p => Math.floor(p.value).toLocaleString(), type: 'numericColumn', cellStyle: { color: '#f87171', fontWeight: 'bold' } },
-            { field: "reg_hit", headerName: "Reg Hit", valueFormatter: p => Math.floor(p.value).toLocaleString(), type: 'numericColumn' },
-            { field: "avg_hits", headerName: "Avg Hits", valueFormatter: p => Math.floor(p.value).toLocaleString(), type: 'numericColumn', cellStyle: { fontWeight: 'bold' } },
-            { field: "max_hits", headerName: "Max Hits", valueFormatter: p => Math.floor(p.value).toLocaleString(), type: 'numericColumn', cellStyle: { color: '#7D808D' } }
-          ];
-
-          if (sandboxShowCrits) {
-            cols.push(
-              { field: "crit", headerName: "Crit", valueFormatter: p => Math.floor(p.value).toLocaleString(), type: 'numericColumn', cellStyle: { backgroundColor: 'rgba(0,0,0,0.05)' } },
-              { field: "scrit", headerName: "sCrit", valueFormatter: p => Math.floor(p.value).toLocaleString(), type: 'numericColumn', cellStyle: { backgroundColor: 'rgba(0,0,0,0.05)' } },
-              { field: "ucrit", headerName: "uCrit", valueFormatter: p => Math.floor(p.value).toLocaleString(), type: 'numericColumn', cellStyle: { backgroundColor: 'rgba(0,0,0,0.05)' } },
-              { field: "enr_hit", headerName: "Enr Hit", valueFormatter: p => Math.floor(p.value).toLocaleString(), type: 'numericColumn', cellStyle: { color: '#fca5a5', backgroundColor: 'rgba(127,29,29,0.05)' } },
-              { field: "enr_crit", headerName: "Enr Crit", valueFormatter: p => Math.floor(p.value).toLocaleString(), type: 'numericColumn', cellStyle: { color: '#fca5a5', backgroundColor: 'rgba(127,29,29,0.05)' } },
-              { field: "enr_scrit", headerName: "Enr sCrit", valueFormatter: p => Math.floor(p.value).toLocaleString(), type: 'numericColumn', cellStyle: { color: '#fca5a5', backgroundColor: 'rgba(127,29,29,0.05)' } },
-              { field: "enr_ucrit", headerName: "Enr uCrit", valueFormatter: p => Math.floor(p.value).toLocaleString(), type: 'numericColumn', cellStyle: { color: '#fca5a5', backgroundColor: 'rgba(127,29,29,0.05)' } }
-            );
-          }
-          return cols;
-        }, [sandboxShowCrits]);
-
-        return (
+      {activeSubTab === 'sandbox' && (
         <div className="space-y-6 animate-fade-in">
           <h2 className="text-2xl font-bold">🧪 Block Hit Sandbox</h2>
           <div className="text-sm text-st-text-light">
@@ -2111,14 +2108,9 @@ export default function Simulations() {
                   <div className="flex items-center justify-center h-full text-st-text-light">Calculating sandbox math...</div>
                 ) : (
                   <AgGridReact
-                    rowData={blocks}
-                    defaultColDef={{
-                      sortable: true,
-                      filter: true,
-                      resizable: true,
-                      suppressMenu: false
-                    }}
-                    autoSizeStrategy={{ type: 'fitCellContents' }}
+                    rowData={sandboxBlocks}
+                    defaultColDef={sandboxDefaultColDef}
+                    autoSizeStrategy={sandboxAutoSizeStrategy}
                     columnDefs={sandboxColumns}
                   />
                 )}
@@ -2126,8 +2118,7 @@ export default function Simulations() {
             </div>
           </div>
         </div>
-        );
-      })()}
+      )}
 
     </div>
   );
