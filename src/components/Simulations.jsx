@@ -3,6 +3,9 @@ import useStore from '../store';
 import { EngineWorkerPool, getOptimalStepProfile, runOptimizationPhase, topUpBuild } from '../utils/optimizer';
 import PlotWrapper from 'react-plotly.js';
 import { INTERNAL_UPGRADE_CAPS, UPGRADE_NAMES } from '../game_data';
+import { AgGridReact } from 'ag-grid-react';
+import 'ag-grid-community/styles/ag-grid.css';
+import 'ag-grid-community/styles/ag-theme-quartz.css'; // Modern, clean light theme
 
 // Vite CommonJS interop fix: Unwrap the default export if it was packaged as an object
 const Plot = PlotWrapper.default || PlotWrapper;
