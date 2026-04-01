@@ -17,7 +17,7 @@ export default function PlayerSetup() {
   const [upgradeView, setUpgradeView] = useState('internal');
 
   // Add Arch Level and Internal Upgrade #12 (Stat Points) to get total budget
-  const total_allowed = arch_level + (upgrade_levels[12] || 0); 
+  const total_allowed = (parseInt(arch_level) || 1) + (upgrade_levels[12] || 0); 
   const current_allocated = Object.values(base_stats).reduce((a, b) => a + b, 0);
   const remaining = total_allowed - current_allocated;
 
@@ -176,12 +176,24 @@ export default function PlayerSetup() {
 
           <div className="mb-4">
             <label className="text-sm text-st-text-light block mb-1">Arch Level</label>
-            <input type="number" className="st-input" value={arch_level} onChange={(e) => setSetting('arch_level', parseInt(e.target.value)||1)} />
+            <input 
+              type="text" inputMode="numeric" pattern="[0-9]*" className="st-input" 
+              value={arch_level} 
+              onFocus={(e) => e.target.select()}
+              onChange={(e) => setSetting('arch_level', e.target.value === '' ? '' : parseInt(e.target.value))}
+              onBlur={(e) => setSetting('arch_level', Math.max(1, parseInt(e.target.value) || 1))}
+            />
           </div>
 
           <div>
             <label className="text-sm text-st-text-light block mb-1">Max Floor Reached</label>
-            <input type="number" className="st-input" value={current_max_floor} onChange={(e) => setSetting('current_max_floor', parseInt(e.target.value)||1)} />
+            <input 
+              type="text" inputMode="numeric" pattern="[0-9]*" className="st-input" 
+              value={current_max_floor} 
+              onFocus={(e) => e.target.select()}
+              onChange={(e) => setSetting('current_max_floor', e.target.value === '' ? '' : parseInt(e.target.value))}
+              onBlur={(e) => setSetting('current_max_floor', Math.max(1, parseInt(e.target.value) || 1))}
+            />
           </div>
         </div>
 
@@ -420,11 +432,12 @@ export default function PlayerSetup() {
                 <label className="font-bold text-sm block mb-1">Total Infernal Cards (Global)</label>
                 <span className="text-xs text-st-text-light block mb-2 leading-tight">Sum of all Infernal cards you own across all categories (Archaeology, Fishing, etc). Used for the Infernal Multiplier.</span>
                 <input 
-                  type="number" 
+                  type="text" inputMode="numeric" pattern="[0-9]*"
                   className="st-input bg-st-bg" 
                   value={total_infernal_cards} 
-                  onChange={(e) => setSetting('total_infernal_cards', parseInt(e.target.value) || 0)} 
-                  min="0" 
+                  onFocus={(e) => e.target.select()}
+                  onChange={(e) => setSetting('total_infernal_cards', e.target.value === '' ? '' : parseInt(e.target.value))}
+                  onBlur={(e) => setSetting('total_infernal_cards', Math.max(0, parseInt(e.target.value) || 0))}
                 />
               </div>
               <div className="w-full sm:w-1/2 sm:border-l border-st-border sm:pl-6 text-center sm:text-left">
@@ -515,7 +528,13 @@ export default function PlayerSetup() {
                   </div>
                   <div className="w-full">
                     <hr className="border-st-border mb-4"/>
-                    <input type="number" className="st-input" value={hades_idol_level} onChange={(e) => setSetting('hades_idol_level', parseInt(e.target.value)||0)} min="0" />
+                    <input 
+                      type="text" inputMode="numeric" pattern="[0-9]*" className="st-input" 
+                      value={hades_idol_level} 
+                      onFocus={(e) => e.target.select()}
+                      onChange={(e) => setSetting('hades_idol_level', e.target.value === '' ? '' : parseInt(e.target.value))}
+                      onBlur={(e) => setSetting('hades_idol_level', Math.max(0, parseInt(e.target.value) || 0))}
+                    />
                   </div>
                 </div>
               </div>
