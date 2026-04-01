@@ -426,6 +426,13 @@ export default function Simulations() {
           setResTab('build');
           setDataTab('performance');
 
+          // Auto-select the target block in the Card Drops tab if applicable
+          if (targetMetricKey.startsWith('block_')) {
+              setCardSelBlock(targetBlock);
+          } else {
+              setCardSelBlock('');
+          }
+
       } else {
           alert("⚠️ Optimization aborted or failed to find a valid build.");
       }
@@ -942,28 +949,36 @@ export default function Simulations() {
                       </div>
                     )}
 
-                    {dataTab === 'cards' && (
+                    {dataTab === 'cards' && (() => {
+                      // Ensure the targeted block is always in the dropdown, even if 0 kills were recorded
+                      const displayBlocks = [...availableBlocks];
+                      if (cardSelBlock && !displayBlocks.includes(cardSelBlock)) {
+                        displayBlocks.push(cardSelBlock);
+                        displayBlocks.sort();
+                      }
+
+                      return (
                       <div className="space-y-6">
                         <h4 className="font-bold text-lg">🎴 Block Card Drop Estimates</h4>
-                        {availableBlocks.length === 0 ? (
+                        {displayBlocks.length === 0 ? (
                           <div className="text-st-text-light">No block kill data available for this run.</div>
                         ) : (
                           <>
                             <div className="flex flex-col md:flex-row items-center gap-4">
                               <label className="font-bold whitespace-nowrap">Select Block:</label>
                               <select 
-                                value={cardSelBlock || availableBlocks[0]} 
+                                value={cardSelBlock || displayBlocks[0]} 
                                 onChange={(e) => setCardSelBlock(e.target.value)}
                                 className="w-full md:w-auto bg-st-bg border border-st-border rounded p-2 text-st-text focus:border-st-orange focus:outline-none"
                               >
-                                {availableBlocks.map(b => (
+                                {displayBlocks.map(b => (
                                   <option key={b} value={b}>{b.charAt(0).toUpperCase() + b.slice(1)}</option>
                                 ))}
                               </select>
                             </div>
                             
                             {(() => {
-                              const selB = cardSelBlock || availableBlocks[0];
+                              const selB = cardSelBlock || displayBlocks[0];
                               const valMins = avgMetrics[`block_${selB}_per_min`] || 0;
                               
                               const formatTime = (reqKills) => {
@@ -1013,7 +1028,8 @@ export default function Simulations() {
                           </>
                         )}
                       </div>
-                    )}
+                      );
+                    })()}
 
                     {dataTab === 'loot' && store.opt_results.chart_loot && (
                       <div className="space-y-4">
