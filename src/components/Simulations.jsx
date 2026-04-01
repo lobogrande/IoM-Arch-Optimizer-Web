@@ -1237,8 +1237,17 @@ export default function Simulations() {
             setActiveSubTab('optimizer');
             setResTab('build');
             setDataTab('performance');
-            // Scroll to top
-            window.scrollTo({ top: 0, behavior: 'smooth' });
+            
+            // Allow React a split second to render the Optimizer tab, then scroll down to the dashboard
+            setTimeout(() => {
+              const el = document.getElementById('dashboard-anchor-optimizer');
+              if (el) {
+                // Scroll the dashboard smoothly into the top of the viewport
+                el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+              } else {
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+              }
+            }, 150);
           }
         };
 
