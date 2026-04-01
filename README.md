@@ -8,6 +8,10 @@
 
 A high-performance, 100% client-side **Monte Carlo Simulator and AI Build Optimizer** for the Archaeology mini-game in *Idle Obelisk Miner*. 
 
+🌐 **[Play Live / Use the Optimizer Here](https://iom-arch-optimizer-web.vercel.app/)**
+
+> **⚠️ v1.0.0 Soft Launch Notice:** The core math engine has been tested against late-game stat combinations by our beta group, but we are currently crowd-sourcing edge cases. If you encounter a build that produces unexpected results, please submit a report via the in-app Feedback tab! 
+
 This tool evaluates your player stats, upgrades, and block card collections to compute the absolute perfect stat distribution for your account. Whether you are pushing for a new Max Floor, farming late-game Block Cards, or maximizing EXP yields, this engine mathematically eliminates the guesswork—all running locally in your browser at near-native speeds.
 
 ---
