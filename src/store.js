@@ -31,6 +31,16 @@ const useStore = create(
   run_history: [ ],
   synth_history: [ ],
   synthesis_result: null,
+  
+  // Sandbox State
+  sandbox_stats: { Str: 0, Agi: 0, Per: 0, Int: 0, Luck: 0, Div: 0, Corr: 0 },
+  sandbox_floor: 100,
+  sandbox_calculated_stats: null,
+
+  // Simulation Tab State Persistenceopt_results: null,
+  run_history: [ ],
+  synth_history: [ ],
+  synthesis_result: null,
 
   // Simulation Tab State Persistence
   optGoal: "Max Floor Push",
@@ -61,6 +71,8 @@ const useStore = create(
   setOptResults: (res) => set({ opt_results: res }),
   addRunHistory: (run) => set((state) => ({ run_history:[ ...state.run_history, run ] })),
   setSimsState: (key, val) => set({ [key]: val }),
+  setSandboxStat: (stat, value) => set((state) => ({ sandbox_stats: { ...state.sandbox_stats, [stat]: parseInt(value) || 0 } })),
+  setSandboxCalculatedStats: (stats) => set({ sandbox_calculated_stats: stats }),
   
   // Bulk load from JSON file
   loadStateFromJson: (data) => set((state) => {

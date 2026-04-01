@@ -26,6 +26,8 @@ function App() {
     calcWorkerRef.current.onmessage = (e) => {
       if (e.data.type === 'CALC_RESULT') {
         store.setCalculatedStats(e.data.payload);
+      } else if (e.data.type === 'SANDBOX_RESULT') {
+        store.setSandboxCalculatedStats(e.data.payload);
       } else if (e.data.type === 'ERROR') {
         console.error("🚨 Python Math Worker Crashed:", e.data.payload);
       }
@@ -55,10 +57,30 @@ function App() {
         }
       });
     }
+  if (calcWorkerRef.current) {
+      calcWorkerRef.current.postMessage({
+        command: 'CALC_SANDBOX',
+        payload: {
+          asc1_unlocked: store.asc1_unlocked,
+          asc2_unlocked: store.asc2_unlocked,
+          arch_level: store.arch_level,
+          current_max_floor: store.current_max_floor,
+          hades_idol_level: store.hades_idol_level,
+          arch_ability_infernal_bonus: parseFloat(store.arch_ability_infernal_bonus) / 100.0 || 0.0,
+          total_infernal_cards: store.total_infernal_cards,
+          base_stats: store.sandbox_stats, // <--- Passes the isolated Sandbox Stats!
+          upgrade_levels: store.upgrade_levels,
+          external_levels: store.external_levels,
+          cards: store.cards,
+          compendium_target_floor: store.sandbox_floor || store.current_max_floor
+        }
+      });
+    }
   },[
     store.asc1_unlocked, store.asc2_unlocked, store.arch_level, store.hades_idol_level, 
     store.arch_ability_infernal_bonus, store.total_infernal_cards, store.base_stats, 
-    store.upgrade_levels, store.external_levels, store.cards, store.compendium_target_floor, store.current_max_floor
+    store.upgrade_levels, store.external_levels, store.cards, store.compendium_target_floor, store.current_max_floor,
+    store.sandbox_stats, store.sandbox_floor
   ]);
 
   return (

@@ -67,6 +67,12 @@ export default function Simulations() {
   // Synthesis Tab State
   const [viewTargets, setViewTargets] = useState(null);
 
+  // Sandbox UI State
+  const [sandboxMinHits, setSandboxMinHits] = useState(1);
+  const[sandboxShowUnreachable, setSandboxShowUnreachable] = useState(false);
+  const [sandboxShowCrits, setSandboxShowCrits] = useState(false);
+  const [sandboxBlockFilters, setSandboxBlockFilters] = useState([]);
+
   // Dynamic Limits based on Ascensions and Caps
   const totalAllowed = parseInt(store.arch_level) + parseInt(store.upgrade_levels[12] || 0);
   const capInc = parseInt(store.upgrade_levels[45] || 0) * 5; // H45 scales by 5
@@ -1853,14 +1859,235 @@ export default function Simulations() {
       {/* =========================================
           TAB: SANDBOX
       ========================================= */}
-      {activeSubTab === 'sandbox' && (
-        <div className="space-y-6">
+      {activeSubTab === 'sandbox' && (() => {
+        const sbData = store.sandbox_calculated_stats;
+        let blocks = sbData ? sbData.blocks_data :[];
+        const tFloor = store.sandbox_floor || store.current_max_floor;
+
+        if (!sandboxShowUnreachable) {
+          blocks = blocks.filter(b => {
+            if (b.tier === 2 && tFloor <= 50) return false;
+            if (b.tier === 3 && tFloor <= 100) return false;
+            if (b.tier === 4 && tFloor <= 150) return false;
+            return true;
+          });
+        }
+        if (sandboxMinHits > 1) blocks = blocks.filter(b => b.avg_hits >= sandboxMinHits);
+        if (sandboxBlockFilters.length > 0) blocks = blocks.filter(b => sandboxBlockFilters.includes(b.name));
+
+        const uniqueBlockNames = sbData ? Array.from(new Set(sbData.blocks_data.map(b => b.name))) :[];
+
+        return (
+        <div className="space-y-6 animate-fade-in">
           <h2 className="text-2xl font-bold">🧪 Block Hit Sandbox</h2>
-          <div className="st-container text-center text-st-text-light py-10">
-            🚧 Hit Calculator Table coming soon!
+          <div className="text-sm text-st-text-light">
+            <p>💡 <strong>What is a Breakpoint?</strong></p>
+            <p>A breakpoint is the exact stat number required to reduce the hits needed to break a block (e.g., dropping from 3 hits down to 2). Because blocks can only take whole hits, any stat points you spend that <em>don't</em> push you past the next breakpoint are mathematically wasted!</p>
+          </div>
+
+          <details className="st-container group cursor-pointer marker:text-st-orange mb-6">
+            <summary className="font-bold">📚 Math & Formulas Breakdown (Click to expand)</summary>
+            <div className="mt-4 text-sm space-y-2 cursor-default font-mono">
+              <p><strong>Legend:</strong> P[x] = Probability of x | M[x] = Multiplier of x</p>
+              <p><strong>Formulas:</strong></p>
+              <ul className="list-disc pl-5 space-y-1">
+                <li>Armor = (Base Armor) - (Armor Pen)</li>
+                <li>Regular Hit = (Damage - Armor)</li>
+                <li>Crit Hit = (Damage - Armor) × M[Crit]</li>
+                <li>Super Crit Hit = (Damage - Armor) × M[Crit] × M[sCrit]</li>
+                <li>Ultra Crit Hit = (Damage - Armor) × M[Crit] × M[sCrit] × M[uCrit]</li>
+              </ul>
+              <p className="mt-3 text-st-orange font-bold">Expected Damage Per Swing (EDPS):</p>
+              <p>EDPS = (P[Reg]×1.0 + P[Crit]×M[Crit] + P[sCrit]×M[sCrit] + P[uCrit]×M[uCrit]) × (Damage - Armor)</p>
+            </div>
+          </details>
+
+          <hr className="border-st-border" />
+
+          <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+            {/* LEFT PANEL: CONTROLS */}
+            <div className="lg:col-span-1 space-y-6">
+              <div className="st-container bg-black/10">
+                <div className="flex gap-2 mb-6">
+                  <button 
+                    onClick={() => {
+                      activeStats.forEach(s => store.setSandboxStat(s, store.base_stats[s] || 0));
+                    }}
+                    className="flex-1 py-2 bg-st-secondary border border-st-border text-xs font-bold rounded hover:border-st-orange transition-colors"
+                  >
+                    🔄 Pull Global Stats
+                  </button>
+                  <button 
+                    onClick={() => {
+                      const sbTotal = activeStats.reduce((acc, s) => acc + (store.sandbox_stats[s] || 0), 0);
+                      if (sbTotal > totalAllowed) {
+                        alert(`❌ Cannot push: Sandbox uses ${sbTotal} points but budget is ${totalAllowed}!`);
+                        return;
+                      }
+                      activeStats.forEach(s => store.setBaseStat(s, store.sandbox_stats[s] || 0));
+                      alert("✅ Sandbox stats pushed to Global UI!");
+                    }}
+                    className="flex-1 py-2 bg-st-secondary border border-st-border text-xs font-bold rounded hover:border-st-orange transition-colors"
+                  >
+                    📤 Push to Global
+                  </button>
+                </div>
+
+                <h4 className="font-bold mb-4">Sandbox Stats</h4>
+                <div className="grid grid-cols-2 gap-3 mb-6">
+                  {activeStats.map(stat => (
+                    <div key={stat} className="st-container flex flex-col items-center bg-st-bg p-2">
+                      <div className="font-bold text-xs mb-1">{stat}</div>
+                      <img 
+                        src={`/assets/stats_small/${stat.toLowerCase()}.png`} 
+                        onError={(e) => { e.target.onerror = null; e.target.src = `/assets/stats/${stat.toLowerCase()}.png` }}
+                        alt={stat} 
+                        className="h-6 w-6 pixelated mb-2"
+                      />
+                      <input
+                        type="number"
+                        value={store.sandbox_stats[stat] || 0}
+                        onChange={(e) => {
+                          let parsed = parseInt(e.target.value) || 0;
+                          if (parsed > STAT_CAPS[stat]) parsed = STAT_CAPS[stat];
+                          if (parsed < 0) parsed = 0;
+                          store.setSandboxStat(stat, parsed);
+                        }}
+                        min="0"
+                        max={STAT_CAPS[stat]}
+                        className="st-input p-1 text-sm h-8"
+                      />
+                    </div>
+                  ))}
+                </div>
+
+                <hr className="border-st-border mb-4" />
+                <h4 className="font-bold mb-4">Settings</h4>
+                
+                <div className="space-y-4 text-sm">
+                  <div>
+                    <label className="block mb-1">Target Floor:</label>
+                    <input 
+                      type="number" 
+                      value={store.sandbox_floor || store.current_max_floor}
+                      onChange={(e) => store.setSimsState('sandbox_floor', Math.max(1, parseInt(e.target.value) || 1))}
+                      className="st-input h-8" 
+                    />
+                  </div>
+                  <div>
+                    <label className="block mb-1">Min Avg Hits to Kill:</label>
+                    <input 
+                      type="number" 
+                      value={sandboxMinHits}
+                      onChange={(e) => setSandboxMinHits(Math.max(1, parseInt(e.target.value) || 1))}
+                      className="st-input h-8" 
+                    />
+                  </div>
+                  <label className="flex items-center space-x-2 cursor-pointer mt-2">
+                    <input 
+                      type="checkbox" 
+                      checked={sandboxShowUnreachable}
+                      onChange={() => setSandboxShowUnreachable(!sandboxShowUnreachable)}
+                      className="accent-st-orange w-4 h-4"
+                    />
+                    <span>Show Unreachable Blocks</span>
+                  </label>
+                </div>
+              </div>
+            </div>
+
+            {/* RIGHT PANEL: DATA TABLE */}
+            <div className="lg:col-span-3">
+              <div className="flex flex-col md:flex-row gap-4 justify-between items-end mb-4">
+                <div className="w-full md:w-1/2">
+                  <label className="block font-bold mb-1">🎯 Target Breakpoints</label>
+                  <select 
+                    multiple
+                    value={sandboxBlockFilters}
+                    onChange={(e) => setSandboxBlockFilters(Array.from(e.target.selectedOptions, o => o.value))}
+                    className="w-full bg-st-bg border border-st-border rounded p-2 text-st-text focus:border-st-orange focus:outline-none h-[80px]"
+                  >
+                    {uniqueBlockNames.map(name => <option key={name} value={name}>{name}</option>)}
+                  </select>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <label className="flex items-center space-x-2 cursor-pointer bg-st-secondary px-3 py-2 border border-st-border rounded hover:border-st-orange transition-colors text-sm">
+                    <input 
+                      type="checkbox" 
+                      checked={sandboxShowCrits}
+                      onChange={() => setSandboxShowCrits(!sandboxShowCrits)}
+                      className="accent-st-orange w-4 h-4"
+                    />
+                    <span className="font-bold">🔍 Show Detailed Crits</span>
+                  </label>
+                </div>
+              </div>
+
+              <div className="overflow-x-auto border border-st-border rounded bg-st-bg h-[600px]">
+                <table className="w-full text-right border-collapse text-sm whitespace-nowrap">
+                  <thead className="sticky top-0 bg-st-bg border-b border-st-border z-10">
+                    <tr className="text-st-text-light">
+                      <th className="p-3 text-center">Icon</th>
+                      <th className="p-3 text-left">Block</th>
+                      <th className="p-3">HP</th>
+                      <th className="p-3">Armor</th>
+                      <th className="p-3 font-bold text-st-orange">EDPS</th>
+                      <th className="p-3 font-bold text-red-400">Enr EDPS</th>
+                      <th className="p-3">Reg Hit</th>
+                      <th className="p-3">Avg Hits</th>
+                      <th className="p-3 text-st-text-light">Max Hits</th>
+                      {sandboxShowCrits && (
+                        <>
+                          <th className="p-3 bg-black/10">Crit</th>
+                          <th className="p-3 bg-black/10">sCrit</th>
+                          <th className="p-3 bg-black/10">uCrit</th>
+                          <th className="p-3 bg-red-900/10 text-red-300">Enr Hit</th>
+                          <th className="p-3 bg-red-900/10 text-red-300">Enr Crit</th>
+                          <th className="p-3 bg-red-900/10 text-red-300">Enr sCrit</th>
+                          <th className="p-3 bg-red-900/10 text-red-300">Enr uCrit</th>
+                        </>
+                      )}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {!sbData ? (
+                      <tr><td colSpan="20" className="p-4 text-center">Calculating sandbox math...</td></tr>
+                    ) : blocks.length === 0 ? (
+                      <tr><td colSpan="20" className="p-4 text-center text-st-text-light">No blocks match the current filters.</td></tr>
+                    ) : blocks.map((b) => (
+                      <tr key={b.id} className="border-b border-st-border/50 hover:bg-black/5 transition-colors">
+                        <td className="p-2 text-center">
+                          <img src={`/assets/cards/cores/${b.id}.png`} alt={b.name} className="w-8 h-8 mx-auto pixelated" />
+                        </td>
+                        <td className="p-2 text-left font-bold">{b.name}</td>
+                        <td className="p-2">{b.mod_hp.toLocaleString()}</td>
+                        <td className="p-2">{b.mod_eff_armor.toLocaleString()}</td>
+                        <td className="p-2 font-bold text-st-orange">{Math.floor(b.edps).toLocaleString()}</td>
+                        <td className="p-2 font-bold text-red-400">{Math.floor(b.enr_edps).toLocaleString()}</td>
+                        <td className="p-2">{Math.floor(b.reg_hit).toLocaleString()}</td>
+                        <td className="p-2 font-bold">{b.avg_hits.toLocaleString()}</td>
+                        <td className="p-2 text-st-text-light">{b.max_hits.toLocaleString()}</td>
+                        {sandboxShowCrits && (
+                          <>
+                            <td className="p-2 bg-black/10">{Math.floor(b.crit).toLocaleString()}</td>
+                            <td className="p-2 bg-black/10">{Math.floor(b.scrit).toLocaleString()}</td>
+                            <td className="p-2 bg-black/10">{Math.floor(b.ucrit).toLocaleString()}</td>
+                            <td className="p-2 bg-red-900/10 text-red-300">{Math.floor(b.enr_hit).toLocaleString()}</td>
+                            <td className="p-2 bg-red-900/10 text-red-300">{Math.floor(b.enr_crit).toLocaleString()}</td>
+                            <td className="p-2 bg-red-900/10 text-red-300">{Math.floor(b.enr_scrit).toLocaleString()}</td>
+                            <td className="p-2 bg-red-900/10 text-red-300">{Math.floor(b.enr_ucrit).toLocaleString()}</td>
+                          </>
+                        )}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
           </div>
         </div>
-      )}
+        );
+      })()}
 
     </div>
   );
