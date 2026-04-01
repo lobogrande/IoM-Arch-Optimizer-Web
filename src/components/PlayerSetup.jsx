@@ -7,7 +7,7 @@ import {
   UI_EXT_CARD_CBLOCK_X_OFFSET, UI_EXT_CARD_CBLOCK_Y_OFFSET,
   UI_CARD_CBLOCK_SCALE
 } from '../ui_config';
-import { INTERNAL_UPGRADE_CAPS, UPGRADE_NAMES, ASC1_LOCKED_UPGS, ASC2_LOCKED_UPGS, CARD_TYPES, EXTERNAL_UI_GROUPS } from '../game_data';
+import { INTERNAL_UPGRADE_CAPS, UPGRADE_NAMES, ASC1_LOCKED_UPGS, ASC2_LOCKED_UPGS, CARD_TYPES, EXTERNAL_UI_GROUPS, UPGRADE_LEVEL_REQS } from '../game_data';
 
 export default function PlayerSetup() {
   const { asc1_unlocked, asc2_unlocked, arch_level, current_max_floor, base_stats, upgrade_levels, external_levels, cards, arch_ability_infernal_bonus, total_infernal_cards, hades_idol_level, calculated_stats, setSetting, setBaseStat, setUpgradeLevel, setCardLevel, setExternalGroup, loadStateFromJson } = useStore();
@@ -302,6 +302,7 @@ export default function PlayerSetup() {
                   const id = parseInt(upg_id);
                   if (!asc1_unlocked && ASC1_LOCKED_UPGS.includes(id)) return null;
                   if (!asc2_unlocked && ASC2_LOCKED_UPGS.includes(id)) return null;
+                  if (arch_level < (UPGRADE_LEVEL_REQS[id] || 0)) return null;
                   
                   const current_lvl = upgrade_levels[id] || 0;
                   if (hideMaxed && current_lvl >= max_lvl) return null;
