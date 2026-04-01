@@ -200,7 +200,8 @@ export default function Simulations() {
         if (!store.asc2_unlocked && asc2LockedRows.includes(upgId)) return;
         if (currentLvl >= maxLvl) return;
 
-        const upgName = (UPGRADE_NAMES && UPGRADE_NAMES[upgId]) ? UPGRADE_NAMES[upgId][0] : `Upg ${upgId}`;
+        const upgData = UPGRADE_NAMES && UPGRADE_NAMES[upgId];
+        const upgName = upgData ? (Array.isArray(upgData) ? upgData[0] : upgData) : `Upg ${upgId}`;
         upgResults[upgId] = { sum: 0, count: 0, name: upgName };
 
         for (let i = 0; i < 15; i++) {
@@ -1111,13 +1112,13 @@ export default function Simulations() {
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                       
                       {/* STATS ROI */}
-                      <div className="border border-st-border rounded p-4 bg-black/20">
+                      <div className="border border-st-border rounded p-4 bg-st-bg">
                         <h4 className="font-bold mb-2">1. Next Stat Point</h4>
                         <p className="text-sm text-st-text-light mb-4">Tests adding +1 to every stat to see which yields the highest increase.</p>
                         <button 
                           onClick={handleAnalyzeStats}
                           disabled={isRoiLoading}
-                          className="w-full py-2 bg-[#2b2b2b] border border-st-border text-st-text font-bold rounded hover:border-st-orange hover:text-st-orange transition-colors disabled:opacity-50 disabled:cursor-not-allowed mb-4"
+                          className="w-full py-2 bg-st-secondary border border-st-border text-st-text font-bold rounded hover:border-st-orange hover:text-st-orange transition-colors disabled:opacity-50 disabled:cursor-not-allowed mb-4"
                         >
                           🔍 Analyze Next Stat Point
                         </button>
@@ -1133,9 +1134,9 @@ export default function Simulations() {
                               </thead>
                               <tbody>
                                 {roiStatResults.map((r, i) => (
-                                  <tr key={r.stat} className="border-b border-st-border/50 hover:bg-white/5 transition-colors">
+                                  <tr key={r.stat} className="border-b border-st-border/50 hover:bg-black/5 transition-colors">
                                     <td className="py-2 pr-4 font-bold">{r.stat}</td>
-                                    <td className="py-2 font-mono text-st-orange">+{r.gain.toFixed(2)}</td>
+                                    <td className="py-2 font-mono text-st-orange">{r.gain > 0 ? '+' : ''}{r.gain.toFixed(2)}</td>
                                   </tr>
                                 ))}
                               </tbody>
@@ -1145,13 +1146,13 @@ export default function Simulations() {
                       </div>
 
                       {/* UPGRADES ROI */}
-                      <div className="border border-st-border rounded p-4 bg-black/20">
+                      <div className="border border-st-border rounded p-4 bg-st-bg">
                         <h4 className="font-bold mb-2">2. Upgrade ROI (Internal)</h4>
                         <p className="text-sm text-st-text-light mb-4">Tests adding +1 level to every un-maxed internal upgrade.</p>
                         <button 
                           onClick={handleAnalyzeUpgrades}
                           disabled={isRoiLoading}
-                          className="w-full py-2 bg-[#2b2b2b] border border-st-border text-st-text font-bold rounded hover:border-st-orange hover:text-st-orange transition-colors disabled:opacity-50 disabled:cursor-not-allowed mb-4"
+                          className="w-full py-2 bg-st-secondary border border-st-border text-st-text font-bold rounded hover:border-st-orange hover:text-st-orange transition-colors disabled:opacity-50 disabled:cursor-not-allowed mb-4"
                         >
                           🔍 Analyze Upgrades
                         </button>
@@ -1167,9 +1168,9 @@ export default function Simulations() {
                               </thead>
                               <tbody>
                                 {roiUpgResults.map((r, i) => (
-                                  <tr key={r.id} className="border-b border-st-border/50 hover:bg-white/5 transition-colors">
+                                  <tr key={r.id} className="border-b border-st-border/50 hover:bg-black/5 transition-colors">
                                     <td className="py-2 pr-4 text-sm font-bold">{r.name}</td>
-                                    <td className="py-2 font-mono text-st-orange">+{r.gain.toFixed(2)}</td>
+                                    <td className="py-2 font-mono text-st-orange">{r.gain > 0 ? '+' : ''}{r.gain.toFixed(2)}</td>
                                   </tr>
                                 ))}
                               </tbody>
