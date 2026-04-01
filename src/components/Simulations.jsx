@@ -1108,7 +1108,12 @@ export default function Simulations() {
                     className="w-full bg-st-bg border border-st-border rounded p-2 text-st-text focus:border-st-orange focus:outline-none"
                   >
                     {Object.entries(FRAG_NAMES)
-                      .filter(([val]) => parseInt(val) > 0) // Filter out Dirt (0)
+                      .filter(([val]) => {
+                        const fragTier = parseInt(val);
+                        if (fragTier === 0) return false; // Filter out Dirt (0)
+                        if (fragTier === 6 && !store.asc1_unlocked) return false; // Filter out Divine (6) if Asc1 locked
+                        return true;
+                      })
                       .map(([val, name]) => (
                         <option key={val} value={val}>{name}</option>
                     ))}
