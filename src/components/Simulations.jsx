@@ -2,7 +2,7 @@ import { useState, useMemo, useEffect } from 'react';
 import useStore from '../store';
 import { EngineWorkerPool, getOptimalStepProfile, runOptimizationPhase, topUpBuild } from '../utils/optimizer';
 import PlotWrapper from 'react-plotly.js';
-import { INTERNAL_UPGRADE_CAPS, UPGRADE_NAMES } from '../game_data';
+import { INTERNAL_UPGRADE_CAPS, UPGRADE_NAMES, ASC1_LOCKED_UPGS, ASC2_LOCKED_UPGS, UPGRADE_LEVEL_REQS } from '../game_data';
 import { UI_BLOCK_CARD_WIDTH, UI_BLOCK_CARD_X_OFFSET, UI_BLOCK_CARD_Y_OFFSET, UI_CARD_CBLOCK_SCALE } from '../ui_config';
 import { AgGridReact } from 'ag-grid-react';
 import { ModuleRegistry, AllCommunityModule } from 'ag-grid-community';
@@ -295,7 +295,9 @@ export default function Simulations() {
         const currentLvl = store.upgrade_levels[upgId] || 0;
         const maxLvl = INTERNAL_UPGRADE_CAPS[upgId] || 99;
 
-        if (!store.asc2_unlocked && asc2LockedRows.includes(upgId)) return;
+        if (!store.asc1_unlocked && ASC1_LOCKED_UPGS.includes(upgId)) return;
+        if (!store.asc2_unlocked && ASC2_LOCKED_UPGS.includes(upgId)) return;
+        if (store.arch_level < (UPGRADE_LEVEL_REQS[upgId] || 0)) return;
         if (currentLvl >= maxLvl) return;
 
         const upgData = UPGRADE_NAMES && UPGRADE_NAMES[upgId];
