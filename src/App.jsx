@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import useStore from './store';
+import { APP_VERSION } from './ui_config';
 import PlayerSetup from './components/PlayerSetup';
 import CalculatedStats from './components/CalculatedStats';
 import BlockCompendium from './components/BlockCompendium';
@@ -53,7 +54,7 @@ function App() {
           total_infernal_cards: store.total_infernal_cards,
           base_stats: store.base_stats,
           upgrade_levels: store.upgrade_levels,
-          external_levels: store.external_levels,
+          external_levels: { ...store.external_levels, 8: store.geoduck_unlocked ? (store.external_levels[ 8 ] || 0) : 0 },
           cards: store.cards,
           compendium_target_floor: store.compendium_target_floor || store.current_max_floor
         }
@@ -95,9 +96,14 @@ function App() {
   return (
     <div className="min-h-screen bg-st-bg text-st-text p-4 md:p-8">
       
-      <h1 className="text-3xl md:text-4xl font-bold mb-6">
-        ⛏️ AI Arch Mining Optimizer
-      </h1>
+      <div className="flex items-center gap-4 mb-6">
+        <h1 className="text-3xl md:text-4xl font-bold">
+          ⛏️ IoM Arch Optimizer
+        </h1>
+        <span className="bg-st-orange text-st-bg text-sm font-bold px-2 py-1 rounded shadow-sm">
+          {APP_VERSION}
+        </span>
+      </div>
 
       {/* Streamlit Exact Tab Styling */}
       <div className="flex overflow-x-auto border-b border-st-border mb-6 no-scrollbar">

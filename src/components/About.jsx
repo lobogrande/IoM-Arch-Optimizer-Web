@@ -154,8 +154,25 @@ export default function About() {
         </div>
 
         {/* Right Column (Feedback Form) */}
-        <div className="md:col-span-5">
-          <form onSubmit={handleFeedback} className="st-container sticky top-6">
+        <div className="md:col-span-5 space-y-6 sticky top-6 h-fit">
+          
+          {/* Discord Community */}
+          <div className="st-container border-st-orange/30">
+            <h4 className="text-xl font-bold mb-2 text-st-orange">💬 Join the Community</h4>
+            <p className="text-st-text-light text-sm mb-4">
+              Want to discuss strategies, read the latest patch notes, or help shape the next update? Join our official Discord server!
+            </p>
+            <a 
+              href="https://discord.gg/kNSt2CvMy5" 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="block w-full text-center bg-[#5865F2] hover:opacity-90 text-white py-2 rounded font-bold transition-opacity shadow-sm"
+            >
+              Join the Discord
+            </a>
+          </div>
+
+          <form onSubmit={handleFeedback} className="st-container">
             <h4 className="text-xl font-bold mb-2">🐛 Submit Feedback</h4>
             <p className="text-st-text-light text-sm mb-6">
               Found a bug? Have a feature request? Submit an issue directly to the GitHub repository!
