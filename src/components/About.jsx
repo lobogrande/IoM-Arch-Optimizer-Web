@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { APP_VERSION } from '../ui_config';
 
 export default function About() {
   const[ fbType, setFbType ] = useState('Bug Report');
@@ -75,7 +76,13 @@ export default function About() {
 
   return (
     <div className="space-y-6 animate-fade-in">
-      <h2 className="text-3xl font-bold mb-6">📚 About & Feedback</h2>
+      
+      <div className="flex items-baseline gap-4 mb-6">
+        <h2 className="text-3xl font-bold">📚 About & Feedback</h2>
+        <span className="bg-st-secondary border border-st-border text-st-text-light text-sm font-bold px-3 py-1 rounded-full shadow-sm">
+          Version {APP_VERSION}
+        </span>
+      </div>
 
       <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
         

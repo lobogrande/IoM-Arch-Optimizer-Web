@@ -17,7 +17,7 @@ export default function Welcome({ setActiveTab }) {
       <div className="p-4 bg-blue-50 border-l-4 border-blue-400 text-blue-800 rounded shadow-sm text-sm">
         <h3 className="text-lg font-bold mb-2">📝 A note from the developer...</h3>
         <p className="mb-2">
-          Welcome! I built this Monte Carlo simulator because Idle Obelisk Miner's mechanics and the sheer variety of combinations a user can have for upgrades and play styles make it incredibly difficult to 'guess' the perfect stat distribution.
+          Welcome! I built this Monte Carlo simulator because Idle Obelisk Miner's Archaeology mechanics and the sheer variety of combinations a user can have for upgrades and play styles make it incredibly difficult to 'guess' the perfect stat distribution.
         </p>
         <p>
           My goal is to give you a tool that completely eliminates the guesswork. Whether you want to push for a new Max Floor or farm Block Cards with maximum efficiency, this AI engine will simulate hundreds of thousands of hits to find the exact mathematical peak for your specific character. I hope it helps you crush those progression walls!
