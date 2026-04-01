@@ -88,16 +88,19 @@ export default function Simulations() {
   const step1 = profData ? profData.step_1 : 100;
 
   // Results Dashboard & ROI State
-  const [resTab, setResTab] = useState('build');
+  const[resTab, setResTab] = useState('build');
   const [dataTab, setDataTab] = useState('performance');
-  const[curXp, setCurXp] = useState(0);
-  const [tarXp, setTarXp] = useState(0);
+  const [curXp, setCurXp] = useState(0);
+  const[tarXp, setTarXp] = useState(0);
   const [cardSelBlock, setCardSelBlock] = useState('');
   
-  const[roiStatResults, setRoiStatResults] = useState(null);
+  const [roiStatResults, setRoiStatResults] = useState(null);
   const[roiUpgResults, setRoiUpgResults] = useState(null);
-  const [isRoiLoading, setIsRoiLoading] = useState(false);
+  const[isRoiLoading, setIsRoiLoading] = useState(false);
   const [roiProgressMsg, setRoiProgressMsg] = useState("");
+  
+  // Synthesis Tab State
+  const [viewTargets, setViewTargets] = useState(null);
 
   const handleAnalyzeStats = async () => {
     setIsRoiLoading(true);
@@ -1215,11 +1218,11 @@ export default function Simulations() {
         const uniqueTargets =[...new Set(history.map(r => r.Target))];
         const lastTgt = store.opt_results?.run_target_metric;
         
-        // Default filter to the last run's target, or all if none
-        const[viewTargets, setViewTargets] = useState(lastTgt && uniqueTargets.includes(lastTgt) ? [lastTgt] : uniqueTargets);
+        // Use stored filter, otherwise default to the last run's target, or all if none
+        const currentViewTargets = viewTargets !== null ? viewTargets : (lastTgt && uniqueTargets.includes(lastTgt) ? [lastTgt] : uniqueTargets);
         
         const visibleHistory = history.map((r, idx) => ({ ...r, _global_idx: idx }))
-                                      .filter(r => viewTargets.includes(r.Target));
+                                      .filter(r => currentViewTargets.includes(r.Target));
         
         const checkedRuns = visibleHistory.filter(r => r.Include);
 
@@ -1272,12 +1275,12 @@ export default function Simulations() {
           ) : (
             <>
               {/* Filters & Actions */}
-              <div className="flex flex-col md:flex-row gap-4 items-end">
+              <div className="flex flex-col md:flex-row gap-4 items-start">
                 <div className="w-full md:w-2/3">
                   <label className="block text-sm font-bold mb-1">🔍 Filter visible runs by optimization target:</label>
                   <select 
                     multiple
-                    value={viewTargets}
+                    value={currentViewTargets}
                     onChange={(e) => setViewTargets(Array.from(e.target.selectedOptions, option => option.value))}
                     className="w-full bg-st-bg border border-st-border rounded p-2 text-st-text focus:border-st-orange focus:outline-none"
                     style={{ height: '80px' }}
@@ -1286,7 +1289,7 @@ export default function Simulations() {
                   </select>
                   <div className="text-xs text-st-text-light mt-1">Hold Ctrl/Cmd to select multiple</div>
                 </div>
-                <div className="w-full md:w-1/3">
+                <div className="w-full md:w-1/3 mt-0 md:mt-[28px]">
                   <button 
                     onClick={() => {
                       const newHistory = [...history];
