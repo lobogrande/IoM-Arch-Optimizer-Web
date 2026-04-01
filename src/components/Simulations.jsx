@@ -798,7 +798,7 @@ export default function Simulations() {
                 const finalSum = store.opt_results.final_summary_out;
 
                 const innerTabs = [{ id: 'performance', label: '📈 Performance' }];
-                if (!isFloorTarget) innerTabs.push({ id: 'cards', label: '🃏 Card Drops' });
+                if (!isFloorTarget) innerTabs.push({ id: 'cards', label: '🎴 Card Drops' });
                 if (store.opt_results.show_loot) innerTabs.push({ id: 'loot', label: '🎒 Loot Breakdown' });
                 if (store.opt_results.show_wall) innerTabs.push({ id: 'wall', label: '🧱 Progression Wall' });
 
