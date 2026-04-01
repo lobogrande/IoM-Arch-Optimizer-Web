@@ -141,12 +141,12 @@ export default function PlayerSetup() {
         </div>
 
         <input 
-          type="number" 
+          type="text" inputMode="numeric" pattern="[0-9]*"
           className="st-input"
-          value={base_stats[statKey] || 0}
-          onChange={(e) => setBaseStat(statKey, e.target.value)}
-          min="0"
-          max={STAT_CAPS[statKey]}
+          value={base_stats[statKey] !== undefined ? base_stats[statKey] : 0}
+          onFocus={(e) => e.target.select()}
+          onChange={(e) => setBaseStat(statKey, e.target.value === '' ? '' : parseInt(e.target.value))}
+          onBlur={(e) => setBaseStat(statKey, Math.min(STAT_CAPS[statKey], Math.max(0, parseInt(e.target.value) || 0)))}
         />
       </div>
     );
@@ -342,12 +342,12 @@ export default function PlayerSetup() {
                       </div>
 
                       <input 
-                        type="number" 
+                        type="text" inputMode="numeric" pattern="[0-9]*"
                         className="st-input"
                         value={current_lvl}
-                        onChange={(e) => setUpgradeLevel(id, e.target.value)}
-                        min="0"
-                        max={max_lvl}
+                        onFocus={(e) => e.target.select()}
+                        onChange={(e) => setUpgradeLevel(id, e.target.value === '' ? '' : parseInt(e.target.value))}
+                        onBlur={(e) => setUpgradeLevel(id, Math.min(max_lvl, Math.max(0, parseInt(e.target.value) || 0)))}
                       />
                     </div>
                   );
@@ -393,7 +393,15 @@ export default function PlayerSetup() {
                       </div>
 
                       {(group.ui_type === 'number' || group.ui_type === 'pet' || group.ui_type === 'card') && (
-                        <input type="number" className={`st-input ${group.id === 'geoduck' && !geoduck_unlocked ? 'opacity-30 cursor-not-allowed' : ''}`} value={current_val} disabled={group.id === 'geoduck' && !geoduck_unlocked} min={group.ui_type === 'pet' ? -1 : 0} max={group.max || 999} onChange={(e) => setExternalGroup(group.rows, e.target.value)} />
+                        <input 
+                          type="text" inputMode={group.ui_type === 'pet' ? "text" : "numeric"} pattern={group.ui_type === 'pet' ? undefined : "[0-9]*"}
+                          className={`st-input ${group.id === 'geoduck' && !geoduck_unlocked ? 'opacity-30 cursor-not-allowed' : ''}`} 
+                          value={current_val} 
+                          disabled={group.id === 'geoduck' && !geoduck_unlocked} 
+                          onFocus={(e) => e.target.select()}
+                          onChange={(e) => setExternalGroup(group.rows, e.target.value === '' ? '' : parseInt(e.target.value))} 
+                          onBlur={(e) => setExternalGroup(group.rows, Math.max(group.ui_type === 'pet' ? -1 : 0, parseInt(e.target.value) || 0))}
+                        />
                       )}
                       
                       {(group.ui_type === 'skill' || group.ui_type === 'bundle') && (
@@ -481,12 +489,12 @@ export default function PlayerSetup() {
                       </div>
 
                       <input 
-                        type="number" 
+                        type="text" inputMode="numeric" pattern="[0-9]*"
                         className="st-input p-1 text-sm"
                         value={is_locked ? 0 : user_tier}
-                        onChange={(e) => setCardLevel(card_id, e.target.value)}
-                        min="0"
-                        max={max_card_level}
+                        onFocus={(e) => e.target.select()}
+                        onChange={(e) => setCardLevel(card_id, e.target.value === '' ? '' : parseInt(e.target.value))}
+                        onBlur={(e) => setCardLevel(card_id, Math.min(max_card_level, Math.max(0, parseInt(e.target.value) || 0)))}
                         disabled={is_locked}
                       />
                     </div>
@@ -517,7 +525,13 @@ export default function PlayerSetup() {
                   </div>
                   <div className="w-full">
                     <hr className="border-st-border mb-4"/>
-                    <input type="number" className="st-input" value={external_levels[4] || 0} onChange={(e) => setExternalGroup([4], e.target.value)} min="0" />
+                    <input 
+                      type="text" inputMode="numeric" pattern="[0-9]*" className="st-input" 
+                      value={external_levels[4] !== undefined ? external_levels[4] : 0} 
+                      onFocus={(e) => e.target.select()}
+                      onChange={(e) => setExternalGroup([4], e.target.value === '' ? '' : parseInt(e.target.value))} 
+                      onBlur={(e) => setExternalGroup([4], Math.max(0, parseInt(e.target.value) || 0))}
+                    />
                   </div>
                 </div>
 
