@@ -1,20 +1,71 @@
 import React, { useState } from 'react';
 
 export default function About() {
-  const [fbType, setFbType] = useState('Bug Report');
-  const[fbText, setFbText] = useState('');
-  const [fbContact, setFbContact] = useState('');
+  const[ fbType, setFbType ] = useState('Bug Report');
+  const [ fbText, setFbText ] = useState('');
+  const [ fbContact, setFbContact ] = useState('');
+  const [ files, setFiles ] = useState([ ]);
+  const [ isSubmitting, setIsSubmitting ] = useState(false);
+  const[ submitStatus, setSubmitStatus ] = useState(null);
 
-  const handleFeedback = (e) => {
+  const handleFeedback = async (e) => {
     e.preventDefault();
     if (!fbText.trim()) {
       alert("⚠️ Feedback details cannot be empty!");
       return;
     }
-    const issueBody = `**Type:** ${fbType}%0A**Contact:** ${fbContact || 'Anonymous'}%0A%0A**Details:**%0A${encodeURIComponent(fbText)}`;
-    const githubUrl = `https://github.com/lobogrande/IoM-Arch-Image_DataMiner/issues/new?body=${issueBody}`;
-    window.open(githubUrl, '_blank');
-    setFbText('');
+
+    setIsSubmitting(true);
+    setSubmitStatus(null);
+    const webhookUrl = import.meta.env.VITE_DISCORD_WEBHOOK;
+
+    if (webhookUrl) {
+      try {
+        const formData = new FormData();
+        const payload = {
+          embeds:[ {
+            title: `🚨 New ${fbType}`,
+            color: fbType.includes("Bug") ? 16753920 : 5025616,
+            fields:[
+              { name: "User", value: fbContact || "Anonymous", inline: true },
+              { name: "Details", value: fbText, inline: false }
+            ],
+            footer: { text: "IoM Arch Optimizer Engine" }
+          } ]
+        };
+
+        formData.append("payload_json", JSON.stringify(payload));
+
+        // Append files dynamically
+        Array.from(files).forEach((file, i) => {
+          formData.append(`file[${i}]`, file);
+        });
+
+        const res = await fetch(webhookUrl, {
+          method: 'POST',
+          body: formData
+        });
+
+        if (res.ok) {
+          setSubmitStatus({ type: 'success', msg: "✅ Feedback successfully sent! Thank you." });
+          setFbText('');
+          setFbContact('');
+          setFiles([ ]);
+        } else {
+          setSubmitStatus({ type: 'error', msg: `❌ Failed to send feedback (HTTP ${res.status}).` });
+        }
+      } catch (err) {
+        setSubmitStatus({ type: 'error', msg: `❌ Network error: ${err.message}` });
+      }
+    } else {
+      // Fallback for missing webhook (Dev mode)
+      setSubmitStatus({ type: 'info', msg: "ℹ️ Developer Note: VITE_DISCORD_WEBHOOK is not configured in .env. Falling back to GitHub Issue." });
+      const issueBody = `**Type:** ${fbType}%0A**Contact:** ${fbContact || 'Anonymous'}%0A%0A**Details:**%0A${encodeURIComponent(fbText)}%0A%0A*(Note: If you attached files, please drag and drop them here manually!)*`;
+      const githubUrl = `https://github.com/lobogrande/IoM-Arch-Image_DataMiner/issues/new?body=${issueBody}`;
+      window.open(githubUrl, '_blank');
+    }
+    
+    setIsSubmitting(false);
   };
 
   return (
@@ -141,16 +192,37 @@ export default function About() {
                 />
               </div>
 
+              <div>
+                <label className="block text-sm font-bold text-st-text mb-1">Attachments (Optional)</label>
+                <div className="text-xs text-st-text-light mb-2">Attach a screenshot or your player_state.json file to help me reproduce the issue!</div>
+                <input 
+                  type="file" 
+                  multiple 
+                  accept=".png,.jpg,.jpeg,.json"
+                  className="block w-full text-sm text-st-text-light file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:font-semibold file:bg-st-secondary file:text-st-text hover:file:bg-gray-200 cursor-pointer transition-colors"
+                  onChange={(e) => setFiles(e.target.files)}
+                />
+                {files.length > 0 && (
+                  <ul className="mt-2 text-xs text-st-text-light list-disc pl-5">
+                    {Array.from(files).map((f, i) => <li key={i}>{f.name}</li>)}
+                  </ul>
+                )}
+              </div>
+
+              {submitStatus && (
+                <div className={`p-3 rounded text-sm ${submitStatus.type === 'error' ? 'bg-red-50 text-red-800 border border-red-200' : submitStatus.type === 'success' ? 'bg-green-50 text-green-800 border border-green-200' : 'bg-blue-50 text-blue-800 border border-blue-200'}`}>
+                  {submitStatus.msg}
+                </div>
+              )}
+
               <div className="pt-2">
                 <button 
                   type="submit"
-                  className="w-full bg-st-orange hover:opacity-80 text-white font-bold py-2 px-4 rounded transition-opacity shadow-sm"
+                  disabled={isSubmitting}
+                  className="w-full bg-st-orange hover:opacity-80 text-white font-bold py-2 px-4 rounded transition-opacity shadow-sm disabled:opacity-50"
                 >
-                  📤 Generate GitHub Issue
+                  {isSubmitting ? '📤 Sending...' : '📤 Send Feedback'}
                 </button>
-                <p className="text-xs text-st-text-light text-center mt-3 leading-tight">
-                  (Webhooks are disabled in the browser for security. This will format and draft an issue on GitHub for you.)
-                </p>
               </div>
             </div>
           </form>
