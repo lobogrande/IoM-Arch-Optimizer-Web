@@ -187,13 +187,17 @@ self.onmessage = async function(e) {
         try {
             await initPromise;
             
-            pyodide.globals.set("js_data", e.data.payload);
-            const resultProxy = await pyodide.runPythonAsync("calculate_all_stats(js_data)");
+            // Fetch the Python function directly to prevent global variable overwriting!
+            const calculate_all_stats = pyodide.globals.get("calculate_all_stats");
             
+            // Execute synchronously so the worker event loop safely queues concurrent messages
+            const resultProxy = calculate_all_stats(e.data.payload);
             const result = resultProxy.toJs({ dict_converter: Object.fromEntries });
-            resultProxy.destroy(); 
             
-            // Pass back a flag so React knows if this was a Global or Sandbox calculation
+            // Clean up proxies to prevent memory leaks
+            resultProxy.destroy(); 
+            calculate_all_stats.destroy();
+            
             postMessage({ 
                 type: e.data.command === 'CALC_STATS' ? 'CALC_RESULT' : 'SANDBOX_RESULT', 
                 payload: result 

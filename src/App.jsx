@@ -36,7 +36,7 @@ function App() {
     return () => calcWorkerRef.current.terminate();
   },[]); // Only runs once on mount
 
-  // Trigger calculations automatically whenever the player's inputs change
+  // Trigger GLOBAL calculations only when global inputs change
   useEffect(() => {
     if (calcWorkerRef.current) {
       calcWorkerRef.current.postMessage({
@@ -57,7 +57,15 @@ function App() {
         }
       });
     }
-  if (calcWorkerRef.current) {
+  },[
+    store.asc1_unlocked, store.asc2_unlocked, store.arch_level, store.hades_idol_level, 
+    store.arch_ability_infernal_bonus, store.total_infernal_cards, store.base_stats, 
+    store.upgrade_levels, store.external_levels, store.cards, store.compendium_target_floor, store.current_max_floor
+  ]);
+
+  // Trigger SANDBOX calculations only when Sandbox stats/floor change
+  useEffect(() => {
+    if (calcWorkerRef.current) {
       calcWorkerRef.current.postMessage({
         command: 'CALC_SANDBOX',
         payload: {
@@ -68,7 +76,7 @@ function App() {
           hades_idol_level: store.hades_idol_level,
           arch_ability_infernal_bonus: parseFloat(store.arch_ability_infernal_bonus) / 100.0 || 0.0,
           total_infernal_cards: store.total_infernal_cards,
-          base_stats: store.sandbox_stats, // <--- Passes the isolated Sandbox Stats!
+          base_stats: store.sandbox_stats,
           upgrade_levels: store.upgrade_levels,
           external_levels: store.external_levels,
           cards: store.cards,
@@ -78,9 +86,8 @@ function App() {
     }
   },[
     store.asc1_unlocked, store.asc2_unlocked, store.arch_level, store.hades_idol_level, 
-    store.arch_ability_infernal_bonus, store.total_infernal_cards, store.base_stats, 
-    store.upgrade_levels, store.external_levels, store.cards, store.compendium_target_floor, store.current_max_floor,
-    store.sandbox_stats, store.sandbox_floor
+    store.arch_ability_infernal_bonus, store.total_infernal_cards, store.sandbox_stats, 
+    store.upgrade_levels, store.external_levels, store.cards, store.sandbox_floor, store.current_max_floor
   ]);
 
   return (
