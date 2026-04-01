@@ -120,7 +120,7 @@ function App() {
       </div>
 
       <div className="w-full">
-        {activeTab === 'welcome' && <Welcome />}
+        {activeTab === 'welcome' && <Welcome setActiveTab={setActiveTab} />}
         {activeTab === 'setup' && <PlayerSetup />}
         {activeTab === 'calc_stats' && <CalculatedStats />}
         {activeTab === 'block_stats' && <BlockCompendium />}

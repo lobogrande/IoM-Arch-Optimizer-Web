@@ -5,7 +5,7 @@ const EARLY_GAME = { "settings": { "asc2_unlocked": false, "arch_level": 45, "cu
 
 const LATE_GAME = { "settings": { "asc2_unlocked": true, "arch_level": 99, "current_max_floor": 158, "base_damage_const": 10, "hades_idol_level": 129, "total_infernal_cards": 303 }, "base_stats": { "Str": 15, "Agi": 0, "Per": 0, "Int": 29, "Luck": 30, "Div": 15, "Corr": 15 }, "internal_upgrades": { "3 - Gem Stamina": 50, "4 - Gem Exp": 25, "5 - Gem Loot": 25, "9 - Flat Damage": 25, "10 - Armor Pen.": 25, "11 - Exp. Gain": 25, "12 - Stat Points": 5, "13 - Crit Chance/Damage": 25, "14 - Max Sta/Sta Mod Chance": 20, "15 - Flat Damage": 20, "16 - Loot Mod Gain": 10, "17 - Unlock Fairy/Armor Pen": 15, "18 - Enrage&Crit Dmg/Enrage Cooldown": 15, "19 - Gleaming Floor Chance": 30, "20 - Flat Dmg/Super Crit Chance": 25, "21 - Exp Gain/Fragment Gain": 20, "22 - Flurry Sta Gain/Flurr Cooldown": 10, "23 - Max Sta/Sta Mod Gain": 5, "24 - All Mod Chances": 30, "25 - Flat Dmg/Damage Up": 5, "26 - Max Sta/Mod Chance": 5, "27 - Unlock Ability Fairy/Loot Mod Gain": 20, "28 - Exp Gain/Max Sta": 15, "29 - Armor Pen/Ability Cooldowns": 10, "30 - Crit Dmg/Super Crit Dmg": 20, "31 - Quake Atks/Cooldown": 10, "32 - Flat Dmg/Enrage Cooldown": 5, "33 - Mod Chance/Armor Pen": 5, "34 - Buff Divinity[Div Stats Up]": 5, "35 - Exp Gain/Mod Ch.": 5, "36 - Damage Up/Armor Pen": 20, "37 - Super Crit/Ultra Crit Chance": 20, "38 - Exp Mod Gain/Chance": 20, "39 - Ability Insta Chance/Max Sta": 20, "40 - Ultra Crit Dmg/Sta Mod Chance": 20, "41 - Poly Card Bonus": 1, "42 - Frag Gain Mult": 1, "43 - Sta Mod Gain": 1, "44 - All Mod Chances": 1, "45 - Exp Gain/All Stat Cap Inc.": 1, "46 - Gleaming Floor Multi": 24, "47 - Damage Up/Crit Dmg Up": 1, "48 - Gold Crosshair Chance/Auto-Tap Chance": 5, "49 - Flat Dmg/Ultra Crit Chance": 5, "50 - Ability Insta Chance/Sta Mod Chance": 25, "51 - Dmg Up/Exp Gain": 5, "52 - [Corruption Buff] Dmg Up / Mod Multi Up": 10, "53 - Super Crit Dmg/Exp Mod Gain": 30, "54 - Max Sta/Crosshair Auto-Tap Chance": 28, "55 - All Mod Multipliers": 10 }, "external_upgrades": { "Hestia Idol": 1929, "Axolotl Skin": 11, "Dino Skin": 11, "Geoduck Tribute": 1047, "Avada Keda- Skill": 1, "Block Bonker Skill": 1, "Archaeology Bundle": 1, "Ascension Bundle": 1, "Arch Ability Card": 4, "Arch Ability Infernal Bonus": -0.1509 }, "cards": { "dirt1": 4, "dirt2": 4, "dirt3": 4, "dirt4": 3, "com1": 3, "com2": 3, "com3": 4, "com4": 2, "rare1": 3, "rare2": 3, "rare3": 3, "rare4": 2, "epic1": 3, "epic2": 3, "epic3": 4, "epic4": 2, "leg1": 3, "leg2": 3, "leg3": 4, "leg4": 2, "myth1": 3, "myth2": 3, "myth3": 3, "myth4": 2, "div1": 3, "div2": 3, "div3": 3, "div4": 0 } };
 
-export default function Welcome() {
+export default function Welcome({ setActiveTab }) {
   const loadStateFromJson = useStore(state => state.loadStateFromJson);
   const resetState = useStore(state => state.resetState);
 
@@ -57,7 +57,7 @@ export default function Welcome() {
         <h4 className="text-xl font-bold mb-4">🚀 Quick Start: Load a Preset Build</h4>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <button 
-            onClick={() => loadStateFromJson(EARLY_GAME)}
+            onClick={() => { loadStateFromJson(EARLY_GAME); setActiveTab('setup'); }}
             className="st-container hover:border-st-orange transition-colors text-center font-medium shadow-sm cursor-pointer"
           >
             🌱 Load Early-Game Build<br/>
@@ -65,7 +65,7 @@ export default function Welcome() {
           </button>
 
           <button 
-            onClick={() => loadStateFromJson(LATE_GAME)}
+            onClick={() => { loadStateFromJson(LATE_GAME); setActiveTab('setup'); }}
             className="st-container hover:border-st-orange transition-colors text-center font-medium shadow-sm cursor-pointer"
           >
             🌌 Load Late-Game Build<br/>
@@ -73,7 +73,7 @@ export default function Welcome() {
           </button>
 
           <button 
-            onClick={() => resetState()}
+            onClick={() => { resetState(); setActiveTab('setup'); }}
             className="p-3 border border-red-200 bg-red-50 hover:bg-red-100 hover:border-red-400 transition-colors rounded-lg text-center text-red-800 font-medium shadow-sm cursor-pointer"
           >
             🗑️ Factory Reset<br/>
