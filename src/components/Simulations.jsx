@@ -1391,6 +1391,17 @@ export default function Simulations() {
                         tr.sum_t += (res[runTargetMetric] || 0);
                         tr.sum_f += (res.highest_floor || 0);
                         tr.floors.push(res.highest_floor || 0);
+                        
+                        // FIX: Record advanced telemetry during Round 1 so chart averages are mathematically perfect
+                        for (const[mk, mv] of Object.entries(res)) {
+                            if (mk !== 'stamina_trace_floor' && mk !== 'stamina_trace_stamina' && mk !== 'total_time') {
+                                tr.metricsSum[mk] = (tr.metricsSum[mk] || 0.0) + mv;
+                            }
+                        }
+                        if (!tr.staminaTrace && res.stamina_trace_floor) {
+                            tr.staminaTrace = { floor: res.stamina_trace_floor, stamina: res.stamina_trace_stamina };
+                        }
+
                         completedSims++;
                         
                         const now = Date.now();
