@@ -79,9 +79,14 @@ def calculate_all_stats(js_data):
     avg_mult = t_reg*1.0 + t_crit*c_crit + t_scrit*c_scrit + t_ucrit*c_ucrit
     avg_enr_mult = t_reg*1.0 + t_crit*c_enr_crit + t_scrit*c_enr_scrit + t_ucrit*c_enr_ucrit
 
+    asc_key = "asc2" if p.asc2_unlocked else "asc1"
+    ore_limits = cfg.ASC_ORE_RESTRICTIONS.get(asc_key, {})
+
     for block_id, base in cfg.BLOCK_BASE_STATS.items():
         if block_id.startswith('div') and not p.asc1_unlocked: continue
         if block_id.endswith('4') and not p.asc2_unlocked: continue
+        
+        min_floor = ore_limits.get(block_id, (1, 999))[0]
         
         b = Block(block_id, target_floor, p)
         eff_armor = max(0, b.armor - p.armor_pen)
@@ -102,6 +107,7 @@ def calculate_all_stats(js_data):
             "id": block_id,
             "name": block_id.capitalize(),
             "tier": int(block_id[-1]) if block_id[-1].isdigit() else 1,
+            "min_floor": min_floor,
             "frag_name": FRAG_NAMES.get(base.get('ft', 0), "Unknown"),
             "base_hp": base['hp'],
             "base_armor": base['a'],

@@ -1876,13 +1876,7 @@ export default function Simulations() {
         const tFloor = store.sandbox_floor || store.current_max_floor;
 
         if (!sandboxShowUnreachable) {
-          blocks = blocks.filter(b => {
-            // Fix: Use the mathematically correct spawn floors from project_config.py!
-            if (b.tier === 2 && tFloor < 12) return false;
-            if (b.tier === 3 && tFloor < 24) return false;
-            if (b.tier === 4 && tFloor < 81) return false;
-            return true;
-          });
+          blocks = blocks.filter(b => tFloor >= b.min_floor);
         }
         if (sandboxMinHits > 1) blocks = blocks.filter(b => b.avg_hits >= sandboxMinHits);
         if (sandboxBlockFilters.length > 0) blocks = blocks.filter(b => sandboxBlockFilters.includes(b.name));
