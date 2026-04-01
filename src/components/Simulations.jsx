@@ -553,8 +553,19 @@ export default function Simulations() {
               >
                 ✨ Apply Build Globally
               </button>
-              <button className="flex-1 py-2 bg-[#2b2b2b] border border-st-border text-st-text-light font-bold rounded hover:text-st-text transition-colors cursor-not-allowed">
-                🧪 Send to Sandbox (Coming Soon)
+              <button 
+                onClick={() => {
+                  // Loop through the optimized build and push it directly into the Sandbox isolated state
+                  Object.entries(store.opt_results.best_final).forEach(([k, v]) => {
+                    store.setSandboxStat(k, v);
+                  });
+                  // Route the user straight to the Sandbox tab!
+                  setActiveSubTab('sandbox');
+                  window.scrollTo({ top: 0, behavior: 'smooth' });
+                }}
+                className="flex-1 py-2 bg-[#2b2b2b] border border-st-orange text-st-orange font-bold rounded hover:bg-st-orange hover:text-[#2b2b2b] transition-colors"
+              >
+                🧪 Send to Sandbox
               </button>
             </div>
           </div>
