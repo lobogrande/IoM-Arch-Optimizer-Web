@@ -74,6 +74,23 @@ const useStore = create(
   setSandboxStat: (stat, value) => set((state) => ({ sandbox_stats: { ...state.sandbox_stats, [stat]: parseInt(value) || 0 } })),
   setSandboxCalculatedStats: (stats) => set({ sandbox_calculated_stats: stats }),
   
+  // Wipe all data to default baseline
+  resetState: () => set({
+    asc1_unlocked: true,
+    asc2_unlocked: false,
+    arch_level: 45,
+    current_max_floor: 40,
+    hades_idol_level: 0,
+    base_stats: { Str: 0, Agi: 0, Per: 0, Int: 0, Luck: 0, Div: 0, Corr: 0 },
+    upgrade_levels: { },
+    external_levels: { },
+    cards: { },
+    arch_ability_infernal_bonus: "0",
+    total_infernal_cards: 0,
+    sandbox_stats: { Str: 0, Agi: 0, Per: 0, Int: 0, Luck: 0, Div: 0, Corr: 0 },
+    sandbox_floor: 100
+  }),
+
   // Bulk load from JSON file
   loadStateFromJson: (data) => set((state) => {
     const newState = { ...state };
