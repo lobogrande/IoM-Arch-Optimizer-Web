@@ -23,12 +23,12 @@ export default function Simulations() {
   const [activeSubTab, setActiveSubTab] = useState('optimizer');
   
   // Optimizer Settings State (Persisted in Zustand)
-  const optGoal = store.optGoal;
-  const targetFrag = store.targetFrag;
-  const targetBlock = store.targetBlock;
-  const timeLimit = store.timeLimit;
-  const lockedStats = store.lockedStats;
-  const simsPerSec = store.simsPerSec;
+  const optGoal = store.optGoal || "Max Floor Push";
+  const targetFrag = store.targetFrag || 0;
+  const targetBlock = store.targetBlock || "myth3";
+  const timeLimit = store.timeLimit || 60;
+  const lockedStats = store.lockedStats || {};
+  const simsPerSec = store.simsPerSec || 15; // Pessimistic WebAssembly baseline until auto-calibrated
 
   const setOptGoal = (v) => store.setSimsState('optGoal', v);
   const setTargetFrag = (v) => store.setSimsState('targetFrag', v);
@@ -37,7 +37,7 @@ export default function Simulations() {
   const setLockedStats = (v) => store.setSimsState('lockedStats', v);
   const setSimsPerSec = (v) => store.setSimsState('simsPerSec', v);
 
-  const [displayTime, setDisplayTime] = useState(store.timeLimit); // Visual slider state
+  const [displayTime, setDisplayTime] = useState(store.timeLimit || 60); // Visual slider state
 
   // Debounce the visual slider so it reliably updates the engine math without freezing the browser
   useEffect(() => {
@@ -51,6 +51,21 @@ export default function Simulations() {
   const [isOptimizing, setIsOptimizing] = useState(false);
   const[progressMsg, setProgressMsg] = useState("");
   const [progressPct, setProgressPct] = useState(0);
+
+  // Results Dashboard & ROI State
+  const [resTab, setResTab] = useState('build');
+  const [dataTab, setDataTab] = useState('performance');
+  const[curXp, setCurXp] = useState(0);
+  const [tarXp, setTarXp] = useState(0);
+  const [cardSelBlock, setCardSelBlock] = useState('');
+  
+  const[roiStatResults, setRoiStatResults] = useState(null);
+  const [roiUpgResults, setRoiUpgResults] = useState(null);
+  const [isRoiLoading, setIsRoiLoading] = useState(false);
+  const[roiProgressMsg, setRoiProgressMsg] = useState("");
+
+  // Synthesis Tab State
+  const [viewTargets, setViewTargets] = useState(null);
 
   // Dynamic Limits based on Ascensions and Caps
   const totalAllowed = parseInt(store.arch_level) + parseInt(store.upgrade_levels[12] || 0);
@@ -67,14 +82,14 @@ export default function Simulations() {
 
   // --- REACTIVE AI CALIBRATION ---
   const dynamicBudget = parseInt(store.arch_level) + parseInt(store.upgrade_levels[12] || 0);
-  const bounds = { };
+  const bounds = {};
   let lockedSum = 0;
   activeStats.forEach(s => {
     if (lockedStats[s] !== undefined) {
-      bounds[s] = [ lockedStats[s], lockedStats[s] ];
+      bounds[s] = [lockedStats[s], lockedStats[s]];
       lockedSum += lockedStats[s];
     } else {
-      bounds[s] =[ 0, STAT_CAPS[s] ];
+      bounds[s] =[0, STAT_CAPS[s]];
     }
   });
   const isOverBudget = lockedSum > dynamicBudget;
@@ -83,25 +98,29 @@ export default function Simulations() {
   const profData = useMemo(() => {
     if (isOverBudget) return null;
     return getOptimalStepProfile(activeStats, dynamicBudget, bounds, simsPerSec, timeLimit);
-  },[ JSON.stringify(activeStats), dynamicBudget, JSON.stringify(bounds), simsPerSec, timeLimit, isOverBudget ]);
+  },[JSON.stringify(activeStats), dynamicBudget, JSON.stringify(bounds), simsPerSec, timeLimit, isOverBudget]);
   
   const step1 = profData ? profData.step_1 : 100;
 
-  // Results Dashboard & ROI State
-  const[resTab, setResTab] = useState('build');
-  const [dataTab, setDataTab] = useState('performance');
-  const [curXp, setCurXp] = useState(0);
-  const[tarXp, setTarXp] = useState(0);
-  const [cardSelBlock, setCardSelBlock] = useState('');
-  
-  const [roiStatResults, setRoiStatResults] = useState(null);
-  const[roiUpgResults, setRoiUpgResults] = useState(null);
-  const[isRoiLoading, setIsRoiLoading] = useState(false);
-  const [roiProgressMsg, setRoiProgressMsg] = useState("");
-  
-  // Synthesis Tab State
-  const [viewTargets, setViewTargets] = useState(null);
+  const handleLockToggle = (stat) => {
+    const newLocks = { ...lockedStats };
+    if (newLocks[stat] !== undefined) {
+      delete newLocks[stat];
+    } else {
+      newLocks[stat] = store.base_stats[stat] || 0;
+    }
+    setLockedStats(newLocks);
+  };
 
+  const handleLockValueChange = (stat, val) => {
+    let parsed = parseInt(val) || 0;
+    if (parsed > STAT_CAPS[stat]) parsed = STAT_CAPS[stat];
+    if (parsed < 0) parsed = 0;
+    
+    setLockedStats({ ...lockedStats, [stat]: parsed });
+  };
+
+  // --- ROI ANALYZERS ---
   const handleAnalyzeStats = async () => {
     setIsRoiLoading(true);
     setRoiProgressMsg("Testing marginal stat values (15 sims each)...");
@@ -109,8 +128,8 @@ export default function Simulations() {
     try {
       const pool = new EngineWorkerPool();
       await pool.init();
-      const statResults = { };
-      const promises = [ ];
+      const statResults = {};
+      const promises =[];
       const targetMetric = store.opt_results.run_target_metric;
       const baseVal = store.opt_results.final_summary_out[targetMetric];
       const bestFinal = store.opt_results.best_final;
@@ -172,12 +191,12 @@ export default function Simulations() {
     try {
       const pool = new EngineWorkerPool();
       await pool.init();
-      const upgResults = { };
-      const promises = [ ];
+      const upgResults = {};
+      const promises =[];
       const targetMetric = store.opt_results.run_target_metric;
       const baseVal = store.opt_results.final_summary_out[targetMetric];
       const bestFinal = store.opt_results.best_final;
-      const asc2LockedRows =[ 19, 27, 34, 46, 52, 55 ];
+      const asc2LockedRows =[19, 27, 34, 46, 52, 55];
 
       const baseStateDict = {
         asc1_unlocked: store.asc1_unlocked,
@@ -195,7 +214,7 @@ export default function Simulations() {
 
       await pool.syncState(baseStateDict);
 
-      Object.keys(INTERNAL_UPGRADE_CAPS || { }).forEach(upgIdStr => {
+      Object.keys(INTERNAL_UPGRADE_CAPS || {}).forEach(upgIdStr => {
         const upgId = parseInt(upgIdStr);
         const currentLvl = store.upgrade_levels[upgId] || 0;
         const maxLvl = INTERNAL_UPGRADE_CAPS[upgId] || 99;
@@ -209,7 +228,7 @@ export default function Simulations() {
 
         for (let i = 0; i < 15; i++) {
           // Pass the upgrade variation directly via the test_upgrades parameter!
-          const p = pool.runTask(bestFinal, { [upgId]: currentLvl + 1 }).then(res => {
+          const p = pool.runTask(bestFinal, {[upgId]: currentLvl + 1 }).then(res => {
             upgResults[upgId].sum += (res[targetMetric] || 0);
             upgResults[upgId].count++;
           });
@@ -236,6 +255,7 @@ export default function Simulations() {
     setIsRoiLoading(false);
   };
 
+  // --- ENGINE EXECUTION LOOP ---
   const handleRunOptimizer = async () => {
     setIsOptimizing(true);
     setProgressMsg("Calculating Execution Plan...");
@@ -274,7 +294,7 @@ export default function Simulations() {
       setProgressMsg(`Booting AI Cores...`);
       const pool = new EngineWorkerPool();
       await pool.init(
-        () => { }, 
+        () => {}, 
         (ready, total) => setProgressMsg(`Booting Engine Cores: ${ready}/${total}`)
       );
 
@@ -287,7 +307,7 @@ export default function Simulations() {
                             : (optGoal === "Max EXP Yield") ? "xp_per_min" 
                             : "highest_floor";
 
-      const fixedStats = { };
+      const fixedStats = {};
       Object.keys(store.base_stats).forEach(k => {
         if (!activeStats.includes(k)) fixedStats[k] = store.base_stats[k];
       });
@@ -325,7 +345,7 @@ export default function Simulations() {
       // --- PHASE 2 (Fine) ---
       let bestP2, sumP2;
       if (bestP1 && ((Date.now() - globalStartTime) / 1000) < timeLimit) {
-        const boundsP2 = { };
+        const boundsP2 = {};
         let lockedSumP2 = 0;
         activeStats.forEach(s => {
           if (lockedStats[s] !== undefined) {
@@ -353,7 +373,7 @@ export default function Simulations() {
 
       // --- PHASE 3 (Exact) ---
       if (bestP2 && ((Date.now() - globalStartTime) / 1000) < timeLimit) {
-        const boundsP3 = { };
+        const boundsP3 = {};
         const p3Radius = profData.p3_radius || Math.min(2, step2);
         activeStats.forEach(s => {
           if (lockedStats[s] !== undefined) {
@@ -386,10 +406,9 @@ export default function Simulations() {
       if (bestFinal && finalSummary) {
           console.log("🏆 OPTIMIZATION COMPLETE:", bestFinal, finalSummary);
           
-          // Compile Chart Data
-          const chartHillScores = [ sumP1[targetMetricKey], sumP2 ? sumP2[targetMetricKey] : null, finalSummary[targetMetricKey] ].filter(x => x !== null);
-          const chartHillLabels =[ "P1 (Coarse)", sumP2 ? "P2 (Fine)" : null, "P3 (Exact)" ].filter(x => x !== null);
-          const chartLoot = { };
+          const chartHillScores = [sumP1 ? sumP1[targetMetricKey] : null, sumP2 ? sumP2[targetMetricKey] : null, finalSummary[targetMetricKey]].filter(x => x !== null);
+          const chartHillLabels = ["P1 (Coarse)", sumP2 ? "P2 (Fine)" : null, "P3 (Exact)"].filter(x => x !== null);
+          const chartLoot = {};
           if (finalSummary.avg_metrics) {
               Object.entries(FRAG_NAMES).forEach(([tier, name]) => {
                   const k = `frag_${tier}_per_min`;
@@ -406,7 +425,7 @@ export default function Simulations() {
               worst_val: finalSummary.worst_val || 0,
               avg_val: finalSummary.avg_val || 0,
               runner_up_val: finalSummary.runner_up_val || 0,
-              chart_hist: finalSummary.floors.reduce((acc, f) => { acc[f] = (acc[f] || 0) + 1; return acc; }, { }),
+              chart_hist: finalSummary.floors.reduce((acc, f) => { acc[f] = (acc[f] || 0) + 1; return acc; }, {}),
               chart_hill_scores: chartHillScores,
               chart_hill_labels: chartHillLabels,
               chart_loot: chartLoot,
@@ -447,60 +466,480 @@ export default function Simulations() {
       setIsOptimizing(false);
     }
   };
-  
-  const handleLockToggle = (stat) => {
-    const newLocks = { ...lockedStats };
-    if (newLocks[stat] !== undefined) {
-      delete newLocks[stat];
-    } else {
-      newLocks[stat] = store.base_stats[stat] || 0;
-    }
-    setLockedStats(newLocks);
-  };
 
+  // --- REUSABLE RESULTS DASHBOARD ---
   const renderResultsDashboard = (context) => {
     if (!store.opt_results) return null;
-    const finalSum = store.opt_results.final_summary_out;
     const runMetric = store.opt_results.run_target_metric;
     const isFloorTarget = runMetric === 'highest_floor';
     const scaleScore = (v) => isFloorTarget ? v : (v / 60.0) * 1000.0;
     const unitLabel = isFloorTarget ? "Floor Reached" : "Yield per 1k Arch Secs";
+    const finalSum = store.opt_results.final_summary_out;
 
-    const innerTabs = [{ id: 'performance', label: '📈 Performance' }];
+    const innerTabs =[{ id: 'performance', label: '📈 Performance' }];
     if (!isFloorTarget) innerTabs.push({ id: 'cards', label: '🃏 Card Drops' });
-    if (store.opt_results.show_loot) innerTabs.push({ id: 'loot', label: '💰 Loot' });
-    const [innerTab, setInnerTab] = React.useState(innerTabs[0].id);
+    if (store.opt_results.show_loot) innerTabs.push({ id: 'loot', label: '🎒 Loot Breakdown' });
+    if (store.opt_results.show_wall) innerTabs.push({ id: 'wall', label: '🧱 Progression Wall' });
+
+    const avgMetrics = finalSum.avg_metrics || {};
+    const availableBlocks = Object.keys(avgMetrics)
+      .filter(k => k.startsWith("block_"))
+      .map(k => k.replace("block_", "").replace("_per_min", ""))
+      .sort();
 
     return (
-      <>
-        <div id="results-dashboard" className="results-dashboard-container">
-          <ResultsBanner />
-          <div className="tab-container" style={{ margin: '0' }}>
-            <TabHeader
-              tabs={innerTabs}
-              activeTab={innerTab}
-              setActiveTab={setInnerTab}
-            />
-            {innerTab === 'performance' && (
-              <ResultsPerformance
-                finalSum={finalSum}
-                runMetric={runMetric}
-                scaleScore={scaleScore}
-                unitLabel={unitLabel}
-                context={context}
-              />
+      <div className="mt-8 animate-fade-in space-y-6" id={`dashboard-anchor-${context}`}>
+        <div className="bg-[#1e1e1e] border-l-4 border-l-green-500 p-4 rounded shadow">
+          <h3 className="text-xl font-bold text-green-400">✅ Simulation Complete in {store.opt_results.elapsed.toFixed(1)} seconds!</h3>
+        </div>
+
+        <div className="flex overflow-x-auto border-b border-st-border mb-6 no-scrollbar">
+          {[
+            { id: 'build', label: '🏆 The Build' },
+            { id: 'data', label: '📊 Simulation Data' },
+            { id: 'roi', label: '🔮 Upgrade Guide (ROI)' }
+          ].map((t) => (
+            <button
+              key={t.id}
+              onClick={() => setResTab(t.id)}
+              className={`px-4 py-2 font-medium whitespace-nowrap transition-colors duration-200 border-b-2 ${
+                resTab === t.id 
+                  ? 'border-st-orange text-st-text' 
+                  : 'border-transparent text-st-text-light hover:text-st-orange hover:border-gray-300'
+              }`}
+            >
+              {t.label}
+            </button>
+          ))}
+        </div>
+
+        {/* 🏆 THE BUILD */}
+        {resTab === 'build' && (
+          <div className="st-container animate-fade-in">
+            <h3 className="text-2xl font-bold mb-4">🏆 Optimal Stat Build</h3>
+            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-4">
+              {activeStats.map(stat => {
+                const allocated = store.opt_results.best_final[stat] || 0;
+                const current = store.base_stats[stat] || 0;
+                const delta = allocated - current;
+                
+                return (
+                  <div key={stat} className="st-container flex flex-col items-center text-center">
+                    <div className="font-bold">{stat}</div>
+                    <div className="text-3xl font-mono mt-2 text-st-orange">{allocated}</div>
+                    <div className={`text-sm font-bold ${delta > 0 ? 'text-green-400' : delta < 0 ? 'text-red-400' : 'text-st-text-light'}`}>
+                      {delta > 0 ? `+${delta}` : delta < 0 ? delta : '-'}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            <div className="flex flex-col md:flex-row gap-4 mt-6">
+              <button 
+                onClick={() => {
+                  Object.entries(store.opt_results.best_final).forEach(([k, v]) => {
+                    store.setBaseStat(k, v);
+                  });
+                  alert("✅ Optimal stats applied globally!");
+                }}
+                className="flex-1 py-2 bg-[#2b2b2b] border border-st-orange text-st-orange font-bold rounded hover:bg-st-orange hover:text-[#2b2b2b] transition-colors"
+              >
+                ✨ Apply Build Globally
+              </button>
+              <button className="flex-1 py-2 bg-[#2b2b2b] border border-st-border text-st-text-light font-bold rounded hover:text-st-text transition-colors cursor-not-allowed">
+                🧪 Send to Sandbox (Coming Soon)
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* 📊 ADVANCED ANALYTICS */}
+        {resTab === 'data' && (
+          <div className="st-container animate-fade-in">
+            <h3 className="text-2xl font-bold mb-4">📊 Advanced Analytics Dashboard</h3>
+            
+            <div className="flex overflow-x-auto border-b border-st-border mb-6 no-scrollbar">
+              {innerTabs.map((t) => (
+                <button
+                  key={t.id}
+                  onClick={() => setDataTab(t.id)}
+                  className={`px-4 py-2 font-medium whitespace-nowrap transition-colors duration-200 border-b-2 ${
+                    dataTab === t.id ? 'border-st-orange text-st-text' : 'border-transparent text-st-text-light hover:text-st-orange'
+                  }`}
+                >
+                  {t.label}
+                </button>
+              ))}
+            </div>
+
+            {dataTab === 'performance' && (
+              <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
+                <div className="lg:col-span-2 space-y-6">
+                  {isFloorTarget ? (
+                    <div className="space-y-4">
+                      <h4 className="font-bold text-lg border-b border-st-border pb-2">🏆 Push Potential</h4>
+                      <div className="flex flex-col">
+                        <span className="text-st-text-light text-sm">Theoretical Peak Floor</span>
+                        <span className="text-2xl font-bold">Floor {finalSum.abs_max_floor}</span>
+                      </div>
+                      <div className="flex flex-col">
+                        <span className="text-st-text-light text-sm">Peak Probability</span>
+                        <span className="text-2xl font-bold">{(finalSum.abs_max_chance * 100).toFixed(1)}%</span>
+                      </div>
+                      <div className="flex flex-col">
+                        <span className="text-st-text-light text-sm">Average Consistency Floor</span>
+                        <span className="text-2xl font-bold">Floor {finalSum.avg_floor.toFixed(1)}</span>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="space-y-6">
+                      <div>
+                        <h4 className="font-bold text-lg">💰 Banked Yields</h4>
+                        <p className="text-sm text-st-text-light mb-2">Target {runMetric.includes("frag") ? "Fragments" : runMetric.includes("block") ? "Kills" : "EXP"} per <b>1k Arch Seconds</b></p>
+                        <div className="text-3xl font-bold text-st-orange">{scaleScore(finalSum[runMetric]).toLocaleString(undefined, {minimumFractionDigits:1, maximumFractionDigits:1})}</div>
+                      </div>
+                      <hr className="border-st-border" />
+                      <div>
+                        <h4 className="font-bold text-lg">⏱️ Real-Time Yield</h4>
+                        <p className="text-sm text-st-text-light mb-2">{runMetric.includes("frag") ? "Fragments" : runMetric.includes("block") ? "Kills" : "EXP"} / minute</p>
+                        <div className="text-2xl font-bold">{finalSum[runMetric].toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2})}</div>
+                      </div>
+                      
+                      {runMetric === 'xp_per_min' && (
+                        <>
+                          <hr className="border-st-border" />
+                          <div>
+                            <h4 className="font-bold text-lg">🆙 Level Up Calculator</h4>
+                            <p className="text-sm text-st-text-light mb-4">Based on {finalSum[runMetric].toLocaleString(undefined, {minimumFractionDigits:2})} EXP/min</p>
+                            <div className="grid grid-cols-2 gap-4 mb-4">
+                              <div>
+                                <label className="block text-sm mb-1">Current EXP</label>
+                                <input type="number" value={curXp} onChange={(e) => setCurXp(parseFloat(e.target.value)||0)} className="st-input" min="0" step="1000"/>
+                              </div>
+                              <div>
+                                <label className="block text-sm mb-1">Target EXP</label>
+                                <input type="number" value={tarXp} onChange={(e) => setTarXp(parseFloat(e.target.value)||0)} className="st-input" min="0" step="1000"/>
+                              </div>
+                            </div>
+                            {tarXp > curXp && finalSum[runMetric] > 0 && (
+                              <div className="bg-green-900/20 border-l-4 border-green-500 p-3 rounded text-green-700 text-sm">
+                                <strong>Required:</strong> ~{(((tarXp - curXp) / finalSum[runMetric]) * 60.0 / 1000.0).toFixed(1)}k Arch Seconds ({((tarXp - curXp) / finalSum[runMetric]).toFixed(1)} mins real-time)
+                              </div>
+                            )}
+                          </div>
+                        </>
+                      )}
+                    </div>
+                  )}
+                  
+                  <hr className="border-st-border" />
+                  <div className="flex flex-col">
+                    <h4 className="font-bold text-lg mb-1">🧱 Average Death</h4>
+                    <span className="text-st-text-light text-sm mb-1">Floor reached per run</span>
+                    <span className="text-2xl font-bold">Floor {finalSum.avg_floor.toFixed(1)}</span>
+                  </div>
+                </div>
+
+                <div className="lg:col-span-3 space-y-6">
+                  <div className="border border-st-border rounded bg-st-bg p-2">
+                    <h4 className="font-bold ml-2 mt-2">AI Convergence (Hill Climb)</h4>
+                    <p className="text-xs text-st-text-light ml-2 mb-2">Y-Axis: {unitLabel}</p>
+                    <Plot
+                      data={[{
+                        x: store.opt_results.chart_hill_labels,
+                        y: store.opt_results.chart_hill_scores,
+                        type: 'scatter', mode: 'lines+markers',
+                        line: { color: '#4CAF50' }, marker: { size: 10 }
+                      }]}
+                      layout={{
+                        paper_bgcolor: 'rgba(0,0,0,0)', plot_bgcolor: 'rgba(0,0,0,0)',
+                        margin: { t: 10, b: 30, l: 40, r: 20 },
+                        height: 250
+                      }}
+                      useResizeHandler={true} style={{ width: '100%' }} config={{ displayModeBar: false }}
+                    />
+                  </div>
+                  <div className="border border-st-border rounded bg-st-bg p-2">
+                    <h4 className="font-bold ml-2 mt-2">Engine Confidence Analysis</h4>
+                    <p className="text-xs text-st-text-light ml-2 mb-2">X-Axis: {unitLabel}</p>
+                    <Plot
+                      data={[{
+                        y:["Worst Tested", "Average", "Runner-Up", "🏆 Optimal"],
+                        x:[
+                          scaleScore(store.opt_results.worst_val),
+                          scaleScore(store.opt_results.avg_val),
+                          scaleScore(store.opt_results.runner_up_val),
+                          scaleScore(finalSum[runMetric])
+                        ],
+                        type: 'bar', orientation: 'h', textposition: 'auto',
+                        marker: { color:["#ff4b4b", "#ffa229", "#6495ED", "#4CAF50"] }
+                      }]}
+                      layout={{
+                        paper_bgcolor: 'rgba(0,0,0,0)', plot_bgcolor: 'rgba(0,0,0,0)',
+                        margin: { t: 10, b: 30, l: 100, r: 20 },
+                        height: 250
+                      }}
+                      useResizeHandler={true} style={{ width: '100%' }} config={{ displayModeBar: false }}
+                    />
+                  </div>
+                </div>
+              </div>
             )}
-            {innerTab === 'cards' && (
-              <ResultsCards context={context} isFloorTarget={isFloorTarget} />
+
+            {dataTab === 'cards' && (() => {
+              const displayBlocks = [...availableBlocks];
+              if (cardSelBlock && !displayBlocks.includes(cardSelBlock)) {
+                displayBlocks.push(cardSelBlock);
+                displayBlocks.sort();
+              }
+
+              return (
+              <div className="space-y-6">
+                <h4 className="font-bold text-lg">🎴 Block Card Drop Estimates</h4>
+                {displayBlocks.length === 0 ? (
+                  <div className="text-st-text-light">No block kill data available for this run.</div>
+                ) : (
+                  <>
+                    <div className="flex flex-col md:flex-row items-center gap-4">
+                      <label className="font-bold whitespace-nowrap">Select Block:</label>
+                      <select 
+                        value={cardSelBlock || displayBlocks[0]} 
+                        onChange={(e) => setCardSelBlock(e.target.value)}
+                        className="w-full md:w-auto bg-st-bg border border-st-border rounded p-2 text-st-text focus:border-st-orange focus:outline-none"
+                      >
+                        {displayBlocks.map(b => (
+                          <option key={b} value={b}>{b.charAt(0).toUpperCase() + b.slice(1)}</option>
+                        ))}
+                      </select>
+                    </div>
+                    
+                    {(() => {
+                      const selB = cardSelBlock || displayBlocks[0];
+                      const valMins = avgMetrics[`block_${selB}_per_min`] || 0;
+                      
+                      const formatTime = (reqKills) => {
+                        if (valMins <= 0) return { rt: "N/A", arch: 0 };
+                        const rtMins = reqKills / valMins;
+                        const rtStr = rtMins < 60 ? `${rtMins.toFixed(1)}m` : `${(rtMins/60).toFixed(1)}h`;
+                        const arch1k = (reqKills / (valMins / 60.0)) / 1000.0;
+                        return { rt: rtStr, arch: arch1k };
+                      };
+
+                      const drops =[
+                        { name: "Base Card", odds: 1500 },
+                        { name: "Poly Fragments", odds: 7500 },
+                        { name: "Infernal Fragments", odds: 200000 }
+                      ];
+
+                      return (
+                        <div>
+                          <div className="text-st-text-light text-sm mb-6">Based on {valMins.toFixed(2)} <b>{selB}</b> kills/min</div>
+                          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                            {drops.map((d, i) => {
+                              const rt50 = formatTime(0.693 * d.odds);
+                              const rt90 = formatTime(2.302 * d.odds);
+                              const rt99 = formatTime(4.605 * d.odds);
+                              
+                              return (
+                                <div key={i} className="border border-st-border rounded bg-st-bg p-4 text-center">
+                                  <div className="font-bold mb-1">{d.name}</div>
+                                  <div className="text-xs text-st-text-light mb-4">(1 in {d.odds.toLocaleString()})</div>
+                                  <hr className="border-st-border mb-4"/>
+                                  {valMins > 0 ? (
+                                    <div className="space-y-3 text-sm">
+                                      <div><strong>50% (Lucky):</strong><br/>~{rt50.rt} | ~{rt50.arch.toFixed(1)}k Arch Secs</div>
+                                      <div><strong>90% (Safe):</strong><br/>~{rt90.rt} | ~{rt90.arch.toFixed(1)}k Arch Secs</div>
+                                      <div><strong>99% (Guaranteed):</strong><br/>~{rt99.rt} | ~{rt99.arch.toFixed(1)}k Arch Secs</div>
+                                    </div>
+                                  ) : (
+                                    <div className="text-st-text-light text-sm py-8">N/A (0 kills)</div>
+                                  )}
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      );
+                    })()}
+                  </>
+                )}
+              </div>
+              );
+            })()}
+
+            {dataTab === 'loot' && store.opt_results.chart_loot && (
+              <div className="space-y-4">
+                <h4 className="font-bold text-lg">🎒 Collateral Loot Distribution</h4>
+                <p className="text-sm text-st-text-light">On average, every <b>1k Arch Seconds</b> of simulated mining yields the following collateral fragments alongside your target:</p>
+                <div className="w-full h-[400px] border border-st-border rounded bg-st-bg p-2">
+                  <Plot
+                    data={[{
+                      x: Object.keys(store.opt_results.chart_loot),
+                      y: Object.values(store.opt_results.chart_loot).map(v => (v / 60.0) * 1000.0),
+                      type: 'bar',
+                      text: Object.values(store.opt_results.chart_loot).map(v => ((v / 60.0) * 1000.0).toFixed(1)),
+                      textposition: 'outside',
+                      marker: { color:['#636EFA', '#EF553B', '#00CC96', '#AB63FA', '#FFA15A', '#19D3F3', '#FF6692'] }
+                    }]}
+                    layout={{
+                      paper_bgcolor: 'rgba(0,0,0,0)', plot_bgcolor: 'rgba(0,0,0,0)',
+                      margin: { t: 20, b: 40, l: 40, r: 20 }
+                    }}
+                    useResizeHandler={true} style={{ width: '100%', height: '100%' }} config={{ displayModeBar: false }}
+                  />
+                </div>
+              </div>
             )}
-            {innerTab === 'loot' && (
-              <ResultsLoot context={context} isFloorTarget={isFloorTarget} />
+
+            {dataTab === 'wall' && (
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <div className="w-full h-[350px] border border-st-border rounded bg-st-bg p-2">
+                  <Plot
+                    data={[ {
+                      x: Object.keys(store.opt_results.chart_hist),
+                      y: Object.values(store.opt_results.chart_hist),
+                      type: 'bar',
+                      marker: { color: '#ff4b4b' },
+                      text: Object.values(store.opt_results.chart_hist),
+                      textposition: 'outside'
+                    } ]}
+                    layout={{
+                      title: 'Death Distribution (Progression Wall)',
+                      paper_bgcolor: 'rgba(0,0,0,0)', plot_bgcolor: 'rgba(0,0,0,0)',
+                      margin: { t: 40, b: 40, l: 40, r: 20 },
+                      xaxis: { type: 'category', title: 'Floor' }, yaxis: { title: 'Deaths' }
+                    }}
+                    useResizeHandler={true} style={{ width: '100%', height: '100%' }} config={{ displayModeBar: false }}
+                  />
+                </div>
+                {store.opt_results.final_summary_out.stamina_trace && (
+                  <div className="w-full h-[350px] border border-st-border rounded bg-st-bg p-2">
+                    <Plot
+                      data={[ {
+                        x: store.opt_results.final_summary_out.stamina_trace.floor,
+                        y: store.opt_results.final_summary_out.stamina_trace.stamina,
+                        type: 'scatter', mode: 'lines', fill: 'tozeroy',
+                        line: { color: '#ffa229' }, fillcolor: 'rgba(255, 162, 41, 0.2)'
+                      } ]}
+                      layout={{
+                        title: 'Stamina Depletion Trace (Sample Run)',
+                        paper_bgcolor: 'rgba(0,0,0,0)', plot_bgcolor: 'rgba(0,0,0,0)',
+                        margin: { t: 40, b: 40, l: 40, r: 20 },
+                        xaxis: { title: 'Floor Level' }, yaxis: { title: 'Stamina Remaining' }
+                      }}
+                      useResizeHandler={true} style={{ width: '100%', height: '100%' }} config={{ displayModeBar: false }}
+                    />
+                  </div>
+                )}
+              </div>
             )}
           </div>
-        </div>
-      </>
+        )}
+
+        {/* 🔮 UPGRADE GUIDE (ROI) */}
+        {resTab === 'roi' && (
+          <div className="st-container animate-fade-in">
+            <h3 className="text-2xl font-bold mb-4">🔮 Upgrade Guide (Marginal ROI)</h3>
+            
+            {store.opt_results.run_target_metric === 'highest_floor' ? (
+              <div className="bg-yellow-900/40 border-l-4 border-yellow-500 p-4 rounded">
+                <p className="font-bold text-yellow-500">⚠️ ROI Analyzer is Disabled for Max Floor Push</p>
+                <p className="text-sm mt-2">Because floor progression relies on large, discrete math 'Breakpoints', adding a single +1 to a stat rarely shows an immediate gain. To calculate exactly what stats you need to beat your current wall, send your build to Tab 6 (Hit Calculator Sandbox) and manually inspect the HP and Armor Breakpoints!</p>
+              </div>
+            ) : (
+              <div>
+                <p className="text-st-text-light mb-4">Wondering what to buy next? The ROI Analyzer runs isolated micro-simulations, adding <strong>+1 Level</strong> to every stat and un-maxed upgrade, then ranks them by their immediate raw boost to your yields.</p>
+                <div className="bg-yellow-900/40 border-l-4 border-yellow-500 p-3 rounded mb-6 text-sm">
+                  ⚠️ <strong>Note:</strong> This engine ranks <strong>raw output gain</strong>, not cost efficiency. You must weigh the AI's top recommendations against your actual in-game fragment costs!
+                </div>
+
+                {isRoiLoading && (
+                  <div className="flex flex-col items-center justify-center p-6 border border-st-border rounded bg-st-bg mb-6">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-st-orange mb-4"></div>
+                    <p className="text-st-orange font-bold animate-pulse">{roiProgressMsg}</p>
+                  </div>
+                )}
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {/* STATS ROI */}
+                  <div className="border border-st-border rounded p-4 bg-st-bg">
+                    <h4 className="font-bold mb-2">1. Next Stat Point</h4>
+                    <p className="text-sm text-st-text-light mb-4">Tests adding +1 to every stat to see which yields the highest increase.</p>
+                    <button 
+                      onClick={handleAnalyzeStats}
+                      disabled={isRoiLoading}
+                      className="w-full py-2 bg-st-secondary border border-st-border text-st-text font-bold rounded hover:border-st-orange hover:text-st-orange transition-colors disabled:opacity-50 disabled:cursor-not-allowed mb-4"
+                    >
+                      🔍 Analyze Next Stat Point
+                    </button>
+                    
+                    {roiStatResults && (
+                      <div className="overflow-x-auto">
+                        <table className="w-full text-left border-collapse">
+                          <thead>
+                            <tr className="border-b border-st-border text-st-text-light text-sm">
+                              <th className="py-2 pr-4">Stat (+1)</th>
+                              <th className="py-2">Marginal Gain (per 1k Arch Secs)</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {roiStatResults.map((r, i) => (
+                              <tr key={r.stat} className="border-b border-st-border/50 hover:bg-black/5 transition-colors">
+                                <td className="py-2 pr-4 font-bold">{r.stat}</td>
+                                <td className="py-2 font-mono text-st-orange">{r.gain > 0 ? '+' : ''}{r.gain.toFixed(2)}</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* UPGRADES ROI */}
+                  <div className="border border-st-border rounded p-4 bg-st-bg">
+                    <h4 className="font-bold mb-2">2. Upgrade ROI (Internal)</h4>
+                    <p className="text-sm text-st-text-light mb-4">Tests adding +1 level to every un-maxed internal upgrade.</p>
+                    <button 
+                      onClick={handleAnalyzeUpgrades}
+                      disabled={isRoiLoading}
+                      className="w-full py-2 bg-st-secondary border border-st-border text-st-text font-bold rounded hover:border-st-orange hover:text-st-orange transition-colors disabled:opacity-50 disabled:cursor-not-allowed mb-4"
+                    >
+                      🔍 Analyze Upgrades
+                    </button>
+                    
+                    {roiUpgResults && (
+                      <div className="overflow-x-auto">
+                        <table className="w-full text-left border-collapse">
+                          <thead>
+                            <tr className="border-b border-st-border text-st-text-light text-sm">
+                              <th className="py-2 pr-4">Upgrade (+1 Lvl)</th>
+                              <th className="py-2">Marginal Gain (per 1k Arch Secs)</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {roiUpgResults.map((r, i) => (
+                              <tr key={r.id} className="border-b border-st-border/50 hover:bg-black/5 transition-colors">
+                                <td className="py-2 pr-4 text-sm font-bold">{r.name}</td>
+                                <td className="py-2 font-mono text-st-orange">{r.gain > 0 ? '+' : ''}{r.gain.toFixed(2)}</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
     );
   };
+
+  return (
+    <div className="animate-fade-in pb-24">
       
       {/* SUB-TABS ROUTING */}
       <div className="flex overflow-x-auto border-b border-st-border mb-6 no-scrollbar">
@@ -619,7 +1058,6 @@ export default function Simulations() {
                 <div key={stat} className="st-container flex flex-col items-center">
                   <div className="font-bold mb-2 text-sm">{stat}</div>
                   
-                  {/* Toggles between stats folder and stats_small folder gracefully */}
                   <img 
                     src={`/assets/stats_small/${stat.toLowerCase()}.png`} 
                     onError={(e) => { e.target.onerror = null; e.target.src = `/assets/stats/${stat.toLowerCase()}.png` }}
@@ -734,7 +1172,7 @@ export default function Simulations() {
 
           <hr className="border-st-border" />
 
-          {/* Run Warning (Updated for Web Workers!) */}
+          {/* Run Warning */}
           <div className="bg-yellow-900/20 border-l-4 border-yellow-500 p-3 rounded text-sm text-yellow-800 bg-yellow-50 mb-4">
             ⚠️ <strong>CRITICAL:</strong> Unlike the old server version, you <strong>CAN</strong> safely change tabs while the AI is running! However, do not refresh or close this browser window or the simulation will be aborted.
           </div>
@@ -761,9 +1199,6 @@ export default function Simulations() {
             </div>
           )}
 
-          {/* =========================================
-              RESULTS DASHBOARD
-          ========================================= */}
           {store.opt_results && !isOptimizing && renderResultsDashboard('optimizer')}
 
         </div>
@@ -801,7 +1236,6 @@ export default function Simulations() {
             setTimeout(() => {
               const el = document.getElementById('dashboard-anchor-optimizer');
               if (el) {
-                // Scroll the dashboard smoothly into the top of the viewport
                 el.scrollIntoView({ behavior: 'smooth', block: 'start' });
               } else {
                 window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -892,7 +1326,7 @@ export default function Simulations() {
             const baseDists = Array.from(candidatesMap.values());
             baseDists.forEach(baseDist => {
                 const isAvg = JSON.stringify(baseDist) === avgBId;
-                const radii = isAvg ? [1, 2] : [1];
+                const radii = isAvg ?[1, 2] : [1];
                 radii.forEach(radius => {
                     statKeys.forEach(sFrom => {
                         if (baseDist[sFrom] >= radius && lockedStats[sFrom] === undefined) {
@@ -971,8 +1405,7 @@ export default function Simulations() {
             }
 
             const top5Ids = sortedBIds.slice(0, 5);
-            // Ensure original builds are forced into Round 2 for fair charting
-            const r2Ids =[...new Set([...top5Ids, ...originalBIds])];
+            const r2Ids = [...new Set([...top5Ids, ...originalBIds])];
 
             // ===================================
             // TOURNAMENT ROUND 2: 450 sims for finalists
@@ -1016,7 +1449,7 @@ export default function Simulations() {
             if (synthElapsed > 0) setSimsPerSec(Math.max(1, Math.floor(totalSims / synthElapsed)));
 
             // Sort Finalists
-            let finalSortedIds =[...r2Ids];
+            let finalSortedIds = [...r2Ids];
             if (runTargetMetric === "highest_floor") {
                 finalSortedIds.sort((a, b) => getCeilingScore(buildRes.get(b).floors, 5) - getCeilingScore(buildRes.get(a).floors, 5));
             } else {
@@ -1032,8 +1465,7 @@ export default function Simulations() {
             const avgMetrics = {};
             for(const [mk, mv] of Object.entries(bestData.metricsSum)) avgMetrics[mk] = mv / 500.0;
 
-            const synthSummary = {
-                [runTargetMetric]: runTargetMetric === "highest_floor" ? absMax : bestData.sum_t / 500.0,
+            const synthSummary = {[runTargetMetric]: runTargetMetric === "highest_floor" ? absMax : bestData.sum_t / 500.0,
                 avg_floor: avgF,
                 abs_max_floor: absMax,
                 abs_max_chance: bestData.floors.filter(f => f === absMax).length / 500.0,
@@ -1086,8 +1518,6 @@ export default function Simulations() {
             };
 
             const absMaxChance = synthSummary.abs_max_chance;
-            
-            // Calculate stamina cost estimate directly from the trace
             let tempMaxSta = 1000;
             if (synthSummary.stamina_trace && synthSummary.stamina_trace.stamina.length > 0) {
                 tempMaxSta = synthSummary.stamina_trace.stamina[0];
@@ -1122,8 +1552,12 @@ export default function Simulations() {
 
             store.setOptResults(payload);
             store.setSimsState('synthesis_result', synthesisResult);
-            store.setSimsState('synth_history', [synthEntry, ...(store.synth_history || [])]);
+            store.setSimsState('synth_history',[synthEntry, ...(store.synth_history || [])]);
             
+            // Force the UI back to the default result tabs for the new run
+            setResTab('build');
+            setDataTab('performance');
+
             setTimeout(() => {
                 const el = document.getElementById('synth-results-anchor');
                 if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -1314,8 +1748,7 @@ export default function Simulations() {
                         />
                       </div>
                     </div>
-                    
-                    </div>
+                  </div>
                 );
               })()}
 
