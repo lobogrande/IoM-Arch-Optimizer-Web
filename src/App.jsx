@@ -4,6 +4,8 @@ import PlayerSetup from './components/PlayerSetup';
 import CalculatedStats from './components/CalculatedStats';
 import BlockCompendium from './components/BlockCompendium';
 import Simulations from './components/Simulations';
+import Welcome from './components/Welcome';
+import About from './components/About';
 
 const TABS =[
   { id: 'welcome', label: '🏠 Welcome' },
@@ -118,15 +120,12 @@ function App() {
       </div>
 
       <div className="w-full">
+        {activeTab === 'welcome' && <Welcome />}
         {activeTab === 'setup' && <PlayerSetup />}
         {activeTab === 'calc_stats' && <CalculatedStats />}
         {activeTab === 'block_stats' && <BlockCompendium />}
         {activeTab === 'simulations' && <Simulations />}
-        {(activeTab !== 'setup' && activeTab !== 'calc_stats' && activeTab !== 'block_stats' && activeTab !== 'simulations') && (
-          <div className="st-container text-center text-st-text-light py-20">
-            🚧 Content for {activeTab} coming soon!
-          </div>
-        )}
+        {activeTab === 'about' && <About />}
       </div>
 
       {/* Floating Back to Top Button */}
