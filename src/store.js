@@ -1,8 +1,11 @@
 import { create } from 'zustand';
+import { persist } from 'zustand/middleware';
 import { EXTERNAL_UI_GROUPS } from './game_data';
 
-const useStore = create((set) => ({
-  // Global Settings
+const useStore = create(
+  persist(
+    (set) => ({
+      // Global Settings
   asc1_unlocked: true,
   asc2_unlocked: false,
   arch_level: 45,
@@ -148,6 +151,11 @@ const useStore = create((set) => ({
     
     return newState;
   }),
-}));
+    }),
+    {
+      name: 'iom-optimizer-storage', // The unique key used in the browser's localStorage
+    }
+  )
+);
 
 export default useStore;
