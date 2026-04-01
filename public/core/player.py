@@ -277,8 +277,7 @@ class Player:
         upg_mult = 1.0 + (0.03 * self.stat('Int')) + self.u('F29')
         card_mult = 1.0 + self.inf('rare3')
         
-        # FIX: C# Integer casting truncates (floors) rather than rounding
-        return self._excel_floor(base_ap * upg_mult * card_mult, 0)
+        return self._excel_round(base_ap * upg_mult * card_mult, 0)
 
     @property
     def atk_spd(self): return 1.0
@@ -286,12 +285,12 @@ class Player:
     @property
     def crit_chance(self): return self.u('F13') + (0.02 * self.stat('Luck')) + (0.01 * self.stat('Agi'))
     @property
-    def crit_dmg_mult(self): return self._excel_floor(1.5 * (1.0 + self.u('H13') + self.u('F30') + self.inf('com1') + (0.03 + self.u('H47')) * self.stat('Str')), 2)
+    def crit_dmg_mult(self): return self._excel_round(1.5 * (1.0 + self.u('H13') + self.u('F30') + self.inf('com1') + (0.03 + self.u('H47')) * self.stat('Str')), 2)
     @property
     def enraged_crit_dmg_mult(self): 
         # The 1.0 + F18 (130% at max) is injected directly inside the 1.5 * (...) equation
         enrage_crit_bonus = 1.0 + self.u('F18')
-        return self._excel_floor(1.5 * (1.0 + enrage_crit_bonus + self.u('H13') + self.u('F30') + self.inf('com1') + (0.03 + self.u('H47')) * self.stat('Str')), 2)
+        return self._excel_round(1.5 * (1.0 + enrage_crit_bonus + self.u('H13') + self.u('F30') + self.inf('com1') + (0.03 + self.u('H47')) * self.stat('Str')), 2)
     @property
     def super_crit_chance(self): return self.u('H20') + self.u('F37') + ((0.02 + 0.01 * self.u('F34')) * self.stat('Div')) + self.inf('epic2')
     @property
@@ -315,7 +314,7 @@ class Player:
         stat_calc = self.stat('Int') * (0.05 + self.u('F35'))
         val = (1 + self.u('F4') + self.u('F11') + self.u('F21') + self.u('F28') + self.u('H51') + stat_calc)
         val *= max(1.0, self.u('F45')) * self.w('W16', default=1.0) * (1.0 + self.inf('dirt2'))
-        return self._excel_floor(val, 2)
+        return self._excel_round(val, 2)
 
     @property
     def frag_loot_gain_mult(self):
