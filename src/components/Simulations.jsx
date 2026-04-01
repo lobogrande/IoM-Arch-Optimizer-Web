@@ -2069,6 +2069,14 @@ export default function Simulations() {
               </div>
 
               <div className="ag-theme-quartz border border-st-border rounded bg-st-bg h-[600px] w-full">
+                {/* Foolproof CSS injection to force vertical lines on every single column, bypassing AG Grid's type-overrides! */}
+                <style>{`
+                  .ag-theme-quartz .ag-header-cell, 
+                  .ag-theme-quartz .ag-cell {
+                    border-right: 1px solid var(--color-st-border) !important;
+                  }
+                `}</style>
+                
                 {!sbData ? (
                   <div className="flex items-center justify-center h-full text-st-text-light">Calculating sandbox math...</div>
                 ) : (
@@ -2078,9 +2086,7 @@ export default function Simulations() {
                       sortable: true,
                       filter: true,
                       resizable: true,
-                      suppressMenu: false,
-                      headerClass: '!border-r !border-st-border',
-                      cellClass: '!border-r !border-st-border'
+                      suppressMenu: false
                     } }
                     autoSizeStrategy={ { type: 'fitCellContents' } }
                     columnDefs={sandboxColumns}
