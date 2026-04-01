@@ -17,7 +17,12 @@ export default function About() {
 
     setIsSubmitting(true);
     setSubmitStatus(null);
-    const webhookUrl = import.meta.env.VITE_DISCORD_WEBHOOK;
+    
+    let webhookUrl = "";
+    if (fbType === 'Bug Report') webhookUrl = import.meta.env.VITE_DISCORD_WEBHOOK_BUG;
+    else if (fbType === 'Feature Request') webhookUrl = import.meta.env.VITE_DISCORD_WEBHOOK_FEATURE;
+    else if (fbType === 'UI/UX Suggestion') webhookUrl = import.meta.env.VITE_DISCORD_WEBHOOK_UI;
+    else webhookUrl = import.meta.env.VITE_DISCORD_WEBHOOK_GENERAL;
 
     if (webhookUrl) {
       try {
@@ -59,7 +64,7 @@ export default function About() {
       }
     } else {
       // Fallback for missing webhook (Dev mode)
-      setSubmitStatus({ type: 'info', msg: "ℹ️ Developer Note: VITE_DISCORD_WEBHOOK is not configured in .env. Falling back to GitHub Issue." });
+      setSubmitStatus({ type: 'info', msg: "ℹ️ Developer Note: Webhook URL is not configured in .env for this report type. Falling back to GitHub Issue." });
       const issueBody = `**Type:** ${fbType}%0A**Contact:** ${fbContact || 'Anonymous'}%0A%0A**Details:**%0A${encodeURIComponent(fbText)}%0A%0A*(Note: If you attached files, please drag and drop them here manually!)*`;
       const githubUrl = `https://github.com/lobogrande/IoM-Arch-Image_DataMiner/issues/new?body=${issueBody}`;
       window.open(githubUrl, '_blank');
