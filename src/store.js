@@ -27,6 +27,14 @@ const useStore = create((set) => ({
   opt_results: null,
   run_history: [ ],
 
+  // Simulation Tab State Persistence
+  optGoal: "Max Floor Push",
+  targetFrag: 0,
+  targetBlock: "myth3",
+  timeLimit: 60,
+  lockedStats: { },
+  simsPerSec: 15,
+
   // Actions (Equivalent to updating st.session_state)
   setSetting: (key, value) => set({ [key]: value }),
   setBaseStat: (stat, value) => set((state) => ({
@@ -47,6 +55,7 @@ const useStore = create((set) => ({
   setCompendiumTargetFloor: (val) => set({ compendium_target_floor: parseInt(val) || 1 }),
   setOptResults: (res) => set({ opt_results: res }),
   addRunHistory: (run) => set((state) => ({ run_history:[ ...state.run_history, run ] })),
+  setSimsState: (key, val) => set({ [key]: val }),
   
   // Bulk load from JSON file
   loadStateFromJson: (data) => set((state) => {

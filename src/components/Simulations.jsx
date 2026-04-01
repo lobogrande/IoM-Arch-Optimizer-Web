@@ -22,12 +22,22 @@ export default function Simulations() {
   const store = useStore();
   const [activeSubTab, setActiveSubTab] = useState('optimizer');
   
-  // Optimizer Settings State
-  const[optGoal, setOptGoal] = useState("Max Floor Push");
-  const [targetFrag, setTargetFrag] = useState(0);
-  const [targetBlock, setTargetBlock] = useState("myth3");
-  const [displayTime, setDisplayTime] = useState(60); // Visual slider state
-  const[timeLimit, setTimeLimit] = useState(60); // Engine committed state
+  // Optimizer Settings State (Persisted in Zustand)
+  const optGoal = store.optGoal;
+  const targetFrag = store.targetFrag;
+  const targetBlock = store.targetBlock;
+  const timeLimit = store.timeLimit;
+  const lockedStats = store.lockedStats;
+  const simsPerSec = store.simsPerSec;
+
+  const setOptGoal = (v) => store.setSimsState('optGoal', v);
+  const setTargetFrag = (v) => store.setSimsState('targetFrag', v);
+  const setTargetBlock = (v) => store.setSimsState('targetBlock', v);
+  const setTimeLimit = (v) => store.setSimsState('timeLimit', v);
+  const setLockedStats = (v) => store.setSimsState('lockedStats', v);
+  const setSimsPerSec = (v) => store.setSimsState('simsPerSec', v);
+
+  const [displayTime, setDisplayTime] = useState(store.timeLimit); // Visual slider state
 
   // Debounce the visual slider so it reliably updates the engine math without freezing the browser
   useEffect(() => {
@@ -36,15 +46,11 @@ export default function Simulations() {
     }, 300);
     return () => clearTimeout(timer);
   }, [displayTime]);
-  
-  // Stat Locking State
-  const[lockedStats, setLockedStats] = useState({ });
 
   // Execution Engine State
-  const[isOptimizing, setIsOptimizing] = useState(false);
+  const [isOptimizing, setIsOptimizing] = useState(false);
   const[progressMsg, setProgressMsg] = useState("");
   const [progressPct, setProgressPct] = useState(0);
-  const[simsPerSec, setSimsPerSec] = useState(15); // Pessimistic WebAssembly baseline until auto-calibrated
 
   // Dynamic Limits based on Ascensions and Caps
   const totalAllowed = parseInt(store.arch_level) + parseInt(store.upgrade_levels[12] || 0);
