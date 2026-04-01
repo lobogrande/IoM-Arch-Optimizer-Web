@@ -676,6 +676,23 @@ export default function Simulations() {
                         <span className="text-st-text-light text-sm">Peak Probability</span>
                         <span className="text-2xl font-bold">{(finalSum.abs_max_chance * 100).toFixed(1)}%</span>
                       </div>
+
+                      {/* 🎲 Reality Check Injection */}
+                      {(() => {
+                        const peakChance = finalSum.abs_max_chance || 0;
+                        const runsNeeded = peakChance > 0 ? Math.ceil(1.0 / peakChance) : 0;
+                        const maxSta = (finalSum.stamina_trace && finalSum.stamina_trace.stamina && finalSum.stamina_trace.stamina.length > 0) 
+                          ? finalSum.stamina_trace.stamina[ 0 ] 
+                          : 0;
+                        const archSecsCost = (runsNeeded * maxSta) / 1000.0;
+                        
+                        return peakChance > 0 ? (
+                          <div className="bg-yellow-900/20 border-l-4 border-yellow-500 p-3 rounded text-sm text-yellow-500">
+                            🎲 <strong>Reality Check:</strong> Requires avg <strong>{runsNeeded.toLocaleString()} runs</strong> (~<strong>{archSecsCost.toFixed(1)}k</strong> Arch Secs) to replicate peak.
+                          </div>
+                        ) : null;
+                      })()}
+
                       <div className="flex flex-col">
                         <span className="text-st-text-light text-sm">Average Consistency Floor</span>
                         <span className="text-2xl font-bold">Floor {finalSum.avg_floor.toFixed(1)}</span>
