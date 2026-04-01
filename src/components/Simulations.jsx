@@ -618,11 +618,12 @@ export default function Simulations() {
 
             <div className="flex flex-col md:flex-row gap-4 mt-6">
               <button 
-                onClick={() => {
-                  Object.entries(store.opt_results.best_final).forEach(([k, v]) => {
-                    store.setBaseStat(k, v);
-                  });
-                  alert("✅ Optimal stats applied globally!");
+                onClick={(e) => {
+                  store.setBaseStats(store.opt_results.best_final);
+                  const btn = e.target;
+                  const originalText = btn.innerText;
+                  btn.innerText = "✅ Applied!";
+                  setTimeout(() => { btn.innerText = originalText; }, 2000);
                 }}
                 className="flex-1 py-2 bg-[#2b2b2b] border border-st-orange text-st-orange font-bold rounded hover:bg-st-orange hover:text-[#2b2b2b] transition-colors"
               >
@@ -630,11 +631,7 @@ export default function Simulations() {
               </button>
               <button 
                 onClick={() => {
-                  // Loop through the optimized build and push it directly into the Sandbox isolated state
-                  Object.entries(store.opt_results.best_final).forEach(([k, v]) => {
-                    store.setSandboxStat(k, v);
-                  });
-                  // Route the user straight to the Sandbox tab!
+                  store.setSandboxStats(store.opt_results.best_final);
                   setActiveSubTab('sandbox');
                   window.scrollTo({ top: 0, behavior: 'smooth' });
                 }}

@@ -94,6 +94,9 @@ const useStore = create(
   setBaseStat: (stat, value) => set((state) => ({
     base_stats: { ...state.base_stats, [stat]: parseInt(value) || 0 }
   })),
+  setBaseStats: (newStats) => set((state) => ({
+    base_stats: { ...state.base_stats, ...newStats }
+  })),
   setUpgradeLevel: (id, value) => set((state) => ({
     upgrade_levels: { ...state.upgrade_levels, [id]: parseInt(value) || 0 }
   })),
@@ -111,6 +114,7 @@ const useStore = create(
   addRunHistory: (run) => set((state) => ({ run_history:[ ...state.run_history, run ] })),
   setSimsState: (key, val) => set({ [key]: val }),
   setSandboxStat: (stat, value) => set((state) => ({ sandbox_stats: { ...state.sandbox_stats, [stat]: parseInt(value) || 0 } })),
+  setSandboxStats: (newStats) => set((state) => ({ sandbox_stats: { ...state.sandbox_stats, ...newStats } })),
   setSandboxCalculatedStats: (stats) => set({ sandbox_calculated_stats: stats }),
   
   // Wipe all data to default baseline
