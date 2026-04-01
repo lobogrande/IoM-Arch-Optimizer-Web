@@ -297,7 +297,10 @@ export default function Simulations() {
 
         if (!store.asc1_unlocked && ASC1_LOCKED_UPGS.includes(upgId)) return;
         if (!store.asc2_unlocked && ASC2_LOCKED_UPGS.includes(upgId)) return;
-        if (store.arch_level < (UPGRADE_LEVEL_REQS[upgId] || 0)) return;
+        
+        const currentArchLvl = Number(store.arch_level) || 1;
+        if (currentArchLvl < (UPGRADE_LEVEL_REQS[upgId] || 0)) return;
+        
         if (currentLvl >= maxLvl) return;
 
         const upgData = UPGRADE_NAMES && UPGRADE_NAMES[upgId];
