@@ -3,6 +3,7 @@ import useStore from '../store';
 import { EngineWorkerPool, getOptimalStepProfile, runOptimizationPhase, topUpBuild } from '../utils/optimizer';
 import PlotWrapper from 'react-plotly.js';
 import { INTERNAL_UPGRADE_CAPS, UPGRADE_NAMES } from '../game_data';
+import { UI_BLOCK_CARD_WIDTH, UI_BLOCK_CARD_X_OFFSET, UI_BLOCK_CARD_Y_OFFSET, UI_CARD_CBLOCK_SCALE } from '../ui_config';
 import { AgGridReact } from 'ag-grid-react';
 import { ModuleRegistry, AllCommunityModule } from 'ag-grid-community';
 import 'ag-grid-community/styles/ag-grid.css';
@@ -813,9 +814,9 @@ export default function Simulations() {
                       };
 
                       const drops =[
-                        { name: "Base Card", odds: 1500 },
-                        { name: "Poly Fragments", odds: 7500 },
-                        { name: "Infernal Fragments", odds: 200000 }
+                        { name: "Base Card", odds: 1500, bg: "1" },
+                        { name: "Poly Fragments", odds: 7500, bg: "2" },
+                        { name: "Infernal Fragments", odds: 200000, bg: "4" }
                       ];
 
                       return (
@@ -828,7 +829,11 @@ export default function Simulations() {
                               const rt99 = formatTime(4.605 * d.odds);
                               
                               return (
-                                <div key={i} className="border border-st-border rounded bg-st-bg p-4 text-center">
+                                <div key={i} className="border border-st-border rounded bg-st-bg p-4 flex flex-col items-center text-center shadow-sm">
+                                  <div className="relative flex items-center justify-center mb-3" style={{ width: UI_BLOCK_CARD_WIDTH * 0.8, height: UI_BLOCK_CARD_WIDTH * 1.0 }}>
+                                    <img src={`/assets/cards/backgrounds/${d.bg}.png`} className="absolute inset-0 w-full h-full object-contain" style={{ imageRendering: 'pixelated' }} />
+                                    <img src={`/assets/cards/cores/${selB}.png`} className="absolute inset-0 w-full h-full object-contain drop-shadow-md" style={{ imageRendering: 'pixelated', transform: `translate(${UI_BLOCK_CARD_X_OFFSET}px, ${UI_BLOCK_CARD_Y_OFFSET}px) scale(${UI_CARD_CBLOCK_SCALE})` }} onError={(e) => e.target.style.display = 'none'} />
+                                  </div>
                                   <div className="font-bold mb-1">{d.name}</div>
                                   <div className="text-xs text-st-text-light mb-4">(1 in {d.odds.toLocaleString()})</div>
                                   <hr className="border-st-border mb-4"/>
