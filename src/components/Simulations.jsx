@@ -1891,9 +1891,9 @@ export default function Simulations() {
           if (sandboxMinHits > 1) filtered = filtered.filter(b => b.avg_hits >= sandboxMinHits);
           if (sandboxBlockFilters.length > 0) filtered = filtered.filter(b => sandboxBlockFilters.includes(b.name));
           return filtered;
-        },[sbData, tFloor, sandboxShowUnreachable, sandboxMinHits, sandboxBlockFilters]);
+        }, [sbData, tFloor, sandboxShowUnreachable, sandboxMinHits, sandboxBlockFilters]);
 
-        const uniqueBlockNames = sbData ? Array.from(new Set(sbData.blocks_data.map(b => b.name))) : [ ];
+        const uniqueBlockNames = sbData ? Array.from(new Set(sbData.blocks_data.map(b => b.name))) :[];
 
         // 2. Memoize the AG Grid configs so their memory addresses stay identical
         const defaultColDef = useMemo(() => ({
@@ -1905,7 +1905,10 @@ export default function Simulations() {
 
         const autoSizeStrategy = useMemo(() => ({
           type: 'fitCellContents'
-        }),
+        }),[]);
+
+        // 3. Memoize the columns so AG Grid doesn't completely rebuild its DOM on every keystroke!
+        const sandboxColumns = useMemo(() => {
           const cols =[
             { 
               field: "id", headerName: "Icon", pinned: "left", minWidth: 70, sortable: false, filter: false,
@@ -1937,7 +1940,7 @@ export default function Simulations() {
             );
           }
           return cols;
-        },[sandboxShowCrits]); // Only rebuild the array when the Crit toggle actually changes
+        }, [sandboxShowCrits]);
 
         return (
         <div className="space-y-6 animate-fade-in">
