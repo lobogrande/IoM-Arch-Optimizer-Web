@@ -2075,6 +2075,18 @@ export default function Simulations() {
                   .ag-theme-quartz .ag-cell {
                     border-right: 1px solid var(--color-st-border) !important;
                   }
+                  /* Force Headers to Center */
+                  .ag-theme-quartz .ag-header-cell-label {
+                    justify-content: center !important;
+                    width: 100%;
+                  }
+                  /* Force Cells to Center (Overrides numeric right-align) */
+                  .ag-theme-quartz .ag-cell {
+                    display: flex !important;
+                    align-items: center !important;
+                    justify-content: center !important;
+                    text-align: center !important;
+                  }
                 `}</style>
                 
                 {!sbData ? (
