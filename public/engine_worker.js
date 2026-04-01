@@ -59,8 +59,14 @@ def sync_base_player(state_proxy):
         
     base_player = p
 
+import random
+
 def execute_simulation(test_stats_proxy, test_upgrades_proxy):
     global base_player
+    
+    # Ensure true RNG variance across persistent Pyodide worker tasks
+    random.seed()
+    
     # Blazing fast memory clone prevents re-parsing the giant JS dictionary!
     p = copy.deepcopy(base_player)
     
