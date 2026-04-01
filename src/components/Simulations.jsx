@@ -24,7 +24,7 @@ export default function Simulations() {
   
   // Optimizer Settings State (Persisted in Zustand)
   const optGoal = store.optGoal || "Max Floor Push";
-  const targetFrag = store.targetFrag || 0;
+  const targetFrag = store.targetFrag ? Math.max(1, store.targetFrag) : 1; // Fallback to 1 (Common) if 0 (Dirt) is cached
   const targetBlock = store.targetBlock || "myth3";
   const timeLimit = store.timeLimit || 60;
   const lockedStats = store.lockedStats || {};
@@ -1008,14 +1008,16 @@ export default function Simulations() {
             <div>
               {optGoal === "Fragment Farming" && (
                 <>
-                  <label className="block text-sm font-bold mb-1">Fragment Tier</label>
+                  <label className="block text-sm font-bold mb-1">Target Fragment</label>
                   <select 
                     value={targetFrag} 
                     onChange={(e) => setTargetFrag(parseInt(e.target.value))}
                     className="w-full bg-st-bg border border-st-border rounded p-2 text-st-text focus:border-st-orange focus:outline-none"
                   >
-                    {Object.entries(FRAG_NAMES).map(([val, name]) => (
-                      <option key={val} value={val}>{name} (Tier {val})</option>
+                    {Object.entries(FRAG_NAMES)
+                      .filter(([val]) => parseInt(val) > 0) // Filter out Dirt (0)
+                      .map(([val, name]) => (
+                        <option key={val} value={val}>{name}</option>
                     ))}
                   </select>
                 </>
