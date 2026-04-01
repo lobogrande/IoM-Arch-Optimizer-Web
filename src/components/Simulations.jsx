@@ -1210,14 +1210,176 @@ export default function Simulations() {
       {/* =========================================
           TAB: SYNTHESIS
       ========================================= */}
-      {activeSubTab === 'synth' && (
-        <div className="space-y-6">
+      {activeSubTab === 'synth' && (() => {
+        const history = store.run_history || [];
+        const uniqueTargets =[...new Set(history.map(r => r.Target))];
+        const lastTgt = store.opt_results?.run_target_metric;
+        
+        // Default filter to the last run's target, or all if none
+        const[viewTargets, setViewTargets] = useState(lastTgt && uniqueTargets.includes(lastTgt) ? [lastTgt] : uniqueTargets);
+        
+        const visibleHistory = history.map((r, idx) => ({ ...r, _global_idx: idx }))
+                                      .filter(r => viewTargets.includes(r.Target));
+        
+        const checkedRuns = visibleHistory.filter(r => r.Include);
+
+        const handleRestore = (runData) => {
+          if (runData._restore_state) {
+            // Restore dashboard state
+            store.setOptResults(runData._restore_state);
+            // Clear stale ROI data
+            setRoiStatResults(null);
+            setRoiUpgResults(null);
+            // Snap back to optimizer tab to view it
+            setActiveSubTab('optimizer');
+            setResTab('build');
+            setDataTab('performance');
+            // Scroll to top
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+          }
+        };
+
+        const toggleInclude = (globalIdx) => {
+          const newHistory = [...history];
+          newHistory[globalIdx].Include = !newHistory[globalIdx].Include;
+          store.setSimsState('run_history', newHistory);
+        };
+
+        const deleteUnchecked = () => {
+          const kept = history.filter(r => !viewTargets.includes(r.Target) || r.Include);
+          store.setSimsState('run_history', kept);
+        };
+
+        return (
+        <div className="space-y-6 animate-fade-in">
           <h2 className="text-2xl font-bold">🧬 Build Synthesis & History</h2>
-          <div className="st-container text-center text-st-text-light py-10">
-            🚧 Run History Table & Tie-Breaker UI coming soon!
-          </div>
+          <p className="text-st-text-light">Because blocks only take whole hits, multiple different stat builds can tie for 1st place (a <strong>Stat Plateau</strong>). Use this tool to merge your best historical runs and calculate the absolute mathematical peak.</p>
+
+          <details className="st-container group cursor-pointer marker:text-st-orange mb-6">
+            <summary className="font-bold">🤓 Deep Dive: The Stat Plateau & RNG Tie-Breakers</summary>
+            <div className="mt-4 text-sm space-y-2 cursor-default">
+              <p>• <strong>The Math:</strong> If 50 Strength kills a block in exactly 3 hits, having 54 Strength <em>also</em> kills it in 3 hits. This creates a "Stat Plateau" where wildly different builds are mathematically identical.</p>
+              <p>• <strong>The Tie-Breaker (RNG):</strong> To break the tie, the AI forces your selected builds to race 500 times. Whichever tied build happens to get slightly luckier with Critical Hits across a massive sample size wins the gold medal!</p>
+              <p>• <strong>The Synthesis:</strong> The engine calculates the statistical center of your checked builds, generates nearby hybrid combinations, and runs the exhaustive 500-iteration tournament to find the true Meta-Build.</p>
+              <p className="italic text-st-text-light mt-2">The Takeaway: If your stats bounce around slightly between 1-minute scout runs, congratulations—you've reached the absolute peak!</p>
+            </div>
+          </details>
+
+          {history.length === 0 ? (
+            <div className="st-container text-center text-st-text-light py-10">
+              No simulation history available. Head over to the Optimizer tab and run a Monte Carlo simulation first!
+            </div>
+          ) : (
+            <>
+              {/* Filters & Actions */}
+              <div className="flex flex-col md:flex-row gap-4 items-end">
+                <div className="w-full md:w-2/3">
+                  <label className="block text-sm font-bold mb-1">🔍 Filter visible runs by optimization target:</label>
+                  <select 
+                    multiple
+                    value={viewTargets}
+                    onChange={(e) => setViewTargets(Array.from(e.target.selectedOptions, option => option.value))}
+                    className="w-full bg-st-bg border border-st-border rounded p-2 text-st-text focus:border-st-orange focus:outline-none"
+                    style={{ height: '80px' }}
+                  >
+                    {uniqueTargets.map(t => <option key={t} value={t}>{t}</option>)}
+                  </select>
+                  <div className="text-xs text-st-text-light mt-1">Hold Ctrl/Cmd to select multiple</div>
+                </div>
+                <div className="w-full md:w-1/3">
+                  <button 
+                    onClick={() => {
+                      const newHistory = [...history];
+                      visibleHistory.forEach(r => { newHistory[r._global_idx].Include = !r.Include; });
+                      store.setSimsState('run_history', newHistory);
+                    }}
+                    className="w-full py-2 bg-st-secondary border border-st-border text-st-text font-bold rounded hover:border-st-orange transition-colors"
+                  >
+                    ☑️ Toggle All Visible
+                  </button>
+                </div>
+              </div>
+
+              {/* Tournament Controls */}
+              <div className="st-container">
+                <h4 className="text-lg font-bold mb-2">🏆 Run Tie-Breaker Tournament</h4>
+                <p className="text-sm text-st-text-light mb-4">Once you have checked the <strong>Include</strong> box for a few of your top runs (we recommend 2 to 5) in the history table below, click Synthesize to merge them.</p>
+                <div className="flex flex-col md:flex-row gap-4">
+                  <button 
+                    className="flex-1 py-3 bg-st-orange text-[#2b2b2b] font-bold rounded-lg shadow hover:bg-[#ffb045] transition-colors"
+                  >
+                    🧬 Synthesize Ultimate Meta-Build
+                  </button>
+                  <button 
+                    onClick={deleteUnchecked}
+                    className="flex-1 py-3 bg-[#2b2b2b] border border-red-900 text-red-400 font-bold rounded-lg hover:bg-red-900 hover:text-white transition-colors"
+                  >
+                    🗑️ Delete Unchecked Runs
+                  </button>
+                </div>
+              </div>
+
+              {/* History Table */}
+              <div>
+                <h4 className="text-lg font-bold mb-1">📋 Run History Table</h4>
+                <div className="flex flex-col md:flex-row gap-4 items-center justify-between mb-4">
+                  <p className="text-sm text-st-text-light m-0">Check the boxes for your top runs to mix them into your Meta-Build.</p>
+                  <button 
+                    onClick={() => handleRestore(checkedRuns[0])}
+                    disabled={checkedRuns.length !== 1}
+                    className="px-6 py-2 bg-[#2b2b2b] border border-st-orange text-st-orange font-bold rounded hover:bg-st-orange hover:text-[#2b2b2b] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    title={checkedRuns.length !== 1 ? "Check exactly ONE run to view its dashboard" : ""}
+                  >
+                    📊 View Dashboard for Checked Run
+                  </button>
+                </div>
+
+                <div className="overflow-x-auto border border-st-border rounded bg-st-bg">
+                  <table className="w-full text-left border-collapse text-sm">
+                    <thead>
+                      <tr className="border-b border-st-border bg-black/10">
+                        <th className="p-3 w-10 text-center">Incl.</th>
+                        <th className="p-3">Target</th>
+                        <th className="p-3">Score / Yield</th>
+                        <th className="p-3">Avg Floor</th>
+                        <th className="p-3">Max Floor</th>
+                        {activeStats.map(s => <th key={s} className="p-3">{s}</th>)}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {visibleHistory.length === 0 ? (
+                        <tr><td colSpan="12" className="p-4 text-center text-st-text-light">No runs match current filter.</td></tr>
+                      ) : visibleHistory.map((r) => {
+                        const isFloor = r.Target === 'highest_floor';
+                        const score = isFloor ? r['Metric Score'] : ((r['Metric Score'] / 60.0) * 1000.0).toFixed(1);
+                        
+                        return (
+                          <tr key={r._global_idx} className="border-b border-st-border/50 hover:bg-black/5 transition-colors">
+                            <td className="p-3 text-center">
+                              <input 
+                                type="checkbox" 
+                                checked={r.Include || false} 
+                                onChange={() => toggleInclude(r._global_idx)}
+                                className="accent-st-orange w-4 h-4 cursor-pointer"
+                              />
+                            </td>
+                            <td className="p-3 font-mono text-xs">{r.Target.replace('_per_min', '')}</td>
+                            <td className="p-3 font-bold text-st-orange">{score}</td>
+                            <td className="p-3">{r['Avg Floor'].toFixed(1)}</td>
+                            <td className="p-3">{r['Max Floor']}</td>
+                            {activeStats.map(s => <td key={s} className="p-3 text-st-text-light">{r[s] !== undefined ? r[s] : '-'}</td>)}
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </>
+          )}
         </div>
-      )}
+        );
+      })()}
 
       {/* =========================================
           TAB: SANDBOX
