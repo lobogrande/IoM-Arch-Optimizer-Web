@@ -1258,8 +1258,324 @@ export default function Simulations() {
         };
 
         const deleteUnchecked = () => {
-          const kept = history.filter(r => !viewTargets.includes(r.Target) || r.Include);
+          const kept = history.filter(r => !currentViewTargets.includes(r.Target) || r.Include);
           store.setSimsState('run_history', kept);
+        };
+
+        const handleSynthesize = async () => {
+          if (checkedRuns.length === 0) {
+            alert("⚠️ You must have at least 1 visible run checked to synthesize!");
+            return;
+          }
+          if (checkedRuns.length > 10) {
+            alert("⚠️ Safety Limit Reached: Synthesizing creates dozens of permutations. Please select 10 or fewer builds.");
+            return;
+          }
+
+          setIsOptimizing(true);
+          setProgressPct(0);
+          setProgressMsg("Calculating center and generating permutations...");
+          
+          try {
+            const runTargetMetric = checkedRuns[0].Target;
+            const uniqueSelectedTargets = [...new Set(checkedRuns.map(r => r.Target))];
+            if (uniqueSelectedTargets.length > 1) {
+                console.warn(`🧬 Hybrid Build Detected: Combining builds optimized for different targets. Evaluating based on primary target: ${runTargetMetric}`);
+            }
+
+            const baseStateDict = {
+                asc1_unlocked: store.asc1_unlocked,
+                asc2_unlocked: store.asc2_unlocked,
+                arch_level: store.arch_level,
+                current_max_floor: store.current_max_floor,
+                hades_idol_level: store.hades_idol_level,
+                arch_ability_infernal_bonus: parseFloat(store.arch_ability_infernal_bonus) / 100.0,
+                total_infernal_cards: store.total_infernal_cards,
+                base_stats: store.base_stats,
+                upgrade_levels: store.upgrade_levels,
+                external_levels: store.external_levels,
+                cards: store.cards
+            };
+
+            const statKeys = activeStats;
+            const candidatesMap = new Map();
+            const originalBIds =[];
+
+            // 1. Add original runs
+            checkedRuns.forEach(r => {
+                const dist = {};
+                statKeys.forEach(s => dist[s] = r[s]);
+                const bId = JSON.stringify(dist);
+                if (!originalBIds.includes(bId)) originalBIds.push(bId);
+                candidatesMap.set(bId, dist);
+            });
+
+            // 2. Add Average Build (Center)
+            const avgDist = {};
+            let sumAvg = 0;
+            statKeys.forEach(s => {
+                const avg = Math.round(checkedRuns.reduce((acc, r) => acc + r[s], 0) / checkedRuns.length);
+                avgDist[s] = avg;
+                sumAvg += avg;
+            });
+            const expectedSum = statKeys.reduce((acc, s) => acc + checkedRuns[0][s], 0);
+            const diff = expectedSum - sumAvg;
+            if (diff !== 0) {
+                // Modulo aligner: Add remainder to the highest stat
+                let maxStat = statKeys[0];
+                statKeys.forEach(s => { if (avgDist[s] > avgDist[maxStat]) maxStat = s; });
+                avgDist[maxStat] += diff;
+            }
+            const avgBId = JSON.stringify(avgDist);
+            candidatesMap.set(avgBId, { ...avgDist });
+
+            // 3. Smart Mutation (Radii generation)
+            const baseDists = Array.from(candidatesMap.values());
+            baseDists.forEach(baseDist => {
+                const isAvg = JSON.stringify(baseDist) === avgBId;
+                const radii = isAvg ? [1, 2] : [1];
+                radii.forEach(radius => {
+                    statKeys.forEach(sFrom => {
+                        if (baseDist[sFrom] >= radius && lockedStats[sFrom] === undefined) {
+                            statKeys.forEach(sTo => {
+                                if (sFrom !== sTo && baseDist[sTo] <= STAT_CAPS[sTo] - radius && lockedStats[sTo] === undefined) {
+                                    const neighbor = { ...baseDist };
+                                    neighbor[sFrom] -= radius;
+                                    neighbor[sTo] += radius;
+                                    candidatesMap.set(JSON.stringify(neighbor), neighbor);
+                                }
+                            });
+                        }
+                    });
+                });
+            });
+
+            const candidates = Array.from(candidatesMap.values());
+            const totalR1Sims = candidates.length * 50;
+            const estR2Count = Math.min(5, candidates.length) + originalBIds.length;
+            const totalR2Sims = estR2Count * 450;
+            const totalSims = totalR1Sims + totalR2Sims;
+
+            setProgressMsg(`Booting Engine Cores for ${totalSims.toLocaleString()} sims...`);
+            const pool = new EngineWorkerPool();
+            await pool.init(() => {}, (ready, total) => setProgressMsg(`Booting Engine Cores: ${ready}/${total}`));
+            await pool.syncState(baseStateDict);
+
+            const buildRes = new Map();
+            let completedSims = 0;
+            let lastUpdate = Date.now();
+            const synthStartTime = Date.now();
+
+            // ===================================
+            // TOURNAMENT ROUND 1: 50 sims each
+            // ===================================
+            const r1Promises =[];
+            candidates.forEach(dist => {
+                const bId = JSON.stringify(dist);
+                if (!buildRes.has(bId)) buildRes.set(bId, { dist, sum_t: 0, sum_f: 0, floors:[], metricsSum: {} });
+                
+                for (let i = 0; i < 50; i++) {
+                    const p = pool.runTask(dist).then(res => {
+                        if (res.aborted) return;
+                        const tr = buildRes.get(bId);
+                        tr.sum_t += (res[runTargetMetric] || 0);
+                        tr.sum_f += (res.highest_floor || 0);
+                        tr.floors.push(res.highest_floor || 0);
+                        completedSims++;
+                        
+                        const now = Date.now();
+                        if (now - lastUpdate > 500 || completedSims === totalR1Sims) {
+                            setProgressMsg(`⚔️ Round 1/2: Testing ${candidates.length} builds (${completedSims}/${totalSims} sims)`);
+                            setProgressPct((completedSims / totalSims) * 100);
+                            lastUpdate = now;
+                        }
+                    });
+                    r1Promises.push(p);
+                }
+            });
+
+            await Promise.all(r1Promises);
+
+            // Sort Round 1
+            const getCeilingScore = (floors, count=3) => {
+                if (!floors || floors.length === 0) return 0;
+                const sorted = [...floors].sort((a,b) => a - b);
+                const top = sorted.slice(-count);
+                return top.reduce((a,b)=>a+b,0) / top.length;
+            };
+
+            let sortedBIds = Array.from(buildRes.keys());
+            if (runTargetMetric === "highest_floor") {
+                sortedBIds.sort((a, b) => getCeilingScore(buildRes.get(b).floors, 3) - getCeilingScore(buildRes.get(a).floors, 3));
+            } else {
+                sortedBIds.sort((a, b) => buildRes.get(b).sum_t - buildRes.get(a).sum_t);
+            }
+
+            const top5Ids = sortedBIds.slice(0, 5);
+            // Ensure original builds are forced into Round 2 for fair charting
+            const r2Ids =[...new Set([...top5Ids, ...originalBIds])];
+
+            // ===================================
+            // TOURNAMENT ROUND 2: 450 sims for finalists
+            // ===================================
+            const r2Promises =[];
+            r2Ids.forEach(bId => {
+                const dist = buildRes.get(bId).dist;
+                for (let i = 0; i < 450; i++) {
+                    const p = pool.runTask(dist).then(res => {
+                        if (res.aborted) return;
+                        const tr = buildRes.get(bId);
+                        tr.sum_t += (res[runTargetMetric] || 0);
+                        tr.sum_f += (res.highest_floor || 0);
+                        tr.floors.push(res.highest_floor || 0);
+                        
+                        for (const [mk, mv] of Object.entries(res)) {
+                            if (mk !== 'stamina_trace_floor' && mk !== 'stamina_trace_stamina' && mk !== 'total_time') {
+                                tr.metricsSum[mk] = (tr.metricsSum[mk] || 0.0) + mv;
+                            }
+                        }
+                        if (!tr.staminaTrace && res.stamina_trace_floor) {
+                            tr.staminaTrace = { floor: res.stamina_trace_floor, stamina: res.stamina_trace_stamina };
+                        }
+
+                        completedSims++;
+                        const now = Date.now();
+                        if (now - lastUpdate > 500 || completedSims === totalSims) {
+                            setProgressMsg(`⚔️ Round 2/2: Deep verifying ${r2Ids.length} finalists (${completedSims}/${totalSims} sims)`);
+                            setProgressPct((completedSims / totalSims) * 100);
+                            lastUpdate = now;
+                        }
+                    });
+                    r2Promises.push(p);
+                }
+            });
+
+            await Promise.all(r2Promises);
+            pool.terminate();
+
+            const synthElapsed = (Date.now() - synthStartTime) / 1000;
+            if (synthElapsed > 0) setSimsPerSec(Math.max(1, Math.floor(totalSims / synthElapsed)));
+
+            // Sort Finalists
+            let finalSortedIds =[...r2Ids];
+            if (runTargetMetric === "highest_floor") {
+                finalSortedIds.sort((a, b) => getCeilingScore(buildRes.get(b).floors, 5) - getCeilingScore(buildRes.get(a).floors, 5));
+            } else {
+                finalSortedIds.sort((a, b) => buildRes.get(b).sum_t - buildRes.get(a).sum_t);
+            }
+
+            const bestBId = finalSortedIds[0];
+            const bestData = buildRes.get(bestBId);
+            const finalMetaDist = bestData.dist;
+
+            const absMax = bestData.floors.length ? Math.max(...bestData.floors) : 0;
+            const avgF = bestData.sum_f / 500.0;
+            const avgMetrics = {};
+            for(const [mk, mv] of Object.entries(bestData.metricsSum)) avgMetrics[mk] = mv / 500.0;
+
+            const synthSummary = {
+                [runTargetMetric]: runTargetMetric === "highest_floor" ? absMax : bestData.sum_t / 500.0,
+                avg_floor: avgF,
+                abs_max_floor: absMax,
+                abs_max_chance: bestData.floors.filter(f => f === absMax).length / 500.0,
+                worst_val: 0,
+                avg_val: avgF,
+                runner_up_val: 0,
+                floors: bestData.floors,
+                avg_metrics: avgMetrics,
+                stamina_trace: bestData.staminaTrace
+            };
+
+            const sameTargetRuns = checkedRuns.map(r => {
+                const bId = JSON.stringify(statKeys.reduce((acc, s) => { acc[s] = r[s]; return acc; }, {}));
+                if (runTargetMetric === "highest_floor") return getCeilingScore(buildRes.get(bId).floors, 5);
+                else return buildRes.get(bId).sum_t / 500.0;
+            });
+
+            let metaScore, chartLabel;
+            if (runTargetMetric === "highest_floor") {
+                metaScore = getCeilingScore(bestData.floors, 5);
+                chartLabel = "🏆 Theoretical Peak";
+            } else {
+                metaScore = bestData.sum_t / 500.0;
+                chartLabel = "📈 Optimal Farm-Build";
+            }
+
+            const avgHistoryScore = sameTargetRuns.reduce((a,b)=>a+b,0) / (sameTargetRuns.length || 1);
+
+            const chartLoot = {};
+            Object.entries(FRAG_NAMES).forEach(([tier, name]) => {
+                const k = `frag_${tier}_per_min`;
+                if (avgMetrics[k] > 0) chartLoot[name] = avgMetrics[k];
+            });
+
+            const payload = {
+                best_final: finalMetaDist,
+                final_summary_out: synthSummary,
+                elapsed: synthElapsed,
+                time_limit_secs: 999, // Unlocked
+                run_target_metric: runTargetMetric,
+                worst_val: 0,
+                avg_val: avgF,
+                runner_up_val: 0,
+                chart_hill_labels: [chartLabel, "🧬 Polished Meta-Build"],
+                chart_hill_scores: [avgHistoryScore, metaScore],
+                chart_hist: bestData.floors.reduce((acc, f) => { acc[f] = (acc[f] || 0) + 1; return acc; }, {}),
+                chart_loot: chartLoot,
+                show_loot: runTargetMetric !== 'highest_floor',
+                show_wall: runTargetMetric === 'highest_floor'
+            };
+
+            const absMaxChance = synthSummary.abs_max_chance;
+            
+            // Calculate stamina cost estimate directly from the trace
+            let tempMaxSta = 1000;
+            if (synthSummary.stamina_trace && synthSummary.stamina_trace.stamina.length > 0) {
+                tempMaxSta = synthSummary.stamina_trace.stamina[0];
+            }
+            const archSecsCost = absMaxChance > 0 ? Math.ceil(1.0 / absMaxChance) * tempMaxSta : 0;
+
+            const synthesisResult = {
+                stats: finalMetaDist,
+                meta_score: metaScore,
+                history_scores: sameTargetRuns,
+                metric_name: runTargetMetric,
+                abs_max: absMax,
+                abs_max_chance: absMaxChance,
+                arch_secs_cost: archSecsCost
+            };
+
+            const synthEntry = {
+                Target: runTargetMetric,
+                "Ceiling Score": metaScore,
+                "Sources Data": checkedRuns,
+                ...finalMetaDist
+            };
+            if (runTargetMetric === "highest_floor") {
+                synthEntry["Theoretical Peak"] = absMax;
+                synthEntry["Peak Probability"] = absMaxChance;
+                synthEntry["Arch Secs Cost"] = archSecsCost;
+            }
+            synthEntry._restore_state = {
+                synthesis_result: synthesisResult,
+                opt_results: payload
+            };
+
+            store.setOptResults(payload);
+            store.setSimsState('synthesis_result', synthesisResult);
+            store.setSimsState('synth_history', [synthEntry, ...(store.synth_history || [])]);
+            
+            setTimeout(() => {
+                const el = document.getElementById('synth-results-anchor');
+                if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }, 150);
+
+          } catch (err) {
+              console.error(err);
+              alert("🚨 SYNTHESIS CRASH:\n" + err.message);
+          } finally {
+              setIsOptimizing(false);
+          }
         };
 
         return (
@@ -1317,11 +1633,24 @@ export default function Simulations() {
                 <h4 className="text-lg font-bold mb-2">🏆 Run Tie-Breaker Tournament</h4>
                 <p className="text-sm text-st-text-light mb-4">Once you have checked the <strong>Include</strong> box for a few of your top runs (we recommend 2 to 5) in the history table below, click Synthesize to merge them.</p>
                 <div className="flex flex-col md:flex-row gap-4">
-                  <button 
-                    className="flex-1 py-3 bg-st-orange text-[#2b2b2b] font-bold rounded-lg shadow hover:bg-[#ffb045] transition-colors"
-                  >
-                    🧬 Synthesize Ultimate Meta-Build
-                  </button>
+                  {!isOptimizing ? (
+                    <button 
+                      onClick={handleSynthesize}
+                      className="flex-1 py-3 bg-st-orange text-[#2b2b2b] font-bold rounded-lg shadow hover:bg-[#ffb045] transition-colors"
+                    >
+                      🧬 Synthesize Ultimate Meta-Build
+                    </button>
+                  ) : (
+                    <div className="flex-1 p-2 border border-st-border rounded bg-st-bg">
+                      <div className="flex justify-between text-sm font-bold mb-1 text-st-orange">
+                        <span>{progressMsg}</span>
+                        <span>{Math.floor(progressPct)}%</span>
+                      </div>
+                      <div className="w-full bg-[#1e1e1e] rounded-full h-3 overflow-hidden border border-st-border">
+                        <div className="bg-st-orange h-3 transition-all duration-300" style={{ width: `${progressPct}%` }}></div>
+                      </div>
+                    </div>
+                  )}
                   <button 
                     onClick={deleteUnchecked}
                     className="flex-1 py-3 bg-[#2b2b2b] border border-red-900 text-red-400 font-bold rounded-lg hover:bg-red-900 hover:text-white transition-colors"
@@ -1387,6 +1716,122 @@ export default function Simulations() {
                   </table>
                 </div>
               </div>
+
+              {/* =========================================
+                  SYNTHESIS RESULTS DASHBOARD
+              ========================================= */}
+              <div id="synth-results-anchor" className="mt-8"></div>
+              
+              {store.synthesis_result && !isOptimizing && (() => {
+                const sr = store.synthesis_result;
+                const isFloorTarget = sr.metric_name === 'highest_floor';
+                const scaleScore = (v) => isFloorTarget ? v : (v / 60.0) * 1000.0;
+                
+                const chartLabels = sr.history_scores.map((_, i) => `Run ${i + 1}`).concat(["🧬 Meta-Build"]);
+                const chartScores = sr.history_scores.map(s => scaleScore(s)).concat([scaleScore(sr.meta_score)]);
+                const chartColors = sr.history_scores.map(() => "#6495ED").concat(["#4CAF50"]);
+
+                return (
+                  <div className="animate-fade-in space-y-6">
+                    <div className="st-container">
+                      <h4 className="text-xl font-bold mb-2">📊 Synthesis Performance Proof</h4>
+                      <p className="text-sm text-st-text-light mb-4">How the optimized Meta-Build compares to the individual historical runs you selected. <em>(Note: To ensure a mathematically fair comparison, your historical runs were re-evaluated alongside the new combinations using the same 500-simulation baseline to remove RNG variance).</em></p>
+                      
+                      <div className="w-full h-[300px] border border-st-border rounded bg-st-bg p-2">
+                        <Plot
+                          data={[ {
+                            x: chartLabels,
+                            y: chartScores,
+                            type: 'bar',
+                            marker: { color: chartColors },
+                            text: chartScores.map(v => v.toFixed(2)),
+                            textposition: 'outside'
+                          } ]}
+                          layout={{
+                            paper_bgcolor: 'rgba(0,0,0,0)', plot_bgcolor: 'rgba(0,0,0,0)',
+                            margin: { t: 20, b: 40, l: 40, r: 20 }
+                          }}
+                          useResizeHandler={true} style={{ width: '100%', height: '100%' }} config={{ displayModeBar: false }}
+                        />
+                      </div>
+                    </div>
+                    
+                    <div className="flex justify-center mt-6">
+                      <button 
+                        onClick={() => {
+                          setActiveSubTab('optimizer');
+                          setResTab('build');
+                          setDataTab('performance');
+                          setTimeout(() => {
+                            const el = document.getElementById('dashboard-anchor-optimizer');
+                            if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                          }, 150);
+                        }}
+                        className="px-8 py-3 bg-st-orange text-[#2b2b2b] font-bold rounded shadow hover:bg-[#ffb045] transition-colors"
+                      >
+                        📊 View Full Dashboard Details
+                      </button>
+                    </div>
+                  </div>
+                );
+              })()}
+
+              <hr className="border-st-border my-8" />
+
+              {/* Meta-Build History Log */}
+              {store.synth_history && store.synth_history.length > 0 && (
+                <div className="space-y-4">
+                  <h3 className="text-xl font-bold">📚 Meta-Build History Log</h3>
+                  <p className="text-sm text-st-text-light mb-4">A permanent record of your optimized Meta-Builds.</p>
+                  
+                  {store.synth_history.map((synth, idx) => {
+                    const isFloorTarget = synth.Target === 'highest_floor';
+                    const dispScore = isFloorTarget ? synth['Ceiling Score'] : ((synth['Ceiling Score'] / 60.0) * 1000.0).toFixed(1);
+                    
+                    return (
+                      <div key={idx} className="st-container space-y-3">
+                        <div className="font-bold text-lg text-st-orange">
+                          🧬 Meta-Build | Target: `{synth.Target}` | Ceiling: `{dispScore}`
+                          {!isFloorTarget && " (per 1k Arch Secs)"}
+                          {synth['Theoretical Peak'] && ` | Peak: ${synth['Theoretical Peak']}`}
+                        </div>
+                        
+                        <div className="bg-st-secondary p-2 rounded text-sm font-mono border border-st-border">
+                          {activeStats.map(s => `${s}: ${synth[s] !== undefined ? synth[s] : '-'}`).join('  |  ')}
+                        </div>
+
+                        {synth['Peak Probability'] > 0 && (
+                          <div className="text-xs text-st-text-light italic">
+                            🎲 Reality Check: Floor {synth['Theoretical Peak']} hit in {(synth['Peak Probability']*100).toFixed(1)}% of sims. Requires avg {Math.ceil(1/synth['Peak Probability'])} runs (~{(synth['Arch Secs Cost']/1000).toFixed(1)}k Arch Secs) to replicate.
+                          </div>
+                        )}
+
+                        <div className="flex flex-col md:flex-row gap-2 mt-3">
+                          <button 
+                            onClick={() => handleRestore(synth)}
+                            className="flex-1 py-1 bg-st-orange text-[#2b2b2b] font-bold rounded hover:bg-[#ffb045] transition-colors text-sm"
+                          >
+                            📊 View Dashboard
+                          </button>
+                          <button 
+                            onClick={() => {
+                              const kept = [...store.synth_history];
+                              kept.splice(idx, 1);
+                              store.setSimsState('synth_history', kept);
+                              if (store.synthesis_result && store.synthesis_result.stats === synth) {
+                                store.setSimsState('synthesis_result', null);
+                              }
+                            }}
+                            className="flex-1 py-1 bg-[#2b2b2b] border border-red-900 text-red-400 font-bold rounded hover:bg-red-900 hover:text-white transition-colors text-sm"
+                          >
+                            🗑️ Delete
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
             </>
           )}
         </div>

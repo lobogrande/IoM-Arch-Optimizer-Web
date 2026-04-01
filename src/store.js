@@ -26,6 +26,8 @@ const useStore = create((set) => ({
   compendium_target_floor: null,
   opt_results: null,
   run_history: [ ],
+  synth_history: [ ],
+  synthesis_result: null,
 
   // Simulation Tab State Persistence
   optGoal: "Max Floor Push",
