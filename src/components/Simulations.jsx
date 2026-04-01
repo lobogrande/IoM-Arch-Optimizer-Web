@@ -2047,8 +2047,10 @@ export default function Simulations() {
                       filter: true,
                       resizable: true,
                       suppressMenu: false,
+                      headerClass: 'border-r border-st-border',
+                      cellClass: 'border-r border-st-border'
                     } }
-                    columnDefs={[
+                    columnDefs={
                       { 
                         field: "id", 
                         headerName: "Icon", 
