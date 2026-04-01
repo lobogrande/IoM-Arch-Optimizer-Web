@@ -2112,6 +2112,9 @@ export default function Simulations() {
                     defaultColDef={sandboxDefaultColDef}
                     autoSizeStrategy={sandboxAutoSizeStrategy}
                     columnDefs={sandboxColumns}
+                    onFirstDataRendered={(p) => { try { p.api.autoSizeColumns(p.api.getColumns().map(c => c.getColId())); } catch(e){} }}
+                    onRowDataUpdated={(p) => { try { p.api.autoSizeColumns(p.api.getColumns().map(c => c.getColId())); } catch(e){} }}
+                    onNewColumnsLoaded={(p) => { try { p.api.autoSizeColumns(p.api.getColumns().map(c => c.getColId())); } catch(e){} }}
                   />
                 )}
               </div>
