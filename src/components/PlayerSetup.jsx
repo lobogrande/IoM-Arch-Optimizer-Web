@@ -21,7 +21,16 @@ export default function PlayerSetup() {
   const current_allocated = Object.values(base_stats).reduce((a, b) => a + b, 0);
   const remaining = total_allowed - current_allocated;
 
-  const STAT_CAPS = { Str: 50, Agi: 50, Per: 25, Int: 25, Luck: 25, Div: 10, Corr: 10 };
+  const cap_inc = (parseInt(upgrade_levels[45]) || 0) * 5;
+  const STAT_CAPS = { 
+    Str: 50 + cap_inc, 
+    Agi: 50 + cap_inc, 
+    Per: 25 + cap_inc, 
+    Int: 25 + cap_inc, 
+    Luck: 25 + cap_inc, 
+    Div: 10 + cap_inc, 
+    Corr: 10 + cap_inc 
+  };
 
   const processFile = (file) => {
     if (!file) return;
