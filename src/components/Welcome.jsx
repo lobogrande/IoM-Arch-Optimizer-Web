@@ -11,9 +11,9 @@ export default function Welcome() {
 
   return (
     <div className="space-y-6 animate-fade-in">
-      {/* Dev Note */}
-      <div className="bg-blue-900/30 border-l-4 border-blue-500 p-4 rounded text-blue-100">
-        <h3 className="text-xl font-bold mb-2">📝 A note from the developer...</h3>
+      {/* Dev Note (Styled exactly like the Calculated Stats Info box) */}
+      <div className="p-4 bg-blue-50 border-l-4 border-blue-400 text-blue-800 rounded shadow-sm text-sm">
+        <h3 className="text-lg font-bold mb-2">📝 A note from the developer...</h3>
         <p className="mb-2">
           Welcome! I built this Monte Carlo simulator because Idle Obelisk Miner's mechanics and the sheer variety of combinations a user can have for upgrades and play styles make it incredibly difficult to 'guess' the perfect stat distribution.
         </p>
@@ -24,10 +24,10 @@ export default function Welcome() {
 
       <div className="grid grid-cols-1 md:grid-cols-5 gap-6">
         {/* Guide */}
-        <div className="md:col-span-3 border border-st-border bg-gray-800/50 p-6 rounded-lg">
-          <h3 className="text-2xl font-bold mb-4 text-white">👋 How to use this app</h3>
-          <p className="mb-4 text-gray-300">If you are new here, follow these 3 steps to get started:</p>
-          <ol className="list-decimal list-inside space-y-2 text-gray-300">
+        <div className="md:col-span-3 st-container">
+          <h3 className="text-xl font-bold mb-4">👋 How to use this app</h3>
+          <p className="mb-4 text-st-text-light">If you are new here, follow these 3 steps to get started:</p>
+          <ol className="list-decimal list-inside space-y-2">
             <li><strong>Input your Stats:</strong> Go to the <strong>Player Setup</strong> tab to manually enter your info, <strong>Import</strong> your json data, or click a <strong>Preset Build</strong> below.</li>
             <li><strong>Select your Goal:</strong> Go to the <strong>Simulations ➔ Optimizer</strong> tab and choose your target.</li>
             <li><strong>Run the Engine:</strong> Let the AI find your perfect mathematical build.</li>
@@ -35,13 +35,13 @@ export default function Welcome() {
         </div>
 
         {/* Tips Expander */}
-        <div className="md:col-span-2">
-          <details className="group border border-st-border bg-gray-800/50 rounded-lg open:bg-gray-800">
-            <summary className="cursor-pointer p-4 font-bold text-white flex justify-between items-center list-none">
+        <div className="md:col-span-2 st-container h-fit">
+          <details className="group">
+            <summary className="cursor-pointer font-bold flex justify-between items-center list-none outline-none">
               <span>💡 Quick Tips & Tricks</span>
-              <span className="transition group-open:rotate-180">▼</span>
+              <span className="transition group-open:rotate-180 text-st-orange">▼</span>
             </summary>
-            <div className="p-4 border-t border-st-border text-gray-300 space-y-3 text-sm">
+            <div className="mt-4 pt-4 border-t border-st-border text-st-text-light space-y-3 text-sm">
               <p><strong>The "Suicide Farming" Paradox:</strong> Buying survival stats (Agility/Stamina) when farming early-game blocks pushes you to deeper floors where blocks have exponentially more HP, mathematically lowering your kills/min!</p>
               <p><strong>Stat Plateaus:</strong> Because blocks only take whole hits, 50 Strength and 54 Strength might both result in a '3-hit kill'. Use the <strong>Sandbox Tab</strong> to find these exact breakpoints.</p>
               <p><strong>Use Stat Locks:</strong> When running the Optimizer, locking obvious stats (like setting Agility to 0 for early farming) makes the AI run exponentially faster and more accurately!</p>
@@ -50,31 +50,31 @@ export default function Welcome() {
         </div>
       </div>
 
-      <hr className="border-st-border my-8" />
+      <hr />
 
       {/* Preset Builds */}
       <div>
-        <h4 className="text-xl font-bold mb-4 text-white">🚀 Quick Start: Load a Preset Build</h4>
+        <h4 className="text-xl font-bold mb-4">🚀 Quick Start: Load a Preset Build</h4>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <button 
             onClick={() => loadStateFromJson(EARLY_GAME)}
-            className="p-4 border border-st-border rounded-lg bg-gray-800 hover:bg-gray-700 hover:border-st-orange transition-colors text-center text-white font-medium"
+            className="st-container hover:border-st-orange transition-colors text-center font-medium shadow-sm cursor-pointer"
           >
             🌱 Load Early-Game Build<br/>
-            <span className="text-sm font-normal text-gray-400">(Asc 1, Floor 40)</span>
+            <span className="text-sm font-normal text-st-text-light">(Asc 1, Floor 40)</span>
           </button>
 
           <button 
             onClick={() => loadStateFromJson(LATE_GAME)}
-            className="p-4 border border-st-border rounded-lg bg-gray-800 hover:bg-gray-700 hover:border-st-orange transition-colors text-center text-white font-medium"
+            className="st-container hover:border-st-orange transition-colors text-center font-medium shadow-sm cursor-pointer"
           >
             🌌 Load Late-Game Build<br/>
-            <span className="text-sm font-normal text-gray-400">(Asc 2, Floor 158)</span>
+            <span className="text-sm font-normal text-st-text-light">(Asc 2, Floor 158)</span>
           </button>
 
           <button 
             onClick={() => resetState()}
-            className="p-4 border border-red-900/50 rounded-lg bg-red-950/20 hover:bg-red-900/40 hover:border-red-500 transition-colors text-center text-red-200 font-medium"
+            className="p-3 border border-red-200 bg-red-50 hover:bg-red-100 hover:border-red-400 transition-colors rounded-lg text-center text-red-800 font-medium shadow-sm cursor-pointer"
           >
             🗑️ Factory Reset<br/>
             <span className="text-sm font-normal opacity-80">(Wipe All Data)</span>
