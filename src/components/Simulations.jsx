@@ -1879,19 +1879,33 @@ export default function Simulations() {
       ========================================= */}
       {activeSubTab === 'sandbox' && (() => {
         const sbData = store.sandbox_calculated_stats;
-        let blocks = sbData ? sbData.blocks_data : [ ];
         const tFloor = store.sandbox_floor || store.current_max_floor;
 
-        if (!sandboxShowUnreachable) {
-          blocks = blocks.filter(b => tFloor >= b.min_floor);
-        }
-        if (sandboxMinHits > 1) blocks = blocks.filter(b => b.avg_hits >= sandboxMinHits);
-        if (sandboxBlockFilters.length > 0) blocks = blocks.filter(b => sandboxBlockFilters.includes(b.name));
+        // 1. Memoize the row data so AG Grid doesn't destroy the DOM on every React tick!
+        const blocks = useMemo(() => {
+          if (!sbData) return[];
+          let filtered = sbData.blocks_data;
+          if (!sandboxShowUnreachable) {
+            filtered = filtered.filter(b => tFloor >= b.min_floor);
+          }
+          if (sandboxMinHits > 1) filtered = filtered.filter(b => b.avg_hits >= sandboxMinHits);
+          if (sandboxBlockFilters.length > 0) filtered = filtered.filter(b => sandboxBlockFilters.includes(b.name));
+          return filtered;
+        },[sbData, tFloor, sandboxShowUnreachable, sandboxMinHits, sandboxBlockFilters]);
 
         const uniqueBlockNames = sbData ? Array.from(new Set(sbData.blocks_data.map(b => b.name))) : [ ];
-        
-        // Memoize the columns so AG Grid doesn't completely rebuild its DOM on every keystroke!
-        const sandboxColumns = useMemo(() => {
+
+        // 2. Memoize the AG Grid configs so their memory addresses stay identical
+        const defaultColDef = useMemo(() => ({
+          sortable: true,
+          filter: true,
+          resizable: true,
+          suppressMenu: false
+        }),[]);
+
+        const autoSizeStrategy = useMemo(() => ({
+          type: 'fitCellContents'
+        }),
           const cols =[
             { 
               field: "id", headerName: "Icon", pinned: "left", minWidth: 70, sortable: false, filter: false,
