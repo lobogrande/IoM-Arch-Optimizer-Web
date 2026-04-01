@@ -61,16 +61,47 @@ def calculate_all_stats(js_data):
     blocks_data =[]
     FRAG_NAMES = {0: "Dirt", 1: "Common", 2: "Rare", 3: "Epic", 4: "Legendary", 5: "Mythic", 6: "Divine"}
     
+    # Calculate True Nested Crit Probabilities & Compound Multipliers for EDPS
+    import math
+    t_reg = 1.0 - p.crit_chance
+    t_crit = p.crit_chance * (1.0 - p.super_crit_chance)
+    t_scrit = p.crit_chance * p.super_crit_chance * (1.0 - p.ultra_crit_chance)
+    t_ucrit = p.crit_chance * p.super_crit_chance * p.ultra_crit_chance
+
+    c_crit = p.crit_dmg_mult
+    c_scrit = c_crit * p.super_crit_dmg_mult
+    c_ucrit = c_scrit * p.ultra_crit_dmg_mult
+
+    c_enr_crit = p.enraged_crit_dmg_mult
+    c_enr_scrit = c_enr_crit * p.super_crit_dmg_mult
+    c_enr_ucrit = c_enr_scrit * p.ultra_crit_dmg_mult
+
+    avg_mult = t_reg*1.0 + t_crit*c_crit + t_scrit*c_scrit + t_ucrit*c_ucrit
+    avg_enr_mult = t_reg*1.0 + t_crit*c_enr_crit + t_scrit*c_enr_scrit + t_ucrit*c_enr_ucrit
+
     for block_id, base in cfg.BLOCK_BASE_STATS.items():
         if block_id.startswith('div') and not p.asc1_unlocked: continue
         if block_id.endswith('4') and not p.asc2_unlocked: continue
         
         b = Block(block_id, target_floor, p)
         eff_armor = max(0, b.armor - p.armor_pen)
+
+        # Hit Math
+        reg_hit = max(1.0, p.damage - eff_armor)
+        enr_hit = max(1.0, p.enraged_damage - eff_armor)
+
+        edps = reg_hit * avg_mult
+        enr_edps = enr_hit * avg_enr_mult
+
+        max_sta = math.ceil(b.hp / reg_hit)
+        avg_sta = math.ceil(b.hp / edps)
+        max_enr_sta = math.ceil(b.hp / enr_hit)
+        avg_enr_sta = math.ceil(b.hp / enr_edps)
         
         blocks_data.append({
             "id": block_id,
             "name": block_id.capitalize(),
+            "tier": int(block_id[-1]) if block_id[-1].isdigit() else 1,
             "frag_name": FRAG_NAMES.get(base.get('ft', 0), "Unknown"),
             "base_hp": base['hp'],
             "base_armor": base['a'],
@@ -80,7 +111,21 @@ def calculate_all_stats(js_data):
             "mod_eff_armor": eff_armor,
             "mod_armor": b.armor,
             "mod_xp": b.xp,
-            "mod_frag": b.frag_amt
+            "mod_frag": b.frag_amt,
+            "edps": edps,
+            "enr_edps": enr_edps,
+            "reg_hit": reg_hit,
+            "crit": reg_hit * c_crit,
+            "scrit": reg_hit * c_scrit,
+            "ucrit": reg_hit * c_ucrit,
+            "max_hits": max_sta,
+            "avg_hits": avg_sta,
+            "enr_hit": enr_hit,
+            "enr_crit": enr_hit * c_enr_crit,
+            "enr_scrit": enr_hit * c_enr_scrit,
+            "enr_ucrit": enr_hit * c_enr_ucrit,
+            "enr_max_hits": max_enr_sta,
+            "enr_avg_hits": avg_enr_sta
         })
         
     inf_keys =["rare2", "div1", "leg3", "rare3", "epic3", "com1", "com2", "com3", "epic2", "dirt2", "dirt3", "leg1", "dirt1", "rare1", "epic1", "leg2", "myth2", "myth3", "div3"]
@@ -138,9 +183,8 @@ def calculate_all_stats(js_data):
 const initPromise = initCalcEngine().catch(err => postMessage({ type: 'ERROR', payload: err.message }));
 
 self.onmessage = async function(e) {
-    if (e.data.command === 'CALC_STATS') {
+    if (e.data.command === 'CALC_STATS' || e.data.command === 'CALC_SANDBOX') {
         try {
-            // AWAIT THE PROMISE: Wait for Pyodide to finish downloading before trying to calculate!
             await initPromise;
             
             pyodide.globals.set("js_data", e.data.payload);
@@ -149,7 +193,11 @@ self.onmessage = async function(e) {
             const result = resultProxy.toJs({ dict_converter: Object.fromEntries });
             resultProxy.destroy(); 
             
-            postMessage({ type: 'CALC_RESULT', payload: result });
+            // Pass back a flag so React knows if this was a Global or Sandbox calculation
+            postMessage({ 
+                type: e.data.command === 'CALC_STATS' ? 'CALC_RESULT' : 'SANDBOX_RESULT', 
+                payload: result 
+            });
         } catch (err) {
             postMessage({ type: 'ERROR', payload: err.message });
         }
