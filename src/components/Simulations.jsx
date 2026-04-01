@@ -2069,18 +2069,16 @@ export default function Simulations() {
               </div>
 
               <div className="ag-theme-quartz border border-st-border rounded bg-st-bg h-[600px] w-full">
-                {/* Foolproof CSS injection to force vertical lines on every single column, bypassing AG Grid's type-overrides! */}
                 <style>{`
                   .ag-theme-quartz .ag-header-cell, 
                   .ag-theme-quartz .ag-cell {
                     border-right: 1px solid var(--color-st-border) !important;
                   }
-                  /* Force Headers to Center */
+                  /* Force Headers to Center (Removed width:100% to fix AG Grid width-measuring bug) */
                   .ag-theme-quartz .ag-header-cell-label {
                     justify-content: center !important;
-                    width: 100%;
                   }
-                  /* Force Cells to Center (Overrides numeric right-align) */
+                  /* Force Cells to Center */
                   .ag-theme-quartz .ag-cell {
                     display: flex !important;
                     align-items: center !important;
@@ -2094,13 +2092,16 @@ export default function Simulations() {
                 ) : (
                   <AgGridReact
                     rowData={blocks}
-                    defaultColDef={ {
+                    defaultColDef={{
                       sortable: true,
                       filter: true,
                       resizable: true,
                       suppressMenu: false
-                    } }
-                    autoSizeStrategy={ { type: 'fitCellContents' } }
+                    }}
+                    autoSizeStrategy={{ type: 'fitCellContents' }}
+                    onGridReady={(p) => { if(p.api) try { p.api.autoSizeColumns(p.api.getColumns().map(c => c.getColId())); } catch(e){} }}
+                    onRowDataUpdated={(p) => { if(p.api) try { p.api.autoSizeColumns(p.api.getColumns().map(c => c.getColId())); } catch(e){} }}
+                    onDisplayedColumnsChanged={(p) => { if(p.api) try { p.api.autoSizeColumns(p.api.getColumns().map(c => c.getColId())); } catch(e){} }}
                     columnDefs={sandboxColumns}
                   />
                 )}
