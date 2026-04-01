@@ -1893,14 +1893,14 @@ export default function Simulations() {
         // Build the AG Grid columns safely as standard Javascript arrays to avoid syntax parsing bugs
         const sandboxColumns =[
           { 
-            field: "id", headerName: "Icon", pinned: "left", width: 80, sortable: false, filter: false,
+            field: "id", headerName: "Icon", pinned: "left", minWidth: 70, sortable: false, filter: false,
             cellRenderer: (p) => (
               <div className="flex justify-center items-center h-full">
                 <img src={`/assets/cards/cores/${p.value}.png`} alt={p.value} className="w-8 h-8 pixelated" />
               </div>
             )
           },
-          { field: "name", headerName: "Block", pinned: "left", width: 120 },
+          { field: "name", headerName: "Block", pinned: "left" },
           { field: "mod_hp", headerName: "HP", valueFormatter: p => Math.floor(p.value).toLocaleString(), type: 'numericColumn' },
           { field: "mod_eff_armor", headerName: "Armor", valueFormatter: p => Math.floor(p.value).toLocaleString(), type: 'numericColumn' },
           { field: "edps", headerName: "EDPS", valueFormatter: p => Math.floor(p.value).toLocaleString(), type: 'numericColumn', cellStyle: { color: '#ffa229', fontWeight: 'bold' } },
@@ -2079,9 +2079,10 @@ export default function Simulations() {
                       filter: true,
                       resizable: true,
                       suppressMenu: false,
-                      headerClass: 'border-r border-st-border',
-                      cellClass: 'border-r border-st-border'
+                      headerClass: '!border-r !border-st-border',
+                      cellClass: '!border-r !border-st-border'
                     } }
+                    autoSizeStrategy={ { type: 'fitCellContents' } }
                     columnDefs={sandboxColumns}
                   />
                 )}
