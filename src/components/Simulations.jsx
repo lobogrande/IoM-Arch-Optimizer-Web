@@ -1220,7 +1220,7 @@ export default function Simulations() {
         
         const checkedRuns = visibleHistory.filter(r => r.Include);
 
-        const handleRestore = (runData) => {
+        const handleRestore = (runData, isMetaBuild = false) => {
           if (runData._restore_state) {
             // Restore dashboard state cleanly for both regular runs and meta-builds
             if (runData._restore_state.opt_results) {
@@ -1235,8 +1235,8 @@ export default function Simulations() {
             setRoiStatResults(null);
             setRoiUpgResults(null);
             
-            // Snap back to optimizer tab to view it
-            setActiveSubTab('optimizer');
+            // Snap to the appropriate tab based on what we are restoring
+            setActiveSubTab(isMetaBuild ? 'synth' : 'optimizer');
             setResTab('build');
             setDataTab('performance');
 
@@ -1246,9 +1246,10 @@ export default function Simulations() {
                 setCardSelBlock('');
             }
             
-            // Allow React a split second to render the Optimizer tab, then scroll down to the dashboard
+            // Allow React a split second to render the tab, then scroll down to the appropriate dashboard anchor
             setTimeout(() => {
-              const el = document.getElementById('dashboard-anchor-optimizer');
+              const anchorId = isMetaBuild ? 'synth-results-anchor' : 'dashboard-anchor-optimizer';
+              const el = document.getElementById(anchorId);
               if (el) {
                 el.scrollIntoView({ behavior: 'smooth', block: 'start' });
               } else {
@@ -1679,7 +1680,7 @@ export default function Simulations() {
                 <div className="flex flex-col md:flex-row gap-4 items-center justify-between mb-4">
                   <p className="text-sm text-st-text-light m-0">Check the boxes for your top runs to mix them into your Meta-Build.</p>
                   <button 
-                    onClick={() => handleRestore(checkedRuns[0])}
+                    onClick={() => handleRestore(checkedRuns[0], false)}
                     disabled={checkedRuns.length !== 1}
                     className="px-6 py-2 bg-[#2b2b2b] border border-st-orange text-st-orange font-bold rounded hover:bg-st-orange hover:text-[#2b2b2b] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                     title={checkedRuns.length !== 1 ? "Check exactly ONE run to view its dashboard" : ""}
@@ -1806,7 +1807,7 @@ export default function Simulations() {
 
                         <div className="flex flex-col md:flex-row gap-2 mt-3">
                           <button 
-                            onClick={() => handleRestore(synth)}
+                            onClick={() => handleRestore(synth, true)}
                             className="flex-1 py-1 bg-st-orange text-[#2b2b2b] font-bold rounded hover:bg-[#ffb045] transition-colors text-sm"
                           >
                             📊 View Dashboard
