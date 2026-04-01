@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import { EXTERNAL_UI_GROUPS } from './game_data';
+import { EXTERNAL_UI_GROUPS, ASC1_LOCKED_UPGS, ASC2_LOCKED_UPGS } from './game_data';
 
 const useStore = create(
   persist(
@@ -52,7 +52,45 @@ const useStore = create(
   simsPerSec: 15,
 
   // Actions (Equivalent to updating st.session_state)
-  setSetting: (key, value) => set({ [key]: value }),
+  setSetting: (key, value) => set((state) => {
+    const updates = { [key]: value };
+
+    // --- ENFORCE SANITIZATION FOR ASCENSION 2 ---
+    if (key === 'asc2_unlocked' && value === false) {
+      updates.base_stats = { ...state.base_stats, Corr: 0 };
+      updates.sandbox_stats = { ...state.sandbox_stats, Corr: 0 };
+      
+      const newCards = { ...state.cards };
+      Object.keys(newCards).forEach(c => {
+        if (c.endsWith('4')) newCards[c] = 0;
+      });
+      updates.cards = newCards;
+
+      const newUpgs = { ...state.upgrade_levels };
+      ASC2_LOCKED_UPGS.forEach(id => newUpgs[id] = 0);
+      updates.upgrade_levels = newUpgs;
+    }
+
+    // --- ENFORCE SANITIZATION FOR ASCENSION 1 ---
+    if (key === 'asc1_unlocked' && value === false) {
+      updates.asc2_unlocked = false; // Cascading lock
+      updates.base_stats = { ...state.base_stats, Div: 0, Corr: 0 };
+      updates.sandbox_stats = { ...state.sandbox_stats, Div: 0, Corr: 0 };
+      
+      const newCards = { ...state.cards };
+      Object.keys(newCards).forEach(c => {
+        if (c.startsWith('div') || c.endsWith('4')) newCards[c] = 0;
+      });
+      updates.cards = newCards;
+
+      const newUpgs = { ...state.upgrade_levels };
+      ASC1_LOCKED_UPGS.forEach(id => newUpgs[id] = 0);
+      ASC2_LOCKED_UPGS.forEach(id => newUpgs[id] = 0);
+      updates.upgrade_levels = newUpgs;
+    }
+
+    return updates;
+  }),
   setBaseStat: (stat, value) => set((state) => ({
     base_stats: { ...state.base_stats, [stat]: parseInt(value) || 0 }
   })),
@@ -187,6 +225,40 @@ const useStore = create(
       newState.external_levels = newExt;
     }
     
+    // --- ENFORCE SANITIZATION AFTER JSON LOAD ---
+    if (!newState.asc2_unlocked) {
+      if (newState.base_stats) newState.base_stats.Corr = 0;
+      if (newState.sandbox_stats) newState.sandbox_stats.Corr = 0;
+      if (newState.cards) {
+        Object.keys(newState.cards).forEach(c => {
+          if (c.endsWith('4')) newState.cards[c] = 0;
+        });
+      }
+      if (newState.upgrade_levels) {
+        ASC2_LOCKED_UPGS.forEach(id => newState.upgrade_levels[id] = 0);
+      }
+    }
+
+    if (!newState.asc1_unlocked) {
+      if (newState.base_stats) {
+        newState.base_stats.Div = 0;
+        newState.base_stats.Corr = 0;
+      }
+      if (newState.sandbox_stats) {
+        newState.sandbox_stats.Div = 0;
+        newState.sandbox_stats.Corr = 0;
+      }
+      if (newState.cards) {
+        Object.keys(newState.cards).forEach(c => {
+          if (c.startsWith('div') || c.endsWith('4')) newState.cards[c] = 0;
+        });
+      }
+      if (newState.upgrade_levels) {
+        ASC1_LOCKED_UPGS.forEach(id => newState.upgrade_levels[id] = 0);
+        ASC2_LOCKED_UPGS.forEach(id => newState.upgrade_levels[id] = 0);
+      }
+    }
+
     return newState;
   }),
     }),
