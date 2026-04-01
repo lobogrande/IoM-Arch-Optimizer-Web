@@ -1888,7 +1888,39 @@ export default function Simulations() {
         if (sandboxMinHits > 1) blocks = blocks.filter(b => b.avg_hits >= sandboxMinHits);
         if (sandboxBlockFilters.length > 0) blocks = blocks.filter(b => sandboxBlockFilters.includes(b.name));
 
-        const uniqueBlockNames = sbData ? Array.from(new Set(sbData.blocks_data.map(b => b.name))) :[];
+        const uniqueBlockNames = sbData ? Array.from(new Set(sbData.blocks_data.map(b => b.name))) : [ ];
+        
+        // Build the AG Grid columns safely as standard Javascript arrays to avoid syntax parsing bugs
+        const sandboxColumns =[
+          { 
+            field: "id", headerName: "Icon", pinned: "left", width: 80, sortable: false, filter: false,
+            cellRenderer: (p) => (
+              <div className="flex justify-center items-center h-full">
+                <img src={`/assets/cards/cores/${p.value}.png`} alt={p.value} className="w-8 h-8 pixelated" />
+              </div>
+            )
+          },
+          { field: "name", headerName: "Block", pinned: "left", width: 120 },
+          { field: "mod_hp", headerName: "HP", valueFormatter: p => Math.floor(p.value).toLocaleString(), type: 'numericColumn' },
+          { field: "mod_eff_armor", headerName: "Armor", valueFormatter: p => Math.floor(p.value).toLocaleString(), type: 'numericColumn' },
+          { field: "edps", headerName: "EDPS", valueFormatter: p => Math.floor(p.value).toLocaleString(), type: 'numericColumn', cellStyle: { color: '#ffa229', fontWeight: 'bold' } },
+          { field: "enr_edps", headerName: "Enr EDPS", valueFormatter: p => Math.floor(p.value).toLocaleString(), type: 'numericColumn', cellStyle: { color: '#f87171', fontWeight: 'bold' } },
+          { field: "reg_hit", headerName: "Reg Hit", valueFormatter: p => Math.floor(p.value).toLocaleString(), type: 'numericColumn' },
+          { field: "avg_hits", headerName: "Avg Hits", valueFormatter: p => Math.floor(p.value).toLocaleString(), type: 'numericColumn', cellStyle: { fontWeight: 'bold' } },
+          { field: "max_hits", headerName: "Max Hits", valueFormatter: p => Math.floor(p.value).toLocaleString(), type: 'numericColumn', cellStyle: { color: '#7D808D' } }
+        ];
+
+        if (sandboxShowCrits) {
+          sandboxColumns.push(
+            { field: "crit", headerName: "Crit", valueFormatter: p => Math.floor(p.value).toLocaleString(), type: 'numericColumn', cellStyle: { backgroundColor: 'rgba(0,0,0,0.05)' } },
+            { field: "scrit", headerName: "sCrit", valueFormatter: p => Math.floor(p.value).toLocaleString(), type: 'numericColumn', cellStyle: { backgroundColor: 'rgba(0,0,0,0.05)' } },
+            { field: "ucrit", headerName: "uCrit", valueFormatter: p => Math.floor(p.value).toLocaleString(), type: 'numericColumn', cellStyle: { backgroundColor: 'rgba(0,0,0,0.05)' } },
+            { field: "enr_hit", headerName: "Enr Hit", valueFormatter: p => Math.floor(p.value).toLocaleString(), type: 'numericColumn', cellStyle: { color: '#fca5a5', backgroundColor: 'rgba(127,29,29,0.05)' } },
+            { field: "enr_crit", headerName: "Enr Crit", valueFormatter: p => Math.floor(p.value).toLocaleString(), type: 'numericColumn', cellStyle: { color: '#fca5a5', backgroundColor: 'rgba(127,29,29,0.05)' } },
+            { field: "enr_scrit", headerName: "Enr sCrit", valueFormatter: p => Math.floor(p.value).toLocaleString(), type: 'numericColumn', cellStyle: { color: '#fca5a5', backgroundColor: 'rgba(127,29,29,0.05)' } },
+            { field: "enr_ucrit", headerName: "Enr uCrit", valueFormatter: p => Math.floor(p.value).toLocaleString(), type: 'numericColumn', cellStyle: { color: '#fca5a5', backgroundColor: 'rgba(127,29,29,0.05)' } }
+          );
+        }
 
         return (
         <div className="space-y-6 animate-fade-in">
@@ -2050,38 +2082,7 @@ export default function Simulations() {
                       headerClass: 'border-r border-st-border',
                       cellClass: 'border-r border-st-border'
                     } }
-                    columnDefs={
-                      { 
-                        field: "id", 
-                        headerName: "Icon", 
-                        pinned: "left", 
-                        width: 80, 
-                        sortable: false, 
-                        filter: false,
-                        cellRenderer: (p) => (
-                          <div className="flex justify-center items-center h-full">
-                            <img src={`/assets/cards/cores/${p.value}.png`} alt={p.value} className="w-8 h-8 pixelated" />
-                          </div>
-                        )
-                      },
-                      { field: "name", headerName: "Block", pinned: "left", width: 120 },
-                      { field: "mod_hp", headerName: "HP", valueFormatter: p => Math.floor(p.value).toLocaleString(), type: 'numericColumn' },
-                      { field: "mod_eff_armor", headerName: "Armor", valueFormatter: p => Math.floor(p.value).toLocaleString(), type: 'numericColumn' },
-                      { field: "edps", headerName: "EDPS", valueFormatter: p => Math.floor(p.value).toLocaleString(), type: 'numericColumn', cellStyle: { color: '#ffa229', fontWeight: 'bold' } },
-                      { field: "enr_edps", headerName: "Enr EDPS", valueFormatter: p => Math.floor(p.value).toLocaleString(), type: 'numericColumn', cellStyle: { color: '#f87171', fontWeight: 'bold' } },
-                      { field: "reg_hit", headerName: "Reg Hit", valueFormatter: p => Math.floor(p.value).toLocaleString(), type: 'numericColumn' },
-                      { field: "avg_hits", headerName: "Avg Hits", valueFormatter: p => Math.floor(p.value).toLocaleString(), type: 'numericColumn', cellStyle: { fontWeight: 'bold' } },
-                      { field: "max_hits", headerName: "Max Hits", valueFormatter: p => Math.floor(p.value).toLocaleString(), type: 'numericColumn', cellStyle: { color: '#7D808D' } },
-                      ...(sandboxShowCrits ?[
-                        { field: "crit", headerName: "Crit", valueFormatter: p => Math.floor(p.value).toLocaleString(), type: 'numericColumn', cellStyle: { backgroundColor: 'rgba(0,0,0,0.05)' } },
-                        { field: "scrit", headerName: "sCrit", valueFormatter: p => Math.floor(p.value).toLocaleString(), type: 'numericColumn', cellStyle: { backgroundColor: 'rgba(0,0,0,0.05)' } },
-                        { field: "ucrit", headerName: "uCrit", valueFormatter: p => Math.floor(p.value).toLocaleString(), type: 'numericColumn', cellStyle: { backgroundColor: 'rgba(0,0,0,0.05)' } },
-                        { field: "enr_hit", headerName: "Enr Hit", valueFormatter: p => Math.floor(p.value).toLocaleString(), type: 'numericColumn', cellStyle: { color: '#fca5a5', backgroundColor: 'rgba(127,29,29,0.05)' } },
-                        { field: "enr_crit", headerName: "Enr Crit", valueFormatter: p => Math.floor(p.value).toLocaleString(), type: 'numericColumn', cellStyle: { color: '#fca5a5', backgroundColor: 'rgba(127,29,29,0.05)' } },
-                        { field: "enr_scrit", headerName: "Enr sCrit", valueFormatter: p => Math.floor(p.value).toLocaleString(), type: 'numericColumn', cellStyle: { color: '#fca5a5', backgroundColor: 'rgba(127,29,29,0.05)' } },
-                        { field: "enr_ucrit", headerName: "Enr uCrit", valueFormatter: p => Math.floor(p.value).toLocaleString(), type: 'numericColumn', cellStyle: { color: '#fca5a5', backgroundColor: 'rgba(127,29,29,0.05)' } }
-                      ] : [ ])
-                    ] }
+                    columnDefs={sandboxColumns}
                   />
                 )}
               </div>
