@@ -1239,6 +1239,12 @@ export default function Simulations() {
             setActiveSubTab('optimizer');
             setResTab('build');
             setDataTab('performance');
+
+            if (runData.Target && runData.Target.startsWith('block_')) {
+                setCardSelBlock(runData.Target.replace('block_', '').replace('_per_min', ''));
+            } else {
+                setCardSelBlock('');
+            }
             
             // Allow React a split second to render the Optimizer tab, then scroll down to the dashboard
             setTimeout(() => {
@@ -1565,6 +1571,12 @@ export default function Simulations() {
             // Force the UI back to the default result tabs for the new run
             setResTab('build');
             setDataTab('performance');
+
+            if (runTargetMetric.startsWith('block_')) {
+                setCardSelBlock(runTargetMetric.replace('block_', '').replace('_per_min', ''));
+            } else {
+                setCardSelBlock('');
+            }
 
             setTimeout(() => {
                 const el = document.getElementById('synth-results-anchor');
