@@ -10,8 +10,8 @@ import {
 import { INTERNAL_UPGRADE_CAPS, UPGRADE_NAMES, ASC1_LOCKED_UPGS, ASC2_LOCKED_UPGS, CARD_TYPES, EXTERNAL_UI_GROUPS, UPGRADE_LEVEL_REQS } from '../game_data';
 
 export default function PlayerSetup() {
-  const { asc1_unlocked, asc2_unlocked, arch_level, current_max_floor, base_stats, upgrade_levels, external_levels, cards, arch_ability_infernal_bonus, total_infernal_cards, hades_idol_level, calculated_stats, setSetting, setBaseStat, setUpgradeLevel, setCardLevel, setExternalGroup, loadStateFromJson } = useStore();
-  const [activeSubTab, setActiveSubTab] = useState('stats');
+  const { asc1_unlocked, asc2_unlocked, arch_level, current_max_floor, base_stats, upgrade_levels, external_levels, cards, arch_ability_infernal_bonus, total_infernal_cards, hades_idol_level, geoduck_unlocked, calculated_stats, setSetting, setBaseStat, setUpgradeLevel, setCardLevel, setExternalGroup, loadStateFromJson } = useStore();
+  const[activeSubTab, setActiveSubTab] = useState('stats');
   const[hideMaxed, setHideMaxed] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
   const [upgradeView, setUpgradeView] = useState('internal');
@@ -101,7 +101,8 @@ export default function PlayerSetup() {
         asc2_unlocked: state.asc2_unlocked,
         arch_level: state.arch_level,
         current_max_floor: state.current_max_floor,
-        total_infernal_cards: state.total_infernal_cards
+        total_infernal_cards: state.total_infernal_cards,
+        geoduck_unlocked: state.geoduck_unlocked
       },
       base_stats: state.base_stats,
       internal_upgrades: internal_upgrades,
@@ -365,11 +366,20 @@ export default function PlayerSetup() {
                         )}
                         {group.ui_type === 'card' && current_val === 0 && <span className="text-xs text-st-text-light">(Card Not Unlocked)</span>}
                         {group.ui_type === 'pet' && current_val === -1 && <span className="text-xs text-st-text-light">Status: Not Owned</span>}
-                        {group.id === 'geoduck' && <span className="text-xs text-st-text-light -mt-2">Enter Number of Mythic Chests Opened</span>}
+                        
+                        {group.id === 'geoduck' && (
+                          <>
+                            <label className="flex items-center gap-2 cursor-pointer font-bold mb-1 text-sm mt-2">
+                              <input type="checkbox" checked={geoduck_unlocked} onChange={(e) => setSetting('geoduck_unlocked', e.target.checked)} className="w-4 h-4 accent-st-orange" />
+                              Fish Captured
+                            </label>
+                            <span className="text-xs text-st-text-light -mt-1 text-center">Enter Number of Mythic Chests Opened</span>
+                          </>
+                        )}
                       </div>
 
                       {(group.ui_type === 'number' || group.ui_type === 'pet' || group.ui_type === 'card') && (
-                        <input type="number" className="st-input" value={current_val} min={group.ui_type === 'pet' ? -1 : 0} max={group.max || 999} onChange={(e) => setExternalGroup(group.rows, e.target.value)} />
+                        <input type="number" className={`st-input ${group.id === 'geoduck' && !geoduck_unlocked ? 'opacity-30 cursor-not-allowed' : ''}`} value={current_val} disabled={group.id === 'geoduck' && !geoduck_unlocked} min={group.ui_type === 'pet' ? -1 : 0} max={group.max || 999} onChange={(e) => setExternalGroup(group.rows, e.target.value)} />
                       )}
                       
                       {(group.ui_type === 'skill' || group.ui_type === 'bundle') && (
