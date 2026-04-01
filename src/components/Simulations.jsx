@@ -467,9 +467,9 @@ export default function Simulations() {
     }
   };
 
-  // --- REUSABLE RESULTS DASHBOARD ---
+ // --- REUSABLE RESULTS DASHBOARD ---
   const renderResultsDashboard = (context) => {
-    if (!store.opt_results) return null;
+    if (!store.opt_results || !store.opt_results.final_summary_out) return null;
     const runMetric = store.opt_results.run_target_metric;
     const isFloorTarget = runMetric === 'highest_floor';
     const scaleScore = (v) => isFloorTarget ? v : (v / 60.0) * 1000.0;
@@ -1222,11 +1222,19 @@ export default function Simulations() {
 
         const handleRestore = (runData) => {
           if (runData._restore_state) {
-            // Restore dashboard state
-            store.setOptResults(runData._restore_state);
+            // Restore dashboard state cleanly for both regular runs and meta-builds
+            if (runData._restore_state.opt_results) {
+                store.setOptResults(runData._restore_state.opt_results);
+                store.setSimsState('synthesis_result', runData._restore_state.synthesis_result);
+            } else {
+                store.setOptResults(runData._restore_state);
+                store.setSimsState('synthesis_result', null);
+            }
+            
             // Clear stale ROI data
             setRoiStatResults(null);
             setRoiUpgResults(null);
+            
             // Snap back to optimizer tab to view it
             setActiveSubTab('optimizer');
             setResTab('build');
