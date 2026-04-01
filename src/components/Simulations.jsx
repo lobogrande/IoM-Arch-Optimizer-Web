@@ -4,8 +4,12 @@ import { EngineWorkerPool, getOptimalStepProfile, runOptimizationPhase, topUpBui
 import PlotWrapper from 'react-plotly.js';
 import { INTERNAL_UPGRADE_CAPS, UPGRADE_NAMES } from '../game_data';
 import { AgGridReact } from 'ag-grid-react';
+import { ModuleRegistry, AllCommunityModule } from 'ag-grid-community';
 import 'ag-grid-community/styles/ag-grid.css';
 import 'ag-grid-community/styles/ag-theme-quartz.css'; // Modern, clean light theme
+
+// Register all community features for AG Grid (Required for v32+)
+ModuleRegistry.registerModules([ AllCommunityModule ]);
 
 // Vite CommonJS interop fix: Unwrap the default export if it was packaged as an object
 const Plot = PlotWrapper.default || PlotWrapper;
@@ -2032,65 +2036,52 @@ export default function Simulations() {
                 </div>
               </div>
 
-              <div className="overflow-x-auto border border-st-border rounded bg-st-bg h-[600px]">
-                <table className="w-full text-right border-collapse text-sm whitespace-nowrap">
-                  <thead className="sticky top-0 bg-st-bg border-b border-st-border z-10">
-                    <tr className="text-st-text-light">
-                      <th className="p-3 text-center">Icon</th>
-                      <th className="p-3 text-left">Block</th>
-                      <th className="p-3">HP</th>
-                      <th className="p-3">Armor</th>
-                      <th className="p-3 font-bold text-st-orange">EDPS</th>
-                      <th className="p-3 font-bold text-red-400">Enr EDPS</th>
-                      <th className="p-3">Reg Hit</th>
-                      <th className="p-3">Avg Hits</th>
-                      <th className="p-3 text-st-text-light">Max Hits</th>
-                      {sandboxShowCrits && (
-                        <>
-                          <th className="p-3 bg-black/10">Crit</th>
-                          <th className="p-3 bg-black/10">sCrit</th>
-                          <th className="p-3 bg-black/10">uCrit</th>
-                          <th className="p-3 bg-red-900/10 text-red-300">Enr Hit</th>
-                          <th className="p-3 bg-red-900/10 text-red-300">Enr Crit</th>
-                          <th className="p-3 bg-red-900/10 text-red-300">Enr sCrit</th>
-                          <th className="p-3 bg-red-900/10 text-red-300">Enr uCrit</th>
-                        </>
-                      )}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {!sbData ? (
-                      <tr><td colSpan="20" className="p-4 text-center">Calculating sandbox math...</td></tr>
-                    ) : blocks.length === 0 ? (
-                      <tr><td colSpan="20" className="p-4 text-center text-st-text-light">No blocks match the current filters.</td></tr>
-                    ) : blocks.map((b) => (
-                      <tr key={b.id} className="border-b border-st-border/50 hover:bg-black/5 transition-colors">
-                        <td className="p-2 text-center">
-                          <img src={`/assets/cards/cores/${b.id}.png`} alt={b.name} className="w-8 h-8 mx-auto pixelated" />
-                        </td>
-                        <td className="p-2 text-left font-bold">{b.name}</td>
-                        <td className="p-2">{b.mod_hp.toLocaleString()}</td>
-                        <td className="p-2">{b.mod_eff_armor.toLocaleString()}</td>
-                        <td className="p-2 font-bold text-st-orange">{Math.floor(b.edps).toLocaleString()}</td>
-                        <td className="p-2 font-bold text-red-400">{Math.floor(b.enr_edps).toLocaleString()}</td>
-                        <td className="p-2">{Math.floor(b.reg_hit).toLocaleString()}</td>
-                        <td className="p-2 font-bold">{b.avg_hits.toLocaleString()}</td>
-                        <td className="p-2 text-st-text-light">{b.max_hits.toLocaleString()}</td>
-                        {sandboxShowCrits && (
-                          <>
-                            <td className="p-2 bg-black/10">{Math.floor(b.crit).toLocaleString()}</td>
-                            <td className="p-2 bg-black/10">{Math.floor(b.scrit).toLocaleString()}</td>
-                            <td className="p-2 bg-black/10">{Math.floor(b.ucrit).toLocaleString()}</td>
-                            <td className="p-2 bg-red-900/10 text-red-300">{Math.floor(b.enr_hit).toLocaleString()}</td>
-                            <td className="p-2 bg-red-900/10 text-red-300">{Math.floor(b.enr_crit).toLocaleString()}</td>
-                            <td className="p-2 bg-red-900/10 text-red-300">{Math.floor(b.enr_scrit).toLocaleString()}</td>
-                            <td className="p-2 bg-red-900/10 text-red-300">{Math.floor(b.enr_ucrit).toLocaleString()}</td>
-                          </>
-                        )}
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+              <div className="ag-theme-quartz border border-st-border rounded bg-st-bg h-[600px] w-full">
+                {!sbData ? (
+                  <div className="flex items-center justify-center h-full text-st-text-light">Calculating sandbox math...</div>
+                ) : (
+                  <AgGridReact
+                    rowData={blocks}
+                    defaultColDef={ {
+                      sortable: true,
+                      filter: true,
+                      resizable: true,
+                      suppressMenu: false,
+                    } }
+                    columnDefs={[
+                      { 
+                        field: "id", 
+                        headerName: "Icon", 
+                        pinned: "left", 
+                        width: 80, 
+                        sortable: false, 
+                        filter: false,
+                        cellRenderer: (p) => (
+                          <div className="flex justify-center items-center h-full">
+                            <img src={`/assets/cards/cores/${p.value}.png`} alt={p.value} className="w-8 h-8 pixelated" />
+                          </div>
+                        )
+                      },
+                      { field: "name", headerName: "Block", pinned: "left", width: 120 },
+                      { field: "mod_hp", headerName: "HP", valueFormatter: p => Math.floor(p.value).toLocaleString(), type: 'numericColumn' },
+                      { field: "mod_eff_armor", headerName: "Armor", valueFormatter: p => Math.floor(p.value).toLocaleString(), type: 'numericColumn' },
+                      { field: "edps", headerName: "EDPS", valueFormatter: p => Math.floor(p.value).toLocaleString(), type: 'numericColumn', cellStyle: { color: '#ffa229', fontWeight: 'bold' } },
+                      { field: "enr_edps", headerName: "Enr EDPS", valueFormatter: p => Math.floor(p.value).toLocaleString(), type: 'numericColumn', cellStyle: { color: '#f87171', fontWeight: 'bold' } },
+                      { field: "reg_hit", headerName: "Reg Hit", valueFormatter: p => Math.floor(p.value).toLocaleString(), type: 'numericColumn' },
+                      { field: "avg_hits", headerName: "Avg Hits", valueFormatter: p => Math.floor(p.value).toLocaleString(), type: 'numericColumn', cellStyle: { fontWeight: 'bold' } },
+                      { field: "max_hits", headerName: "Max Hits", valueFormatter: p => Math.floor(p.value).toLocaleString(), type: 'numericColumn', cellStyle: { color: '#7D808D' } },
+                      ...(sandboxShowCrits ?[
+                        { field: "crit", headerName: "Crit", valueFormatter: p => Math.floor(p.value).toLocaleString(), type: 'numericColumn', cellStyle: { backgroundColor: 'rgba(0,0,0,0.05)' } },
+                        { field: "scrit", headerName: "sCrit", valueFormatter: p => Math.floor(p.value).toLocaleString(), type: 'numericColumn', cellStyle: { backgroundColor: 'rgba(0,0,0,0.05)' } },
+                        { field: "ucrit", headerName: "uCrit", valueFormatter: p => Math.floor(p.value).toLocaleString(), type: 'numericColumn', cellStyle: { backgroundColor: 'rgba(0,0,0,0.05)' } },
+                        { field: "enr_hit", headerName: "Enr Hit", valueFormatter: p => Math.floor(p.value).toLocaleString(), type: 'numericColumn', cellStyle: { color: '#fca5a5', backgroundColor: 'rgba(127,29,29,0.05)' } },
+                        { field: "enr_crit", headerName: "Enr Crit", valueFormatter: p => Math.floor(p.value).toLocaleString(), type: 'numericColumn', cellStyle: { color: '#fca5a5', backgroundColor: 'rgba(127,29,29,0.05)' } },
+                        { field: "enr_scrit", headerName: "Enr sCrit", valueFormatter: p => Math.floor(p.value).toLocaleString(), type: 'numericColumn', cellStyle: { color: '#fca5a5', backgroundColor: 'rgba(127,29,29,0.05)' } },
+                        { field: "enr_ucrit", headerName: "Enr uCrit", valueFormatter: p => Math.floor(p.value).toLocaleString(), type: 'numericColumn', cellStyle: { color: '#fca5a5', backgroundColor: 'rgba(127,29,29,0.05)' } }
+                      ] : [ ])
+                    ] }
+                  />
+                )}
               </div>
             </div>
           </div>
