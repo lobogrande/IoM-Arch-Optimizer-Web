@@ -1872,14 +1872,15 @@ export default function Simulations() {
       ========================================= */}
       {activeSubTab === 'sandbox' && (() => {
         const sbData = store.sandbox_calculated_stats;
-        let blocks = sbData ? sbData.blocks_data :[];
+        let blocks = sbData ? sbData.blocks_data : [ ];
         const tFloor = store.sandbox_floor || store.current_max_floor;
 
         if (!sandboxShowUnreachable) {
           blocks = blocks.filter(b => {
-            if (b.tier === 2 && tFloor <= 50) return false;
-            if (b.tier === 3 && tFloor <= 100) return false;
-            if (b.tier === 4 && tFloor <= 150) return false;
+            // Fix: Use the mathematically correct spawn floors from project_config.py!
+            if (b.tier === 2 && tFloor < 12) return false;
+            if (b.tier === 3 && tFloor < 24) return false;
+            if (b.tier === 4 && tFloor < 81) return false;
             return true;
           });
         }
