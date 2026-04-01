@@ -70,7 +70,7 @@ Create a .env file in the root directory and add your Discord Webhook URL so the
 ```env
 VITE_DISCORD_WEBHOOK="https://discord.com/api/webhooks/your_webhook_url_here"
 ```
-*(If left blank, the app safely falls back to generating a GitHub Issue for the user).*
+*(If left blank, the app safely falls back to generating a GitHub Issue for the user. Note: The live Vercel deployment already handles these endpoints securely).*
 
 **4. Launch the local development server**
 ```bash
