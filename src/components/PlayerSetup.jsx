@@ -21,7 +21,16 @@ export default function PlayerSetup() {
   const current_allocated = Object.values(base_stats).reduce((a, b) => a + b, 0);
   const remaining = total_allowed - current_allocated;
 
-  const STAT_CAPS = { Str: 50, Agi: 50, Per: 25, Int: 25, Luck: 25, Div: 10, Corr: 10 };
+  const cap_inc = (parseInt(upgrade_levels[45]) || 0) * 5;
+  const STAT_CAPS = { 
+    Str: 50 + cap_inc, 
+    Agi: 50 + cap_inc, 
+    Per: 25 + cap_inc, 
+    Int: 25 + cap_inc, 
+    Luck: 25 + cap_inc, 
+    Div: 10 + cap_inc, 
+    Corr: 10 + cap_inc 
+  };
 
   const processFile = (file) => {
     if (!file) return;
@@ -141,12 +150,12 @@ export default function PlayerSetup() {
         </div>
 
         <input 
-          type="number" 
+          type="number"
           className="st-input"
-          value={base_stats[statKey] || 0}
-          onChange={(e) => setBaseStat(statKey, e.target.value)}
-          min="0"
-          max={STAT_CAPS[statKey]}
+          value={base_stats[statKey] !== undefined ? base_stats[statKey] : 0}
+          onFocus={(e) => e.target.select()}
+          onChange={(e) => setBaseStat(statKey, e.target.value === '' ? '' : parseInt(e.target.value))}
+          onBlur={(e) => setBaseStat(statKey, Math.min(STAT_CAPS[statKey], Math.max(0, parseInt(e.target.value) || 0)))}
         />
       </div>
     );
@@ -177,7 +186,7 @@ export default function PlayerSetup() {
           <div className="mb-4">
             <label className="text-sm text-st-text-light block mb-1">Arch Level</label>
             <input 
-              type="text" inputMode="numeric" pattern="[0-9]*" className="st-input" 
+              type="number" className="st-input" 
               value={arch_level} 
               onFocus={(e) => e.target.select()}
               onChange={(e) => setSetting('arch_level', e.target.value === '' ? '' : parseInt(e.target.value))}
@@ -188,7 +197,7 @@ export default function PlayerSetup() {
           <div>
             <label className="text-sm text-st-text-light block mb-1">Max Floor Reached</label>
             <input 
-              type="text" inputMode="numeric" pattern="[0-9]*" className="st-input" 
+              type="number" className="st-input" 
               value={current_max_floor} 
               onFocus={(e) => e.target.select()}
               onChange={(e) => setSetting('current_max_floor', e.target.value === '' ? '' : parseInt(e.target.value))}
@@ -342,12 +351,12 @@ export default function PlayerSetup() {
                       </div>
 
                       <input 
-                        type="number" 
+                        type="number"
                         className="st-input"
                         value={current_lvl}
-                        onChange={(e) => setUpgradeLevel(id, e.target.value)}
-                        min="0"
-                        max={max_lvl}
+                        onFocus={(e) => e.target.select()}
+                        onChange={(e) => setUpgradeLevel(id, e.target.value === '' ? '' : parseInt(e.target.value))}
+                        onBlur={(e) => setUpgradeLevel(id, Math.min(max_lvl, Math.max(0, parseInt(e.target.value) || 0)))}
                       />
                     </div>
                   );
@@ -393,7 +402,15 @@ export default function PlayerSetup() {
                       </div>
 
                       {(group.ui_type === 'number' || group.ui_type === 'pet' || group.ui_type === 'card') && (
-                        <input type="number" className={`st-input ${group.id === 'geoduck' && !geoduck_unlocked ? 'opacity-30 cursor-not-allowed' : ''}`} value={current_val} disabled={group.id === 'geoduck' && !geoduck_unlocked} min={group.ui_type === 'pet' ? -1 : 0} max={group.max || 999} onChange={(e) => setExternalGroup(group.rows, e.target.value)} />
+                        <input 
+                          type="number"
+                          className={`st-input ${group.id === 'geoduck' && !geoduck_unlocked ? 'opacity-30 cursor-not-allowed' : ''}`} 
+                          value={current_val} 
+                          disabled={group.id === 'geoduck' && !geoduck_unlocked} 
+                          onFocus={(e) => e.target.select()}
+                          onChange={(e) => setExternalGroup(group.rows, e.target.value === '' ? '' : parseInt(e.target.value))} 
+                          onBlur={(e) => setExternalGroup(group.rows, Math.max(group.ui_type === 'pet' ? -1 : 0, parseInt(e.target.value) || 0))}
+                        />
                       )}
                       
                       {(group.ui_type === 'skill' || group.ui_type === 'bundle') && (
@@ -432,7 +449,7 @@ export default function PlayerSetup() {
                 <label className="font-bold text-sm block mb-1">Total Infernal Cards (Global)</label>
                 <span className="text-xs text-st-text-light block mb-2 leading-tight">Sum of all Infernal cards you own across all categories (Archaeology, Fishing, etc). Used for the Infernal Multiplier.</span>
                 <input 
-                  type="text" inputMode="numeric" pattern="[0-9]*"
+                  type="number"
                   className="st-input bg-st-bg" 
                   value={total_infernal_cards} 
                   onFocus={(e) => e.target.select()}
@@ -481,12 +498,12 @@ export default function PlayerSetup() {
                       </div>
 
                       <input 
-                        type="number" 
+                        type="number"
                         className="st-input p-1 text-sm"
                         value={is_locked ? 0 : user_tier}
-                        onChange={(e) => setCardLevel(card_id, e.target.value)}
-                        min="0"
-                        max={max_card_level}
+                        onFocus={(e) => e.target.select()}
+                        onChange={(e) => setCardLevel(card_id, e.target.value === '' ? '' : parseInt(e.target.value))}
+                        onBlur={(e) => setCardLevel(card_id, Math.min(max_card_level, Math.max(0, parseInt(e.target.value) || 0)))}
                         disabled={is_locked}
                       />
                     </div>
@@ -517,7 +534,13 @@ export default function PlayerSetup() {
                   </div>
                   <div className="w-full">
                     <hr className="border-st-border mb-4"/>
-                    <input type="number" className="st-input" value={external_levels[4] || 0} onChange={(e) => setExternalGroup([4], e.target.value)} min="0" />
+                    <input 
+                      type="number" className="st-input" 
+                      value={external_levels[4] !== undefined ? external_levels[4] : 0} 
+                      onFocus={(e) => e.target.select()}
+                      onChange={(e) => setExternalGroup([4], e.target.value === '' ? '' : parseInt(e.target.value))} 
+                      onBlur={(e) => setExternalGroup([4], Math.max(0, parseInt(e.target.value) || 0))}
+                    />
                   </div>
                 </div>
 
@@ -529,7 +552,7 @@ export default function PlayerSetup() {
                   <div className="w-full">
                     <hr className="border-st-border mb-4"/>
                     <input 
-                      type="text" inputMode="numeric" pattern="[0-9]*" className="st-input" 
+                      type="number" className="st-input" 
                       value={hades_idol_level} 
                       onFocus={(e) => e.target.select()}
                       onChange={(e) => setSetting('hades_idol_level', e.target.value === '' ? '' : parseInt(e.target.value))}

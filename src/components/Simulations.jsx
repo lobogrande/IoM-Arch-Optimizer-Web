@@ -721,11 +721,25 @@ export default function Simulations() {
                             <div className="grid grid-cols-2 gap-4 mb-4">
                               <div>
                                 <label className="block text-sm mb-1">Current EXP</label>
-                                <input type="number" value={curXp} onChange={(e) => setCurXp(parseFloat(e.target.value)||0)} className="st-input" min="0" step="1000"/>
+                                <input 
+                                  type="number" 
+                                  value={curXp} 
+                                  onFocus={(e) => e.target.select()}
+                                  onChange={(e) => setCurXp(e.target.value === '' ? '' : parseFloat(e.target.value))}
+                                  onBlur={(e) => setCurXp(Math.max(0, parseFloat(e.target.value) || 0))}
+                                  className="st-input"
+                                />
                               </div>
                               <div>
                                 <label className="block text-sm mb-1">Target EXP</label>
-                                <input type="number" value={tarXp} onChange={(e) => setTarXp(parseFloat(e.target.value)||0)} className="st-input" min="0" step="1000"/>
+                                <input 
+                                  type="number" 
+                                  value={tarXp} 
+                                  onFocus={(e) => e.target.select()}
+                                  onChange={(e) => setTarXp(e.target.value === '' ? '' : parseFloat(e.target.value))}
+                                  onBlur={(e) => setTarXp(Math.max(0, parseFloat(e.target.value) || 0))}
+                                  className="st-input"
+                                />
                               </div>
                             </div>
                             {tarXp > curXp && finalSum[runMetric] > 0 && (
@@ -1195,10 +1209,9 @@ export default function Simulations() {
                   <input
                     type="number"
                     value={lockedStats[stat] !== undefined ? lockedStats[stat] : store.base_stats[stat] || 0}
+                    onFocus={(e) => e.target.select()}
                     onChange={(e) => handleLockValueChange(stat, e.target.value)}
                     disabled={lockedStats[stat] === undefined}
-                    min="0"
-                    max={STAT_CAPS[stat]}
                     className="st-input disabled:opacity-50 disabled:cursor-not-allowed"
                   />
                 </div>
@@ -2037,15 +2050,15 @@ export default function Simulations() {
                       />
                       <input
                         type="number"
-                        value={store.sandbox_stats[stat] || 0}
-                        onChange={(e) => {
+                        value={store.sandbox_stats[stat] !== undefined ? store.sandbox_stats[stat] : 0}
+                        onFocus={(e) => e.target.select()}
+                        onChange={(e) => store.setSandboxStat(stat, e.target.value === '' ? '' : parseInt(e.target.value))}
+                        onBlur={(e) => {
                           let parsed = parseInt(e.target.value) || 0;
                           if (parsed > STAT_CAPS[stat]) parsed = STAT_CAPS[stat];
                           if (parsed < 0) parsed = 0;
                           store.setSandboxStat(stat, parsed);
                         }}
-                        min="0"
-                        max={STAT_CAPS[stat]}
                         className="st-input p-1 text-sm h-8"
                       />
                     </div>
@@ -2059,18 +2072,22 @@ export default function Simulations() {
                   <div>
                     <label className="block mb-1">Target Floor:</label>
                     <input 
-                      type="number" 
+                      type="number"
                       value={store.sandbox_floor || store.current_max_floor}
-                      onChange={(e) => store.setSimsState('sandbox_floor', Math.max(1, parseInt(e.target.value) || 1))}
+                      onFocus={(e) => e.target.select()}
+                      onChange={(e) => store.setSimsState('sandbox_floor', e.target.value === '' ? '' : parseInt(e.target.value))}
+                      onBlur={(e) => store.setSimsState('sandbox_floor', Math.max(1, parseInt(e.target.value) || 1))}
                       className="st-input h-8" 
                     />
                   </div>
                   <div>
                     <label className="block mb-1">Min Avg Hits to Kill:</label>
                     <input 
-                      type="number" 
+                      type="number"
                       value={sandboxMinHits}
-                      onChange={(e) => setSandboxMinHits(Math.max(1, parseInt(e.target.value) || 1))}
+                      onFocus={(e) => e.target.select()}
+                      onChange={(e) => setSandboxMinHits(e.target.value === '' ? '' : parseInt(e.target.value))}
+                      onBlur={(e) => setSandboxMinHits(Math.max(1, parseInt(e.target.value) || 1))}
                       className="st-input h-8" 
                     />
                   </div>

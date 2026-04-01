@@ -83,3 +83,14 @@ hr {
   opacity: 1;
   display: block;
 }
+
+/* Prevent iOS Safari from auto-zooming when tapping inputs */
+@media screen and (max-width: 768px) {
+  input[type="text"], 
+  input[type="number"], 
+  select, 
+  textarea, 
+  .st-input {
+    font-size: 16px !important;
+  }
+}
