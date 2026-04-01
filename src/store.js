@@ -137,7 +137,6 @@ const useStore = create(
       if (data.settings.arch_level !== undefined) newState.arch_level = data.settings.arch_level;
       if (data.settings.current_max_floor !== undefined) newState.current_max_floor = data.settings.current_max_floor;
       if (data.settings.total_infernal_cards !== undefined) newState.total_infernal_cards = data.settings.total_infernal_cards;
-      if (data.settings.geoduck_unlocked !== undefined) newState.geoduck_unlocked = data.settings.geoduck_unlocked;
       
       // Legacy Fallback for older JSON files
       if (data.settings.hades_idol_level !== undefined) newState.hades_idol_level = data.settings.hades_idol_level;
@@ -177,8 +176,10 @@ const useStore = create(
         newState.hades_idol_level = parseInt(data.external_upgrades["Hades Idol"]) || 0;
       }
 
-      // Legacy Fallback to auto-check Geoduck if an older JSON file had chests > 0
-      if (data.external_upgrades["Geoduck Tribute"] !== undefined && parseInt(data.external_upgrades["Geoduck Tribute"]) > 0) {
+      // Parse Geoduck Unlock from external block, with legacy fallback
+      if (data.external_upgrades["Geoduck Unlocked"] !== undefined) {
+        newState.geoduck_unlocked = !!data.external_upgrades["Geoduck Unlocked"];
+      } else if (data.external_upgrades["Geoduck Tribute"] !== undefined && parseInt(data.external_upgrades["Geoduck Tribute"]) > 0) {
         newState.geoduck_unlocked = true;
       }
       

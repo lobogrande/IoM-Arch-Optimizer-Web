@@ -84,6 +84,7 @@ export default function PlayerSetup() {
         external_upgrades["Hades Idol"] = state.hades_idol_level || 0;
       }
     });
+    external_upgrades["Geoduck Unlocked"] = !!state.geoduck_unlocked;
     external_upgrades["Arch Ability Infernal Bonus"] = parseFloat(state.arch_ability_infernal_bonus) / 100.0 || 0.0;
 
     // 3. Strictly Order Cards (Dirt1 -> Div4) (Export ALL, default to 0)
@@ -101,8 +102,7 @@ export default function PlayerSetup() {
         asc2_unlocked: state.asc2_unlocked,
         arch_level: state.arch_level,
         current_max_floor: state.current_max_floor,
-        total_infernal_cards: state.total_infernal_cards,
-        geoduck_unlocked: state.geoduck_unlocked
+        total_infernal_cards: state.total_infernal_cards
       },
       base_stats: state.base_stats,
       internal_upgrades: internal_upgrades,
@@ -369,11 +369,11 @@ export default function PlayerSetup() {
                         
                         {group.id === 'geoduck' && (
                           <>
-                            <label className="flex items-center gap-2 cursor-pointer font-bold mb-1 text-sm mt-2">
-                              <input type="checkbox" checked={geoduck_unlocked} onChange={(e) => setSetting('geoduck_unlocked', e.target.checked)} className="w-4 h-4 accent-st-orange" />
-                              Fish Captured
+                            <label className="flex items-start gap-2 cursor-pointer font-bold mb-1 text-xs mt-2 text-left leading-tight">
+                              <input type="checkbox" checked={geoduck_unlocked} onChange={(e) => setSetting('geoduck_unlocked', e.target.checked)} className="w-4 h-4 accent-st-orange shrink-0 mt-0.5" />
+                              <span>Geoduck Leg Fish T1 Tribute Completed</span>
                             </label>
-                            <span className="text-xs text-st-text-light -mt-1 text-center">Enter Number of Mythic Chests Opened</span>
+                            <span className="text-xs text-st-text-light mt-1 text-center">Enter Number of Mythic Chests Opened</span>
                           </>
                         )}
                       </div>
