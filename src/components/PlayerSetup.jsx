@@ -326,8 +326,8 @@ export default function PlayerSetup() {
                   if (!asc1_unlocked && ASC1_LOCKED_UPGS.includes(id)) return null;
                   if (!asc2_unlocked && ASC2_LOCKED_UPGS.includes(id)) return null;
                   
-                  const currentArchLvl = Number(arch_level) || 1;
-                  if (currentArchLvl < (UPGRADE_LEVEL_REQS[id] || 0)) return null;
+                  const currentFloor = Number(current_max_floor) || 1;
+                  if (currentFloor < (UPGRADE_LEVEL_REQS[id] || 0)) return null;
                   
                   const current_lvl = upgrade_levels[id] || 0;
                   if (hideMaxed && current_lvl >= max_lvl) return null;
