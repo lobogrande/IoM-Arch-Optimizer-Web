@@ -33,7 +33,7 @@ export default function Welcome({ setActiveTab }) {
             <span className="text-lg">🥤</span> Buy the Dev a Smoothie
           </a>
           <span className="text-xs text-blue-700/80 italic">
-            (This tool is 100% free and open-source forever, but tips help keep the late-night coding sessions going!)
+            (This tool is 100% free and open-source forever. Any tips go directly toward offsetting the out-of-pocket costs of the AI tools used to build it!)
           </span>
         </div>
       </div>

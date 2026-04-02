@@ -131,7 +131,7 @@ export default function About() {
               <span className="text-2xl">🥤</span> Support the Developer
             </h4>
             <p className="text-st-text-light text-sm mb-4">
-              This optimizer is entirely free to use and runs locally in your browser with zero ads. If it helped you break through a progression wall or saved you hours of guessing, consider sending a tip!
+              This optimizer is a passion project built for the community—it's completely free, open-source, and has zero ads. While server hosting is free, the development journey did rack up some real-world costs for the AI tools used to build the engine. If this app has helped you break through a progression wall, any support to help offset those initial expenses is incredibly appreciated!
             </p>
             <a 
               href="https://ko-fi.com/lobogrande" 
