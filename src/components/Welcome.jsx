@@ -22,6 +22,20 @@ export default function Welcome({ setActiveTab }) {
         <p>
           My goal is simple: to give you a tool that completely eliminates the guesswork. Whether you are an early-game player trying to farm your first Block Cards, or deep into Ascensions pushing for a new Max Floor, this engine crunches the numbers to find the absolute best setup for your exact character. I sincerely hope it helps you crush those progression walls and makes your mining journey that much more fun!
         </p>
+        
+        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 pt-4 border-t border-blue-200/50 mt-2">
+          <a 
+            href="https://ko-fi.com/lobogrande" 
+            target="_blank" 
+            rel="noopener noreferrer"
+            className="inline-flex items-center justify-center gap-2 px-4 py-2 bg-[#FF5E5B] text-white font-bold rounded-lg shadow hover:bg-[#E05350] transition-transform hover:-translate-y-0.5"
+          >
+            <span className="text-lg">🥤</span> Buy the Dev a Smoothie
+          </a>
+          <span className="text-xs text-blue-700/80 italic">
+            (This tool is 100% free and open-source forever, but tips help keep the late-night coding sessions going!)
+          </span>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-5 gap-6">
