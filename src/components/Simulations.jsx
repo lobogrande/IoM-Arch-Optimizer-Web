@@ -2106,7 +2106,7 @@ export default function Simulations() {
 
             {/* RIGHT PANEL: DATA TABLE */}
             <div className="lg:col-span-3">
-              <div className="flex flex-col md:flex-row gap-4 justify-between items-end mb-4">
+              <div className="flex flex-col md:flex-row gap-4 justify-between items-start md:items-end mb-4">
                 <div className="w-full md:w-1/2">
                   <label className="block font-bold mb-1">🎯 Target Breakpoints</label>
                   <select 
@@ -2118,8 +2118,13 @@ export default function Simulations() {
                     {uniqueBlockNames.map(name => <option key={name} value={name}>{name}</option>)}
                   </select>
                 </div>
-                <div className="flex items-center space-x-2">
-                  <label className="flex items-center space-x-2 cursor-pointer bg-st-secondary px-3 py-2 border border-st-border rounded hover:border-st-orange transition-colors text-sm">
+                
+                <div className="w-full md:w-1/2 flex flex-col items-start md:items-end space-y-3">
+                  <div className="text-xs text-st-text-light text-left md:text-right">
+                    <div><strong>Avg Hits:</strong> Number of hits to destroy the block based on EDPS (Average Damage over time).</div>
+                    <div><strong>Max Hits:</strong> Number of hits to destroy the block based purely on Regular (Non-Crit) damage.</div>
+                  </div>
+                  <label className="flex items-center justify-center w-full md:w-auto space-x-2 cursor-pointer bg-st-secondary px-3 py-2 border border-st-border rounded hover:border-st-orange transition-colors text-sm">
                     <input 
                       type="checkbox" 
                       checked={sandboxShowCrits}
