@@ -2146,31 +2146,55 @@ export default function Simulations() {
 
               <div className={`border border-st-border rounded bg-st-bg h-[600px] w-full ${store.theme === 'dark' ? 'ag-theme-quartz-dark' : 'ag-theme-quartz'}`}>
                 <style>{`
-                  /* 🎨 NUCLEAR OPTION: Inject exact hex colors to bypass Tailwind v4 scope */
+                  /* ☢️ ABSOLUTE NUCLEAR OPTION: Target AG Grid's structural DOM elements directly */
                   .ag-theme-quartz, .ag-theme-quartz-dark {
                     --ag-background-color: ${store.theme === 'dark' ? '#0E1117' : '#FFFFFF'} !important;
                     --ag-foreground-color: ${store.theme === 'dark' ? '#FAFAFA' : '#31333F'} !important;
                     --ag-header-background-color: ${store.theme === 'dark' ? '#262730' : '#F0F2F6'} !important;
                     --ag-header-foreground-color: ${store.theme === 'dark' ? '#FAFAFA' : '#31333F'} !important;
-                    --ag-border-color: ${store.theme === 'dark' ? 'rgba(250, 250, 250, 0.2)' : 'rgba(49, 51, 63, 0.2)'} !important;
-                    --ag-row-border-color: ${store.theme === 'dark' ? 'rgba(250, 250, 250, 0.2)' : 'rgba(49, 51, 63, 0.2)'} !important;
-                    --ag-row-hover-color: ${store.theme === 'dark' ? '#262730' : '#F0F2F6'} !important;
+                    --ag-border-color: ${store.theme === 'dark' ? 'rgba(250, 250, 250, 0.15)' : 'rgba(49, 51, 63, 0.15)'} !important;
                   }
 
-                  /* Force Row Backgrounds just in case AG Grid ignores the variables */
-                  .ag-theme-quartz .ag-row, .ag-theme-quartz-dark .ag-row {
+                  /* 1. Fix the empty right-side background & global wrapper */
+                  .ag-theme-quartz .ag-root-wrapper,
+                  .ag-theme-quartz-dark .ag-root-wrapper,
+                  .ag-theme-quartz .ag-body-viewport,
+                  .ag-theme-quartz-dark .ag-body-viewport {
+                    background-color: ${store.theme === 'dark' ? '#0E1117' : '#FFFFFF'} !important;
+                  }
+
+                  /* 2. Fix the Headers (White with black text issue) */
+                  .ag-theme-quartz .ag-header,
+                  .ag-theme-quartz-dark .ag-header {
+                    background-color: ${store.theme === 'dark' ? '#262730' : '#F0F2F6'} !important;
+                    color: ${store.theme === 'dark' ? '#FAFAFA' : '#31333F'} !important;
+                    border-bottom: 1px solid ${store.theme === 'dark' ? 'rgba(250, 250, 250, 0.15)' : 'rgba(49, 51, 63, 0.15)'} !important;
+                  }
+
+                  /* 3. Fix the Rows */
+                  .ag-theme-quartz .ag-row,
+                  .ag-theme-quartz-dark .ag-row {
                     background-color: ${store.theme === 'dark' ? '#0E1117' : '#FFFFFF'} !important;
                     color: ${store.theme === 'dark' ? '#FAFAFA' : '#31333F'} !important;
+                    border-bottom: 1px solid ${store.theme === 'dark' ? 'rgba(250, 250, 250, 0.1)' : 'rgba(49, 51, 63, 0.1)'} !important;
+                  }
+                  .ag-theme-quartz .ag-row:hover,
+                  .ag-theme-quartz-dark .ag-row:hover {
+                    background-color: ${store.theme === 'dark' ? '#262730' : '#F0F2F6'} !important;
                   }
 
+                  /* 4. Fix the Dashed Vertical Lines & Centering */
                   .ag-theme-quartz .ag-header-cell, .ag-theme-quartz .ag-cell,
                   .ag-theme-quartz-dark .ag-header-cell, .ag-theme-quartz-dark .ag-cell {
-                    border-right: 1px solid ${store.theme === 'dark' ? 'rgba(250, 250, 250, 0.2)' : 'rgba(49, 51, 63, 0.2)'} !important;
+                    border-right: 1px solid ${store.theme === 'dark' ? 'rgba(250, 250, 250, 0.15)' : 'rgba(49, 51, 63, 0.15)'} !important;
+                    border-left: none !important; /* Prevents overlapping dashed effect */
                   }
+
                   /* Force Headers to Center */
                   .ag-theme-quartz .ag-header-cell-label,
                   .ag-theme-quartz-dark .ag-header-cell-label {
                     justify-content: center !important;
+                    color: ${store.theme === 'dark' ? '#FAFAFA' : '#31333F'} !important;
                   }
                   /* Force Cells to Center */
                   .ag-theme-quartz .ag-cell,
