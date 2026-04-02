@@ -14,7 +14,7 @@ export default function Welcome({ setActiveTab }) {
   return (
     <div className="space-y-6 animate-fade-in">
       {/* Dev Note (Styled exactly like the Calculated Stats Info box) */}
-      <div className="p-4 bg-blue-50 border-l-4 border-blue-400 text-blue-800 rounded shadow-sm text-sm">
+      <div className="p-4 bg-blue-50 dark:bg-blue-900/20 border-l-4 border-blue-400 dark:border-blue-500 text-blue-800 dark:text-blue-200 rounded shadow-sm text-sm">
         <h3 className="text-lg font-bold mb-2">📝 A note from the developer...</h3>
         <p className="mb-2">
           Welcome! I built this optimizer because Idle Obelisk Miner's stat mechanics are surprisingly deep. With so many upgrade paths and play styles, figuring out the perfect stat distribution often feels like taking a shot in the dark.
@@ -22,6 +22,20 @@ export default function Welcome({ setActiveTab }) {
         <p>
           My goal is simple: to give you a tool that completely eliminates the guesswork. Whether you are an early-game player trying to farm your first Block Cards, or deep into Ascensions pushing for a new Max Floor, this engine crunches the numbers to find the absolute best setup for your exact character. I sincerely hope it helps you crush those progression walls and makes your mining journey that much more fun!
         </p>
+        
+        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 pt-4 border-t border-blue-200/50 mt-2">
+          <a 
+            href="https://ko-fi.com/lobogrande" 
+            target="_blank" 
+            rel="noopener noreferrer"
+            className="inline-flex items-center justify-center gap-2 px-4 py-2 bg-[#FF5E5B] text-white font-bold rounded-lg shadow hover:bg-[#E05350] transition-transform hover:-translate-y-0.5"
+          >
+            <span className="text-lg">🥤</span> Buy the Dev a Smoothie
+          </a>
+          <span className="text-xs text-blue-700/80 italic">
+            (This tool is 100% free and open-source forever. Any tips go directly toward offsetting the out-of-pocket costs of the AI tools used to build it!)
+          </span>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-5 gap-6">
@@ -86,7 +100,7 @@ export default function Welcome({ setActiveTab }) {
         <div className="flex justify-end">
           <button 
             onClick={() => { resetState(); setActiveTab('setup'); }}
-            className="w-full md:w-auto px-8 py-3 border border-red-200 bg-red-50 hover:bg-red-100 hover:border-red-400 transition-colors rounded-lg text-center text-red-800 font-medium shadow-sm cursor-pointer"
+            className="w-full md:w-auto px-8 py-3 border border-red-200 dark:border-red-800/50 bg-red-50 dark:bg-red-900/20 hover:bg-red-100 dark:hover:bg-red-900/40 hover:border-red-400 dark:hover:border-red-600 transition-colors rounded-lg text-center text-red-800 dark:text-red-400 font-medium shadow-sm cursor-pointer"
           >
             🗑️ Factory Reset (Wipe All Data)
           </button>

@@ -10,6 +10,16 @@
   --color-st-orange: #ffa229;
 }
 
+/* 🌙 Dark Mode Overrides */
+.dark {
+  --color-st-bg: #0E1117;
+  --color-st-secondary: #262730;
+  --color-st-text: #FAFAFA;
+  --color-st-text-light: #A3A8B8;
+  --color-st-border: rgba(250, 250, 250, 0.2);
+  /* Note: st-orange remains exactly the same because it pops perfectly on dark! */
+}
+
 body {
   background-color: var(--color-st-bg);
   color: var(--color-st-text);

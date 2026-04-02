@@ -125,6 +125,24 @@ export default function About() {
             </div>
           </div>
 
+          {/* --- TIP JAR --- */}
+          <div className="st-container border-l-4 border-l-[#FF5E5B]">
+            <h4 className="text-xl font-bold mb-2 flex items-center gap-2">
+              <span className="text-2xl">🥤</span> Support the Developer
+            </h4>
+            <p className="text-st-text-light text-sm mb-4">
+              This optimizer is a passion project built for the community—it's completely free, open-source, and has zero ads. While server hosting is free, the development journey did rack up some real-world costs for the AI tools used to build the engine. If this app has helped you break through a progression wall, any support to help offset those initial expenses is incredibly appreciated!
+            </p>
+            <a 
+              href="https://ko-fi.com/lobogrande" 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="block w-full text-center bg-[#FF5E5B] text-white py-2 rounded font-bold hover:bg-[#E05350] transition-colors shadow-sm"
+            >
+              Buy me a Smoothie on Ko-fi
+            </a>
+          </div>
+
           {/* Source Code */}
           <div className="st-container">
             <h4 className="text-xl font-bold mb-2">📂 Source Code & Documentation</h4>
@@ -228,7 +246,7 @@ export default function About() {
                   type="file" 
                   multiple 
                   accept=".png,.jpg,.jpeg,.json"
-                  className="block w-full text-sm text-st-text-light file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:font-semibold file:bg-st-secondary file:text-st-text hover:file:bg-gray-200 cursor-pointer transition-colors"
+                  className="block w-full text-sm text-st-text-light file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:font-semibold file:bg-st-secondary file:text-st-text hover:file:bg-black/10 dark:hover:file:bg-white/10 cursor-pointer transition-colors"
                   onChange={(e) => setFiles(e.target.files)}
                 />
                 {files.length > 0 && (

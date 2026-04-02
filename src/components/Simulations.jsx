@@ -28,6 +28,8 @@ const FRAG_NAMES = {
 
 export default function Simulations() {
   const store = useStore();
+  const chartFontColor = store.theme === 'dark' ? '#A3A8B8' : '#7D808D';
+  const chartGridColor = store.theme === 'dark' ? 'rgba(250,250,250,0.1)' : 'rgba(49,51,63,0.1)';
   const [activeSubTab, setActiveSubTab] = useState('optimizer');
   
   // Optimizer Settings State (Persisted in Zustand)
@@ -773,6 +775,7 @@ export default function Simulations() {
                         line: { color: '#4CAF50' }, marker: { size: 10 }
                       }]}
                       layout={{
+                        font: { color: store.theme === 'dark' ? '#FAFAFA' : '#31333F' },
                         paper_bgcolor: 'rgba(0,0,0,0)', plot_bgcolor: 'rgba(0,0,0,0)',
                         margin: { t: 10, b: 30, l: 40, r: 20 },
                         height: 250
@@ -796,6 +799,7 @@ export default function Simulations() {
                         marker: { color:["#ff4b4b", "#ffa229", "#6495ED", "#4CAF50"] }
                       }]}
                       layout={{
+                        font: { color: store.theme === 'dark' ? '#FAFAFA' : '#31333F' },
                         paper_bgcolor: 'rgba(0,0,0,0)', plot_bgcolor: 'rgba(0,0,0,0)',
                         margin: { t: 10, b: 30, l: 100, r: 20 },
                         height: 250
@@ -907,6 +911,7 @@ export default function Simulations() {
                       marker: { color:['#636EFA', '#EF553B', '#00CC96', '#AB63FA', '#FFA15A', '#19D3F3', '#FF6692'] }
                     }]}
                     layout={{
+                      font: { color: store.theme === 'dark' ? '#FAFAFA' : '#31333F' },
                       paper_bgcolor: 'rgba(0,0,0,0)', plot_bgcolor: 'rgba(0,0,0,0)',
                       margin: { t: 20, b: 40, l: 40, r: 20 }
                     }}
@@ -929,10 +934,11 @@ export default function Simulations() {
                       textposition: 'outside'
                     } ]}
                     layout={{
+                      font: { color: store.theme === 'dark' ? '#FAFAFA' : '#31333F' },
                       title: 'Death Distribution (Progression Wall)',
                       paper_bgcolor: 'rgba(0,0,0,0)', plot_bgcolor: 'rgba(0,0,0,0)',
                       margin: { t: 40, b: 40, l: 40, r: 20 },
-                      xaxis: { type: 'category', title: 'Floor' }, yaxis: { title: 'Deaths' }
+                      xaxis: { type: 'category', title: 'Floor', color: chartFontColor, gridcolor: chartGridColor }, yaxis: { title: 'Deaths', color: chartFontColor, gridcolor: chartGridColor }
                     }}
                     useResizeHandler={true} style={{ width: '100%', height: '100%' }} config={{ displayModeBar: false }}
                   />
@@ -947,10 +953,11 @@ export default function Simulations() {
                         line: { color: '#ffa229' }, fillcolor: 'rgba(255, 162, 41, 0.2)'
                       } ]}
                       layout={{
+                        font: { color: store.theme === 'dark' ? '#FAFAFA' : '#31333F' },
                         title: 'Stamina Depletion Trace (Sample Run)',
                         paper_bgcolor: 'rgba(0,0,0,0)', plot_bgcolor: 'rgba(0,0,0,0)',
                         margin: { t: 40, b: 40, l: 40, r: 20 },
-                        xaxis: { title: 'Floor Level' }, yaxis: { title: 'Stamina Remaining' }
+                        xaxis: { title: 'Floor Level', color: chartFontColor, gridcolor: chartGridColor }, yaxis: { title: 'Stamina Remaining', color: chartFontColor, gridcolor: chartGridColor }
                       }}
                       useResizeHandler={true} style={{ width: '100%', height: '100%' }} config={{ displayModeBar: false }}
                     />
@@ -1167,7 +1174,7 @@ export default function Simulations() {
           </div>
 
           {/* Strategy Tip */}
-          <div className="bg-blue-900/20 border-l-4 border-blue-500 p-3 rounded text-sm text-blue-800 bg-blue-50 mt-4">
+          <div className="bg-blue-50 dark:bg-blue-900/20 border-l-4 border-blue-400 dark:border-blue-500 p-3 rounded text-sm text-blue-800 dark:text-blue-200 mt-4">
             {optGoal === "Max Floor Push" ? (
               <p>💡 <strong>Strategy Tip:</strong> Pushing deep floors requires balancing Damage, Armor Pen, Max Stamina and Crits. To force the AI to scan at an extreme precision, try opening the <strong>Stat Constraints</strong> below and locking <strong>Intelligence</strong> to 0 and <strong>Luck</strong> to your max stat cap!</p>
             ) : (
@@ -1303,7 +1310,7 @@ export default function Simulations() {
           <hr className="border-st-border" />
 
           {/* Run Warning */}
-          <div className="bg-yellow-900/20 border-l-4 border-yellow-500 p-3 rounded text-sm text-yellow-800 bg-yellow-50 mb-4">
+          <div className="bg-yellow-900/20 border-l-4 border-yellow-500 p-3 rounded text-sm text-yellow-800 dark:text-yellow-200 bg-yellow-50 dark:bg-yellow-900/20 dark:text-yellow-200 mb-4">
             ⚠️ <strong>CRITICAL:</strong> Unlike the old server version, you <strong>CAN</strong> safely change tabs while the AI is running! However, do not refresh or close this browser window or the simulation will be aborted.
           </div>
 
@@ -1903,6 +1910,7 @@ export default function Simulations() {
                             textposition: 'outside'
                           } ]}
                           layout={{
+                            font: { color: store.theme === 'dark' ? '#FAFAFA' : '#31333F' },
                             paper_bgcolor: 'rgba(0,0,0,0)', plot_bgcolor: 'rgba(0,0,0,0)',
                             margin: { t: 20, b: 40, l: 40, r: 20 }
                           }}
@@ -2106,7 +2114,7 @@ export default function Simulations() {
 
             {/* RIGHT PANEL: DATA TABLE */}
             <div className="lg:col-span-3">
-              <div className="flex flex-col md:flex-row gap-4 justify-between items-end mb-4">
+              <div className="flex flex-col md:flex-row gap-4 justify-between items-start md:items-end mb-4">
                 <div className="w-full md:w-1/2">
                   <label className="block font-bold mb-1">🎯 Target Breakpoints</label>
                   <select 
@@ -2118,8 +2126,13 @@ export default function Simulations() {
                     {uniqueBlockNames.map(name => <option key={name} value={name}>{name}</option>)}
                   </select>
                 </div>
-                <div className="flex items-center space-x-2">
-                  <label className="flex items-center space-x-2 cursor-pointer bg-st-secondary px-3 py-2 border border-st-border rounded hover:border-st-orange transition-colors text-sm">
+                
+                <div className="w-full md:w-1/2 flex flex-col items-start md:items-end space-y-3">
+                  <div className="text-xs text-st-text-light text-left md:text-right">
+                    <div><strong>Avg Hits:</strong> Number of hits to destroy the block based on EDPS (Average Damage over time).</div>
+                    <div><strong>Max Hits:</strong> Number of hits to destroy the block based purely on Regular (Non-Crit) damage.</div>
+                  </div>
+                  <label className="flex items-center justify-center w-full md:w-auto space-x-2 cursor-pointer bg-st-secondary px-3 py-2 border border-st-border rounded hover:border-st-orange transition-colors text-sm">
                     <input 
                       type="checkbox" 
                       checked={sandboxShowCrits}
@@ -2131,18 +2144,70 @@ export default function Simulations() {
                 </div>
               </div>
 
-              <div className="ag-theme-quartz border border-st-border rounded bg-st-bg h-[600px] w-full">
-                <style>{`
-                  .ag-theme-quartz .ag-header-cell, 
-                  .ag-theme-quartz .ag-cell {
-                    border-right: 1px solid var(--color-st-border) !important;
+              <div 
+                className={`border border-st-border rounded bg-st-bg h-[600px] w-full outline-none ${store.theme === 'dark' ? 'ag-theme-quartz-dark' : 'ag-theme-quartz'}`}
+                tabIndex={-1}
+                onMouseEnter={(e) => {
+                  // Silently focus the table so the mouse wheel works instantly without clicking!
+                  if (!e.currentTarget.contains(document.activeElement)) {
+                    e.currentTarget.focus();
                   }
-                  /* Force Headers to Center (Removed width:100% to fix AG Grid width-measuring bug) */
-                  .ag-theme-quartz .ag-header-cell-label {
+                }}
+              >
+                <style>{`
+                  /* ☢️ ABSOLUTE NUCLEAR OPTION: Target AG Grid's structural DOM elements directly */
+                  .ag-theme-quartz, .ag-theme-quartz-dark {
+                    --ag-background-color: ${store.theme === 'dark' ? '#0E1117' : '#FFFFFF'} !important;
+                    --ag-foreground-color: ${store.theme === 'dark' ? '#FAFAFA' : '#31333F'} !important;
+                    --ag-header-background-color: ${store.theme === 'dark' ? '#262730' : '#F0F2F6'} !important;
+                    --ag-header-foreground-color: ${store.theme === 'dark' ? '#FAFAFA' : '#31333F'} !important;
+                    --ag-border-color: ${store.theme === 'dark' ? 'rgba(250, 250, 250, 0.15)' : 'rgba(49, 51, 63, 0.15)'} !important;
+                  }
+
+                  /* 1. Fix the empty right-side background & global wrapper */
+                  .ag-theme-quartz .ag-root-wrapper,
+                  .ag-theme-quartz-dark .ag-root-wrapper,
+                  .ag-theme-quartz .ag-body-viewport,
+                  .ag-theme-quartz-dark .ag-body-viewport {
+                    background-color: ${store.theme === 'dark' ? '#0E1117' : '#FFFFFF'} !important;
+                  }
+
+                  /* 2. Fix the Headers (White with black text issue) */
+                  .ag-theme-quartz .ag-header,
+                  .ag-theme-quartz-dark .ag-header {
+                    background-color: ${store.theme === 'dark' ? '#262730' : '#F0F2F6'} !important;
+                    color: ${store.theme === 'dark' ? '#FAFAFA' : '#31333F'} !important;
+                    border-bottom: 1px solid ${store.theme === 'dark' ? 'rgba(250, 250, 250, 0.15)' : 'rgba(49, 51, 63, 0.15)'} !important;
+                  }
+
+                  /* 3. Fix the Rows */
+                  .ag-theme-quartz .ag-row,
+                  .ag-theme-quartz-dark .ag-row {
+                    background-color: ${store.theme === 'dark' ? '#0E1117' : '#FFFFFF'} !important;
+                    color: ${store.theme === 'dark' ? '#FAFAFA' : '#31333F'} !important;
+                    border-bottom: 1px solid ${store.theme === 'dark' ? 'rgba(250, 250, 250, 0.1)' : 'rgba(49, 51, 63, 0.1)'} !important;
+                  }
+                  .ag-theme-quartz .ag-row:hover,
+                  .ag-theme-quartz-dark .ag-row:hover {
+                    background-color: ${store.theme === 'dark' ? '#262730' : '#F0F2F6'} !important;
+                  }
+
+                  /* 4. Fix the Dashed Vertical Lines & Centering */
+                  .ag-theme-quartz .ag-header-cell, .ag-theme-quartz .ag-cell,
+                  .ag-theme-quartz-dark .ag-header-cell, .ag-theme-quartz-dark .ag-cell {
+                    border-right: 1px solid ${store.theme === 'dark' ? 'rgba(250, 250, 250, 0.15)' : 'rgba(49, 51, 63, 0.15)'} !important;
+                    border-left: none !important; /* Prevents overlapping dashed effect */
+                  }
+
+                  /* Force Headers to Center */
+                  .ag-theme-quartz .ag-header-cell-label,
+                  .ag-theme-quartz-dark .ag-header-cell-label {
                     justify-content: center !important;
+                    color: ${store.theme === 'dark' ? '#FAFAFA' : '#31333F'} !important;
                   }
                   /* Force Cells to Center */
-                  .ag-theme-quartz .ag-cell {
+                  .ag-theme-quartz .ag-cell,
+                  .ag-theme-quartz-dark .ag-cell {
                     display: flex !important;
                     align-items: center !important;
                     justify-content: center !important;

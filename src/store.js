@@ -6,6 +6,7 @@ const useStore = create(
   persist(
     (set) => ({
       // Global Settings
+  theme: 'dark',
   asc1_unlocked: true,
   asc2_unlocked: false,
   arch_level: 45,
@@ -116,6 +117,7 @@ const useStore = create(
   setSandboxStat: (stat, value) => set((state) => ({ sandbox_stats: { ...state.sandbox_stats, [stat]: parseInt(value) || 0 } })),
   setSandboxStats: (newStats) => set((state) => ({ sandbox_stats: { ...state.sandbox_stats, ...newStats } })),
   setSandboxCalculatedStats: (stats) => set({ sandbox_calculated_stats: stats }),
+  toggleTheme: () => set((state) => ({ theme: state.theme === 'dark' ? 'light' : 'dark' })),
   
   // Wipe all data to default baseline
   resetState: () => set({

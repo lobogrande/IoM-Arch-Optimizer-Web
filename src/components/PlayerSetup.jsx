@@ -10,7 +10,7 @@ import {
 import { INTERNAL_UPGRADE_CAPS, UPGRADE_NAMES, ASC1_LOCKED_UPGS, ASC2_LOCKED_UPGS, CARD_TYPES, EXTERNAL_UI_GROUPS, UPGRADE_LEVEL_REQS } from '../game_data';
 
 export default function PlayerSetup() {
-  const { asc1_unlocked, asc2_unlocked, arch_level, current_max_floor, base_stats, upgrade_levels, external_levels, cards, arch_ability_infernal_bonus, total_infernal_cards, hades_idol_level, geoduck_unlocked, calculated_stats, setSetting, setBaseStat, setUpgradeLevel, setCardLevel, setExternalGroup, loadStateFromJson } = useStore();
+  const { asc1_unlocked, asc2_unlocked, arch_level, current_max_floor, base_stats, upgrade_levels, external_levels, cards, arch_ability_infernal_bonus, total_infernal_cards, hades_idol_level, geoduck_unlocked, calculated_stats, setSetting, setBaseStat, setUpgradeLevel, setCardLevel, setExternalGroup, loadStateFromJson, setSandboxStat } = useStore();
   const[activeSubTab, setActiveSubTab] = useState('stats');
   const[hideMaxed, setHideMaxed] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
@@ -286,6 +286,22 @@ export default function PlayerSetup() {
               {renderStat("Divine", "Div")}
               {renderStat("Corruption", "Corr")}
             </div>
+
+            <div className="mt-6">
+              <button 
+                onClick={(e) => {['Str', 'Agi', 'Per', 'Int', 'Luck', 'Div', 'Corr'].forEach(s => {
+                    if (setSandboxStat) setSandboxStat(s, base_stats[s] || 0);
+                  });
+                  const btn = e.target;
+                  const originalText = btn.innerText;
+                  btn.innerText = "✅ Sent to Sandbox!";
+                  setTimeout(() => { btn.innerText = originalText; }, 2000);
+                }}
+                className="w-full py-2 bg-[#2b2b2b] border border-st-orange text-st-orange font-bold rounded hover:bg-st-orange hover:text-[#2b2b2b] transition-colors"
+              >
+                🧪 Send Current Stats to Sandbox
+              </button>
+            </div>
           </div>
         )}
 
@@ -294,9 +310,9 @@ export default function PlayerSetup() {
           <div>
             <div className="flex flex-col gap-4 mb-4">
               
-              <div className="flex bg-st-secondary rounded-lg p-1 w-fit">
-                <button onClick={() => setUpgradeView('internal')} className={`px-4 py-1 text-sm font-bold rounded-md transition-colors ${upgradeView === 'internal' ? 'bg-white text-st-text shadow-sm' : 'text-st-text-light hover:text-st-text'}`}>Internal</button>
-                <button onClick={() => setUpgradeView('external')} className={`px-4 py-1 text-sm font-bold rounded-md transition-colors ${upgradeView === 'external' ? 'bg-white text-st-text shadow-sm' : 'text-st-text-light hover:text-st-text'}`}>External</button>
+              <div className="flex bg-st-secondary rounded-lg p-1 w-fit border border-st-border">
+                <button onClick={() => setUpgradeView('internal')} className={`px-4 py-1 text-sm font-bold rounded-md transition-colors ${upgradeView === 'internal' ? 'bg-st-bg text-st-text shadow-sm' : 'text-st-text-light hover:text-st-text'}`}>Internal</button>
+                <button onClick={() => setUpgradeView('external')} className={`px-4 py-1 text-sm font-bold rounded-md transition-colors ${upgradeView === 'external' ? 'bg-st-bg text-st-text shadow-sm' : 'text-st-text-light hover:text-st-text'}`}>External</button>
               </div>
               
               {upgradeView === 'internal' && (
@@ -523,7 +539,7 @@ export default function PlayerSetup() {
             </div>
             
             {!asc1_unlocked ? (
-              <div className="p-4 bg-yellow-50 border-l-4 border-yellow-400 text-yellow-700 rounded mb-6">
+              <div className="p-4 bg-yellow-50 dark:bg-yellow-900/20 dark:text-yellow-200 border-l-4 border-yellow-400 text-yellow-700 rounded mb-6">
                 🔒 Arch Idols important for the simulator are locked until Ascension 1.
               </div>
             ) : (
