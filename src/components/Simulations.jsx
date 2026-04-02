@@ -2146,11 +2146,22 @@ export default function Simulations() {
 
               <div className={`border border-st-border rounded bg-st-bg h-[600px] w-full ${store.theme === 'dark' ? 'ag-theme-quartz-dark' : 'ag-theme-quartz'}`}>
                 <style>{`
+                  /* 🎨 Force AG Grid to inherit our dynamic App variables */
+                  .ag-theme-quartz, .ag-theme-quartz-dark {
+                    --ag-background-color: var(--color-st-bg);
+                    --ag-foreground-color: var(--color-st-text);
+                    --ag-header-background-color: var(--color-st-secondary);
+                    --ag-header-foreground-color: var(--color-st-text);
+                    --ag-border-color: var(--color-st-border);
+                    --ag-row-border-color: var(--color-st-border);
+                    --ag-row-hover-color: var(--color-st-secondary);
+                  }
+
                   .ag-theme-quartz .ag-header-cell, .ag-theme-quartz .ag-cell,
                   .ag-theme-quartz-dark .ag-header-cell, .ag-theme-quartz-dark .ag-cell {
                     border-right: 1px solid var(--color-st-border) !important;
                   }
-                  /* Force Headers to Center (Removed width:100% to fix AG Grid width-measuring bug) */
+                  /* Force Headers to Center */
                   .ag-theme-quartz .ag-header-cell-label,
                   .ag-theme-quartz-dark .ag-header-cell-label {
                     justify-content: center !important;
