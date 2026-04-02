@@ -310,9 +310,9 @@ export default function PlayerSetup() {
           <div>
             <div className="flex flex-col gap-4 mb-4">
               
-              <div className="flex bg-st-secondary rounded-lg p-1 w-fit">
-                <button onClick={() => setUpgradeView('internal')} className={`px-4 py-1 text-sm font-bold rounded-md transition-colors ${upgradeView === 'internal' ? 'bg-white text-st-text shadow-sm' : 'text-st-text-light hover:text-st-text'}`}>Internal</button>
-                <button onClick={() => setUpgradeView('external')} className={`px-4 py-1 text-sm font-bold rounded-md transition-colors ${upgradeView === 'external' ? 'bg-white text-st-text shadow-sm' : 'text-st-text-light hover:text-st-text'}`}>External</button>
+              <div className="flex bg-st-secondary rounded-lg p-1 w-fit border border-st-border">
+                <button onClick={() => setUpgradeView('internal')} className={`px-4 py-1 text-sm font-bold rounded-md transition-colors ${upgradeView === 'internal' ? 'bg-st-bg text-st-text shadow-sm' : 'text-st-text-light hover:text-st-text'}`}>Internal</button>
+                <button onClick={() => setUpgradeView('external')} className={`px-4 py-1 text-sm font-bold rounded-md transition-colors ${upgradeView === 'external' ? 'bg-st-bg text-st-text shadow-sm' : 'text-st-text-light hover:text-st-text'}`}>External</button>
               </div>
               
               {upgradeView === 'internal' && (
