@@ -22,6 +22,15 @@ function App() {
   const store = useStore();
   const calcWorkerRef = useRef(null);
 
+  // Apply Dark Mode Class to HTML body natively
+  useEffect(() => {
+    if (store.theme === 'dark') {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
+  },[store.theme]);
+
   // Initialize the Calculation Worker
   useEffect(() => {
     calcWorkerRef.current = new Worker('/calc_worker.js');
@@ -96,13 +105,21 @@ function App() {
   return (
     <div className="min-h-screen bg-st-bg text-st-text p-4 md:p-8">
       
-      <div className="flex items-center gap-4 mb-6">
+      <div className="flex items-center gap-4 mb-6 w-full">
         <h1 className="text-3xl md:text-4xl font-bold">
           ⛏️ IoM Arch Optimizer
         </h1>
         <span className="bg-st-orange text-st-bg text-sm font-bold px-2 py-1 rounded shadow-sm">
           {APP_VERSION}
         </span>
+        
+        <button 
+          onClick={store.toggleTheme}
+          className="ml-auto flex items-center justify-center w-10 h-10 rounded-full bg-st-secondary border border-st-border hover:border-st-orange transition-colors text-xl shadow-sm"
+          title="Toggle Light/Dark Mode"
+        >
+          {store.theme === 'dark' ? '☀️' : '🌙'}
+        </button>
       </div>
 
       {/* Streamlit Exact Tab Styling */}

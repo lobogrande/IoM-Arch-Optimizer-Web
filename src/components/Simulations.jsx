@@ -773,6 +773,7 @@ export default function Simulations() {
                         line: { color: '#4CAF50' }, marker: { size: 10 }
                       }]}
                       layout={{
+                        font: { color: store.theme === 'dark' ? '#FAFAFA' : '#31333F' },
                         paper_bgcolor: 'rgba(0,0,0,0)', plot_bgcolor: 'rgba(0,0,0,0)',
                         margin: { t: 10, b: 30, l: 40, r: 20 },
                         height: 250
@@ -796,6 +797,7 @@ export default function Simulations() {
                         marker: { color:["#ff4b4b", "#ffa229", "#6495ED", "#4CAF50"] }
                       }]}
                       layout={{
+                        font: { color: store.theme === 'dark' ? '#FAFAFA' : '#31333F' },
                         paper_bgcolor: 'rgba(0,0,0,0)', plot_bgcolor: 'rgba(0,0,0,0)',
                         margin: { t: 10, b: 30, l: 100, r: 20 },
                         height: 250
@@ -907,6 +909,7 @@ export default function Simulations() {
                       marker: { color:['#636EFA', '#EF553B', '#00CC96', '#AB63FA', '#FFA15A', '#19D3F3', '#FF6692'] }
                     }]}
                     layout={{
+                      font: { color: store.theme === 'dark' ? '#FAFAFA' : '#31333F' },
                       paper_bgcolor: 'rgba(0,0,0,0)', plot_bgcolor: 'rgba(0,0,0,0)',
                       margin: { t: 20, b: 40, l: 40, r: 20 }
                     }}
@@ -929,6 +932,7 @@ export default function Simulations() {
                       textposition: 'outside'
                     } ]}
                     layout={{
+                      font: { color: store.theme === 'dark' ? '#FAFAFA' : '#31333F' },
                       title: 'Death Distribution (Progression Wall)',
                       paper_bgcolor: 'rgba(0,0,0,0)', plot_bgcolor: 'rgba(0,0,0,0)',
                       margin: { t: 40, b: 40, l: 40, r: 20 },
@@ -947,6 +951,7 @@ export default function Simulations() {
                         line: { color: '#ffa229' }, fillcolor: 'rgba(255, 162, 41, 0.2)'
                       } ]}
                       layout={{
+                        font: { color: store.theme === 'dark' ? '#FAFAFA' : '#31333F' },
                         title: 'Stamina Depletion Trace (Sample Run)',
                         paper_bgcolor: 'rgba(0,0,0,0)', plot_bgcolor: 'rgba(0,0,0,0)',
                         margin: { t: 40, b: 40, l: 40, r: 20 },
@@ -1903,6 +1908,7 @@ export default function Simulations() {
                             textposition: 'outside'
                           } ]}
                           layout={{
+                            font: { color: store.theme === 'dark' ? '#FAFAFA' : '#31333F' },
                             paper_bgcolor: 'rgba(0,0,0,0)', plot_bgcolor: 'rgba(0,0,0,0)',
                             margin: { t: 20, b: 40, l: 40, r: 20 }
                           }}
@@ -2136,7 +2142,7 @@ export default function Simulations() {
                 </div>
               </div>
 
-              <div className="ag-theme-quartz border border-st-border rounded bg-st-bg h-[600px] w-full">
+              <div className={`ag-theme-quartz${store.theme === 'dark' ? '-dark' : ''} border border-st-border rounded bg-st-bg h-[600px] w-full`}>
                 <style>{`
                   .ag-theme-quartz .ag-header-cell, 
                   .ag-theme-quartz .ag-cell {
