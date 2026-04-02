@@ -157,6 +157,11 @@ export default function PlayerSetup() {
           onChange={(e) => setBaseStat(statKey, e.target.value === '' ? '' : parseInt(e.target.value))}
           onBlur={(e) => setBaseStat(statKey, Math.min(STAT_CAPS[statKey], Math.max(0, parseInt(e.target.value) || 0)))}
         />
+        <div className="flex flex-wrap justify-center gap-1 mt-2 w-full">
+          <button onClick={() => setBaseStat(statKey, Math.max(0, (base_stats[statKey] || 0) - 5))} className="flex-1 px-1 py-1 text-xs bg-st-secondary text-st-text rounded border border-st-border hover:border-st-orange transition-colors">-5</button>
+          <button onClick={() => setBaseStat(statKey, Math.min(STAT_CAPS[statKey], (base_stats[statKey] || 0) + 5))} className="flex-1 px-1 py-1 text-xs bg-st-secondary text-st-text rounded border border-st-border hover:border-st-orange transition-colors">+5</button>
+          <button onClick={() => setBaseStat(statKey, STAT_CAPS[statKey])} className="flex-1 px-1 py-1 text-xs font-bold bg-st-secondary text-st-text rounded border border-st-border hover:border-st-orange transition-colors">Max</button>
+        </div>
       </div>
     );
   };
@@ -374,6 +379,11 @@ export default function PlayerSetup() {
                         onChange={(e) => setUpgradeLevel(id, e.target.value === '' ? '' : parseInt(e.target.value))}
                         onBlur={(e) => setUpgradeLevel(id, Math.min(max_lvl, Math.max(0, parseInt(e.target.value) || 0)))}
                       />
+                      <div className="flex flex-wrap justify-center gap-1 mt-2 w-full">
+                        <button onClick={() => setUpgradeLevel(id, Math.max(0, current_lvl - 5))} className="flex-1 px-1 py-1 text-xs bg-st-secondary text-st-text rounded border border-st-border hover:border-st-orange transition-colors">-5</button>
+                        <button onClick={() => setUpgradeLevel(id, Math.min(max_lvl, current_lvl + 5))} className="flex-1 px-1 py-1 text-xs bg-st-secondary text-st-text rounded border border-st-border hover:border-st-orange transition-colors">+5</button>
+                        <button onClick={() => setUpgradeLevel(id, max_lvl)} className="flex-1 px-1 py-1 text-xs font-bold bg-st-secondary text-st-text rounded border border-st-border hover:border-st-orange transition-colors">Max</button>
+                      </div>
                     </div>
                   );
                 })}
