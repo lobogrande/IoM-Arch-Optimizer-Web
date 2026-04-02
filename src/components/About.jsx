@@ -125,6 +125,24 @@ export default function About() {
             </div>
           </div>
 
+          {/* --- TIP JAR --- */}
+          <div className="st-container border-l-4 border-l-[#FF5E5B]">
+            <h4 className="text-xl font-bold mb-2 flex items-center gap-2">
+              <span className="text-2xl">🥤</span> Support the Developer
+            </h4>
+            <p className="text-st-text-light text-sm mb-4">
+              This optimizer is entirely free to use and runs locally in your browser with zero ads. If it helped you break through a progression wall or saved you hours of guessing, consider sending a tip!
+            </p>
+            <a 
+              href="https://ko-fi.com/lobogrande" 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="block w-full text-center bg-[#FF5E5B] text-white py-2 rounded font-bold hover:bg-[#E05350] transition-colors shadow-sm"
+            >
+              Buy me a Smoothie on Ko-fi
+            </a>
+          </div>
+
           {/* Source Code */}
           <div className="st-container">
             <h4 className="text-xl font-bold mb-2">📂 Source Code & Documentation</h4>
