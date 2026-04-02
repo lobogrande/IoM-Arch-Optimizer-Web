@@ -139,11 +139,12 @@ export default function PlayerSetup() {
           <span className="text-sm text-st-text-light">(Max: {STAT_CAPS[statKey]})</span>
         </div>
         
-        <div style={{ width: UI_STAT_IMG_WIDTH }} className="flex items-center justify-center mb-4 mx-auto">
+        {/* Responsive sizing: 80px on phones, 96px on small tablets, 128px on desktops, up to 160px on large screens */}
+        <div className="w-20 sm:w-24 md:w-32 lg:w-40 flex items-center justify-center mb-4 mx-auto">
           <img 
             src={`/assets/stats/${statKey.toLowerCase()}.png`} 
             alt={label}
-            className="w-full object-contain"
+            className="w-full h-full object-contain"
             style={{ imageRendering: 'pixelated' }}
             onError={(e) => { e.target.style.display = 'none'; e.target.parentNode.innerHTML = '<span class="text-xs text-gray-400">No Img</span>'; }}
           />
