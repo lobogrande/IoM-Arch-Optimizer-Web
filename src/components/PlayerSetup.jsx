@@ -139,11 +139,12 @@ export default function PlayerSetup() {
           <span className="text-sm text-st-text-light">(Max: {STAT_CAPS[statKey]})</span>
         </div>
         
-        <div style={{ width: UI_STAT_IMG_WIDTH }} className="flex items-center justify-center mb-4 mx-auto">
+        {/* Upscaled responsive sizing: 112px mobile, 128px tablet, 192px desktop, 224px large desktop (matches original 220px) */}
+        <div className="w-28 sm:w-32 md:w-48 lg:w-56 flex items-center justify-center mb-4 mx-auto">
           <img 
             src={`/assets/stats/${statKey.toLowerCase()}.png`} 
             alt={label}
-            className="w-full object-contain"
+            className="w-full h-full object-contain"
             style={{ imageRendering: 'pixelated' }}
             onError={(e) => { e.target.style.display = 'none'; e.target.parentNode.innerHTML = '<span class="text-xs text-gray-400">No Img</span>'; }}
           />
@@ -325,8 +326,8 @@ export default function PlayerSetup() {
                   if (!asc1_unlocked && ASC1_LOCKED_UPGS.includes(id)) return null;
                   if (!asc2_unlocked && ASC2_LOCKED_UPGS.includes(id)) return null;
                   
-                  const currentArchLvl = Number(arch_level) || 1;
-                  if (currentArchLvl < (UPGRADE_LEVEL_REQS[id] || 0)) return null;
+                  const currentFloor = Number(current_max_floor) || 1;
+                  if (currentFloor < (UPGRADE_LEVEL_REQS[id] || 0)) return null;
                   
                   const current_lvl = upgrade_levels[id] || 0;
                   if (hideMaxed && current_lvl >= max_lvl) return null;
