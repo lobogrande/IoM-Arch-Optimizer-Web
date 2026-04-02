@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useEffect, useRef } from 'react';
 import useStore from './store';
 import { APP_VERSION } from './ui_config';
 import PlayerSetup from './components/PlayerSetup';
@@ -18,8 +18,9 @@ const TABS =[
 ];
 
 function App() {
-  const[activeTab, setActiveTab] = useState('welcome'); 
   const store = useStore();
+  const activeTab = store.activeTab;
+  const setActiveTab = store.setActiveTab;
   const calcWorkerRef = useRef(null);
 
   // Apply Dark Mode Class to HTML body natively

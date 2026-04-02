@@ -8,6 +8,9 @@ const useStore = create(
       // Global Settings
   theme: 'dark',
   hideMaxed: false,
+  activeTab: 'welcome',
+  activeSubTab: 'stats',
+  upgradeView: 'internal',
   asc1_unlocked: true,
   asc2_unlocked: false,
   arch_level: 45,
@@ -120,6 +123,9 @@ const useStore = create(
   setSandboxCalculatedStats: (stats) => set({ sandbox_calculated_stats: stats }),
   toggleTheme: () => set((state) => ({ theme: state.theme === 'dark' ? 'light' : 'dark' })),
   setHideMaxed: (val) => set({ hideMaxed: val }),
+  setActiveTab: (val) => set({ activeTab: val }),
+  setActiveSubTab: (val) => set({ activeSubTab: val }),
+  setUpgradeView: (val) => set({ upgradeView: val }),
   
   // Wipe all data to default baseline
   resetState: () => set({
