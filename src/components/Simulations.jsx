@@ -2144,7 +2144,16 @@ export default function Simulations() {
                 </div>
               </div>
 
-              <div className={`border border-st-border rounded bg-st-bg h-[600px] w-full ${store.theme === 'dark' ? 'ag-theme-quartz-dark' : 'ag-theme-quartz'}`}>
+              <div 
+                className={`border border-st-border rounded bg-st-bg h-[600px] w-full outline-none ${store.theme === 'dark' ? 'ag-theme-quartz-dark' : 'ag-theme-quartz'}`}
+                tabIndex={-1}
+                onMouseEnter={(e) => {
+                  // Silently focus the table so the mouse wheel works instantly without clicking!
+                  if (!e.currentTarget.contains(document.activeElement)) {
+                    e.currentTarget.focus();
+                  }
+                }}
+              >
                 <style>{`
                   /* ☢️ ABSOLUTE NUCLEAR OPTION: Target AG Grid's structural DOM elements directly */
                   .ag-theme-quartz, .ag-theme-quartz-dark {
