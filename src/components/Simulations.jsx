@@ -30,7 +30,8 @@ export default function Simulations() {
   const store = useStore();
   const chartFontColor = store.theme === 'dark' ? '#A3A8B8' : '#7D808D';
   const chartGridColor = store.theme === 'dark' ? 'rgba(250,250,250,0.1)' : 'rgba(49,51,63,0.1)';
-  const [activeSubTab, setActiveSubTab] = useState('optimizer');
+  const activeSubTab = store.simActiveSubTab;
+  const setActiveSubTab = store.setSimActiveSubTab;
   
   // Optimizer Settings State (Persisted in Zustand)
   const optGoal = store.optGoal || "Max Floor Push";
@@ -68,8 +69,10 @@ export default function Simulations() {
   const [synthProgressPct, setSynthProgressPct] = useState(0);
 
   // Results Dashboard & ROI State
-  const [resTab, setResTab] = useState('build');
-  const [dataTab, setDataTab] = useState('performance');
+  const resTab = store.simResTab;
+  const setResTab = store.setSimResTab;
+  const dataTab = store.simDataTab;
+  const setDataTab = store.setSimDataTab;
   const[curXp, setCurXp] = useState(0);
   const [tarXp, setTarXp] = useState(0);
   const [cardSelBlock, setCardSelBlock] = useState('');
@@ -85,10 +88,14 @@ export default function Simulations() {
   const [viewTargets, setViewTargets] = useState(null);
 
   // Sandbox UI State
-  const[sandboxMinHits, setSandboxMinHits] = useState(1);
-  const[sandboxShowUnreachable, setSandboxShowUnreachable] = useState(false);
-  const [sandboxShowCrits, setSandboxShowCrits] = useState(false);
-  const [sandboxBlockFilters, setSandboxBlockFilters] = useState([]);
+  const sandboxMinHits = store.sandboxMinHits;
+  const setSandboxMinHits = store.setSandboxMinHits;
+  const sandboxShowUnreachable = store.sandboxShowUnreachable;
+  const setSandboxShowUnreachable = store.setSandboxShowUnreachable;
+  const sandboxShowCrits = store.sandboxShowCrits;
+  const setSandboxShowCrits = store.setSandboxShowCrits;
+  const sandboxBlockFilters = store.sandboxBlockFilters;
+  const setSandboxBlockFilters = store.setSandboxBlockFilters;
 
   // --- HOISTED SANDBOX MEMOS (Must be at the top level to obey React Hook Rules) ---
   const sbData = store.sandbox_calculated_stats;

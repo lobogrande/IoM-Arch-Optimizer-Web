@@ -11,6 +11,13 @@ const useStore = create(
   activeTab: 'welcome',
   activeSubTab: 'stats',
   upgradeView: 'internal',
+  simActiveSubTab: 'optimizer',
+  simResTab: 'build',
+  simDataTab: 'performance',
+  sandboxMinHits: 1,
+  sandboxShowUnreachable: false,
+  sandboxShowCrits: false,
+  sandboxBlockFilters: [ ],
   asc1_unlocked: true,
   asc2_unlocked: false,
   arch_level: 45,
@@ -126,6 +133,13 @@ const useStore = create(
   setActiveTab: (val) => set({ activeTab: val }),
   setActiveSubTab: (val) => set({ activeSubTab: val }),
   setUpgradeView: (val) => set({ upgradeView: val }),
+  setSimActiveSubTab: (val) => set({ simActiveSubTab: val }),
+  setSimResTab: (val) => set({ simResTab: val }),
+  setSimDataTab: (val) => set({ simDataTab: val }),
+  setSandboxMinHits: (val) => set({ sandboxMinHits: val }),
+  setSandboxShowUnreachable: (val) => set({ sandboxShowUnreachable: val }),
+  setSandboxShowCrits: (val) => set({ sandboxShowCrits: val }),
+  setSandboxBlockFilters: (val) => set({ sandboxBlockFilters: val }),
   
   // Wipe all data to default baseline
   resetState: () => set({
