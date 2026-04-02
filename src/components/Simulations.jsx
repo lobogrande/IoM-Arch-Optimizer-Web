@@ -2144,18 +2144,20 @@ export default function Simulations() {
                 </div>
               </div>
 
-              <div className={`ag-theme-quartz${store.theme === 'dark' ? '-dark' : ''} border border-st-border rounded bg-st-bg h-[600px] w-full`}>
+              <div className={`border border-st-border rounded bg-st-bg h-[600px] w-full ${store.theme === 'dark' ? 'ag-theme-quartz-dark' : 'ag-theme-quartz'}`}>
                 <style>{`
-                  .ag-theme-quartz .ag-header-cell, 
-                  .ag-theme-quartz .ag-cell {
+                  .ag-theme-quartz .ag-header-cell, .ag-theme-quartz .ag-cell,
+                  .ag-theme-quartz-dark .ag-header-cell, .ag-theme-quartz-dark .ag-cell {
                     border-right: 1px solid var(--color-st-border) !important;
                   }
                   /* Force Headers to Center (Removed width:100% to fix AG Grid width-measuring bug) */
-                  .ag-theme-quartz .ag-header-cell-label {
+                  .ag-theme-quartz .ag-header-cell-label,
+                  .ag-theme-quartz-dark .ag-header-cell-label {
                     justify-content: center !important;
                   }
                   /* Force Cells to Center */
-                  .ag-theme-quartz .ag-cell {
+                  .ag-theme-quartz .ag-cell,
+                  .ag-theme-quartz-dark .ag-cell {
                     display: flex !important;
                     align-items: center !important;
                     justify-content: center !important;
