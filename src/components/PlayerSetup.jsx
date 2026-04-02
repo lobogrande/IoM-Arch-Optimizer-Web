@@ -139,8 +139,8 @@ export default function PlayerSetup() {
           <span className="text-sm text-st-text-light">(Max: {STAT_CAPS[statKey]})</span>
         </div>
         
-        {/* Responsive sizing: 80px on phones, 96px on small tablets, 128px on desktops, up to 160px on large screens */}
-        <div className="w-20 sm:w-24 md:w-32 lg:w-40 flex items-center justify-center mb-4 mx-auto">
+        {/* Upscaled responsive sizing: 112px mobile, 128px tablet, 192px desktop, 224px large desktop (matches original 220px) */}
+        <div className="w-28 sm:w-32 md:w-48 lg:w-56 flex items-center justify-center mb-4 mx-auto">
           <img 
             src={`/assets/stats/${statKey.toLowerCase()}.png`} 
             alt={label}
