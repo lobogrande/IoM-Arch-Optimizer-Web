@@ -1522,7 +1522,7 @@ export default function Simulations() {
 
             setSynthProgressMsg(`Booting Engine Cores for ${totalSims.toLocaleString()} sims...`);
             const pool = new EngineWorkerPool();
-            await pool.init(() => {}, (ready, total) => setProgressMsg(`Booting Engine Cores: ${ready}/${total}`));
+            await pool.init(() => {}, (ready, total) => setSynthProgressMsg(`Booting Engine Cores: ${ready}/${total}`));
             await pool.syncState(baseStateDict);
 
             const buildRes = new Map();
