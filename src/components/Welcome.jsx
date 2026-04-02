@@ -100,7 +100,7 @@ export default function Welcome({ setActiveTab }) {
         <div className="flex justify-end">
           <button 
             onClick={() => { resetState(); setActiveTab('setup'); }}
-            className="w-full md:w-auto px-8 py-3 border border-red-200 bg-red-50 hover:bg-red-100 hover:border-red-400 transition-colors rounded-lg text-center text-red-800 font-medium shadow-sm cursor-pointer"
+            className="w-full md:w-auto px-8 py-3 border border-red-200 dark:border-red-800/50 bg-red-50 dark:bg-red-900/20 hover:bg-red-100 dark:hover:bg-red-900/40 hover:border-red-400 dark:hover:border-red-600 transition-colors rounded-lg text-center text-red-800 dark:text-red-400 font-medium shadow-sm cursor-pointer"
           >
             🗑️ Factory Reset (Wipe All Data)
           </button>
