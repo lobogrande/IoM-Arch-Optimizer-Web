@@ -28,6 +28,8 @@ const FRAG_NAMES = {
 
 export default function Simulations() {
   const store = useStore();
+  const chartFontColor = store.theme === 'dark' ? '#A3A8B8' : '#7D808D';
+  const chartGridColor = store.theme === 'dark' ? 'rgba(250,250,250,0.1)' : 'rgba(49,51,63,0.1)';
   const [activeSubTab, setActiveSubTab] = useState('optimizer');
   
   // Optimizer Settings State (Persisted in Zustand)
@@ -936,7 +938,7 @@ export default function Simulations() {
                       title: 'Death Distribution (Progression Wall)',
                       paper_bgcolor: 'rgba(0,0,0,0)', plot_bgcolor: 'rgba(0,0,0,0)',
                       margin: { t: 40, b: 40, l: 40, r: 20 },
-                      xaxis: { type: 'category', title: 'Floor' }, yaxis: { title: 'Deaths' }
+                      xaxis: { type: 'category', title: 'Floor', color: chartFontColor, gridcolor: chartGridColor }, yaxis: { title: 'Deaths', color: chartFontColor, gridcolor: chartGridColor }
                     }}
                     useResizeHandler={true} style={{ width: '100%', height: '100%' }} config={{ displayModeBar: false }}
                   />
@@ -955,7 +957,7 @@ export default function Simulations() {
                         title: 'Stamina Depletion Trace (Sample Run)',
                         paper_bgcolor: 'rgba(0,0,0,0)', plot_bgcolor: 'rgba(0,0,0,0)',
                         margin: { t: 40, b: 40, l: 40, r: 20 },
-                        xaxis: { title: 'Floor Level' }, yaxis: { title: 'Stamina Remaining' }
+                        xaxis: { title: 'Floor Level', color: chartFontColor, gridcolor: chartGridColor }, yaxis: { title: 'Stamina Remaining', color: chartFontColor, gridcolor: chartGridColor }
                       }}
                       useResizeHandler={true} style={{ width: '100%', height: '100%' }} config={{ displayModeBar: false }}
                     />
@@ -1172,7 +1174,7 @@ export default function Simulations() {
           </div>
 
           {/* Strategy Tip */}
-          <div className="bg-blue-900/20 border-l-4 border-blue-500 p-3 rounded text-sm text-blue-800 bg-blue-50 mt-4">
+          <div className="bg-blue-50 dark:bg-blue-900/20 border-l-4 border-blue-400 dark:border-blue-500 p-3 rounded text-sm text-blue-800 dark:text-blue-200 mt-4">
             {optGoal === "Max Floor Push" ? (
               <p>💡 <strong>Strategy Tip:</strong> Pushing deep floors requires balancing Damage, Armor Pen, Max Stamina and Crits. To force the AI to scan at an extreme precision, try opening the <strong>Stat Constraints</strong> below and locking <strong>Intelligence</strong> to 0 and <strong>Luck</strong> to your max stat cap!</p>
             ) : (
@@ -1308,7 +1310,7 @@ export default function Simulations() {
           <hr className="border-st-border" />
 
           {/* Run Warning */}
-          <div className="bg-yellow-900/20 border-l-4 border-yellow-500 p-3 rounded text-sm text-yellow-800 bg-yellow-50 mb-4">
+          <div className="bg-yellow-900/20 border-l-4 border-yellow-500 p-3 rounded text-sm text-yellow-800 dark:text-yellow-200 bg-yellow-50 dark:bg-yellow-900/20 dark:text-yellow-200 mb-4">
             ⚠️ <strong>CRITICAL:</strong> Unlike the old server version, you <strong>CAN</strong> safely change tabs while the AI is running! However, do not refresh or close this browser window or the simulation will be aborted.
           </div>
 

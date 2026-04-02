@@ -539,7 +539,7 @@ export default function PlayerSetup() {
             </div>
             
             {!asc1_unlocked ? (
-              <div className="p-4 bg-yellow-50 border-l-4 border-yellow-400 text-yellow-700 rounded mb-6">
+              <div className="p-4 bg-yellow-50 dark:bg-yellow-900/20 dark:text-yellow-200 border-l-4 border-yellow-400 text-yellow-700 rounded mb-6">
                 🔒 Arch Idols important for the simulator are locked until Ascension 1.
               </div>
             ) : (
