@@ -30,13 +30,14 @@ export default function Simulations() {
   const store = useStore();
   const chartFontColor = store.theme === 'dark' ? '#A3A8B8' : '#7D808D';
   const chartGridColor = store.theme === 'dark' ? 'rgba(250,250,250,0.1)' : 'rgba(49,51,63,0.1)';
-  const [activeSubTab, setActiveSubTab] = useState('optimizer');
+  const activeSubTab = store.simActiveSubTab;
+  const setActiveSubTab = store.setSimActiveSubTab;
   
   // Optimizer Settings State (Persisted in Zustand)
   const optGoal = store.optGoal || "Max Floor Push";
   const targetFrag = store.targetFrag ? Math.max(1, store.targetFrag) : 1; // Fallback to 1 (Common) if 0 (Dirt) is cached
-  const targetBlock = store.targetBlock || "myth3";
-  const timeLimit = store.timeLimit || 60;
+  const targetBlock = store.targetBlock ?? "myth3";
+  const timeLimit = store.timeLimit ?? 60;
   const lockedStats = store.lockedStats || {};
   const simsPerSec = store.simsPerSec || 15; // Pessimistic WebAssembly baseline until auto-calibrated
 
@@ -57,14 +58,21 @@ export default function Simulations() {
     return () => clearTimeout(timer);
   }, [displayTime]);
 
-  // Execution Engine State
+  // Execution Engine State (Optimizer)
   const [isOptimizing, setIsOptimizing] = useState(false);
-  const[progressMsg, setProgressMsg] = useState("");
-  const [progressPct, setProgressPct] = useState(0);
+  const[optProgressMsg, setOptProgressMsg] = useState("");
+  const [optProgressPct, setOptProgressPct] = useState(0);
+
+  // Execution Engine State (Synthesizer)
+  const[isSynthesizing, setIsSynthesizing] = useState(false);
+  const [synthProgressMsg, setSynthProgressMsg] = useState("");
+  const [synthProgressPct, setSynthProgressPct] = useState(0);
 
   // Results Dashboard & ROI State
-  const [resTab, setResTab] = useState('build');
-  const [dataTab, setDataTab] = useState('performance');
+  const resTab = store.simResTab;
+  const setResTab = store.setSimResTab;
+  const dataTab = store.simDataTab;
+  const setDataTab = store.setSimDataTab;
   const[curXp, setCurXp] = useState(0);
   const [tarXp, setTarXp] = useState(0);
   const [cardSelBlock, setCardSelBlock] = useState('');
@@ -74,18 +82,24 @@ export default function Simulations() {
   const [isRoiLoading, setIsRoiLoading] = useState(false);
   const[roiProgressMsg, setRoiProgressMsg] = useState("");
 
+  const isAnyRunning = isOptimizing || isSynthesizing || isRoiLoading;
+
   // Synthesis Tab State
   const [viewTargets, setViewTargets] = useState(null);
 
   // Sandbox UI State
-  const[sandboxMinHits, setSandboxMinHits] = useState(1);
-  const[sandboxShowUnreachable, setSandboxShowUnreachable] = useState(false);
-  const [sandboxShowCrits, setSandboxShowCrits] = useState(false);
-  const [sandboxBlockFilters, setSandboxBlockFilters] = useState([]);
+  const sandboxMinHits = store.sandboxMinHits;
+  const setSandboxMinHits = store.setSandboxMinHits;
+  const sandboxShowUnreachable = store.sandboxShowUnreachable;
+  const setSandboxShowUnreachable = store.setSandboxShowUnreachable;
+  const sandboxShowCrits = store.sandboxShowCrits;
+  const setSandboxShowCrits = store.setSandboxShowCrits;
+  const sandboxBlockFilters = store.sandboxBlockFilters;
+  const setSandboxBlockFilters = store.setSandboxBlockFilters;
 
   // --- HOISTED SANDBOX MEMOS (Must be at the top level to obey React Hook Rules) ---
   const sbData = store.sandbox_calculated_stats;
-  const tFloor = store.sandbox_floor || store.current_max_floor;
+  const tFloor = store.sandbox_floor ?? store.current_max_floor;
 
   const sandboxBlocks = useMemo(() => {
     if (!sbData) return[];
@@ -341,8 +355,8 @@ export default function Simulations() {
   // --- ENGINE EXECUTION LOOP ---
   const handleRunOptimizer = async () => {
     setIsOptimizing(true);
-    setProgressMsg("Calculating Execution Plan...");
-    setProgressPct(0);
+    setOptProgressMsg("Calculating Execution Plan...");
+    setOptProgressPct(0);
 
     try {
       const baseStateDict = {
@@ -374,14 +388,14 @@ export default function Simulations() {
       const step2 = profData.step_2;
       const step3 = profData.step_3;
 
-      setProgressMsg(`Booting AI Cores...`);
+      setOptProgressMsg(`Booting AI Cores...`);
       const pool = new EngineWorkerPool();
       await pool.init(
         () => {}, 
-        (ready, total) => setProgressMsg(`Booting Engine Cores: ${ready}/${total}`)
+        (ready, total) => setOptProgressMsg(`Booting Engine Cores: ${ready}/${total}`)
       );
 
-      setProgressMsg(`Synchronizing Player State...`);
+      setOptProgressMsg(`Synchronizing Player State...`);
       await pool.syncState(baseStateDict);
 
       const globalStartTime = Date.now();
@@ -405,8 +419,8 @@ export default function Simulations() {
         // Throttle UI updates to twice a second to prevent React from choking
         if (now - lastProgressUpdate > 500 || comp === tot) {
           const elapsed = (now - globalStartTime) / 1000;
-          setProgressMsg(`⚙️ ${phase} | Round ${rnd}/${totRnd} | ${comp}/${tot} sims | ⏱️ Elapsed: ${elapsed.toFixed(1)}s / ${timeLimit}s`);
-          setProgressPct((comp / tot) * 100);
+          setOptProgressMsg(`⚙️ ${phase} | Round ${rnd}/${totRnd} | ${comp}/${tot} sims | ⏱️ Elapsed: ${elapsed.toFixed(1)}s / ${timeLimit}s`);
+          setOptProgressPct((comp / tot) * 100);
           lastProgressUpdate = now;
         }
       };
@@ -1165,6 +1179,7 @@ export default function Simulations() {
                     type="text" 
                     value={targetBlock} 
                     onChange={(e) => setTargetBlock(e.target.value.toLowerCase())}
+                    onBlur={(e) => { if (e.target.value.trim() === '') setTargetBlock('myth3'); }}
                     placeholder="e.g., com1, myth3"
                     className="w-full bg-st-bg border border-st-border rounded p-2 text-st-text focus:border-st-orange focus:outline-none"
                   />
@@ -1314,25 +1329,29 @@ export default function Simulations() {
             ⚠️ <strong>CRITICAL:</strong> Unlike the old server version, you <strong>CAN</strong> safely change tabs while the AI is running! However, do not refresh or close this browser window or the simulation will be aborted.
           </div>
 
-          {!isOptimizing ? (
+          {!isAnyRunning ? (
             <button 
               onClick={handleRunOptimizer}
               className="w-full py-3 bg-st-orange text-[#2b2b2b] font-bold rounded-lg shadow hover:bg-[#ffb045] transition-colors mt-4"
             >
               🚀 Run Optimizer
             </button>
-          ) : (
+          ) : isOptimizing ? (
             <div className="w-full mt-4 p-4 border border-st-border rounded bg-st-bg">
               <div className="flex justify-between text-sm font-bold mb-2 text-st-orange">
-                <span>{progressMsg}</span>
-                <span>{Math.floor(progressPct)}%</span>
+                <span>{optProgressMsg}</span>
+                <span>{Math.floor(optProgressPct)}%</span>
               </div>
               <div className="w-full bg-[#1e1e1e] rounded-full h-4 overflow-hidden border border-st-border">
                 <div 
                   className="bg-st-orange h-4 transition-all duration-300"
-                  style={{ width: `${progressPct}%` }}
+                  style={{ width: `${optProgressPct}%` }}
                 ></div>
               </div>
+            </div>
+          ) : (
+            <div className="w-full py-3 bg-st-secondary text-st-text-light font-bold rounded-lg shadow mt-4 text-center cursor-not-allowed">
+              ⏳ Wait for active background task to finish...
             </div>
           )}
 
@@ -1417,9 +1436,9 @@ export default function Simulations() {
             return;
           }
 
-          setIsOptimizing(true);
-          setProgressPct(0);
-          setProgressMsg("Calculating center and generating permutations...");
+          setIsSynthesizing(true);
+          setSynthProgressPct(0);
+          setSynthProgressMsg("Calculating center and generating permutations...");
           
           try {
             const runTargetMetric = checkedRuns[0].Target;
@@ -1501,7 +1520,7 @@ export default function Simulations() {
             const totalR2Sims = estR2Count * 450;
             const totalSims = totalR1Sims + totalR2Sims;
 
-            setProgressMsg(`Booting Engine Cores for ${totalSims.toLocaleString()} sims...`);
+            setSynthProgressMsg(`Booting Engine Cores for ${totalSims.toLocaleString()} sims...`);
             const pool = new EngineWorkerPool();
             await pool.init(() => {}, (ready, total) => setProgressMsg(`Booting Engine Cores: ${ready}/${total}`));
             await pool.syncState(baseStateDict);
@@ -1541,8 +1560,8 @@ export default function Simulations() {
                         
                         const now = Date.now();
                         if (now - lastUpdate > 500 || completedSims === totalR1Sims) {
-                            setProgressMsg(`⚔️ Round 1/2: Testing ${candidates.length} builds (${completedSims}/${totalSims} sims)`);
-                            setProgressPct((completedSims / totalSims) * 100);
+                            setSynthProgressMsg(`⚔️ Round 1/2: Testing ${candidates.length} builds (${completedSims}/${totalSims} sims)`);
+                            setSynthProgressPct((completedSims / totalSims) * 100);
                             lastUpdate = now;
                         }
                     });
@@ -1596,8 +1615,8 @@ export default function Simulations() {
                         completedSims++;
                         const now = Date.now();
                         if (now - lastUpdate > 500 || completedSims === totalSims) {
-                            setProgressMsg(`⚔️ Round 2/2: Deep verifying ${r2Ids.length} finalists (${completedSims}/${totalSims} sims)`);
-                            setProgressPct((completedSims / totalSims) * 100);
+                            setSynthProgressMsg(`⚔️ Round 2/2: Deep verifying ${r2Ids.length} finalists (${completedSims}/${totalSims} sims)`);
+                            setSynthProgressPct((completedSims / totalSims) * 100);
                             lastUpdate = now;
                         }
                     });
@@ -1736,7 +1755,7 @@ export default function Simulations() {
               console.error(err);
               alert("🚨 SYNTHESIS CRASH:\n" + err.message);
           } finally {
-              setIsOptimizing(false);
+              setIsSynthesizing(false);
           }
         };
 
@@ -1795,25 +1814,29 @@ export default function Simulations() {
                 <h4 className="text-lg font-bold mb-2">🏆 Run Tie-Breaker Tournament</h4>
                 <p className="text-sm text-st-text-light mb-4">Once you have checked the <strong>Include</strong> box for a few of your top runs (we recommend 2 to 5) in the history table below, click Synthesize to merge them.</p>
                 <div className="flex flex-col md:flex-row gap-4">
-                  {!isOptimizing ? (
+                  {!isAnyRunning ? (
                     <button 
                       onClick={handleSynthesize}
                       className="flex-1 py-3 bg-st-orange text-[#2b2b2b] font-bold rounded-lg shadow hover:bg-[#ffb045] transition-colors"
                     >
                       🧬 Synthesize Ultimate Meta-Build
                     </button>
-                  ) : (
+                  ) : isSynthesizing ? (
                     <div className="flex-1 p-2 border border-st-border rounded bg-st-bg">
                       <div className="flex justify-between text-sm font-bold mb-1 text-st-orange">
-                        <span>{progressMsg}</span>
-                        <span>{Math.floor(progressPct)}%</span>
+                        <span>{synthProgressMsg}</span>
+                        <span>{Math.floor(synthProgressPct)}%</span>
                       </div>
                       <div className="w-full bg-[#1e1e1e] rounded-full h-3 overflow-hidden border border-st-border">
-                        <div className="bg-st-orange h-3 transition-all duration-300" style={{ width: `${progressPct}%` }}></div>
+                        <div className="bg-st-orange h-3 transition-all duration-300" style={{ width: `${synthProgressPct}%` }}></div>
                       </div>
                     </div>
+                  ) : (
+                    <div className="flex-1 py-3 bg-st-secondary text-st-text-light text-center font-bold rounded-lg shadow cursor-not-allowed">
+                      ⏳ Wait for active background task to finish...
+                    </div>
                   )}
-                  <button 
+                  <button
                     onClick={deleteUnchecked}
                     className="flex-1 py-3 bg-[#2b2b2b] border border-red-900 text-red-400 font-bold rounded-lg hover:bg-red-900 hover:text-white transition-colors"
                   >
@@ -2077,11 +2100,11 @@ export default function Simulations() {
                 <h4 className="font-bold mb-4">Settings</h4>
                 
                 <div className="space-y-4 text-sm">
-                  <div>
+                 <div>
                     <label className="block mb-1">Target Floor:</label>
                     <input 
                       type="number"
-                      value={store.sandbox_floor || store.current_max_floor}
+                      value={store.sandbox_floor ?? store.current_max_floor}
                       onFocus={(e) => e.target.select()}
                       onChange={(e) => store.setSimsState('sandbox_floor', e.target.value === '' ? '' : parseInt(e.target.value))}
                       onBlur={(e) => store.setSimsState('sandbox_floor', Math.max(1, parseInt(e.target.value) || 1))}

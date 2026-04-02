@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useEffect, useRef } from 'react';
 import useStore from './store';
 import { APP_VERSION } from './ui_config';
 import PlayerSetup from './components/PlayerSetup';
@@ -18,8 +18,9 @@ const TABS =[
 ];
 
 function App() {
-  const[activeTab, setActiveTab] = useState('welcome'); 
   const store = useStore();
+  const activeTab = store.activeTab;
+  const setActiveTab = store.setActiveTab;
   const calcWorkerRef = useRef(null);
 
   // Apply Dark Mode Class to HTML body natively
@@ -143,12 +144,12 @@ function App() {
       </div>
 
       <div className="w-full">
-        {activeTab === 'welcome' && <Welcome setActiveTab={setActiveTab} />}
-        {activeTab === 'setup' && <PlayerSetup />}
-        {activeTab === 'calc_stats' && <CalculatedStats />}
-        {activeTab === 'block_stats' && <BlockCompendium />}
-        {activeTab === 'simulations' && <Simulations />}
-        {activeTab === 'about' && <About />}
+        <div className={activeTab === 'welcome' ? 'block' : 'hidden'}><Welcome setActiveTab={setActiveTab} /></div>
+        <div className={activeTab === 'setup' ? 'block' : 'hidden'}><PlayerSetup /></div>
+        <div className={activeTab === 'calc_stats' ? 'block' : 'hidden'}><CalculatedStats /></div>
+        <div className={activeTab === 'block_stats' ? 'block' : 'hidden'}><BlockCompendium /></div>
+        <div className={activeTab === 'simulations' ? 'block' : 'hidden'}><Simulations /></div>
+        <div className={activeTab === 'about' ? 'block' : 'hidden'}><About /></div>
       </div>
 
       {/* Floating Back to Top Button */}

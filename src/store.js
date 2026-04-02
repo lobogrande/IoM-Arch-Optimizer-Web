@@ -7,6 +7,17 @@ const useStore = create(
     (set) => ({
       // Global Settings
   theme: 'dark',
+  hideMaxed: false,
+  activeTab: 'welcome',
+  activeSubTab: 'stats',
+  upgradeView: 'internal',
+  simActiveSubTab: 'optimizer',
+  simResTab: 'build',
+  simDataTab: 'performance',
+  sandboxMinHits: 1,
+  sandboxShowUnreachable: false,
+  sandboxShowCrits: false,
+  sandboxBlockFilters: [ ],
   asc1_unlocked: true,
   asc2_unlocked: false,
   arch_level: 45,
@@ -93,20 +104,20 @@ const useStore = create(
     return updates;
   }),
   setBaseStat: (stat, value) => set((state) => ({
-    base_stats: { ...state.base_stats, [stat]: parseInt(value) || 0 }
+    base_stats: { ...state.base_stats, [stat]: value === '' ? '' : (parseInt(value) || 0) }
   })),
   setBaseStats: (newStats) => set((state) => ({
     base_stats: { ...state.base_stats, ...newStats }
   })),
   setUpgradeLevel: (id, value) => set((state) => ({
-    upgrade_levels: { ...state.upgrade_levels, [id]: parseInt(value) || 0 }
+    upgrade_levels: { ...state.upgrade_levels, [id]: value === '' ? '' : (parseInt(value) || 0) }
   })),
   setCardLevel: (id, value) => set((state) => ({
-    cards: { ...state.cards, [id]: parseInt(value) || 0 }
+    cards: { ...state.cards,[id]: value === '' ? '' : (parseInt(value) || 0) }
   })),
   setExternalGroup: (rows, value) => set((state) => {
     const newExt = { ...state.external_levels };
-    rows.forEach(r => newExt[r] = parseInt(value) || 0);
+    rows.forEach(r => newExt[r] = value === '' ? '' : (parseInt(value) || 0));
     return { external_levels: newExt };
   }),
   setCalculatedStats: (stats) => set({ calculated_stats: stats }),
@@ -114,10 +125,21 @@ const useStore = create(
   setOptResults: (res) => set({ opt_results: res }),
   addRunHistory: (run) => set((state) => ({ run_history:[ ...state.run_history, run ] })),
   setSimsState: (key, val) => set({ [key]: val }),
-  setSandboxStat: (stat, value) => set((state) => ({ sandbox_stats: { ...state.sandbox_stats, [stat]: parseInt(value) || 0 } })),
+  setSandboxStat: (stat, value) => set((state) => ({ sandbox_stats: { ...state.sandbox_stats, [stat]: value === '' ? '' : (parseInt(value) || 0) } })),
   setSandboxStats: (newStats) => set((state) => ({ sandbox_stats: { ...state.sandbox_stats, ...newStats } })),
   setSandboxCalculatedStats: (stats) => set({ sandbox_calculated_stats: stats }),
   toggleTheme: () => set((state) => ({ theme: state.theme === 'dark' ? 'light' : 'dark' })),
+  setHideMaxed: (val) => set({ hideMaxed: val }),
+  setActiveTab: (val) => set({ activeTab: val }),
+  setActiveSubTab: (val) => set({ activeSubTab: val }),
+  setUpgradeView: (val) => set({ upgradeView: val }),
+  setSimActiveSubTab: (val) => set({ simActiveSubTab: val }),
+  setSimResTab: (val) => set({ simResTab: val }),
+  setSimDataTab: (val) => set({ simDataTab: val }),
+  setSandboxMinHits: (val) => set({ sandboxMinHits: val }),
+  setSandboxShowUnreachable: (val) => set({ sandboxShowUnreachable: val }),
+  setSandboxShowCrits: (val) => set({ sandboxShowCrits: val }),
+  setSandboxBlockFilters: (val) => set({ sandboxBlockFilters: val }),
   
   // Wipe all data to default baseline
   resetState: () => set({

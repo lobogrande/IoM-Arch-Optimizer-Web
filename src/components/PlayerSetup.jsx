@@ -10,11 +10,8 @@ import {
 import { INTERNAL_UPGRADE_CAPS, UPGRADE_NAMES, ASC1_LOCKED_UPGS, ASC2_LOCKED_UPGS, CARD_TYPES, EXTERNAL_UI_GROUPS, UPGRADE_LEVEL_REQS } from '../game_data';
 
 export default function PlayerSetup() {
-  const { asc1_unlocked, asc2_unlocked, arch_level, current_max_floor, base_stats, upgrade_levels, external_levels, cards, arch_ability_infernal_bonus, total_infernal_cards, hades_idol_level, geoduck_unlocked, calculated_stats, setSetting, setBaseStat, setUpgradeLevel, setCardLevel, setExternalGroup, loadStateFromJson, setSandboxStat } = useStore();
-  const[activeSubTab, setActiveSubTab] = useState('stats');
-  const[hideMaxed, setHideMaxed] = useState(false);
+  const { asc1_unlocked, asc2_unlocked, arch_level, current_max_floor, base_stats, upgrade_levels, external_levels, cards, arch_ability_infernal_bonus, total_infernal_cards, hades_idol_level, geoduck_unlocked, calculated_stats, setSetting, setBaseStat, setUpgradeLevel, setCardLevel, setExternalGroup, loadStateFromJson, setSandboxStat, hideMaxed, setHideMaxed, activeSubTab, setActiveSubTab, upgradeView, setUpgradeView } = useStore();
   const [isDragging, setIsDragging] = useState(false);
-  const [upgradeView, setUpgradeView] = useState('internal');
 
   // Add Arch Level and Internal Upgrade #12 (Stat Points) to get total budget
   const total_allowed = (parseInt(arch_level) || 1) + (upgrade_levels[12] || 0); 
@@ -158,6 +155,11 @@ export default function PlayerSetup() {
           onChange={(e) => setBaseStat(statKey, e.target.value === '' ? '' : parseInt(e.target.value))}
           onBlur={(e) => setBaseStat(statKey, Math.min(STAT_CAPS[statKey], Math.max(0, parseInt(e.target.value) || 0)))}
         />
+        <div className="flex flex-wrap justify-center gap-1 mt-2 w-full">
+          <button onClick={() => setBaseStat(statKey, Math.max(0, (base_stats[statKey] || 0) - 5))} className="flex-1 px-1 py-1 text-xs bg-st-secondary text-st-text rounded border border-st-border hover:border-st-orange transition-colors">-5</button>
+          <button onClick={() => setBaseStat(statKey, Math.min(STAT_CAPS[statKey], (base_stats[statKey] || 0) + 5))} className="flex-1 px-1 py-1 text-xs bg-st-secondary text-st-text rounded border border-st-border hover:border-st-orange transition-colors">+5</button>
+          <button onClick={() => setBaseStat(statKey, STAT_CAPS[statKey])} className="flex-1 px-1 py-1 text-xs font-bold bg-st-secondary text-st-text rounded border border-st-border hover:border-st-orange transition-colors">Max</button>
+        </div>
       </div>
     );
   };
@@ -342,10 +344,10 @@ export default function PlayerSetup() {
                   if (!asc1_unlocked && ASC1_LOCKED_UPGS.includes(id)) return null;
                   if (!asc2_unlocked && ASC2_LOCKED_UPGS.includes(id)) return null;
                   
-                  const currentFloor = Number(current_max_floor) || 1;
+                 const currentFloor = Number(current_max_floor) || 1;
                   if (currentFloor < (UPGRADE_LEVEL_REQS[id] || 0)) return null;
                   
-                  const current_lvl = upgrade_levels[id] || 0;
+                  const current_lvl = upgrade_levels[id] ?? 0;
                   if (hideMaxed && current_lvl >= max_lvl) return null;
 
                   const name = UPGRADE_NAMES[id] || `Upgrade ${id}`;
@@ -375,6 +377,11 @@ export default function PlayerSetup() {
                         onChange={(e) => setUpgradeLevel(id, e.target.value === '' ? '' : parseInt(e.target.value))}
                         onBlur={(e) => setUpgradeLevel(id, Math.min(max_lvl, Math.max(0, parseInt(e.target.value) || 0)))}
                       />
+                      <div className="flex flex-wrap justify-center gap-1 mt-2 w-full">
+                        <button onClick={() => setUpgradeLevel(id, Math.max(0, current_lvl - 5))} className="flex-1 px-1 py-1 text-xs bg-st-secondary text-st-text rounded border border-st-border hover:border-st-orange transition-colors">-5</button>
+                        <button onClick={() => setUpgradeLevel(id, Math.min(max_lvl, current_lvl + 5))} className="flex-1 px-1 py-1 text-xs bg-st-secondary text-st-text rounded border border-st-border hover:border-st-orange transition-colors">+5</button>
+                        <button onClick={() => setUpgradeLevel(id, max_lvl)} className="flex-1 px-1 py-1 text-xs font-bold bg-st-secondary text-st-text rounded border border-st-border hover:border-st-orange transition-colors">Max</button>
+                      </div>
                     </div>
                   );
                 })}
@@ -385,7 +392,7 @@ export default function PlayerSetup() {
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {EXTERNAL_UI_GROUPS.map((group) => {
                   if (group.id === 'hestia') return null; 
-                  const current_val = external_levels[group.rows[0]] || 0;
+                  const current_val = external_levels[group.rows[0]] ?? 0;
                   
                   return (
                     <div key={group.id} className="st-container flex flex-col items-center justify-between p-4 text-center">
@@ -496,7 +503,7 @@ export default function PlayerSetup() {
                   if (tier_num === 4 && !asc2_unlocked) is_locked = true;
                   if (o_type === 'div' && !asc1_unlocked) is_locked = true;
 
-                  const user_tier = cards[card_id] || 0;
+                  const user_tier = cards[card_id] ?? 0;
                   const max_card_level = asc1_unlocked ? 4 : 3;
 
                   return (
