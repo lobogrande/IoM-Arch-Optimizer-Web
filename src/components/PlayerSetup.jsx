@@ -342,10 +342,10 @@ export default function PlayerSetup() {
                   if (!asc1_unlocked && ASC1_LOCKED_UPGS.includes(id)) return null;
                   if (!asc2_unlocked && ASC2_LOCKED_UPGS.includes(id)) return null;
                   
-                  const currentFloor = Number(current_max_floor) || 1;
+                 const currentFloor = Number(current_max_floor) || 1;
                   if (currentFloor < (UPGRADE_LEVEL_REQS[id] || 0)) return null;
                   
-                  const current_lvl = upgrade_levels[id] || 0;
+                  const current_lvl = upgrade_levels[id] ?? 0;
                   if (hideMaxed && current_lvl >= max_lvl) return null;
 
                   const name = UPGRADE_NAMES[id] || `Upgrade ${id}`;
@@ -385,7 +385,7 @@ export default function PlayerSetup() {
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {EXTERNAL_UI_GROUPS.map((group) => {
                   if (group.id === 'hestia') return null; 
-                  const current_val = external_levels[group.rows[0]] || 0;
+                  const current_val = external_levels[group.rows[0]] ?? 0;
                   
                   return (
                     <div key={group.id} className="st-container flex flex-col items-center justify-between p-4 text-center">
@@ -496,7 +496,7 @@ export default function PlayerSetup() {
                   if (tier_num === 4 && !asc2_unlocked) is_locked = true;
                   if (o_type === 'div' && !asc1_unlocked) is_locked = true;
 
-                  const user_tier = cards[card_id] || 0;
+                  const user_tier = cards[card_id] ?? 0;
                   const max_card_level = asc1_unlocked ? 4 : 3;
 
                   return (
