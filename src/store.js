@@ -7,6 +7,7 @@ const useStore = create(
     (set) => ({
       // Global Settings
   theme: 'dark',
+  hideMaxed: false,
   asc1_unlocked: true,
   asc2_unlocked: false,
   arch_level: 45,
@@ -118,6 +119,7 @@ const useStore = create(
   setSandboxStats: (newStats) => set((state) => ({ sandbox_stats: { ...state.sandbox_stats, ...newStats } })),
   setSandboxCalculatedStats: (stats) => set({ sandbox_calculated_stats: stats }),
   toggleTheme: () => set((state) => ({ theme: state.theme === 'dark' ? 'light' : 'dark' })),
+  setHideMaxed: (val) => set({ hideMaxed: val }),
   
   // Wipe all data to default baseline
   resetState: () => set({
