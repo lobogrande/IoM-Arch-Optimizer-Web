@@ -36,7 +36,7 @@ export default function Simulations() {
   const optGoal = store.optGoal || "Max Floor Push";
   const targetFrag = store.targetFrag ? Math.max(1, store.targetFrag) : 1; // Fallback to 1 (Common) if 0 (Dirt) is cached
   const targetBlock = store.targetBlock ?? "myth3";
-  const timeLimit = store.timeLimit || 60;
+  const timeLimit = store.timeLimit ?? 60;
   const lockedStats = store.lockedStats || {};
   const simsPerSec = store.simsPerSec || 15; // Pessimistic WebAssembly baseline until auto-calibrated
 
@@ -85,7 +85,7 @@ export default function Simulations() {
 
   // --- HOISTED SANDBOX MEMOS (Must be at the top level to obey React Hook Rules) ---
   const sbData = store.sandbox_calculated_stats;
-  const tFloor = store.sandbox_floor || store.current_max_floor;
+  const tFloor = store.sandbox_floor ?? store.current_max_floor;
 
   const sandboxBlocks = useMemo(() => {
     if (!sbData) return[];
@@ -2078,11 +2078,11 @@ export default function Simulations() {
                 <h4 className="font-bold mb-4">Settings</h4>
                 
                 <div className="space-y-4 text-sm">
-                  <div>
+                 <div>
                     <label className="block mb-1">Target Floor:</label>
                     <input 
                       type="number"
-                      value={store.sandbox_floor || store.current_max_floor}
+                      value={store.sandbox_floor ?? store.current_max_floor}
                       onFocus={(e) => e.target.select()}
                       onChange={(e) => store.setSimsState('sandbox_floor', e.target.value === '' ? '' : parseInt(e.target.value))}
                       onBlur={(e) => store.setSimsState('sandbox_floor', Math.max(1, parseInt(e.target.value) || 1))}
