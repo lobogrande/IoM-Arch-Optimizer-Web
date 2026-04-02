@@ -19,7 +19,7 @@ export default function CalculatedStats() {
       <h2 className="text-2xl font-bold mb-2">📋 Calculated Player Stats</h2>
       <p className="text-st-text-light mb-4">This is the exact mathematical output derived from your Base Stats, Upgrades, and Cards being fed into the Engine.</p>
       
-      <div className="p-4 bg-blue-50 border-l-4 border-blue-400 text-blue-800 rounded mb-6 text-sm shadow-sm">
+      <div className="p-4 bg-blue-50 dark:bg-blue-900/20 border-l-4 border-blue-400 dark:border-blue-500 text-blue-800 dark:text-blue-200 rounded mb-6 text-sm shadow-sm">
         💡 <strong>Verification Step:</strong> The best way to ensure the AI gives you perfect results is to verify your inputs! Compare these numbers directly against the stats shown on your in-game Archaeology screen. If they match perfectly, your imported data is correct.
       </div>
 
@@ -180,14 +180,14 @@ export default function CalculatedStats() {
                   <div>
                     <h5 className="font-bold border-b border-gray-300 pb-1 mb-2">📊 Base Stats</h5>
                     {data.settings.map(s => {
-                      if (s === 'current_max_floor') return <div key={s} className="text-sm mb-1 text-st-orange"><strong>Max Floor:</strong> <code className="bg-gray-200 px-1 rounded text-st-text">{current_max_floor}</code></div>;
+                      if (s === 'current_max_floor') return <div key={s} className="text-sm mb-1 text-st-orange"><strong>Max Floor:</strong> <code className="bg-black/10 dark:bg-white/10 text-st-text px-1 rounded text-st-text">{current_max_floor}</code></div>;
                       return null;
                     })}
                     {data.stats.map(s => {
                       if (s === 'Corr' && !asc2_unlocked) return null;
                       if (s === 'Div' && !asc1_unlocked) return null;
                       const val = base_stats[s] || 0;
-                      return <div key={s} className="text-sm mb-1"><strong>{s}:</strong> <code className="bg-gray-200 px-1 rounded">{val}</code> <span className="text-xs text-st-text-light">{getEffectStr('stat', s, val)}</span></div>;
+                      return <div key={s} className="text-sm mb-1"><strong>{s}:</strong> <code className="bg-black/10 dark:bg-white/10 text-st-text px-1 rounded">{val}</code> <span className="text-xs text-st-text-light">{getEffectStr('stat', s, val)}</span></div>;
                     })}
                   </div>
                   <div>
@@ -197,7 +197,7 @@ export default function CalculatedStats() {
                       if (!asc2_unlocked && asc2_locked.includes(u)) return null;
                       const val = upgrade_levels[u] || 0;
                       const name = UPGRADE_NAMES[u] || `Upg ${u}`;
-                      return <div key={u} className="text-sm mb-1"><strong>{name}:</strong> <code className="bg-gray-200 px-1 rounded">{val}</code> <span className="text-xs text-st-text-light">{getEffectStr('upg', u, val)}</span></div>;
+                      return <div key={u} className="text-sm mb-1"><strong>{name}:</strong> <code className="bg-black/10 dark:bg-white/10 text-st-text px-1 rounded">{val}</code> <span className="text-xs text-st-text-light">{getEffectStr('upg', u, val)}</span></div>;
                     })}
                   </div>
                   <div>
@@ -205,7 +205,7 @@ export default function CalculatedStats() {
                     {data.exts.length === 0 ? <div className="text-sm italic text-gray-500">(None apply)</div> : data.exts.map(e => {
                       const group = EXTERNAL_UI_GROUPS.find(g => g.name === e);
                       const val = group ? (external_levels[group.rows[0]] || 0) : 0;
-                      return <div key={e} className="text-sm mb-1"><strong>{e}:</strong> <code className="bg-gray-200 px-1 rounded">{val}</code> <span className="text-xs text-st-text-light">{getEffectStr('ext', e, val)}</span></div>;
+                      return <div key={e} className="text-sm mb-1"><strong>{e}:</strong> <code className="bg-black/10 dark:bg-white/10 text-st-text px-1 rounded">{val}</code> <span className="text-xs text-st-text-light">{getEffectStr('ext', e, val)}</span></div>;
                     })}
                   </div>
                   <div>
@@ -226,7 +226,7 @@ export default function CalculatedStats() {
                       
                       return (
                         <div key={c} className="text-sm mb-1 capitalize">
-                          <strong>{c}:</strong> <code className="bg-gray-200 px-1 rounded">Tier {tier}</code> 
+                          <strong>{c}:</strong> <code className="bg-black/10 dark:bg-white/10 text-st-text px-1 rounded">Tier {tier}</code> 
                           {effStr && <span className="text-xs text-st-text-light ml-1">{effStr}</span>}
                         </div>
                       );
