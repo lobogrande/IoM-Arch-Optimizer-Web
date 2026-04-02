@@ -246,7 +246,7 @@ export default function About() {
                   type="file" 
                   multiple 
                   accept=".png,.jpg,.jpeg,.json"
-                  className="block w-full text-sm text-st-text-light file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:font-semibold file:bg-st-secondary file:text-st-text hover:file:bg-gray-200 cursor-pointer transition-colors"
+                  className="block w-full text-sm text-st-text-light file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:font-semibold file:bg-st-secondary file:text-st-text hover:file:bg-black/10 dark:hover:file:bg-white/10 cursor-pointer transition-colors"
                   onChange={(e) => setFiles(e.target.files)}
                 />
                 {files.length > 0 && (
