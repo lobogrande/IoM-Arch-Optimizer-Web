@@ -14,7 +14,7 @@ export default function Welcome({ setActiveTab }) {
   return (
     <div className="space-y-6 animate-fade-in">
       {/* Dev Note (Styled exactly like the Calculated Stats Info box) */}
-      <div className="p-4 bg-blue-50 border-l-4 border-blue-400 text-blue-800 rounded shadow-sm text-sm">
+      <div className="p-4 bg-blue-50 dark:bg-blue-900/20 border-l-4 border-blue-400 dark:border-blue-500 text-blue-800 dark:text-blue-200 rounded shadow-sm text-sm">
         <h3 className="text-lg font-bold mb-2">📝 A note from the developer...</h3>
         <p className="mb-2">
           Welcome! I built this optimizer because Idle Obelisk Miner's stat mechanics are surprisingly deep. With so many upgrade paths and play styles, figuring out the perfect stat distribution often feels like taking a shot in the dark.
