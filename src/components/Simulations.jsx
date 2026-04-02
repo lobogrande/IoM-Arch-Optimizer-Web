@@ -298,8 +298,8 @@ export default function Simulations() {
         if (!store.asc1_unlocked && ASC1_LOCKED_UPGS.includes(upgId)) return;
         if (!store.asc2_unlocked && ASC2_LOCKED_UPGS.includes(upgId)) return;
         
-        const currentArchLvl = Number(store.arch_level) || 1;
-        if (currentArchLvl < (UPGRADE_LEVEL_REQS[upgId] || 0)) return;
+        const currentFloor = Number(store.current_max_floor) || 1;
+        if (currentFloor < (UPGRADE_LEVEL_REQS[upgId] || 0)) return;
         
         if (currentLvl >= maxLvl) return;
 
