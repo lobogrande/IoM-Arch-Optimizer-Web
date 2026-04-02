@@ -2146,20 +2146,26 @@ export default function Simulations() {
 
               <div className={`border border-st-border rounded bg-st-bg h-[600px] w-full ${store.theme === 'dark' ? 'ag-theme-quartz-dark' : 'ag-theme-quartz'}`}>
                 <style>{`
-                  /* 🎨 Force AG Grid to inherit our dynamic App variables */
+                  /* 🎨 NUCLEAR OPTION: Inject exact hex colors to bypass Tailwind v4 scope */
                   .ag-theme-quartz, .ag-theme-quartz-dark {
-                    --ag-background-color: var(--color-st-bg);
-                    --ag-foreground-color: var(--color-st-text);
-                    --ag-header-background-color: var(--color-st-secondary);
-                    --ag-header-foreground-color: var(--color-st-text);
-                    --ag-border-color: var(--color-st-border);
-                    --ag-row-border-color: var(--color-st-border);
-                    --ag-row-hover-color: var(--color-st-secondary);
+                    --ag-background-color: ${store.theme === 'dark' ? '#0E1117' : '#FFFFFF'} !important;
+                    --ag-foreground-color: ${store.theme === 'dark' ? '#FAFAFA' : '#31333F'} !important;
+                    --ag-header-background-color: ${store.theme === 'dark' ? '#262730' : '#F0F2F6'} !important;
+                    --ag-header-foreground-color: ${store.theme === 'dark' ? '#FAFAFA' : '#31333F'} !important;
+                    --ag-border-color: ${store.theme === 'dark' ? 'rgba(250, 250, 250, 0.2)' : 'rgba(49, 51, 63, 0.2)'} !important;
+                    --ag-row-border-color: ${store.theme === 'dark' ? 'rgba(250, 250, 250, 0.2)' : 'rgba(49, 51, 63, 0.2)'} !important;
+                    --ag-row-hover-color: ${store.theme === 'dark' ? '#262730' : '#F0F2F6'} !important;
+                  }
+
+                  /* Force Row Backgrounds just in case AG Grid ignores the variables */
+                  .ag-theme-quartz .ag-row, .ag-theme-quartz-dark .ag-row {
+                    background-color: ${store.theme === 'dark' ? '#0E1117' : '#FFFFFF'} !important;
+                    color: ${store.theme === 'dark' ? '#FAFAFA' : '#31333F'} !important;
                   }
 
                   .ag-theme-quartz .ag-header-cell, .ag-theme-quartz .ag-cell,
                   .ag-theme-quartz-dark .ag-header-cell, .ag-theme-quartz-dark .ag-cell {
-                    border-right: 1px solid var(--color-st-border) !important;
+                    border-right: 1px solid ${store.theme === 'dark' ? 'rgba(250, 250, 250, 0.2)' : 'rgba(49, 51, 63, 0.2)'} !important;
                   }
                   /* Force Headers to Center */
                   .ag-theme-quartz .ag-header-cell-label,
