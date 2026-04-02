@@ -35,7 +35,7 @@ export default function Simulations() {
   // Optimizer Settings State (Persisted in Zustand)
   const optGoal = store.optGoal || "Max Floor Push";
   const targetFrag = store.targetFrag ? Math.max(1, store.targetFrag) : 1; // Fallback to 1 (Common) if 0 (Dirt) is cached
-  const targetBlock = store.targetBlock || "myth3";
+  const targetBlock = store.targetBlock ?? "myth3";
   const timeLimit = store.timeLimit || 60;
   const lockedStats = store.lockedStats || {};
   const simsPerSec = store.simsPerSec || 15; // Pessimistic WebAssembly baseline until auto-calibrated
@@ -1165,6 +1165,7 @@ export default function Simulations() {
                     type="text" 
                     value={targetBlock} 
                     onChange={(e) => setTargetBlock(e.target.value.toLowerCase())}
+                    onBlur={(e) => { if (e.target.value.trim() === '') setTargetBlock('myth3'); }}
                     placeholder="e.g., com1, myth3"
                     className="w-full bg-st-bg border border-st-border rounded p-2 text-st-text focus:border-st-orange focus:outline-none"
                   />
