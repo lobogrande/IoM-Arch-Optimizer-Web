@@ -865,9 +865,14 @@ export default function Simulations() {
                       {(() => {
                         const peakChance = finalSum.abs_max_chance || 0;
                         const runsNeeded = peakChance > 0 ? Math.ceil(1.0 / peakChance) : 0;
-                        const maxSta = (finalSum.stamina_trace && finalSum.stamina_trace.stamina && finalSum.stamina_trace.stamina.length > 0) 
-                          ? finalSum.stamina_trace.stamina[ 0 ] 
-                          : 0;
+                        
+                        // Pull the true mathematical Total Time (Arch Seconds) directly from the engine metrics!
+                        const maxSta = (finalSum.avg_metrics && finalSum.avg_metrics.total_time) 
+                          ? finalSum.avg_metrics.total_time 
+                          : ((finalSum.stamina_trace && finalSum.stamina_trace.stamina && finalSum.stamina_trace.stamina.length > 0) 
+                            ? finalSum.stamina_trace.stamina[0] 
+                            : 0);
+                            
                         const archSecsCost = (runsNeeded * maxSta) / 1000.0;
                         
                         return peakChance > 0 ? (
@@ -1945,7 +1950,9 @@ export default function Simulations() {
 
             const absMaxChance = synthSummary.abs_max_chance;
             let tempMaxSta = 1000;
-            if (synthSummary.stamina_trace && synthSummary.stamina_trace.stamina.length > 0) {
+            if (synthSummary.avg_metrics && synthSummary.avg_metrics.total_time) {
+                tempMaxSta = synthSummary.avg_metrics.total_time;
+            } else if (synthSummary.stamina_trace && synthSummary.stamina_trace.stamina.length > 0) {
                 tempMaxSta = synthSummary.stamina_trace.stamina[0];
             }
             const archSecsCost = absMaxChance > 0 ? Math.ceil(1.0 / absMaxChance) * tempMaxSta : 0;

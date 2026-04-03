@@ -78,14 +78,14 @@ export class EngineWorkerPool {
     }
 
     // Returns a promise that resolves when the worker finishes the Python simulation
-    runTask(test_stats, test_upgrades = null) {
+    runTask(test_stats, test_upgrades = null, test_external = null, test_cards = null) {
         return new Promise((resolve, reject) => {
             const id = ++this.taskIdSeq;
             this.callbacks.set(id, (data) => {
                 if (data.type === 'ERROR') reject(new Error(data.payload));
                 else resolve(data.payload);
             });
-            this.taskQueue.push({ msg: { command: 'RUN_TASK', taskId: id, test_stats, test_upgrades } });
+            this.taskQueue.push({ msg: { command: 'RUN_TASK', taskId: id, test_stats, test_upgrades, test_external, test_cards } });
             this.pump();
         });
     }
@@ -360,7 +360,8 @@ export async function runOptimizationPhase(
                     tr.floors.push(result.highest_floor || 0);
 
                     for (const [mk, mv] of Object.entries(result)) {
-                        if (mk !== 'stamina_trace_floor' && mk !== 'stamina_trace_stamina' && mk !== 'total_time') {
+                        // total_time represents EXACT Arch Seconds spent, so we now include it in the averages!
+                        if (mk !== 'stamina_trace_floor' && mk !== 'stamina_trace_stamina') {
                             tr.metricsSum[mk] = (tr.metricsSum[mk] || 0.0) + mv;
                         }
                     }
