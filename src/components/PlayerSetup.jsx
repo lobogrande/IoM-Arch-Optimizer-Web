@@ -236,7 +236,7 @@ export default function PlayerSetup() {
 
         <div className="st-container">
           <h3 className="font-bold mb-4 flex items-center gap-2">💾 Export Data</h3>
-          <p className="text-sm text-st-text-light mb-4">Download your current UI configuration.</p>
+          <p className="text-sm text-st-text-light mb-4">Download your current Player Setup.</p>
           <button 
             onClick={handleExport}
             className="w-full px-4 py-2 bg-st-secondary text-st-text border border-st-border rounded hover:border-st-orange transition-colors font-medium shadow-sm cursor-pointer"
