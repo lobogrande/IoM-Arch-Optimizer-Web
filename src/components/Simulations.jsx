@@ -697,6 +697,7 @@ export default function Simulations() {
               show_wall: targetMetricKey === 'highest_floor'
           };
 
+          store.setSimsState('synthesis_result', null);
           store.setOptResults(payload);
           store.addRunHistory({
               Include: true,
@@ -1596,7 +1597,7 @@ export default function Simulations() {
             </div>
           )}
 
-          {store.opt_results && !isOptimizing && renderResultsDashboard('optimizer')}
+          {store.opt_results && !store.synthesis_result && !isOptimizing && renderResultsDashboard('optimizer')}
 
         </div>
       )}
@@ -2188,7 +2189,7 @@ export default function Simulations() {
                 );
               })()}
 
-              {store.opt_results && !isOptimizing && renderResultsDashboard('synthesizer')}
+              {store.opt_results && store.synthesis_result && !isOptimizing && renderResultsDashboard('synthesizer')}
 
               <hr className="border-st-border my-8" />
 
