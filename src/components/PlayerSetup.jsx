@@ -448,7 +448,19 @@ export default function PlayerSetup() {
                             type="text" 
                             className="st-input" 
                             value={arch_ability_infernal_bonus} 
-                            onChange={(e) => setSetting('arch_ability_infernal_bonus', e.target.value)} 
+                            onChange={(e) => {
+                              let val = e.target.value.replace('+', '');
+                              if (val !== "" && val !== "-" && !val.startsWith('-')) {
+                                val = '-' + val;
+                              }
+                              setSetting('arch_ability_infernal_bonus', val);
+                            }} 
+                            onBlur={(e) => {
+                              let val = parseFloat(e.target.value);
+                              if (isNaN(val)) val = 0;
+                              if (val > 0) val = -val;
+                              setSetting('arch_ability_infernal_bonus', val.toString());
+                            }}
                           />
                         </div>
                       )}
