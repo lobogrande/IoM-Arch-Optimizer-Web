@@ -49,6 +49,7 @@ const useStore = create(
   sandbox_floor: 100,
   sandbox_calculated_stats: null,
   sandbox_baseline: null,
+  sandbox_baseline_stats: null,
 
   // Simulation Tab State Persistenceopt_results: null,
   run_history: [ ],
@@ -128,7 +129,7 @@ const useStore = create(
   setSandboxStat: (stat, value) => set((state) => ({ sandbox_stats: { ...state.sandbox_stats, [stat]: value === '' ? '' : (parseInt(value) || 0) } })),
   setSandboxStats: (newStats) => set((state) => ({ sandbox_stats: { ...state.sandbox_stats, ...newStats } })),
   setSandboxCalculatedStats: (stats) => set({ sandbox_calculated_stats: stats }),
-  setSandboxBaseline: (data) => set({ sandbox_baseline: data }),
+  setSandboxBaseline: (data, stats) => set({ sandbox_baseline: data, sandbox_baseline_stats: stats || null }),
   toggleTheme: () => set((state) => ({ theme: state.theme === 'dark' ? 'light' : 'dark' })),
   setHideMaxed: (val) => set({ hideMaxed: val }),
   setActiveTab: (val) => set({ activeTab: val }),

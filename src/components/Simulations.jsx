@@ -102,6 +102,7 @@ export default function Simulations() {
   const sandboxBlockFilters = store.sandboxBlockFilters;
   const setSandboxBlockFilters = store.setSandboxBlockFilters;
   const sandbox_baseline = store.sandbox_baseline;
+  const sandbox_baseline_stats = store.sandbox_baseline_stats;
   const setSandboxBaseline = store.setSandboxBaseline;
 
   // --- HOISTED SANDBOX MEMOS (Must be at the top level to obey React Hook Rules) ---
@@ -2368,7 +2369,7 @@ export default function Simulations() {
                 {/* NEW BASELINE BUTTONS */}
                 <div className="flex gap-2 mb-2">
                   <button 
-                    onClick={() => setSandboxBaseline(sbData)}
+                    onClick={() => setSandboxBaseline(sbData, store.sandbox_stats)}
                     disabled={!sbData}
                     className="flex-1 py-2 bg-[#2b2b2b] border border-st-orange text-st-orange text-xs font-bold rounded hover:bg-st-orange hover:text-[#2b2b2b] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                   >
@@ -2376,7 +2377,17 @@ export default function Simulations() {
                   </button>
                   {sandbox_baseline && (
                     <button 
-                      onClick={() => setSandboxBaseline(null)}
+                      onClick={() => {
+                        if (sandbox_baseline_stats) store.setSandboxStats(sandbox_baseline_stats);
+                      }}
+                      className="flex-1 py-2 bg-[#2b2b2b] border border-blue-500 text-blue-400 text-xs font-bold rounded hover:bg-blue-900 hover:text-white transition-colors"
+                    >
+                      ⏪ Restore
+                    </button>
+                  )}
+                  {sandbox_baseline && (
+                    <button 
+                      onClick={() => setSandboxBaseline(null, null)}
                       className="flex-1 py-2 bg-st-secondary border border-red-900 text-red-400 text-xs font-bold rounded hover:bg-red-900 hover:text-white transition-colors"
                     >
                       🔓 Clear
