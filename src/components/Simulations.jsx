@@ -2,7 +2,7 @@ import { useState, useMemo, useEffect } from 'react';
 import useStore from '../store';
 import { EngineWorkerPool, getOptimalStepProfile, runOptimizationPhase, topUpBuild } from '../utils/optimizer';
 import PlotWrapper from 'react-plotly.js';
-import { INTERNAL_UPGRADE_CAPS, UPGRADE_NAMES, ASC1_LOCKED_UPGS, ASC2_LOCKED_UPGS, UPGRADE_LEVEL_REQS } from '../game_data';
+import { INTERNAL_UPGRADE_CAPS, UPGRADE_NAMES, ASC1_LOCKED_UPGS, ASC2_LOCKED_UPGS, UPGRADE_LEVEL_REQS, EXTERNAL_UI_GROUPS } from '../game_data';
 import { UI_BLOCK_CARD_WIDTH, UI_BLOCK_CARD_X_OFFSET, UI_BLOCK_CARD_Y_OFFSET, UI_CARD_CBLOCK_SCALE } from '../ui_config';
 import { AgGridReact } from 'ag-grid-react';
 import { ModuleRegistry, AllCommunityModule } from 'ag-grid-community';
@@ -24,6 +24,13 @@ const OPT_GOALS =[
 
 const FRAG_NAMES = {
   0: "Dirt", 1: "Common", 2: "Rare", 3: "Epic", 4: "Legendary", 5: "Mythic", 6: "Divine"
+};
+
+const ORE_MIN_FLOORS = {
+  'dirt1': 1, 'com1': 1, 'rare1': 3, 'epic1': 6, 'leg1': 12, 'myth1': 20, 'div1': 50,
+  'dirt2': 12, 'com2': 18, 'rare2': 26, 'epic2': 30, 'leg2': 32, 'myth2': 36, 'div2': 75,
+  'dirt3': 24, 'com3': 30, 'rare3': 36, 'epic3': 42, 'leg3': 45, 'myth3': 50, 'div3': 100,
+  'dirt4': 81, 'com4': 96, 'rare4': 111, 'epic4': 126, 'leg4': 136, 'myth4': 141, 'div4': 150
 };
 
 export default function Simulations() {
@@ -78,7 +85,9 @@ export default function Simulations() {
   const [cardSelBlock, setCardSelBlock] = useState('');
   
   const[roiStatResults, setRoiStatResults] = useState(null);
-  const [roiUpgResults, setRoiUpgResults] = useState(null);
+  const[roiUpgResults, setRoiUpgResults] = useState(null);
+  const [roiExtResults, setRoiExtResults] = useState(null);
+  const [roiCardResults, setRoiCardResults] = useState(null);
   const [isRoiLoading, setIsRoiLoading] = useState(false);
   const[roiProgressMsg, setRoiProgressMsg] = useState("");
 
@@ -343,6 +352,150 @@ export default function Simulations() {
         setRoiUpgResults(finalRes.slice(0, 10)); // Top 10 upgrades
       } else {
         alert("All internal upgrades are maxed out! No further upgrades can be tested.");
+      }
+      pool.terminate();
+    } catch (err) {
+      console.error(err);
+      alert("ROI Analyzer failed: " + err.message);
+    }
+    setIsRoiLoading(false);
+  };
+
+  const handleAnalyzeExternal = async () => {
+    setIsRoiLoading(true);
+    setRoiProgressMsg("Testing marginal external values (This may take a minute)...");
+    
+    try {
+      const pool = new EngineWorkerPool();
+      await pool.init();
+      const extResults = {};
+      const promises = [ ];
+      const targetMetric = store.opt_results.run_target_metric;
+      const baseVal = store.opt_results.final_summary_out[targetMetric];
+      const bestFinal = store.opt_results.best_final;
+
+      const baseStateDict = {
+        asc1_unlocked: store.asc1_unlocked,
+        asc2_unlocked: store.asc2_unlocked,
+        arch_level: store.arch_level,
+        current_max_floor: store.current_max_floor,
+        hades_idol_level: store.hades_idol_level,
+        arch_ability_infernal_bonus: parseFloat(store.arch_ability_infernal_bonus) / 100.0,
+        total_infernal_cards: store.total_infernal_cards,
+        base_stats: store.base_stats,
+        upgrade_levels: store.upgrade_levels,
+        external_levels: { ...store.external_levels, 8: store.geoduck_unlocked ? (store.external_levels[ 8 ] || 0) : 0 },
+        cards: store.cards
+      };
+
+      await pool.syncState(baseStateDict);
+
+      EXTERNAL_UI_GROUPS.forEach(group => {
+        const currentVal = store.external_levels[group.rows[0]] || 0;
+        const maxVal = group.max !== undefined ? group.max : ((group.ui_type === 'skill' || group.ui_type === 'bundle') ? 1 : 9999);
+        
+        // Safety Gating
+        if (group.id === 'geoduck' && !store.geoduck_unlocked) return;
+        if (group.id === 'hestia' && !store.asc1_unlocked) return;
+        if (group.id === 'asc_bundle' && !store.asc1_unlocked) return;
+        if (group.id === 'arch_card' && !store.asc1_unlocked) return;
+        if (currentVal >= maxVal) return;
+        if (group.ui_type === 'pet' && currentVal === -1) return;
+
+        // Isolate payload dynamically over mapped rows
+        const testExt = {};
+        group.rows.forEach(r => testExt[r] = currentVal + 1);
+
+        extResults[group.id] = { sum: 0, count: 0, name: group.name };
+
+        for (let i = 0; i < 15; i++) {
+          const p = pool.runTask(bestFinal, undefined, testExt).then(res => {
+            extResults[group.id].sum += (res[targetMetric] || 0);
+            extResults[group.id].count++;
+          });
+          promises.push(p);
+        }
+      });
+
+      if (promises.length > 0) {
+        await Promise.all(promises);
+        const finalRes = Object.keys(extResults).map(k => {
+          const avg = extResults[k].sum / extResults[k].count;
+          const gain = ((avg - baseVal) / 60.0) * 1000.0;
+          return { id: k, name: extResults[k].name, gain: gain };
+        }).sort((a, b) => b.gain - a.gain);
+        setRoiExtResults(finalRes.slice(0, 10));
+      } else {
+        alert("All eligible external upgrades are maxed out!");
+      }
+      pool.terminate();
+    } catch (err) {
+      console.error(err);
+      alert("ROI Analyzer failed: " + err.message);
+    }
+    setIsRoiLoading(false);
+  };
+
+  const handleAnalyzeCards = async () => {
+    setIsRoiLoading(true);
+    setRoiProgressMsg("Testing marginal block card values (This may take a minute)...");
+    
+    try {
+      const pool = new EngineWorkerPool();
+      await pool.init();
+      const cardResults = {};
+      const promises = [ ];
+      const targetMetric = store.opt_results.run_target_metric;
+      const baseVal = store.opt_results.final_summary_out[targetMetric];
+      const bestFinal = store.opt_results.best_final;
+
+      const baseStateDict = {
+        asc1_unlocked: store.asc1_unlocked,
+        asc2_unlocked: store.asc2_unlocked,
+        arch_level: store.arch_level,
+        current_max_floor: store.current_max_floor,
+        hades_idol_level: store.hades_idol_level,
+        arch_ability_infernal_bonus: parseFloat(store.arch_ability_infernal_bonus) / 100.0,
+        total_infernal_cards: store.total_infernal_cards,
+        base_stats: store.base_stats,
+        upgrade_levels: store.upgrade_levels,
+        external_levels: { ...store.external_levels, 8: store.geoduck_unlocked ? (store.external_levels[ 8 ] || 0) : 0 },
+        cards: store.cards
+      };
+
+      await pool.syncState(baseStateDict);
+
+      Object.keys(ORE_MIN_FLOORS).forEach(cardId => {
+        // Floor and Ascension Access Gating
+        if (!store.asc1_unlocked && (cardId.startsWith('div') || cardId.endsWith('4'))) return;
+        if (!store.asc2_unlocked && cardId.endsWith('4')) return;
+        if (store.current_max_floor < ORE_MIN_FLOORS[cardId]) return;
+
+        const currentLvl = store.cards[cardId] || 0;
+        const maxLvl = store.asc1_unlocked ? 4 : 3;
+        if (currentLvl >= maxLvl) return;
+
+        cardResults[cardId] = { sum: 0, count: 0, name: cardId };
+
+        for (let i = 0; i < 15; i++) {
+          const p = pool.runTask(bestFinal, undefined, undefined, { [cardId]: currentLvl + 1 }).then(res => {
+            cardResults[cardId].sum += (res[targetMetric] || 0);
+            cardResults[cardId].count++;
+          });
+          promises.push(p);
+        }
+      });
+
+      if (promises.length > 0) {
+        await Promise.all(promises);
+        const finalRes = Object.keys(cardResults).map(k => {
+          const avg = cardResults[k].sum / cardResults[k].count;
+          const gain = ((avg - baseVal) / 60.0) * 1000.0;
+          return { id: k, name: cardResults[k].name, gain: gain };
+        }).sort((a, b) => b.gain - a.gain);
+        setRoiCardResults(finalRes.slice(0, 10));
+      } else {
+        alert("All eligible block cards are maxed out!");
       }
       pool.terminate();
     } catch (err) {
@@ -1074,6 +1227,74 @@ export default function Simulations() {
                       </div>
                     )}
                   </div>
+
+                  {/* EXTERNAL ROI */}
+                  <div className="border border-st-border rounded p-4 bg-st-bg">
+                    <h4 className="font-bold mb-2">3. External Upgrades</h4>
+                    <p className="text-sm text-st-text-light mb-4">Tests adding +1 to every un-maxed accessible external element (Skills, Pets, Idols).</p>
+                    <button 
+                      onClick={handleAnalyzeExternal}
+                      disabled={isRoiLoading}
+                      className="w-full py-2 bg-st-secondary border border-st-border text-st-text font-bold rounded hover:border-st-orange hover:text-st-orange transition-colors disabled:opacity-50 disabled:cursor-not-allowed mb-4"
+                    >
+                      🔍 Analyze Externals
+                    </button>
+                    
+                    {roiExtResults && (
+                      <div className="overflow-x-auto">
+                        <table className="w-full text-left border-collapse">
+                          <thead>
+                            <tr className="border-b border-st-border text-st-text-light text-sm">
+                              <th className="py-2 pr-4">External (+1 Lvl)</th>
+                              <th className="py-2">Marginal Gain (per 1k Arch Secs)</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {roiExtResults.map((r, i) => (
+                              <tr key={r.id} className="border-b border-st-border/50 hover:bg-black/5 transition-colors">
+                                <td className="py-2 pr-4 text-sm font-bold">{r.name}</td>
+                                <td className="py-2 font-mono text-st-orange">{r.gain > 0 ? '+' : ''}{r.gain.toFixed(2)}</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* CARDS ROI */}
+                  <div className="border border-st-border rounded p-4 bg-st-bg">
+                    <h4 className="font-bold mb-2">4. Block Cards</h4>
+                    <p className="text-sm text-st-text-light mb-4">Tests adding +1 level to every valid, accessible Block Card based on your max floor.</p>
+                    <button 
+                      onClick={handleAnalyzeCards}
+                      disabled={isRoiLoading}
+                      className="w-full py-2 bg-st-secondary border border-st-border text-st-text font-bold rounded hover:border-st-orange hover:text-st-orange transition-colors disabled:opacity-50 disabled:cursor-not-allowed mb-4"
+                    >
+                      🔍 Analyze Cards
+                    </button>
+                    
+                    {roiCardResults && (
+                      <div className="overflow-x-auto">
+                        <table className="w-full text-left border-collapse">
+                          <thead>
+                            <tr className="border-b border-st-border text-st-text-light text-sm">
+                              <th className="py-2 pr-4">Card (+1 Lvl)</th>
+                              <th className="py-2">Marginal Gain (per 1k Arch Secs)</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {roiCardResults.map((r, i) => (
+                              <tr key={r.id} className="border-b border-st-border/50 hover:bg-black/5 transition-colors">
+                                <td className="py-2 pr-4 text-sm font-bold capitalize">{r.name}</td>
+                                <td className="py-2 font-mono text-st-orange">{r.gain > 0 ? '+' : ''}{r.gain.toFixed(2)}</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
             )}
@@ -1390,6 +1611,8 @@ export default function Simulations() {
             // Clear stale ROI data
             setRoiStatResults(null);
             setRoiUpgResults(null);
+            setRoiExtResults(null);
+            setRoiCardResults(null);
             
             // Snap to the appropriate tab based on what we are restoring
             setActiveSubTab(isMetaBuild ? 'synth' : 'optimizer');
