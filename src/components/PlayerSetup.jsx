@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import useStore from '../store';
 import { 
   UI_STAT_IMG_WIDTH, UI_BLOCK_CARD_WIDTH, 
@@ -11,7 +11,25 @@ import { INTERNAL_UPGRADE_CAPS, UPGRADE_NAMES, ASC1_LOCKED_UPGS, ASC2_LOCKED_UPG
 
 export default function PlayerSetup() {
   const { asc1_unlocked, asc2_unlocked, arch_level, current_max_floor, base_stats, upgrade_levels, external_levels, cards, arch_ability_infernal_bonus, total_infernal_cards, geoduck_unlocked, calculated_stats, setSetting, setBaseStat, setUpgradeLevel, setCardLevel, setExternalGroup, loadStateFromJson, setSandboxStat, hideMaxed, setHideMaxed, activeSubTab, setActiveSubTab, upgradeView, setUpgradeView, profiles, activeProfileId, createProfile, loadProfile, saveToProfile, renameProfile, deleteProfile } = useStore();
-  const[isDragging, setIsDragging] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
+
+  // Deep equality check: Compares the active workspace to the saved profile snapshot
+  const hasUnsavedChanges = useMemo(() => {
+    if (!activeProfileId || profiles.length === 0) return false;
+    const active = profiles.find(p => p.id === activeProfileId);
+    if (!active) return false;
+
+    const currentSnapshot = {
+      asc1_unlocked, asc2_unlocked, arch_level, current_max_floor, geoduck_unlocked,
+      arch_ability_infernal_bonus, total_infernal_cards,
+      base_stats: { ...base_stats },
+      upgrade_levels: { ...upgrade_levels },
+      external_levels: { ...external_levels },
+      cards: { ...cards }
+    };
+    
+    return JSON.stringify(currentSnapshot) !== JSON.stringify(active.data);
+  },[activeProfileId, profiles, asc1_unlocked, asc2_unlocked, arch_level, current_max_floor, geoduck_unlocked, arch_ability_infernal_bonus, total_infernal_cards, base_stats, upgrade_levels, external_levels, cards]);
 
   // Add Arch Level and Internal Upgrade #12 (Stat Points) to get total budget
   const total_allowed = (parseInt(arch_level) || 1) + (upgrade_levels[12] || 0); 
@@ -169,7 +187,10 @@ export default function PlayerSetup() {
       <div className="w-full md:w-1/4 flex flex-col gap-4">
 
         <div className="st-container">
-          <h3 className="font-bold mb-4 flex items-center gap-2">👤 Player Profiles</h3>
+          <h3 className="font-bold mb-4 flex items-center justify-between">
+            <span className="flex items-center gap-2">👤 Player Profiles</span>
+            {hasUnsavedChanges && <span className="text-[10px] bg-st-orange text-[#2b2b2b] px-2 py-0.5 rounded font-bold uppercase shadow-sm">Unsaved</span>}
+          </h3>
           
           <div className="mb-4">
             <select
@@ -202,10 +223,14 @@ export default function PlayerSetup() {
                   saveToProfile(activeProfileId);
                 }
               }} 
-              disabled={!activeProfileId} 
-              className="py-2 bg-[#2b2b2b] border border-st-orange text-st-orange text-xs font-bold rounded hover:bg-st-orange hover:text-[#2b2b2b] transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
+              disabled={!activeProfileId || !hasUnsavedChanges} 
+              className={`py-2 text-xs font-bold rounded transition-colors shadow-sm ${
+                hasUnsavedChanges 
+                  ? 'bg-[#2b2b2b] border border-st-orange text-st-orange hover:bg-st-orange hover:text-[#2b2b2b]' 
+                  : 'bg-st-secondary border border-st-border text-st-text-light opacity-50 cursor-not-allowed'
+              }`}
             >
-              💾 Save Loadout
+              💾 Update Loadout
             </button>
           </div>
           
