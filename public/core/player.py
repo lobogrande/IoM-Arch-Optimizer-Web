@@ -79,7 +79,8 @@ class Player:
         17: ("Store VPs", "Ascension Bundle VP (Crosshair Auto-Tap Chance)"),
         18: ("Store VPs", "Ascension Bundle VP (Loot Mod Chance)"),
         19: ("Store VPs", "Ascension Bundle VP (Golden Crosshair Chance)"),
-        20: ("Cards", "Arch Ability Misc Card (Ability Cooldown Reduction)")
+        20: ("Cards", "Arch Ability Misc Card (Ability Cooldown Reduction)"),
+        21: ("Idol", "Hades Idol (Infernal Multiplier)")
     }
 
     def __init__(self):
@@ -163,6 +164,8 @@ class Player:
             elif lvl == 2: w['W20'] = -0.06
             elif lvl == 3: w['W20'] = -0.10
             elif lvl == 4: w['W20'] = self.arch_ability_infernal_bonus
+        elif row == 21:
+            self.hades_idol_level = lvl
 
     def u(self, cell): 
         if not self.asc1_unlocked:

@@ -240,7 +240,6 @@ export default function Simulations() {
         asc2_unlocked: store.asc2_unlocked,
         arch_level: store.arch_level,
         current_max_floor: store.current_max_floor,
-        hades_idol_level: store.hades_idol_level,
         arch_ability_infernal_bonus: parseFloat(store.arch_ability_infernal_bonus) / 100.0,
         total_infernal_cards: store.total_infernal_cards,
         base_stats: store.base_stats,
@@ -304,7 +303,6 @@ export default function Simulations() {
         asc2_unlocked: store.asc2_unlocked,
         arch_level: store.arch_level,
         current_max_floor: store.current_max_floor,
-        hades_idol_level: store.hades_idol_level,
         arch_ability_infernal_bonus: parseFloat(store.arch_ability_infernal_bonus) / 100.0,
         total_infernal_cards: store.total_infernal_cards,
         base_stats: store.base_stats,
@@ -379,7 +377,6 @@ export default function Simulations() {
         asc2_unlocked: store.asc2_unlocked,
         arch_level: store.arch_level,
         current_max_floor: store.current_max_floor,
-        hades_idol_level: store.hades_idol_level,
         arch_ability_infernal_bonus: parseFloat(store.arch_ability_infernal_bonus) / 100.0,
         total_infernal_cards: store.total_infernal_cards,
         base_stats: store.base_stats,
@@ -403,6 +400,7 @@ export default function Simulations() {
         // Safety Gating
         if (group.id === 'geoduck' && !store.geoduck_unlocked) return;
         if (group.id === 'hestia' && !store.asc1_unlocked) return;
+        if (group.id === 'hades' && !store.asc1_unlocked) return;
         if (group.id === 'asc_bundle' && !store.asc1_unlocked) return;
         if (group.id === 'arch_card' && !store.asc1_unlocked) return;
         if (currentVal >= maxVal) return;
@@ -469,7 +467,6 @@ export default function Simulations() {
         asc2_unlocked: store.asc2_unlocked,
         arch_level: store.arch_level,
         current_max_floor: store.current_max_floor,
-        hades_idol_level: store.hades_idol_level,
         arch_ability_infernal_bonus: parseFloat(store.arch_ability_infernal_bonus) / 100.0,
         total_infernal_cards: store.total_infernal_cards,
         base_stats: store.base_stats,
@@ -538,7 +535,6 @@ export default function Simulations() {
         asc2_unlocked: store.asc2_unlocked,
         arch_level: store.arch_level,
         current_max_floor: store.current_max_floor,
-        hades_idol_level: store.hades_idol_level,
         arch_ability_infernal_bonus: parseFloat(store.arch_ability_infernal_bonus) / 100.0,
         total_infernal_cards: store.total_infernal_cards,
         base_stats: store.base_stats,
@@ -1702,7 +1698,6 @@ export default function Simulations() {
                 asc2_unlocked: store.asc2_unlocked,
                 arch_level: store.arch_level,
                 current_max_floor: store.current_max_floor,
-                hades_idol_level: store.hades_idol_level,
                 arch_ability_infernal_bonus: parseFloat(store.arch_ability_infernal_bonus) / 100.0,
                 total_infernal_cards: store.total_infernal_cards,
                 base_stats: store.base_stats,

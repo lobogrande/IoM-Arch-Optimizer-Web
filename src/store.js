@@ -22,7 +22,6 @@ const useStore = create(
   asc2_unlocked: false,
   arch_level: 45,
   current_max_floor: 40,
-  hades_idol_level: 0,
   geoduck_unlocked: false,
   
   // Base Stats
@@ -147,7 +146,6 @@ const useStore = create(
     asc2_unlocked: false,
     arch_level: 45,
     current_max_floor: 40,
-    hades_idol_level: 0,
     geoduck_unlocked: false,
     base_stats: { Str: 0, Agi: 0, Per: 0, Int: 0, Luck: 0, Div: 0, Corr: 0 },
     upgrade_levels: { },
@@ -204,9 +202,7 @@ const useStore = create(
       if (data.settings.current_max_floor !== undefined) newState.current_max_floor = data.settings.current_max_floor;
       if (data.settings.total_infernal_cards !== undefined) newState.total_infernal_cards = data.settings.total_infernal_cards;
       
-      // Legacy Fallback for older JSON files
-      if (data.settings.hades_idol_level !== undefined) newState.hades_idol_level = data.settings.hades_idol_level;
-    }
+      }
 
     // Parse Base Stats
     if (data.base_stats) {
@@ -237,9 +233,9 @@ const useStore = create(
         }
       });
 
-      // Parse Hades Idol explicitly from external block
-      if (data.external_upgrades["Hades Idol"] !== undefined) {
-        newState.hades_idol_level = parseInt(data.external_upgrades["Hades Idol"]) || 0;
+      // Legacy Fallback for very old Streamlit JSON files where Hades was inside settings
+      if (data.settings && data.settings.hades_idol_level !== undefined && newExt[21] === undefined) {
+        newExt[21] = parseInt(data.settings.hades_idol_level) || 0;
       }
 
       // Parse Geoduck Unlock from external block, with legacy fallback
