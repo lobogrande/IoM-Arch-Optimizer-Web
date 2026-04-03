@@ -101,10 +101,19 @@ export default function Simulations() {
   const setSandboxShowCrits = store.setSandboxShowCrits;
   const sandboxBlockFilters = store.sandboxBlockFilters;
   const setSandboxBlockFilters = store.setSandboxBlockFilters;
+  const sandbox_baseline = store.sandbox_baseline;
+  const setSandboxBaseline = store.setSandboxBaseline;
 
   // --- HOISTED SANDBOX MEMOS (Must be at the top level to obey React Hook Rules) ---
   const sbData = store.sandbox_calculated_stats;
   const tFloor = store.sandbox_floor ?? store.current_max_floor;
+
+  const baselineMap = useMemo(() => {
+    if (!sandbox_baseline || !sandbox_baseline.blocks_data) return null;
+    const map = new Map();
+    sandbox_baseline.blocks_data.forEach(b => map.set(b.name, b));
+    return map;
+  }, [sandbox_baseline]);
 
   const sandboxBlocks = useMemo(() => {
     if (!sbData) return[];
@@ -131,6 +140,37 @@ export default function Simulations() {
   }),[]);
 
   const sandboxColumns = useMemo(() => {
+    
+    // Custom React Renderer to automatically inject (+X) or (-X) if a baseline is locked!
+    const createDiffRenderer = (field, isLowerBetter = false) => (p) => {
+      const val = p.data[field];
+      let baseVal = null;
+      if (baselineMap && baselineMap.has(p.data.name)) {
+        baseVal = baselineMap.get(p.data.name)[field];
+      }
+
+      const formattedVal = Math.floor(val).toLocaleString();
+      if (baseVal === null || baseVal === undefined || Math.floor(val) === Math.floor(baseVal)) {
+        return <span>{formattedVal}</span>;
+      }
+
+      const diff = Math.floor(val) - Math.floor(baseVal);
+      const diffStr = diff > 0 ? `+${diff.toLocaleString()}` : diff.toLocaleString();
+      
+      // If we are looking at 'Hits', negative is green. If EDPS, positive is green!
+      const isGood = isLowerBetter ? diff < 0 : diff > 0;
+      
+      // Hardcoded inline hex values because AG grid can sometimes swallow global Tailwind classes
+      const colorClass = isGood ? '#4CAF50' : '#ff4b4b';
+
+      return (
+        <div className="flex items-center justify-end w-full gap-1 h-full">
+          <span>{formattedVal}</span>
+          <span style={{ color: colorClass, fontSize: '0.75rem', fontWeight: 'bold' }}>({diffStr})</span>
+        </div>
+      );
+    };
+
     const cols =[
       { 
         field: "id", headerName: "Icon", pinned: "left", minWidth: 70, sortable: false, filter: false,
@@ -143,11 +183,11 @@ export default function Simulations() {
       { field: "name", headerName: "Block", pinned: "left" },
       { field: "mod_hp", headerName: "HP", valueFormatter: p => Math.floor(p.value).toLocaleString(), type: 'numericColumn' },
       { field: "mod_eff_armor", headerName: "Armor", valueFormatter: p => Math.floor(p.value).toLocaleString(), type: 'numericColumn' },
-      { field: "edps", headerName: "EDPS", valueFormatter: p => Math.floor(p.value).toLocaleString(), type: 'numericColumn', cellStyle: { color: '#ffa229', fontWeight: 'bold' } },
-      { field: "enr_edps", headerName: "Enr EDPS", valueFormatter: p => Math.floor(p.value).toLocaleString(), type: 'numericColumn', cellStyle: { color: '#f87171', fontWeight: 'bold' } },
-      { field: "reg_hit", headerName: "Reg Hit", valueFormatter: p => Math.floor(p.value).toLocaleString(), type: 'numericColumn' },
-      { field: "avg_hits", headerName: "Avg Hits", valueFormatter: p => Math.floor(p.value).toLocaleString(), type: 'numericColumn', cellStyle: { fontWeight: 'bold' } },
-      { field: "max_hits", headerName: "Max Hits", valueFormatter: p => Math.floor(p.value).toLocaleString(), type: 'numericColumn', cellStyle: { color: '#7D808D' } }
+      { field: "edps", headerName: "EDPS", cellRenderer: createDiffRenderer("edps", false), type: 'numericColumn', cellStyle: { color: '#ffa229', fontWeight: 'bold' } },
+      { field: "enr_edps", headerName: "Enr EDPS", cellRenderer: createDiffRenderer("enr_edps", false), type: 'numericColumn', cellStyle: { color: '#f87171', fontWeight: 'bold' } },
+      { field: "reg_hit", headerName: "Reg Hit", cellRenderer: createDiffRenderer("reg_hit", false), type: 'numericColumn' },
+      { field: "avg_hits", headerName: "Avg Hits", cellRenderer: createDiffRenderer("avg_hits", true), type: 'numericColumn', cellStyle: { fontWeight: 'bold' } },
+      { field: "max_hits", headerName: "Max Hits", cellRenderer: createDiffRenderer("max_hits", true), type: 'numericColumn', cellStyle: { color: '#7D808D' } }
     ];
 
     if (sandboxShowCrits) {
@@ -162,7 +202,7 @@ export default function Simulations() {
       );
     }
     return cols;
-  }, [sandboxShowCrits]);
+  },[sandboxShowCrits, baselineMap]);
 
   // Dynamic Limits based on Ascensions and Caps
   const totalAllowed = parseInt(store.arch_level) + parseInt(store.upgrade_levels[12] || 0);
@@ -2317,6 +2357,25 @@ export default function Simulations() {
                   >
                     📤 Push to Global
                   </button>
+                </div>
+                
+                {/* NEW BASELINE BUTTONS */}
+                <div className="flex gap-2 mb-6">
+                  <button 
+                    onClick={() => setSandboxBaseline(sbData)}
+                    disabled={!sbData}
+                    className="flex-1 py-2 bg-[#2b2b2b] border border-st-orange text-st-orange text-xs font-bold rounded hover:bg-st-orange hover:text-[#2b2b2b] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    🔒 Lock Baseline
+                  </button>
+                  {sandbox_baseline && (
+                    <button 
+                      onClick={() => setSandboxBaseline(null)}
+                      className="flex-1 py-2 bg-st-secondary border border-red-900 text-red-400 text-xs font-bold rounded hover:bg-red-900 hover:text-white transition-colors"
+                    >
+                      🔓 Clear
+                    </button>
+                  )}
                 </div>
 
                 <h4 className="font-bold mb-4">Sandbox Stats</h4>
