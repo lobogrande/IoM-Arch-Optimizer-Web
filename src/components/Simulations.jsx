@@ -84,12 +84,12 @@ export default function Simulations() {
   const [tarXp, setTarXp] = useState(0);
   const [cardSelBlock, setCardSelBlock] = useState('');
   
-  const[roiStatResults, setRoiStatResults] = useState(null);
-  const[roiUpgResults, setRoiUpgResults] = useState(null);
-  const[roiExtResults, setRoiExtResults] = useState({ optimizer: null, synthesizer: null });
-  const[roiCardResults, setRoiCardResults] = useState({ optimizer: null, synthesizer: null });
-  const[isRoiLoading, setIsRoiLoading] = useState(false);
-  const [roiProgressMsg, setRoiProgressMsg] = useState("");
+  const [roiStatResults, setRoiStatResults] = useState({ optimizer: null, synthesizer: null });
+  const[roiUpgResults, setRoiUpgResults] = useState({ optimizer: null, synthesizer: null });
+  const [roiExtResults, setRoiExtResults] = useState({ optimizer: null, synthesizer: null });
+  const [roiCardResults, setRoiCardResults] = useState({ optimizer: null, synthesizer: null });
+  const [isRoiLoading, setIsRoiLoading] = useState(false);
+  const[roiProgressMsg, setRoiProgressMsg] = useState("");
 
   // Auto-wipe the specific context's ROI cache when a new build is loaded, 
   // keeping the other tab's data safely intact!
