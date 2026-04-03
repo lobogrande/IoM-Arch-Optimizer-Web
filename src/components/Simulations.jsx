@@ -2407,7 +2407,7 @@ export default function Simulations() {
                         max={MAX_STAT_CAPS[stat]}
                         value={store.sandbox_stats[stat] !== undefined ? store.sandbox_stats[stat] : 0}
                         onFocus={(e) => e.target.select()}
-                        onChange={(e) => store.setSandboxStat(stat, e.target.value === '' ? '' : parseInt(e.target.value))}
+                        onChange={(e) => store.setSandboxStat(stat, e.target.value === '' ? '' : Math.max(0, parseInt(e.target.value) || 0))}
                         onBlur={(e) => {
                           let parsed = parseInt(e.target.value) || 0;
                           if (parsed > MAX_STAT_CAPS[stat]) parsed = MAX_STAT_CAPS[stat];
