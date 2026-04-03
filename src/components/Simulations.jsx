@@ -86,17 +86,19 @@ export default function Simulations() {
   
   const[roiStatResults, setRoiStatResults] = useState(null);
   const[roiUpgResults, setRoiUpgResults] = useState(null);
-  const [roiExtResults, setRoiExtResults] = useState(null);
-  const [roiCardResults, setRoiCardResults] = useState(null);
-  const [isRoiLoading, setIsRoiLoading] = useState(false);
-  const[roiProgressMsg, setRoiProgressMsg] = useState("");
+  const[roiExtResults, setRoiExtResults] = useState({ optimizer: null, synthesizer: null });
+  const[roiCardResults, setRoiCardResults] = useState({ optimizer: null, synthesizer: null });
+  const[isRoiLoading, setIsRoiLoading] = useState(false);
+  const [roiProgressMsg, setRoiProgressMsg] = useState("");
 
-  // Auto-wipe the ROI cache whenever the underlying active build changes!
+  // Auto-wipe the specific context's ROI cache when a new build is loaded, 
+  // keeping the other tab's data safely intact!
   useEffect(() => {
-    setRoiStatResults(null);
-    setRoiUpgResults(null);
-    setRoiExtResults(null);
-    setRoiCardResults(null);
+    const context = store.synthesis_result ? 'synthesizer' : 'optimizer';
+    setRoiStatResults(prev => ({ ...prev, [context]: null }));
+    setRoiUpgResults(prev => ({ ...prev, [context]: null }));
+    setRoiExtResults(prev => ({ ...prev, [context]: null }));
+    setRoiCardResults(prev => ({ ...prev, [context]: null }));
   },[store.opt_results]);
 
   const isAnyRunning = isOptimizing || isSynthesizing || isRoiLoading;
@@ -230,7 +232,7 @@ export default function Simulations() {
   };
 
   // --- ROI ANALYZERS ---
-  const handleAnalyzeStats = async () => {
+  const handleAnalyzeStats = async (context) => {
     setIsRoiLoading(true);
     setRoiProgressMsg("Testing marginal stat values (15 sims each)...");
     
@@ -280,7 +282,7 @@ export default function Simulations() {
           const gain = ((avg - baseVal) / 60.0) * 1000.0;
           return { stat: k, gain: gain };
         }).sort((a, b) => b.gain - a.gain);
-        setRoiStatResults(finalRes);
+        setRoiStatResults(prev => ({ ...prev, [context]: finalRes }));
       } else {
         alert("All stats are already maxed out! No further points can be tested.");
       }
@@ -292,7 +294,7 @@ export default function Simulations() {
     setIsRoiLoading(false);
   };
 
-  const handleAnalyzeUpgrades = async () => {
+  const handleAnalyzeUpgrades = async (context) => {
     setIsRoiLoading(true);
     setRoiProgressMsg("Testing marginal upgrade values (This may take a minute)...");
     
@@ -355,7 +357,7 @@ export default function Simulations() {
           const gain = ((avg - baseVal) / 60.0) * 1000.0;
           return { id: k, name: upgResults[k].name, gain: gain, action: upgResults[k].action };
         }).sort((a, b) => b.gain - a.gain);
-        setRoiUpgResults(finalRes.slice(0, 10)); // Top 10 upgrades
+        setRoiUpgResults(prev => ({ ...prev, [context]: finalRes.slice(0, 10) })); // Top 10 upgrades
       } else {
         alert("All internal upgrades are maxed out! No further upgrades can be tested.");
       }
@@ -367,7 +369,7 @@ export default function Simulations() {
     setIsRoiLoading(false);
   };
 
-  const handleAnalyzeExternal = async () => {
+  const handleAnalyzeExternal = async (context) => {
     setIsRoiLoading(true);
     setRoiProgressMsg("Testing marginal external values (This may take a minute)...");
     
@@ -445,7 +447,7 @@ export default function Simulations() {
           const gain = ((avg - baseVal) / 60.0) * 1000.0;
           return { id: k, name: extResults[k].name, gain: gain, action: extResults[k].action };
         }).sort((a, b) => b.gain - a.gain);
-        setRoiExtResults(finalRes.slice(0, 10));
+        setRoiExtResults(prev => ({ ...prev, [context]: finalRes.slice(0, 10) }));
       } else {
         alert("All eligible external upgrades are maxed out!");
       }
@@ -457,7 +459,7 @@ export default function Simulations() {
     setIsRoiLoading(false);
   };
 
-  const handleAnalyzeCards = async () => {
+  const handleAnalyzeCards = async (context) => {
     setIsRoiLoading(true);
     setRoiProgressMsg("Testing marginal block card values (This may take a minute)...");
     
@@ -519,7 +521,7 @@ export default function Simulations() {
           const gain = ((avg - baseVal) / 60.0) * 1000.0;
           return { id: k, name: cardResults[k].name, gain: gain, action: cardResults[k].action };
         }).sort((a, b) => b.gain - a.gain);
-        setRoiCardResults(finalRes.slice(0, 10));
+        setRoiCardResults(prev => ({ ...prev, [context]: finalRes.slice(0, 10) }));
       } else {
         alert("All eligible block cards are maxed out!");
       }
@@ -1190,14 +1192,14 @@ export default function Simulations() {
                     <h4 className="font-bold mb-2">1. Next Stat Point</h4>
                     <p className="text-sm text-st-text-light mb-4">Tests adding +1 to every stat to see which yields the highest increase.</p>
                     <button 
-                      onClick={handleAnalyzeStats}
+                      onClick={() => handleAnalyzeStats(context)}
                       disabled={isRoiLoading}
                       className="w-full py-2 bg-st-secondary border border-st-border text-st-text font-bold rounded hover:border-st-orange hover:text-st-orange transition-colors disabled:opacity-50 disabled:cursor-not-allowed mb-4"
                     >
                       🔍 Analyze Next Stat Point
                     </button>
                     
-                    {roiStatResults && (
+                    {roiStatResults[context] && (
                       <div className="overflow-x-auto">
                         <table className="w-full text-left border-collapse">
                           <thead>
@@ -1207,7 +1209,7 @@ export default function Simulations() {
                             </tr>
                           </thead>
                           <tbody>
-                            {roiStatResults.map((r, i) => (
+                            {roiStatResults[context].map((r, i) => (
                               <tr key={r.stat} className="border-b border-st-border/50 hover:bg-black/5 transition-colors">
                                 <td className="py-2 pr-4 font-bold">{r.stat}</td>
                                 <td className="py-2 font-mono text-st-orange">{r.gain > 0 ? '+' : ''}{r.gain.toFixed(2)}</td>
@@ -1224,14 +1226,14 @@ export default function Simulations() {
                     <h4 className="font-bold mb-2">2. Upgrade ROI (Internal)</h4>
                     <p className="text-sm text-st-text-light mb-4">Tests adding +1 level to every un-maxed internal upgrade.</p>
                     <button 
-                      onClick={handleAnalyzeUpgrades}
+                      onClick={() => handleAnalyzeUpgrades(context)}
                       disabled={isRoiLoading}
                       className="w-full py-2 bg-st-secondary border border-st-border text-st-text font-bold rounded hover:border-st-orange hover:text-st-orange transition-colors disabled:opacity-50 disabled:cursor-not-allowed mb-4"
                     >
                       🔍 Analyze Upgrades
                     </button>
                     
-                    {roiUpgResults && (
+                    {roiUpgResults[context] && (
                       <div className="overflow-x-auto">
                         <table className="w-full text-left border-collapse">
                           <thead>
@@ -1242,7 +1244,7 @@ export default function Simulations() {
                             </tr>
                           </thead>
                           <tbody>
-                            {roiUpgResults.map((r, i) => (
+                            {roiUpgResults[context].map((r, i) => (
                               <tr key={r.id} className="border-b border-st-border/50 hover:bg-black/5 transition-colors">
                                 <td className="py-2 pr-4 text-sm font-bold">{r.name}</td>
                                 <td className="py-2 pr-4 text-xs text-st-text-light">{r.action}</td>
@@ -1260,14 +1262,14 @@ export default function Simulations() {
                     <h4 className="font-bold mb-2">3. External Upgrades</h4>
                     <p className="text-sm text-st-text-light mb-4">Tests adding +1 to every un-maxed accessible external element (Skills, Pets, Idols).</p>
                     <button 
-                      onClick={handleAnalyzeExternal}
+                      onClick={() => handleAnalyzeExternal(context)}
                       disabled={isRoiLoading}
                       className="w-full py-2 bg-st-secondary border border-st-border text-st-text font-bold rounded hover:border-st-orange hover:text-st-orange transition-colors disabled:opacity-50 disabled:cursor-not-allowed mb-4"
                     >
                       🔍 Analyze Externals
                     </button>
                     
-                    {roiExtResults && (
+                    {roiExtResults[context] && (
                       <div className="overflow-x-auto">
                         <table className="w-full text-left border-collapse">
                           <thead>
@@ -1278,7 +1280,7 @@ export default function Simulations() {
                             </tr>
                           </thead>
                           <tbody>
-                            {roiExtResults.map((r, i) => (
+                            {roiExtResults[context].map((r, i) => (
                               <tr key={r.id} className="border-b border-st-border/50 hover:bg-black/5 transition-colors">
                                 <td className="py-2 pr-4 text-sm font-bold">{r.name}</td>
                                 <td className="py-2 pr-4 text-xs text-st-text-light">{r.action}</td>
@@ -1296,14 +1298,14 @@ export default function Simulations() {
                     <h4 className="font-bold mb-2">4. Block Cards</h4>
                     <p className="text-sm text-st-text-light mb-4">Tests adding +1 level to every valid, accessible Block Card based on your max floor.</p>
                     <button 
-                      onClick={handleAnalyzeCards}
+                      onClick={() => handleAnalyzeCards(context)}
                       disabled={isRoiLoading}
                       className="w-full py-2 bg-st-secondary border border-st-border text-st-text font-bold rounded hover:border-st-orange hover:text-st-orange transition-colors disabled:opacity-50 disabled:cursor-not-allowed mb-4"
                     >
                       🔍 Analyze Cards
                     </button>
                     
-                    {roiCardResults && (
+                    {roiCardResults[context] && (
                       <div className="overflow-x-auto">
                         <table className="w-full text-left border-collapse">
                           <thead>
@@ -1314,7 +1316,7 @@ export default function Simulations() {
                             </tr>
                           </thead>
                           <tbody>
-                            {roiCardResults.map((r, i) => (
+                            {roiCardResults[context].map((r, i) => (
                               <tr key={r.id} className="border-b border-st-border/50 hover:bg-black/5 transition-colors">
                                 <td className="py-2 pr-4 text-sm font-bold capitalize">{r.name}</td>
                                 <td className="py-2 pr-4 text-xs text-st-text-light">{r.action}</td>
