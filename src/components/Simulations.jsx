@@ -213,7 +213,13 @@ export default function Simulations() {
     Corr: store.asc2_unlocked ? (10 + capInc) : 0
   };
 
-  const activeStats =['Str', 'Agi', 'Per', 'Int', 'Luck'];
+  const MAX_STAT_CAPS = {
+    Str: 55, Agi: 55, Per: 30, Int: 30, Luck: 30,
+    Div: store.asc1_unlocked ? 15 : 0, 
+    Corr: store.asc2_unlocked ? 15 : 0
+  };
+
+  const activeStats = [ 'Str', 'Agi', 'Per', 'Int', 'Luck' ];
   if (store.asc1_unlocked) activeStats.push('Div');
   if (store.asc2_unlocked) activeStats.push('Corr');
 
@@ -2385,7 +2391,10 @@ export default function Simulations() {
                 <div className="grid grid-cols-2 gap-3 mb-6">
                   {activeStats.map(stat => (
                     <div key={stat} className="st-container flex flex-col items-center bg-st-bg p-2">
-                      <div className="font-bold text-xs mb-1">{stat}</div>
+                      <div className="text-center mb-1">
+                        <span className="font-bold text-xs">{stat}</span><br/>
+                        <span className="text-[10px] text-st-text-light">(Max: {MAX_STAT_CAPS[stat]})</span>
+                      </div>
                       <img 
                         src={`/assets/stats_small/${stat.toLowerCase()}.png`} 
                         onError={(e) => { e.target.onerror = null; e.target.src = `/assets/stats/${stat.toLowerCase()}.png` }}
@@ -2394,17 +2403,24 @@ export default function Simulations() {
                       />
                       <input
                         type="number"
+                        min="0"
+                        max={MAX_STAT_CAPS[stat]}
                         value={store.sandbox_stats[stat] !== undefined ? store.sandbox_stats[stat] : 0}
                         onFocus={(e) => e.target.select()}
                         onChange={(e) => store.setSandboxStat(stat, e.target.value === '' ? '' : parseInt(e.target.value))}
                         onBlur={(e) => {
                           let parsed = parseInt(e.target.value) || 0;
-                          if (parsed > STAT_CAPS[stat]) parsed = STAT_CAPS[stat];
+                          if (parsed > MAX_STAT_CAPS[stat]) parsed = MAX_STAT_CAPS[stat];
                           if (parsed < 0) parsed = 0;
                           store.setSandboxStat(stat, parsed);
                         }}
                         className="st-input p-1 text-sm h-8"
                       />
+                      <div className="flex flex-wrap justify-center gap-1 mt-2 w-full">
+                        <button onClick={() => store.setSandboxStat(stat, Math.max(0, (store.sandbox_stats[stat] || 0) - 5))} className="flex-1 px-1 py-1 text-[10px] bg-st-secondary text-st-text rounded border border-st-border hover:border-st-orange transition-colors">-5</button>
+                        <button onClick={() => store.setSandboxStat(stat, Math.min(MAX_STAT_CAPS[stat], (store.sandbox_stats[stat] || 0) + 5))} className="flex-1 px-1 py-1 text-[10px] bg-st-secondary text-st-text rounded border border-st-border hover:border-st-orange transition-colors">+5</button>
+                        <button onClick={() => store.setSandboxStat(stat, MAX_STAT_CAPS[stat])} className="flex-1 px-1 py-1 text-[10px] font-bold bg-st-secondary text-st-text rounded border border-st-border hover:border-st-orange transition-colors">Max</button>
+                      </div>
                     </div>
                   ))}
                 </div>
