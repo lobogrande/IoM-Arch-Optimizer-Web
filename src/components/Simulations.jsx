@@ -132,13 +132,12 @@ export default function Simulations() {
   const sandboxDefaultColDef = useMemo(() => ({
     sortable: true,
     filter: true,
-    resizable: true,
-    suppressMenu: false
-  }),[]);
+    resizable: true
+  }), [ ]);
 
   const sandboxAutoSizeStrategy = useMemo(() => ({
     type: 'fitCellContents'
-  }),[]);
+  }), [ ]);
 
   const sandboxColumns = useMemo(() => {
     
@@ -2582,6 +2581,7 @@ export default function Simulations() {
                   <div className="flex items-center justify-center h-full text-st-text-light">Calculating sandbox math...</div>
                 ) : (
                   <AgGridReact
+                    theme="legacy"
                     rowData={sandboxBlocks}
                     defaultColDef={sandboxDefaultColDef}
                     autoSizeStrategy={sandboxAutoSizeStrategy}
