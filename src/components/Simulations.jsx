@@ -91,6 +91,14 @@ export default function Simulations() {
   const [isRoiLoading, setIsRoiLoading] = useState(false);
   const[roiProgressMsg, setRoiProgressMsg] = useState("");
 
+  // Auto-wipe the ROI cache whenever the underlying active build changes!
+  useEffect(() => {
+    setRoiStatResults(null);
+    setRoiUpgResults(null);
+    setRoiExtResults(null);
+    setRoiCardResults(null);
+  },[store.opt_results]);
+
   const isAnyRunning = isOptimizing || isSynthesizing || isRoiLoading;
 
   // Synthesis Tab State
