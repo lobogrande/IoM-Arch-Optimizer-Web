@@ -32,7 +32,7 @@ export const ASC2_LOCKED_UPGS =[19, 27, 34, 46, 52, 55];
 export const CARD_TYPES =['dirt', 'com', 'rare', 'epic', 'leg', 'myth', 'div'];
 
 export const EXTERNAL_UI_GROUPS = [
-    {id: "hestia", name: "Hestia Idol", rows:[4], ui_type: "number", max: 9999, img: "4_hestia.png"},
+    {id: "hestia", name: "Hestia Idol", rows:[4], ui_type: "number", max: 3000, img: "4_hestia.png"},
     {id: "axolotl", name: "Axolotl Skin", rows:[5], ui_type: "pet", max: 11, img: "5_axolotl.png"},
     {id: "dino", name: "Dino Skin", rows: [6, 7], ui_type: "pet", max: 11, img: "6_7_dino.png"},
     {id: "geoduck", name: "Geoduck Tribute", rows: [8], ui_type: "number", max: 9999, img: "8_geoduck.png"},

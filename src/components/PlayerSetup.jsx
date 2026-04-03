@@ -433,7 +433,7 @@ export default function PlayerSetup() {
                           disabled={group.id === 'geoduck' && !geoduck_unlocked} 
                           onFocus={(e) => e.target.select()}
                           onChange={(e) => setExternalGroup(group.rows, e.target.value === '' ? '' : parseInt(e.target.value))} 
-                          onBlur={(e) => setExternalGroup(group.rows, Math.max(group.ui_type === 'pet' ? -1 : 0, parseInt(e.target.value) || 0))}
+                          onBlur={(e) => setExternalGroup(group.rows, Math.min(group.max !== undefined ? group.max : 9999, Math.max(group.ui_type === 'pet' ? -1 : 0, parseInt(e.target.value) || 0)))}
                         />
                       )}
                       
@@ -563,7 +563,7 @@ export default function PlayerSetup() {
                       value={external_levels[4] !== undefined ? external_levels[4] : 0} 
                       onFocus={(e) => e.target.select()}
                       onChange={(e) => setExternalGroup([4], e.target.value === '' ? '' : parseInt(e.target.value))} 
-                      onBlur={(e) => setExternalGroup([4], Math.max(0, parseInt(e.target.value) || 0))}
+                      onBlur={(e) => setExternalGroup([4], Math.min(3000, Math.max(0, parseInt(e.target.value) || 0)))}
                     />
                   </div>
                 </div>
@@ -580,7 +580,7 @@ export default function PlayerSetup() {
                       value={hades_idol_level} 
                       onFocus={(e) => e.target.select()}
                       onChange={(e) => setSetting('hades_idol_level', e.target.value === '' ? '' : parseInt(e.target.value))}
-                      onBlur={(e) => setSetting('hades_idol_level', Math.max(0, parseInt(e.target.value) || 0))}
+                      onBlur={(e) => setSetting('hades_idol_level', Math.min(6666, Math.max(0, parseInt(e.target.value) || 0)))}
                     />
                   </div>
                 </div>
