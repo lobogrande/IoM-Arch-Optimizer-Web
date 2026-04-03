@@ -139,6 +139,36 @@ const useStore = create(
   setSandboxShowUnreachable: (val) => set({ sandboxShowUnreachable: val }),
   setSandboxShowCrits: (val) => set({ sandboxShowCrits: val }),
   setSandboxBlockFilters: (val) => set({ sandboxBlockFilters: val }),
+  saveRoiToCurrentRun: (context, category, data) => set((state) => {
+    if (!state.opt_results) return state;
+    // Bind a unique ID so we can flawlessly find it in the history arrays
+    const targetId = state.opt_results.run_id || Date.now();
+    const newOptResults = { ...state.opt_results, run_id: targetId, [category]: data };
+    const newState = { opt_results: newOptResults };
+
+    if (context === 'optimizer') {
+      newState.run_history = state.run_history.map(r => {
+        const restOpt = r._restore_state?.opt_results || (r._restore_state?.best_final ? r._restore_state : null);
+        if (restOpt && (restOpt.run_id === targetId || restOpt === state.opt_results)) {
+          if (r._restore_state.opt_results) {
+            return { ...r, _restore_state: { ...r._restore_state, opt_results: { ...r._restore_state.opt_results, run_id: targetId, [category]: data } } };
+          } else {
+            return { ...r, _restore_state: { ...r._restore_state, run_id: targetId, [category]: data } };
+          }
+        }
+        return r;
+      });
+    } else {
+      newState.synth_history = state.synth_history.map(r => {
+        const restOpt = r._restore_state?.opt_results;
+        if (restOpt && (restOpt.run_id === targetId || restOpt === state.opt_results)) {
+          return { ...r, _restore_state: { ...r._restore_state, opt_results: { ...r._restore_state.opt_results, run_id: targetId, [category]: data } } };
+        }
+        return r;
+      });
+    }
+    return newState;
+  }),
   
   // Wipe all data to default baseline
   resetState: () => set({

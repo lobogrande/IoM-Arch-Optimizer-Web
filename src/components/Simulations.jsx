@@ -84,22 +84,8 @@ export default function Simulations() {
   const [tarXp, setTarXp] = useState(0);
   const [cardSelBlock, setCardSelBlock] = useState('');
   
-  const [roiStatResults, setRoiStatResults] = useState({ optimizer: null, synthesizer: null });
-  const[roiUpgResults, setRoiUpgResults] = useState({ optimizer: null, synthesizer: null });
-  const [roiExtResults, setRoiExtResults] = useState({ optimizer: null, synthesizer: null });
-  const [roiCardResults, setRoiCardResults] = useState({ optimizer: null, synthesizer: null });
-  const [isRoiLoading, setIsRoiLoading] = useState(false);
+  const[isRoiLoading, setIsRoiLoading] = useState(false);
   const[roiProgressMsg, setRoiProgressMsg] = useState("");
-
-  // Auto-wipe the specific context's ROI cache when a new build is loaded, 
-  // keeping the other tab's data safely intact!
-  useEffect(() => {
-    const context = store.synthesis_result ? 'synthesizer' : 'optimizer';
-    setRoiStatResults(prev => ({ ...prev, [context]: null }));
-    setRoiUpgResults(prev => ({ ...prev, [context]: null }));
-    setRoiExtResults(prev => ({ ...prev, [context]: null }));
-    setRoiCardResults(prev => ({ ...prev, [context]: null }));
-  },[store.opt_results]);
 
   const isAnyRunning = isOptimizing || isSynthesizing || isRoiLoading;
 
@@ -282,7 +268,7 @@ export default function Simulations() {
           const gain = ((avg - baseVal) / 60.0) * 1000.0;
           return { stat: k, gain: gain };
         }).sort((a, b) => b.gain - a.gain);
-        setRoiStatResults(prev => ({ ...prev, [context]: finalRes }));
+        store.saveRoiToCurrentRun(context, 'roi_stats', finalRes);
       } else {
         alert("All stats are already maxed out! No further points can be tested.");
       }
@@ -357,7 +343,7 @@ export default function Simulations() {
           const gain = ((avg - baseVal) / 60.0) * 1000.0;
           return { id: k, name: upgResults[k].name, gain: gain, action: upgResults[k].action };
         }).sort((a, b) => b.gain - a.gain);
-        setRoiUpgResults(prev => ({ ...prev, [context]: finalRes.slice(0, 10) })); // Top 10 upgrades
+        store.saveRoiToCurrentRun(context, 'roi_upgrades', finalRes.slice(0, 10));
       } else {
         alert("All internal upgrades are maxed out! No further upgrades can be tested.");
       }
@@ -447,7 +433,7 @@ export default function Simulations() {
           const gain = ((avg - baseVal) / 60.0) * 1000.0;
           return { id: k, name: extResults[k].name, gain: gain, action: extResults[k].action };
         }).sort((a, b) => b.gain - a.gain);
-        setRoiExtResults(prev => ({ ...prev, [context]: finalRes.slice(0, 10) }));
+        store.saveRoiToCurrentRun(context, 'roi_externals', finalRes.slice(0, 10));
       } else {
         alert("All eligible external upgrades are maxed out!");
       }
@@ -521,7 +507,7 @@ export default function Simulations() {
           const gain = ((avg - baseVal) / 60.0) * 1000.0;
           return { id: k, name: cardResults[k].name, gain: gain, action: cardResults[k].action };
         }).sort((a, b) => b.gain - a.gain);
-        setRoiCardResults(prev => ({ ...prev, [context]: finalRes.slice(0, 10) }));
+        store.saveRoiToCurrentRun(context, 'roi_cards', finalRes.slice(0, 10));
       } else {
         alert("All eligible block cards are maxed out!");
       }
@@ -694,6 +680,7 @@ export default function Simulations() {
           }
 
           const payload = {
+              run_id: Date.now(),
               best_final: bestFinal,
               final_summary_out: finalSummary,
               elapsed: elapsed,
@@ -1199,7 +1186,7 @@ export default function Simulations() {
                       🔍 Analyze Next Stat Point
                     </button>
                     
-                    {roiStatResults[context] && (
+                    {store.opt_results.roi_stats && (
                       <div className="overflow-x-auto">
                         <table className="w-full text-left border-collapse">
                           <thead>
@@ -1209,7 +1196,7 @@ export default function Simulations() {
                             </tr>
                           </thead>
                           <tbody>
-                            {roiStatResults[context].map((r, i) => (
+                            {store.opt_results.roi_stats.map((r, i) => (
                               <tr key={r.stat} className="border-b border-st-border/50 hover:bg-black/5 transition-colors">
                                 <td className="py-2 pr-4 font-bold">{r.stat}</td>
                                 <td className="py-2 font-mono text-st-orange">{r.gain > 0 ? '+' : ''}{r.gain.toFixed(2)}</td>
@@ -1233,7 +1220,7 @@ export default function Simulations() {
                       🔍 Analyze Upgrades
                     </button>
                     
-                    {roiUpgResults[context] && (
+                    {store.opt_results.roi_upgrades && (
                       <div className="overflow-x-auto">
                         <table className="w-full text-left border-collapse">
                           <thead>
@@ -1244,7 +1231,7 @@ export default function Simulations() {
                             </tr>
                           </thead>
                           <tbody>
-                            {roiUpgResults[context].map((r, i) => (
+                            {store.opt_results.roi_upgrades.map((r, i) => (
                               <tr key={r.id} className="border-b border-st-border/50 hover:bg-black/5 transition-colors">
                                 <td className="py-2 pr-4 text-sm font-bold">{r.name}</td>
                                 <td className="py-2 pr-4 text-xs text-st-text-light">{r.action}</td>
@@ -1269,7 +1256,7 @@ export default function Simulations() {
                       🔍 Analyze Externals
                     </button>
                     
-                    {roiExtResults[context] && (
+                    {store.opt_results.roi_externals && (
                       <div className="overflow-x-auto">
                         <table className="w-full text-left border-collapse">
                           <thead>
@@ -1280,7 +1267,7 @@ export default function Simulations() {
                             </tr>
                           </thead>
                           <tbody>
-                            {roiExtResults[context].map((r, i) => (
+                            {store.opt_results.roi_externals.map((r, i) => (
                               <tr key={r.id} className="border-b border-st-border/50 hover:bg-black/5 transition-colors">
                                 <td className="py-2 pr-4 text-sm font-bold">{r.name}</td>
                                 <td className="py-2 pr-4 text-xs text-st-text-light">{r.action}</td>
@@ -1305,7 +1292,7 @@ export default function Simulations() {
                       🔍 Analyze Cards
                     </button>
                     
-                    {roiCardResults[context] && (
+                    {store.opt_results.roi_cards && (
                       <div className="overflow-x-auto">
                         <table className="w-full text-left border-collapse">
                           <thead>
@@ -1316,7 +1303,7 @@ export default function Simulations() {
                             </tr>
                           </thead>
                           <tbody>
-                            {roiCardResults[context].map((r, i) => (
+                            {store.opt_results.roi_cards.map((r, i) => (
                               <tr key={r.id} className="border-b border-st-border/50 hover:bg-black/5 transition-colors">
                                 <td className="py-2 pr-4 text-sm font-bold capitalize">{r.name}</td>
                                 <td className="py-2 pr-4 text-xs text-st-text-light">{r.action}</td>
@@ -1938,6 +1925,7 @@ export default function Simulations() {
             });
 
             const payload = {
+                run_id: Date.now(),
                 best_final: finalMetaDist,
                 final_summary_out: synthSummary,
                 elapsed: synthElapsed,
