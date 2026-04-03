@@ -330,11 +330,11 @@ export default function Simulations() {
 
         const upgData = UPGRADE_NAMES && UPGRADE_NAMES[upgId];
         const upgName = upgData ? (Array.isArray(upgData) ? upgData[0] : upgData) : `Upg ${upgId}`;
-        upgResults[upgId] = { sum: 0, count: 0, name: upgName };
+        upgResults[upgId] = { sum: 0, count: 0, name: upgName, action: `Lvl ${currentLvl} ➔ ${currentLvl + 1}` };
 
         for (let i = 0; i < 15; i++) {
           // Pass the upgrade variation directly via the test_upgrades parameter!
-          const p = pool.runTask(bestFinal, {[upgId]: currentLvl + 1 }).then(res => {
+          const p = pool.runTask(bestFinal, { [upgId]: currentLvl + 1 }).then(res => {
             upgResults[upgId].sum += (res[targetMetric] || 0);
             upgResults[upgId].count++;
           });
@@ -347,7 +347,7 @@ export default function Simulations() {
         const finalRes = Object.keys(upgResults).map(k => {
           const avg = upgResults[k].sum / upgResults[k].count;
           const gain = ((avg - baseVal) / 60.0) * 1000.0;
-          return { id: k, name: upgResults[k].name, gain: gain };
+          return { id: k, name: upgResults[k].name, gain: gain, action: upgResults[k].action };
         }).sort((a, b) => b.gain - a.gain);
         setRoiUpgResults(finalRes.slice(0, 10)); // Top 10 upgrades
       } else {
@@ -406,13 +406,22 @@ export default function Simulations() {
         if (group.id === 'asc_bundle' && !store.asc1_unlocked) return;
         if (group.id === 'arch_card' && !store.asc1_unlocked) return;
         if (currentVal >= maxVal) return;
-        if (group.ui_type === 'pet' && currentVal === -1) return;
+
+        let actionText = "";
+        if (group.ui_type === 'skill' || group.ui_type === 'bundle') {
+          actionText = "Unlock";
+        } else if (group.ui_type === 'pet') {
+          if (currentVal === -1) actionText = "Obtain Pet";
+          else actionText = `Rank ${currentVal} ➔ ${currentVal + 1}`;
+        } else {
+          actionText = `Lvl ${currentVal} ➔ ${currentVal + 1}`;
+        }
 
         // Isolate payload dynamically over mapped rows
         const testExt = {};
         group.rows.forEach(r => testExt[r] = currentVal + 1);
 
-        extResults[group.id] = { sum: 0, count: 0, name: group.name };
+        extResults[group.id] = { sum: 0, count: 0, name: group.name, action: actionText };
 
         for (let i = 0; i < 15; i++) {
           const p = pool.runTask(bestFinal, undefined, testExt).then(res => {
@@ -428,7 +437,7 @@ export default function Simulations() {
         const finalRes = Object.keys(extResults).map(k => {
           const avg = extResults[k].sum / extResults[k].count;
           const gain = ((avg - baseVal) / 60.0) * 1000.0;
-          return { id: k, name: extResults[k].name, gain: gain };
+          return { id: k, name: extResults[k].name, gain: gain, action: extResults[k].action };
         }).sort((a, b) => b.gain - a.gain);
         setRoiExtResults(finalRes.slice(0, 10));
       } else {
@@ -481,7 +490,13 @@ export default function Simulations() {
         const maxLvl = store.asc1_unlocked ? 4 : 3;
         if (currentLvl >= maxLvl) return;
 
-        cardResults[cardId] = { sum: 0, count: 0, name: cardId };
+        let targetLvlName = "";
+        if (currentLvl === 0) targetLvlName = "Unlock Regular";
+        else if (currentLvl === 1) targetLvlName = "Upgrade to Gilded";
+        else if (currentLvl === 2) targetLvlName = "Upgrade to Poly";
+        else if (currentLvl === 3) targetLvlName = "Upgrade to Infernal";
+
+        cardResults[cardId] = { sum: 0, count: 0, name: cardId, action: targetLvlName };
 
         for (let i = 0; i < 15; i++) {
           const p = pool.runTask(bestFinal, undefined, undefined, { [cardId]: currentLvl + 1 }).then(res => {
@@ -497,7 +512,7 @@ export default function Simulations() {
         const finalRes = Object.keys(cardResults).map(k => {
           const avg = cardResults[k].sum / cardResults[k].count;
           const gain = ((avg - baseVal) / 60.0) * 1000.0;
-          return { id: k, name: cardResults[k].name, gain: gain };
+          return { id: k, name: cardResults[k].name, gain: gain, action: cardResults[k].action };
         }).sort((a, b) => b.gain - a.gain);
         setRoiCardResults(finalRes.slice(0, 10));
       } else {
@@ -1217,7 +1232,8 @@ export default function Simulations() {
                         <table className="w-full text-left border-collapse">
                           <thead>
                             <tr className="border-b border-st-border text-st-text-light text-sm">
-                              <th className="py-2 pr-4">Upgrade (+1 Lvl)</th>
+                              <th className="py-2 pr-4">Upgrade</th>
+                              <th className="py-2 pr-4">Action</th>
                               <th className="py-2">Marginal Gain (per 1k Arch Secs)</th>
                             </tr>
                           </thead>
@@ -1225,6 +1241,7 @@ export default function Simulations() {
                             {roiUpgResults.map((r, i) => (
                               <tr key={r.id} className="border-b border-st-border/50 hover:bg-black/5 transition-colors">
                                 <td className="py-2 pr-4 text-sm font-bold">{r.name}</td>
+                                <td className="py-2 pr-4 text-xs text-st-text-light">{r.action}</td>
                                 <td className="py-2 font-mono text-st-orange">{r.gain > 0 ? '+' : ''}{r.gain.toFixed(2)}</td>
                               </tr>
                             ))}
@@ -1251,7 +1268,8 @@ export default function Simulations() {
                         <table className="w-full text-left border-collapse">
                           <thead>
                             <tr className="border-b border-st-border text-st-text-light text-sm">
-                              <th className="py-2 pr-4">External (+1 Lvl)</th>
+                              <th className="py-2 pr-4">External</th>
+                              <th className="py-2 pr-4">Action</th>
                               <th className="py-2">Marginal Gain (per 1k Arch Secs)</th>
                             </tr>
                           </thead>
@@ -1259,6 +1277,7 @@ export default function Simulations() {
                             {roiExtResults.map((r, i) => (
                               <tr key={r.id} className="border-b border-st-border/50 hover:bg-black/5 transition-colors">
                                 <td className="py-2 pr-4 text-sm font-bold">{r.name}</td>
+                                <td className="py-2 pr-4 text-xs text-st-text-light">{r.action}</td>
                                 <td className="py-2 font-mono text-st-orange">{r.gain > 0 ? '+' : ''}{r.gain.toFixed(2)}</td>
                               </tr>
                             ))}
@@ -1285,7 +1304,8 @@ export default function Simulations() {
                         <table className="w-full text-left border-collapse">
                           <thead>
                             <tr className="border-b border-st-border text-st-text-light text-sm">
-                              <th className="py-2 pr-4">Card (+1 Lvl)</th>
+                              <th className="py-2 pr-4">Block Card</th>
+                              <th className="py-2 pr-4">Action</th>
                               <th className="py-2">Marginal Gain (per 1k Arch Secs)</th>
                             </tr>
                           </thead>
@@ -1293,6 +1313,7 @@ export default function Simulations() {
                             {roiCardResults.map((r, i) => (
                               <tr key={r.id} className="border-b border-st-border/50 hover:bg-black/5 transition-colors">
                                 <td className="py-2 pr-4 text-sm font-bold capitalize">{r.name}</td>
+                                <td className="py-2 pr-4 text-xs text-st-text-light">{r.action}</td>
                                 <td className="py-2 font-mono text-st-orange">{r.gain > 0 ? '+' : ''}{r.gain.toFixed(2)}</td>
                               </tr>
                             ))}
