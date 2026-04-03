@@ -392,8 +392,14 @@ export default function Simulations() {
 
       EXTERNAL_UI_GROUPS.forEach(group => {
         const currentVal = store.external_levels[group.rows[0]] || 0;
-        const maxVal = group.max !== undefined ? group.max : ((group.ui_type === 'skill' || group.ui_type === 'bundle') ? 1 : 9999);
+        let maxVal = group.max !== undefined ? group.max : ((group.ui_type === 'skill' || group.ui_type === 'bundle') ? 1 : 9999);
         
+        // Geoduck level maxes out based on the 0.0025 per level scaling vs the % cap.
+        // Cap is 75% for Asc2 (300 levels), and 50% for Asc1/Asc0 (200 levels).
+        if (group.id === 'geoduck') {
+          maxVal = store.asc2_unlocked ? 300 : 200;
+        }
+
         // Safety Gating
         if (group.id === 'geoduck' && !store.geoduck_unlocked) return;
         if (group.id === 'hestia' && !store.asc1_unlocked) return;
