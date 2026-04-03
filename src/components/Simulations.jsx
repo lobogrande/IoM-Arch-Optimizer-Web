@@ -2360,7 +2360,7 @@ export default function Simulations() {
                 </div>
                 
                 {/* NEW BASELINE BUTTONS */}
-                <div className="flex gap-2 mb-6">
+                <div className="flex gap-2 mb-2">
                   <button 
                     onClick={() => setSandboxBaseline(sbData)}
                     disabled={!sbData}
@@ -2376,6 +2376,9 @@ export default function Simulations() {
                       🔓 Clear
                     </button>
                   )}
+                </div>
+                <div className="text-xs text-st-text-light mb-6 leading-tight">
+                  Take a snapshot of the current table. Tweak your stats below to instantly see exactly how much damage you gain or lose!
                 </div>
 
                 <h4 className="font-bold mb-4">Sandbox Stats</h4>
