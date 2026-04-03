@@ -193,13 +193,13 @@ export default function Simulations() {
 
     if (sandboxShowCrits) {
       cols.push(
-        { field: "crit", headerName: "Crit", valueFormatter: p => Math.floor(p.value).toLocaleString(), type: 'numericColumn', cellStyle: { backgroundColor: 'rgba(0,0,0,0.05)' } },
-        { field: "scrit", headerName: "sCrit", valueFormatter: p => Math.floor(p.value).toLocaleString(), type: 'numericColumn', cellStyle: { backgroundColor: 'rgba(0,0,0,0.05)' } },
-        { field: "ucrit", headerName: "uCrit", valueFormatter: p => Math.floor(p.value).toLocaleString(), type: 'numericColumn', cellStyle: { backgroundColor: 'rgba(0,0,0,0.05)' } },
-        { field: "enr_hit", headerName: "Enr Hit", valueFormatter: p => Math.floor(p.value).toLocaleString(), type: 'numericColumn', cellStyle: { color: '#fca5a5', backgroundColor: 'rgba(127,29,29,0.05)' } },
-        { field: "enr_crit", headerName: "Enr Crit", valueFormatter: p => Math.floor(p.value).toLocaleString(), type: 'numericColumn', cellStyle: { color: '#fca5a5', backgroundColor: 'rgba(127,29,29,0.05)' } },
-        { field: "enr_scrit", headerName: "Enr sCrit", valueFormatter: p => Math.floor(p.value).toLocaleString(), type: 'numericColumn', cellStyle: { color: '#fca5a5', backgroundColor: 'rgba(127,29,29,0.05)' } },
-        { field: "enr_ucrit", headerName: "Enr uCrit", valueFormatter: p => Math.floor(p.value).toLocaleString(), type: 'numericColumn', cellStyle: { color: '#fca5a5', backgroundColor: 'rgba(127,29,29,0.05)' } }
+        { field: "crit", headerName: "Crit", cellRenderer: createDiffRenderer("crit", false), type: 'numericColumn', cellStyle: { backgroundColor: 'rgba(0,0,0,0.05)' } },
+        { field: "scrit", headerName: "sCrit", cellRenderer: createDiffRenderer("scrit", false), type: 'numericColumn', cellStyle: { backgroundColor: 'rgba(0,0,0,0.05)' } },
+        { field: "ucrit", headerName: "uCrit", cellRenderer: createDiffRenderer("ucrit", false), type: 'numericColumn', cellStyle: { backgroundColor: 'rgba(0,0,0,0.05)' } },
+        { field: "enr_hit", headerName: "Enr Hit", cellRenderer: createDiffRenderer("enr_hit", false), type: 'numericColumn', cellStyle: { color: '#fca5a5', backgroundColor: 'rgba(127,29,29,0.05)' } },
+        { field: "enr_crit", headerName: "Enr Crit", cellRenderer: createDiffRenderer("enr_crit", false), type: 'numericColumn', cellStyle: { color: '#fca5a5', backgroundColor: 'rgba(127,29,29,0.05)' } },
+        { field: "enr_scrit", headerName: "Enr sCrit", cellRenderer: createDiffRenderer("enr_scrit", false), type: 'numericColumn', cellStyle: { color: '#fca5a5', backgroundColor: 'rgba(127,29,29,0.05)' } },
+        { field: "enr_ucrit", headerName: "Enr uCrit", cellRenderer: createDiffRenderer("enr_ucrit", false), type: 'numericColumn', cellStyle: { color: '#fca5a5', backgroundColor: 'rgba(127,29,29,0.05)' } }
       );
     }
     return cols;
