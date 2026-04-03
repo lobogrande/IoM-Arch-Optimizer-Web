@@ -2,7 +2,7 @@ import { useState, useMemo, useEffect } from 'react';
 import useStore from '../store';
 import { EngineWorkerPool, getOptimalStepProfile, runOptimizationPhase, topUpBuild } from '../utils/optimizer';
 import PlotWrapper from 'react-plotly.js';
-import { INTERNAL_UPGRADE_CAPS, UPGRADE_NAMES, ASC1_LOCKED_UPGS, ASC2_LOCKED_UPGS, UPGRADE_LEVEL_REQS } from '../game_data';
+import { INTERNAL_UPGRADE_CAPS, UPGRADE_NAMES, ASC1_LOCKED_UPGS, ASC2_LOCKED_UPGS, UPGRADE_LEVEL_REQS, EXTERNAL_UI_GROUPS } from '../game_data';
 import { UI_BLOCK_CARD_WIDTH, UI_BLOCK_CARD_X_OFFSET, UI_BLOCK_CARD_Y_OFFSET, UI_CARD_CBLOCK_SCALE } from '../ui_config';
 import { AgGridReact } from 'ag-grid-react';
 import { ModuleRegistry, AllCommunityModule } from 'ag-grid-community';
@@ -24,6 +24,13 @@ const OPT_GOALS =[
 
 const FRAG_NAMES = {
   0: "Dirt", 1: "Common", 2: "Rare", 3: "Epic", 4: "Legendary", 5: "Mythic", 6: "Divine"
+};
+
+const ORE_MIN_FLOORS = {
+  'dirt1': 1, 'com1': 1, 'rare1': 3, 'epic1': 6, 'leg1': 12, 'myth1': 20, 'div1': 50,
+  'dirt2': 12, 'com2': 18, 'rare2': 26, 'epic2': 30, 'leg2': 32, 'myth2': 36, 'div2': 75,
+  'dirt3': 24, 'com3': 30, 'rare3': 36, 'epic3': 42, 'leg3': 45, 'myth3': 50, 'div3': 100,
+  'dirt4': 81, 'com4': 96, 'rare4': 111, 'epic4': 126, 'leg4': 136, 'myth4': 141, 'div4': 150
 };
 
 export default function Simulations() {
@@ -77,9 +84,7 @@ export default function Simulations() {
   const [tarXp, setTarXp] = useState(0);
   const [cardSelBlock, setCardSelBlock] = useState('');
   
-  const[roiStatResults, setRoiStatResults] = useState(null);
-  const [roiUpgResults, setRoiUpgResults] = useState(null);
-  const [isRoiLoading, setIsRoiLoading] = useState(false);
+  const[isRoiLoading, setIsRoiLoading] = useState(false);
   const[roiProgressMsg, setRoiProgressMsg] = useState("");
 
   const isAnyRunning = isOptimizing || isSynthesizing || isRoiLoading;
@@ -96,10 +101,20 @@ export default function Simulations() {
   const setSandboxShowCrits = store.setSandboxShowCrits;
   const sandboxBlockFilters = store.sandboxBlockFilters;
   const setSandboxBlockFilters = store.setSandboxBlockFilters;
+  const sandbox_baseline = store.sandbox_baseline;
+  const sandbox_baseline_stats = store.sandbox_baseline_stats;
+  const setSandboxBaseline = store.setSandboxBaseline;
 
   // --- HOISTED SANDBOX MEMOS (Must be at the top level to obey React Hook Rules) ---
   const sbData = store.sandbox_calculated_stats;
   const tFloor = store.sandbox_floor ?? store.current_max_floor;
+
+  const baselineMap = useMemo(() => {
+    if (!sandbox_baseline || !sandbox_baseline.blocks_data) return null;
+    const map = new Map();
+    sandbox_baseline.blocks_data.forEach(b => map.set(b.name, b));
+    return map;
+  }, [sandbox_baseline]);
 
   const sandboxBlocks = useMemo(() => {
     if (!sbData) return[];
@@ -117,15 +132,45 @@ export default function Simulations() {
   const sandboxDefaultColDef = useMemo(() => ({
     sortable: true,
     filter: true,
-    resizable: true,
-    suppressMenu: false
-  }),[]);
+    resizable: true
+  }), [ ]);
 
   const sandboxAutoSizeStrategy = useMemo(() => ({
     type: 'fitCellContents'
-  }),[]);
+  }), [ ]);
 
   const sandboxColumns = useMemo(() => {
+    
+    // Custom React Renderer to automatically inject (+X) or (-X) if a baseline is locked!
+    const createDiffRenderer = (field, isLowerBetter = false) => (p) => {
+      const val = p.data[field];
+      let baseVal = null;
+      if (baselineMap && baselineMap.has(p.data.name)) {
+        baseVal = baselineMap.get(p.data.name)[field];
+      }
+
+      const formattedVal = Math.floor(val).toLocaleString();
+      if (baseVal === null || baseVal === undefined || Math.floor(val) === Math.floor(baseVal)) {
+        return <span>{formattedVal}</span>;
+      }
+
+      const diff = Math.floor(val) - Math.floor(baseVal);
+      const diffStr = diff > 0 ? `+${diff.toLocaleString()}` : diff.toLocaleString();
+      
+      // If we are looking at 'Hits', negative is green. If EDPS, positive is green!
+      const isGood = isLowerBetter ? diff < 0 : diff > 0;
+      
+      // Hardcoded inline hex values because AG grid can sometimes swallow global Tailwind classes
+      const colorClass = isGood ? '#4CAF50' : '#ff4b4b';
+
+      return (
+        <div className="flex items-center justify-end w-full gap-1 h-full">
+          <span>{formattedVal}</span>
+          <span style={{ color: colorClass, fontSize: '0.75rem', fontWeight: 'bold' }}>({diffStr})</span>
+        </div>
+      );
+    };
+
     const cols =[
       { 
         field: "id", headerName: "Icon", pinned: "left", minWidth: 70, sortable: false, filter: false,
@@ -138,26 +183,26 @@ export default function Simulations() {
       { field: "name", headerName: "Block", pinned: "left" },
       { field: "mod_hp", headerName: "HP", valueFormatter: p => Math.floor(p.value).toLocaleString(), type: 'numericColumn' },
       { field: "mod_eff_armor", headerName: "Armor", valueFormatter: p => Math.floor(p.value).toLocaleString(), type: 'numericColumn' },
-      { field: "edps", headerName: "EDPS", valueFormatter: p => Math.floor(p.value).toLocaleString(), type: 'numericColumn', cellStyle: { color: '#ffa229', fontWeight: 'bold' } },
-      { field: "enr_edps", headerName: "Enr EDPS", valueFormatter: p => Math.floor(p.value).toLocaleString(), type: 'numericColumn', cellStyle: { color: '#f87171', fontWeight: 'bold' } },
-      { field: "reg_hit", headerName: "Reg Hit", valueFormatter: p => Math.floor(p.value).toLocaleString(), type: 'numericColumn' },
-      { field: "avg_hits", headerName: "Avg Hits", valueFormatter: p => Math.floor(p.value).toLocaleString(), type: 'numericColumn', cellStyle: { fontWeight: 'bold' } },
-      { field: "max_hits", headerName: "Max Hits", valueFormatter: p => Math.floor(p.value).toLocaleString(), type: 'numericColumn', cellStyle: { color: '#7D808D' } }
+      { field: "edps", headerName: "EDPS", cellRenderer: createDiffRenderer("edps", false), type: 'numericColumn', cellStyle: { color: '#ffa229', fontWeight: 'bold' } },
+      { field: "enr_edps", headerName: "Enr EDPS", cellRenderer: createDiffRenderer("enr_edps", false), type: 'numericColumn', cellStyle: { color: '#f87171', fontWeight: 'bold' } },
+      { field: "reg_hit", headerName: "Reg Hit", cellRenderer: createDiffRenderer("reg_hit", false), type: 'numericColumn' },
+      { field: "avg_hits", headerName: "Avg Hits", cellRenderer: createDiffRenderer("avg_hits", true), type: 'numericColumn', cellStyle: { fontWeight: 'bold' } },
+      { field: "max_hits", headerName: "Max Hits", cellRenderer: createDiffRenderer("max_hits", true), type: 'numericColumn', cellStyle: { color: '#7D808D' } }
     ];
 
     if (sandboxShowCrits) {
       cols.push(
-        { field: "crit", headerName: "Crit", valueFormatter: p => Math.floor(p.value).toLocaleString(), type: 'numericColumn', cellStyle: { backgroundColor: 'rgba(0,0,0,0.05)' } },
-        { field: "scrit", headerName: "sCrit", valueFormatter: p => Math.floor(p.value).toLocaleString(), type: 'numericColumn', cellStyle: { backgroundColor: 'rgba(0,0,0,0.05)' } },
-        { field: "ucrit", headerName: "uCrit", valueFormatter: p => Math.floor(p.value).toLocaleString(), type: 'numericColumn', cellStyle: { backgroundColor: 'rgba(0,0,0,0.05)' } },
-        { field: "enr_hit", headerName: "Enr Hit", valueFormatter: p => Math.floor(p.value).toLocaleString(), type: 'numericColumn', cellStyle: { color: '#fca5a5', backgroundColor: 'rgba(127,29,29,0.05)' } },
-        { field: "enr_crit", headerName: "Enr Crit", valueFormatter: p => Math.floor(p.value).toLocaleString(), type: 'numericColumn', cellStyle: { color: '#fca5a5', backgroundColor: 'rgba(127,29,29,0.05)' } },
-        { field: "enr_scrit", headerName: "Enr sCrit", valueFormatter: p => Math.floor(p.value).toLocaleString(), type: 'numericColumn', cellStyle: { color: '#fca5a5', backgroundColor: 'rgba(127,29,29,0.05)' } },
-        { field: "enr_ucrit", headerName: "Enr uCrit", valueFormatter: p => Math.floor(p.value).toLocaleString(), type: 'numericColumn', cellStyle: { color: '#fca5a5', backgroundColor: 'rgba(127,29,29,0.05)' } }
+        { field: "crit", headerName: "Crit", cellRenderer: createDiffRenderer("crit", false), type: 'numericColumn', cellStyle: { backgroundColor: 'rgba(0,0,0,0.05)' } },
+        { field: "scrit", headerName: "sCrit", cellRenderer: createDiffRenderer("scrit", false), type: 'numericColumn', cellStyle: { backgroundColor: 'rgba(0,0,0,0.05)' } },
+        { field: "ucrit", headerName: "uCrit", cellRenderer: createDiffRenderer("ucrit", false), type: 'numericColumn', cellStyle: { backgroundColor: 'rgba(0,0,0,0.05)' } },
+        { field: "enr_hit", headerName: "Enr Hit", cellRenderer: createDiffRenderer("enr_hit", false), type: 'numericColumn', cellStyle: { color: '#fca5a5', backgroundColor: 'rgba(127,29,29,0.05)' } },
+        { field: "enr_crit", headerName: "Enr Crit", cellRenderer: createDiffRenderer("enr_crit", false), type: 'numericColumn', cellStyle: { color: '#fca5a5', backgroundColor: 'rgba(127,29,29,0.05)' } },
+        { field: "enr_scrit", headerName: "Enr sCrit", cellRenderer: createDiffRenderer("enr_scrit", false), type: 'numericColumn', cellStyle: { color: '#fca5a5', backgroundColor: 'rgba(127,29,29,0.05)' } },
+        { field: "enr_ucrit", headerName: "Enr uCrit", cellRenderer: createDiffRenderer("enr_ucrit", false), type: 'numericColumn', cellStyle: { color: '#fca5a5', backgroundColor: 'rgba(127,29,29,0.05)' } }
       );
     }
     return cols;
-  }, [sandboxShowCrits]);
+  },[sandboxShowCrits, baselineMap]);
 
   // Dynamic Limits based on Ascensions and Caps
   const totalAllowed = parseInt(store.arch_level) + parseInt(store.upgrade_levels[12] || 0);
@@ -168,7 +213,13 @@ export default function Simulations() {
     Corr: store.asc2_unlocked ? (10 + capInc) : 0
   };
 
-  const activeStats =['Str', 'Agi', 'Per', 'Int', 'Luck'];
+  const MAX_STAT_CAPS = {
+    Str: 55, Agi: 55, Per: 30, Int: 30, Luck: 30,
+    Div: store.asc1_unlocked ? 15 : 0, 
+    Corr: store.asc2_unlocked ? 15 : 0
+  };
+
+  const activeStats = [ 'Str', 'Agi', 'Per', 'Int', 'Luck' ];
   if (store.asc1_unlocked) activeStats.push('Div');
   if (store.asc2_unlocked) activeStats.push('Corr');
 
@@ -213,7 +264,7 @@ export default function Simulations() {
   };
 
   // --- ROI ANALYZERS ---
-  const handleAnalyzeStats = async () => {
+  const handleAnalyzeStats = async (context) => {
     setIsRoiLoading(true);
     setRoiProgressMsg("Testing marginal stat values (15 sims each)...");
     
@@ -231,7 +282,6 @@ export default function Simulations() {
         asc2_unlocked: store.asc2_unlocked,
         arch_level: store.arch_level,
         current_max_floor: store.current_max_floor,
-        hades_idol_level: store.hades_idol_level,
         arch_ability_infernal_bonus: parseFloat(store.arch_ability_infernal_bonus) / 100.0,
         total_infernal_cards: store.total_infernal_cards,
         base_stats: store.base_stats,
@@ -264,7 +314,7 @@ export default function Simulations() {
           const gain = ((avg - baseVal) / 60.0) * 1000.0;
           return { stat: k, gain: gain };
         }).sort((a, b) => b.gain - a.gain);
-        setRoiStatResults(finalRes);
+        store.saveRoiToCurrentRun(context, 'roi_stats', finalRes);
       } else {
         alert("All stats are already maxed out! No further points can be tested.");
       }
@@ -276,7 +326,7 @@ export default function Simulations() {
     setIsRoiLoading(false);
   };
 
-  const handleAnalyzeUpgrades = async () => {
+  const handleAnalyzeUpgrades = async (context) => {
     setIsRoiLoading(true);
     setRoiProgressMsg("Testing marginal upgrade values (This may take a minute)...");
     
@@ -295,7 +345,6 @@ export default function Simulations() {
         asc2_unlocked: store.asc2_unlocked,
         arch_level: store.arch_level,
         current_max_floor: store.current_max_floor,
-        hades_idol_level: store.hades_idol_level,
         arch_ability_infernal_bonus: parseFloat(store.arch_ability_infernal_bonus) / 100.0,
         total_infernal_cards: store.total_infernal_cards,
         base_stats: store.base_stats,
@@ -321,11 +370,11 @@ export default function Simulations() {
 
         const upgData = UPGRADE_NAMES && UPGRADE_NAMES[upgId];
         const upgName = upgData ? (Array.isArray(upgData) ? upgData[0] : upgData) : `Upg ${upgId}`;
-        upgResults[upgId] = { sum: 0, count: 0, name: upgName };
+        upgResults[upgId] = { sum: 0, count: 0, name: upgName, action: `Lvl ${currentLvl} ➔ ${currentLvl + 1}` };
 
         for (let i = 0; i < 15; i++) {
           // Pass the upgrade variation directly via the test_upgrades parameter!
-          const p = pool.runTask(bestFinal, {[upgId]: currentLvl + 1 }).then(res => {
+          const p = pool.runTask(bestFinal, { [upgId]: currentLvl + 1 }).then(res => {
             upgResults[upgId].sum += (res[targetMetric] || 0);
             upgResults[upgId].count++;
           });
@@ -338,11 +387,175 @@ export default function Simulations() {
         const finalRes = Object.keys(upgResults).map(k => {
           const avg = upgResults[k].sum / upgResults[k].count;
           const gain = ((avg - baseVal) / 60.0) * 1000.0;
-          return { id: k, name: upgResults[k].name, gain: gain };
+          return { id: k, name: upgResults[k].name, gain: gain, action: upgResults[k].action };
         }).sort((a, b) => b.gain - a.gain);
-        setRoiUpgResults(finalRes.slice(0, 10)); // Top 10 upgrades
+        store.saveRoiToCurrentRun(context, 'roi_upgrades', finalRes.slice(0, 10));
       } else {
         alert("All internal upgrades are maxed out! No further upgrades can be tested.");
+      }
+      pool.terminate();
+    } catch (err) {
+      console.error(err);
+      alert("ROI Analyzer failed: " + err.message);
+    }
+    setIsRoiLoading(false);
+  };
+
+  const handleAnalyzeExternal = async (context) => {
+    setIsRoiLoading(true);
+    setRoiProgressMsg("Testing marginal external values (This may take a minute)...");
+    
+    try {
+      const pool = new EngineWorkerPool();
+      await pool.init();
+      const extResults = {};
+      const promises = [ ];
+      const targetMetric = store.opt_results.run_target_metric;
+      const baseVal = store.opt_results.final_summary_out[targetMetric];
+      const bestFinal = store.opt_results.best_final;
+
+      const baseStateDict = {
+        asc1_unlocked: store.asc1_unlocked,
+        asc2_unlocked: store.asc2_unlocked,
+        arch_level: store.arch_level,
+        current_max_floor: store.current_max_floor,
+        arch_ability_infernal_bonus: parseFloat(store.arch_ability_infernal_bonus) / 100.0,
+        total_infernal_cards: store.total_infernal_cards,
+        base_stats: store.base_stats,
+        upgrade_levels: store.upgrade_levels,
+        external_levels: { ...store.external_levels, 8: store.geoduck_unlocked ? (store.external_levels[ 8 ] || 0) : 0 },
+        cards: store.cards
+      };
+
+      await pool.syncState(baseStateDict);
+
+      EXTERNAL_UI_GROUPS.forEach(group => {
+        const currentVal = store.external_levels[group.rows[0]] || 0;
+        let maxVal = group.max !== undefined ? group.max : ((group.ui_type === 'skill' || group.ui_type === 'bundle') ? 1 : 9999);
+        
+        // Geoduck level maxes out based on the 0.0025 per level scaling vs the % cap.
+        // Cap is 75% for Asc2 (300 levels), and 50% for Asc1/Asc0 (200 levels).
+        if (group.id === 'geoduck') {
+          maxVal = store.asc2_unlocked ? 300 : 200;
+        }
+
+        // Safety Gating
+        if (group.id === 'geoduck' && !store.geoduck_unlocked) return;
+        if (group.id === 'hestia' && !store.asc1_unlocked) return;
+        if (group.id === 'hades' && !store.asc1_unlocked) return;
+        if (group.id === 'asc_bundle' && !store.asc1_unlocked) return;
+        if (group.id === 'arch_card' && !store.asc1_unlocked) return;
+        if (currentVal >= maxVal) return;
+
+        let actionText = "";
+        if (group.ui_type === 'skill' || group.ui_type === 'bundle') {
+          actionText = "Unlock";
+        } else if (group.ui_type === 'pet') {
+          if (currentVal === -1) actionText = "Obtain Pet";
+          else actionText = `Rank ${currentVal} ➔ ${currentVal + 1}`;
+        } else {
+          actionText = `Lvl ${currentVal} ➔ ${currentVal + 1}`;
+        }
+
+        // Isolate payload dynamically over mapped rows
+        const testExt = {};
+        group.rows.forEach(r => testExt[r] = currentVal + 1);
+
+        extResults[group.id] = { sum: 0, count: 0, name: group.name, action: actionText };
+
+        for (let i = 0; i < 15; i++) {
+          const p = pool.runTask(bestFinal, undefined, testExt).then(res => {
+            extResults[group.id].sum += (res[targetMetric] || 0);
+            extResults[group.id].count++;
+          });
+          promises.push(p);
+        }
+      });
+
+      if (promises.length > 0) {
+        await Promise.all(promises);
+        const finalRes = Object.keys(extResults).map(k => {
+          const avg = extResults[k].sum / extResults[k].count;
+          const gain = ((avg - baseVal) / 60.0) * 1000.0;
+          return { id: k, name: extResults[k].name, gain: gain, action: extResults[k].action };
+        }).sort((a, b) => b.gain - a.gain);
+        store.saveRoiToCurrentRun(context, 'roi_externals', finalRes.slice(0, 10));
+      } else {
+        alert("All eligible external upgrades are maxed out!");
+      }
+      pool.terminate();
+    } catch (err) {
+      console.error(err);
+      alert("ROI Analyzer failed: " + err.message);
+    }
+    setIsRoiLoading(false);
+  };
+
+  const handleAnalyzeCards = async (context) => {
+    setIsRoiLoading(true);
+    setRoiProgressMsg("Testing marginal block card values (This may take a minute)...");
+    
+    try {
+      const pool = new EngineWorkerPool();
+      await pool.init();
+      const cardResults = {};
+      const promises = [ ];
+      const targetMetric = store.opt_results.run_target_metric;
+      const baseVal = store.opt_results.final_summary_out[targetMetric];
+      const bestFinal = store.opt_results.best_final;
+
+      const baseStateDict = {
+        asc1_unlocked: store.asc1_unlocked,
+        asc2_unlocked: store.asc2_unlocked,
+        arch_level: store.arch_level,
+        current_max_floor: store.current_max_floor,
+        arch_ability_infernal_bonus: parseFloat(store.arch_ability_infernal_bonus) / 100.0,
+        total_infernal_cards: store.total_infernal_cards,
+        base_stats: store.base_stats,
+        upgrade_levels: store.upgrade_levels,
+        external_levels: { ...store.external_levels, 8: store.geoduck_unlocked ? (store.external_levels[ 8 ] || 0) : 0 },
+        cards: store.cards
+      };
+
+      await pool.syncState(baseStateDict);
+
+      Object.keys(ORE_MIN_FLOORS).forEach(cardId => {
+        // Floor and Ascension Access Gating
+        if (!store.asc1_unlocked && (cardId.startsWith('div') || cardId.endsWith('4'))) return;
+        if (!store.asc2_unlocked && cardId.endsWith('4')) return;
+        if (store.current_max_floor < ORE_MIN_FLOORS[cardId]) return;
+
+        const currentLvl = store.cards[cardId] || 0;
+        const maxLvl = store.asc1_unlocked ? 4 : 3;
+        if (currentLvl >= maxLvl) return;
+
+        let targetLvlName = "";
+        if (currentLvl === 0) targetLvlName = "Unlock Regular";
+        else if (currentLvl === 1) targetLvlName = "Upgrade to Gilded";
+        else if (currentLvl === 2) targetLvlName = "Upgrade to Poly";
+        else if (currentLvl === 3) targetLvlName = "Upgrade to Infernal";
+
+        cardResults[cardId] = { sum: 0, count: 0, name: cardId, action: targetLvlName };
+
+        for (let i = 0; i < 15; i++) {
+          const p = pool.runTask(bestFinal, undefined, undefined, { [cardId]: currentLvl + 1 }).then(res => {
+            cardResults[cardId].sum += (res[targetMetric] || 0);
+            cardResults[cardId].count++;
+          });
+          promises.push(p);
+        }
+      });
+
+      if (promises.length > 0) {
+        await Promise.all(promises);
+        const finalRes = Object.keys(cardResults).map(k => {
+          const avg = cardResults[k].sum / cardResults[k].count;
+          const gain = ((avg - baseVal) / 60.0) * 1000.0;
+          return { id: k, name: cardResults[k].name, gain: gain, action: cardResults[k].action };
+        }).sort((a, b) => b.gain - a.gain);
+        store.saveRoiToCurrentRun(context, 'roi_cards', finalRes.slice(0, 10));
+      } else {
+        alert("All eligible block cards are maxed out!");
       }
       pool.terminate();
     } catch (err) {
@@ -364,7 +577,6 @@ export default function Simulations() {
         asc2_unlocked: store.asc2_unlocked,
         arch_level: store.arch_level,
         current_max_floor: store.current_max_floor,
-        hades_idol_level: store.hades_idol_level,
         arch_ability_infernal_bonus: parseFloat(store.arch_ability_infernal_bonus) / 100.0,
         total_infernal_cards: store.total_infernal_cards,
         base_stats: store.base_stats,
@@ -514,6 +726,7 @@ export default function Simulations() {
           }
 
           const payload = {
+              run_id: Date.now(),
               best_final: bestFinal,
               final_summary_out: finalSummary,
               elapsed: elapsed,
@@ -530,6 +743,7 @@ export default function Simulations() {
               show_wall: targetMetricKey === 'highest_floor'
           };
 
+          store.setSimsState('synthesis_result', null);
           store.setOptResults(payload);
           store.addRunHistory({
               Include: true,
@@ -697,9 +911,14 @@ export default function Simulations() {
                       {(() => {
                         const peakChance = finalSum.abs_max_chance || 0;
                         const runsNeeded = peakChance > 0 ? Math.ceil(1.0 / peakChance) : 0;
-                        const maxSta = (finalSum.stamina_trace && finalSum.stamina_trace.stamina && finalSum.stamina_trace.stamina.length > 0) 
-                          ? finalSum.stamina_trace.stamina[ 0 ] 
-                          : 0;
+                        
+                        // Pull the true mathematical Total Time (Arch Seconds) directly from the engine metrics!
+                        const maxSta = (finalSum.avg_metrics && finalSum.avg_metrics.total_time) 
+                          ? finalSum.avg_metrics.total_time 
+                          : ((finalSum.stamina_trace && finalSum.stamina_trace.stamina && finalSum.stamina_trace.stamina.length > 0) 
+                            ? finalSum.stamina_trace.stamina[0] 
+                            : 0);
+                            
                         const archSecsCost = (runsNeeded * maxSta) / 1000.0;
                         
                         return peakChance > 0 ? (
@@ -1009,17 +1228,17 @@ export default function Simulations() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   {/* STATS ROI */}
                   <div className="border border-st-border rounded p-4 bg-st-bg">
-                    <h4 className="font-bold mb-2">1. Next Stat Point</h4>
+                    <h4 className="font-bold mb-2">1. Base Stats ROI</h4>
                     <p className="text-sm text-st-text-light mb-4">Tests adding +1 to every stat to see which yields the highest increase.</p>
                     <button 
-                      onClick={handleAnalyzeStats}
+                      onClick={() => handleAnalyzeStats(context)}
                       disabled={isRoiLoading}
                       className="w-full py-2 bg-st-secondary border border-st-border text-st-text font-bold rounded hover:border-st-orange hover:text-st-orange transition-colors disabled:opacity-50 disabled:cursor-not-allowed mb-4"
                     >
                       🔍 Analyze Next Stat Point
                     </button>
                     
-                    {roiStatResults && (
+                    {store.opt_results.roi_stats && (
                       <div className="overflow-x-auto">
                         <table className="w-full text-left border-collapse">
                           <thead>
@@ -1029,7 +1248,7 @@ export default function Simulations() {
                             </tr>
                           </thead>
                           <tbody>
-                            {roiStatResults.map((r, i) => (
+                            {store.opt_results.roi_stats.map((r, i) => (
                               <tr key={r.stat} className="border-b border-st-border/50 hover:bg-black/5 transition-colors">
                                 <td className="py-2 pr-4 font-bold">{r.stat}</td>
                                 <td className="py-2 font-mono text-st-orange">{r.gain > 0 ? '+' : ''}{r.gain.toFixed(2)}</td>
@@ -1043,29 +1262,103 @@ export default function Simulations() {
 
                   {/* UPGRADES ROI */}
                   <div className="border border-st-border rounded p-4 bg-st-bg">
-                    <h4 className="font-bold mb-2">2. Upgrade ROI (Internal)</h4>
+                    <h4 className="font-bold mb-2">2. Internal Upgrades ROI</h4>
                     <p className="text-sm text-st-text-light mb-4">Tests adding +1 level to every un-maxed internal upgrade.</p>
                     <button 
-                      onClick={handleAnalyzeUpgrades}
+                      onClick={() => handleAnalyzeUpgrades(context)}
                       disabled={isRoiLoading}
                       className="w-full py-2 bg-st-secondary border border-st-border text-st-text font-bold rounded hover:border-st-orange hover:text-st-orange transition-colors disabled:opacity-50 disabled:cursor-not-allowed mb-4"
                     >
                       🔍 Analyze Upgrades
                     </button>
                     
-                    {roiUpgResults && (
+                    {store.opt_results.roi_upgrades && (
                       <div className="overflow-x-auto">
                         <table className="w-full text-left border-collapse">
                           <thead>
                             <tr className="border-b border-st-border text-st-text-light text-sm">
-                              <th className="py-2 pr-4">Upgrade (+1 Lvl)</th>
+                              <th className="py-2 pr-4">Upgrade</th>
+                              <th className="py-2 pr-4">Action</th>
                               <th className="py-2">Marginal Gain (per 1k Arch Secs)</th>
                             </tr>
                           </thead>
                           <tbody>
-                            {roiUpgResults.map((r, i) => (
+                            {store.opt_results.roi_upgrades.map((r, i) => (
                               <tr key={r.id} className="border-b border-st-border/50 hover:bg-black/5 transition-colors">
                                 <td className="py-2 pr-4 text-sm font-bold">{r.name}</td>
+                                <td className="py-2 pr-4 text-xs text-st-text-light">{r.action}</td>
+                                <td className="py-2 font-mono text-st-orange">{r.gain > 0 ? '+' : ''}{r.gain.toFixed(2)}</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* EXTERNAL ROI */}
+                  <div className="border border-st-border rounded p-4 bg-st-bg">
+                    <h4 className="font-bold mb-2">3. External Upgrades ROI</h4>
+                    <p className="text-sm text-st-text-light mb-4">Tests adding +1 to every un-maxed accessible external element (Skills, Pets, Idols).</p>
+                    <button 
+                      onClick={() => handleAnalyzeExternal(context)}
+                      disabled={isRoiLoading}
+                      className="w-full py-2 bg-st-secondary border border-st-border text-st-text font-bold rounded hover:border-st-orange hover:text-st-orange transition-colors disabled:opacity-50 disabled:cursor-not-allowed mb-4"
+                    >
+                      🔍 Analyze Externals
+                    </button>
+                    
+                    {store.opt_results.roi_externals && (
+                      <div className="overflow-x-auto">
+                        <table className="w-full text-left border-collapse">
+                          <thead>
+                            <tr className="border-b border-st-border text-st-text-light text-sm">
+                              <th className="py-2 pr-4">External</th>
+                              <th className="py-2 pr-4">Action</th>
+                              <th className="py-2">Marginal Gain (per 1k Arch Secs)</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {store.opt_results.roi_externals.map((r, i) => (
+                              <tr key={r.id} className="border-b border-st-border/50 hover:bg-black/5 transition-colors">
+                                <td className="py-2 pr-4 text-sm font-bold">{r.name}</td>
+                                <td className="py-2 pr-4 text-xs text-st-text-light">{r.action}</td>
+                                <td className="py-2 font-mono text-st-orange">{r.gain > 0 ? '+' : ''}{r.gain.toFixed(2)}</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* CARDS ROI */}
+                  <div className="border border-st-border rounded p-4 bg-st-bg">
+                    <h4 className="font-bold mb-2">4. Block Cards ROI</h4>
+                    <p className="text-sm text-st-text-light mb-4">Tests adding +1 level to every valid, accessible Block Card based on your max floor.</p>
+                    <button 
+                      onClick={() => handleAnalyzeCards(context)}
+                      disabled={isRoiLoading}
+                      className="w-full py-2 bg-st-secondary border border-st-border text-st-text font-bold rounded hover:border-st-orange hover:text-st-orange transition-colors disabled:opacity-50 disabled:cursor-not-allowed mb-4"
+                    >
+                      🔍 Analyze Cards
+                    </button>
+                    
+                    {store.opt_results.roi_cards && (
+                      <div className="overflow-x-auto">
+                        <table className="w-full text-left border-collapse">
+                          <thead>
+                            <tr className="border-b border-st-border text-st-text-light text-sm">
+                              <th className="py-2 pr-4">Block Card</th>
+                              <th className="py-2 pr-4">Action</th>
+                              <th className="py-2">Marginal Gain (per 1k Arch Secs)</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {store.opt_results.roi_cards.map((r, i) => (
+                              <tr key={r.id} className="border-b border-st-border/50 hover:bg-black/5 transition-colors">
+                                <td className="py-2 pr-4 text-sm font-bold capitalize">{r.name}</td>
+                                <td className="py-2 pr-4 text-xs text-st-text-light">{r.action}</td>
                                 <td className="py-2 font-mono text-st-orange">{r.gain > 0 ? '+' : ''}{r.gain.toFixed(2)}</td>
                               </tr>
                             ))}
@@ -1355,7 +1648,7 @@ export default function Simulations() {
             </div>
           )}
 
-          {store.opt_results && !isOptimizing && renderResultsDashboard('optimizer')}
+          {store.opt_results && !store.synthesis_result && !isOptimizing && renderResultsDashboard('optimizer')}
 
         </div>
       )}
@@ -1390,6 +1683,8 @@ export default function Simulations() {
             // Clear stale ROI data
             setRoiStatResults(null);
             setRoiUpgResults(null);
+            setRoiExtResults(null);
+            setRoiCardResults(null);
             
             // Snap to the appropriate tab based on what we are restoring
             setActiveSubTab(isMetaBuild ? 'synth' : 'optimizer');
@@ -1452,7 +1747,6 @@ export default function Simulations() {
                 asc2_unlocked: store.asc2_unlocked,
                 arch_level: store.arch_level,
                 current_max_floor: store.current_max_floor,
-                hades_idol_level: store.hades_idol_level,
                 arch_ability_infernal_bonus: parseFloat(store.arch_ability_infernal_bonus) / 100.0,
                 total_infernal_cards: store.total_infernal_cards,
                 base_stats: store.base_stats,
@@ -1683,6 +1977,7 @@ export default function Simulations() {
             });
 
             const payload = {
+                run_id: Date.now(),
                 best_final: finalMetaDist,
                 final_summary_out: synthSummary,
                 elapsed: synthElapsed,
@@ -1701,7 +1996,9 @@ export default function Simulations() {
 
             const absMaxChance = synthSummary.abs_max_chance;
             let tempMaxSta = 1000;
-            if (synthSummary.stamina_trace && synthSummary.stamina_trace.stamina.length > 0) {
+            if (synthSummary.avg_metrics && synthSummary.avg_metrics.total_time) {
+                tempMaxSta = synthSummary.avg_metrics.total_time;
+            } else if (synthSummary.stamina_trace && synthSummary.stamina_trace.stamina.length > 0) {
                 tempMaxSta = synthSummary.stamina_trace.stamina[0];
             }
             const archSecsCost = absMaxChance > 0 ? Math.ceil(1.0 / absMaxChance) * tempMaxSta : 0;
@@ -1945,7 +2242,7 @@ export default function Simulations() {
                 );
               })()}
 
-              {store.opt_results && !isOptimizing && renderResultsDashboard('synthesizer')}
+              {store.opt_results && store.synthesis_result && !isOptimizing && renderResultsDashboard('synthesizer')}
 
               <hr className="border-st-border my-8" />
 
@@ -2067,12 +2364,47 @@ export default function Simulations() {
                     📤 Push to Global
                   </button>
                 </div>
+                
+                {/* NEW BASELINE BUTTONS */}
+                <div className="flex gap-2 mb-2">
+                  <button 
+                    onClick={() => setSandboxBaseline(sbData, store.sandbox_stats)}
+                    disabled={!sbData}
+                    className="flex-1 py-2 bg-[#2b2b2b] border border-st-orange text-st-orange text-xs font-bold rounded hover:bg-st-orange hover:text-[#2b2b2b] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    🔒 Lock Baseline
+                  </button>
+                  {sandbox_baseline && (
+                    <button 
+                      onClick={() => {
+                        if (sandbox_baseline_stats) store.setSandboxStats(sandbox_baseline_stats);
+                      }}
+                      className="flex-1 py-2 bg-[#2b2b2b] border border-blue-500 text-blue-400 text-xs font-bold rounded hover:bg-blue-900 hover:text-white transition-colors"
+                    >
+                      ⏪ Restore
+                    </button>
+                  )}
+                  {sandbox_baseline && (
+                    <button 
+                      onClick={() => setSandboxBaseline(null, null)}
+                      className="flex-1 py-2 bg-st-secondary border border-red-900 text-red-400 text-xs font-bold rounded hover:bg-red-900 hover:text-white transition-colors"
+                    >
+                      🔓 Clear
+                    </button>
+                  )}
+                </div>
+                <div className="text-xs text-st-text-light mb-6 leading-tight">
+                  Take a snapshot of the current table. Tweak your stats below to instantly see exactly how much damage you gain or lose!
+                </div>
 
                 <h4 className="font-bold mb-4">Sandbox Stats</h4>
                 <div className="grid grid-cols-2 gap-3 mb-6">
                   {activeStats.map(stat => (
                     <div key={stat} className="st-container flex flex-col items-center bg-st-bg p-2">
-                      <div className="font-bold text-xs mb-1">{stat}</div>
+                      <div className="text-center mb-1">
+                        <span className="font-bold text-xs">{stat}</span><br/>
+                        <span className="text-[10px] text-st-text-light">(Max: {MAX_STAT_CAPS[stat]})</span>
+                      </div>
                       <img 
                         src={`/assets/stats_small/${stat.toLowerCase()}.png`} 
                         onError={(e) => { e.target.onerror = null; e.target.src = `/assets/stats/${stat.toLowerCase()}.png` }}
@@ -2081,17 +2413,24 @@ export default function Simulations() {
                       />
                       <input
                         type="number"
+                        min="0"
+                        max={MAX_STAT_CAPS[stat]}
                         value={store.sandbox_stats[stat] !== undefined ? store.sandbox_stats[stat] : 0}
                         onFocus={(e) => e.target.select()}
-                        onChange={(e) => store.setSandboxStat(stat, e.target.value === '' ? '' : parseInt(e.target.value))}
+                        onChange={(e) => store.setSandboxStat(stat, e.target.value === '' ? '' : Math.max(0, parseInt(e.target.value) || 0))}
                         onBlur={(e) => {
                           let parsed = parseInt(e.target.value) || 0;
-                          if (parsed > STAT_CAPS[stat]) parsed = STAT_CAPS[stat];
+                          if (parsed > MAX_STAT_CAPS[stat]) parsed = MAX_STAT_CAPS[stat];
                           if (parsed < 0) parsed = 0;
                           store.setSandboxStat(stat, parsed);
                         }}
                         className="st-input p-1 text-sm h-8"
                       />
+                      <div className="flex flex-wrap justify-center gap-1 mt-2 w-full">
+                        <button onClick={() => store.setSandboxStat(stat, Math.max(0, (store.sandbox_stats[stat] || 0) - 5))} className="flex-1 px-1 py-1 text-[10px] bg-st-secondary text-st-text rounded border border-st-border hover:border-st-orange transition-colors">-5</button>
+                        <button onClick={() => store.setSandboxStat(stat, Math.min(MAX_STAT_CAPS[stat], (store.sandbox_stats[stat] || 0) + 5))} className="flex-1 px-1 py-1 text-[10px] bg-st-secondary text-st-text rounded border border-st-border hover:border-st-orange transition-colors">+5</button>
+                        <button onClick={() => store.setSandboxStat(stat, MAX_STAT_CAPS[stat])} className="flex-1 px-1 py-1 text-[10px] font-bold bg-st-secondary text-st-text rounded border border-st-border hover:border-st-orange transition-colors">Max</button>
+                      </div>
                     </div>
                   ))}
                 </div>
@@ -2242,6 +2581,7 @@ export default function Simulations() {
                   <div className="flex items-center justify-center h-full text-st-text-light">Calculating sandbox math...</div>
                 ) : (
                   <AgGridReact
+                    theme="legacy"
                     rowData={sandboxBlocks}
                     defaultColDef={sandboxDefaultColDef}
                     autoSizeStrategy={sandboxAutoSizeStrategy}

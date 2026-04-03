@@ -29,7 +29,9 @@ export default function CalculatedStats() {
           onClick={() => setShowTroubleshooter(!showTroubleshooter)}
           className="w-full flex justify-between items-center font-bold text-lg hover:text-st-orange transition-colors"
         >
-          <span>🛠️ Stat Troubleshooter (Click here if your UI numbers don't match the game!)</span>
+          <span>
+            🛠️ Stat Troubleshooter <span className="text-blue-600 dark:text-blue-400 text-sm md:text-base">(Click here if your UI numbers don't match the game!)</span>
+          </span>
           <span>{showTroubleshooter ? '▼' : '▶'}</span>
         </button>
         

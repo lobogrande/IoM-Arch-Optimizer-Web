@@ -22,7 +22,6 @@ const useStore = create(
   asc2_unlocked: false,
   arch_level: 45,
   current_max_floor: 40,
-  hades_idol_level: 0,
   geoduck_unlocked: false,
   
   // Base Stats
@@ -49,6 +48,8 @@ const useStore = create(
   sandbox_stats: { Str: 0, Agi: 0, Per: 0, Int: 0, Luck: 0, Div: 0, Corr: 0 },
   sandbox_floor: 100,
   sandbox_calculated_stats: null,
+  sandbox_baseline: null,
+  sandbox_baseline_stats: null,
 
   // Simulation Tab State Persistenceopt_results: null,
   run_history: [ ],
@@ -128,6 +129,7 @@ const useStore = create(
   setSandboxStat: (stat, value) => set((state) => ({ sandbox_stats: { ...state.sandbox_stats, [stat]: value === '' ? '' : (parseInt(value) || 0) } })),
   setSandboxStats: (newStats) => set((state) => ({ sandbox_stats: { ...state.sandbox_stats, ...newStats } })),
   setSandboxCalculatedStats: (stats) => set({ sandbox_calculated_stats: stats }),
+  setSandboxBaseline: (data, stats) => set({ sandbox_baseline: data, sandbox_baseline_stats: stats || null }),
   toggleTheme: () => set((state) => ({ theme: state.theme === 'dark' ? 'light' : 'dark' })),
   setHideMaxed: (val) => set({ hideMaxed: val }),
   setActiveTab: (val) => set({ activeTab: val }),
@@ -140,6 +142,36 @@ const useStore = create(
   setSandboxShowUnreachable: (val) => set({ sandboxShowUnreachable: val }),
   setSandboxShowCrits: (val) => set({ sandboxShowCrits: val }),
   setSandboxBlockFilters: (val) => set({ sandboxBlockFilters: val }),
+  saveRoiToCurrentRun: (context, category, data) => set((state) => {
+    if (!state.opt_results) return state;
+    // Bind a unique ID so we can flawlessly find it in the history arrays
+    const targetId = state.opt_results.run_id || Date.now();
+    const newOptResults = { ...state.opt_results, run_id: targetId, [category]: data };
+    const newState = { opt_results: newOptResults };
+
+    if (context === 'optimizer') {
+      newState.run_history = state.run_history.map(r => {
+        const restOpt = r._restore_state?.opt_results || (r._restore_state?.best_final ? r._restore_state : null);
+        if (restOpt && (restOpt.run_id === targetId || restOpt === state.opt_results)) {
+          if (r._restore_state.opt_results) {
+            return { ...r, _restore_state: { ...r._restore_state, opt_results: { ...r._restore_state.opt_results, run_id: targetId, [category]: data } } };
+          } else {
+            return { ...r, _restore_state: { ...r._restore_state, run_id: targetId, [category]: data } };
+          }
+        }
+        return r;
+      });
+    } else {
+      newState.synth_history = state.synth_history.map(r => {
+        const restOpt = r._restore_state?.opt_results;
+        if (restOpt && (restOpt.run_id === targetId || restOpt === state.opt_results)) {
+          return { ...r, _restore_state: { ...r._restore_state, opt_results: { ...r._restore_state.opt_results, run_id: targetId, [category]: data } } };
+        }
+        return r;
+      });
+    }
+    return newState;
+  }),
   
   // Wipe all data to default baseline
   resetState: () => set({
@@ -147,7 +179,6 @@ const useStore = create(
     asc2_unlocked: false,
     arch_level: 45,
     current_max_floor: 40,
-    hades_idol_level: 0,
     geoduck_unlocked: false,
     base_stats: { Str: 0, Agi: 0, Per: 0, Int: 0, Luck: 0, Div: 0, Corr: 0 },
     upgrade_levels: { },
@@ -204,9 +235,7 @@ const useStore = create(
       if (data.settings.current_max_floor !== undefined) newState.current_max_floor = data.settings.current_max_floor;
       if (data.settings.total_infernal_cards !== undefined) newState.total_infernal_cards = data.settings.total_infernal_cards;
       
-      // Legacy Fallback for older JSON files
-      if (data.settings.hades_idol_level !== undefined) newState.hades_idol_level = data.settings.hades_idol_level;
-    }
+      }
 
     // Parse Base Stats
     if (data.base_stats) {
@@ -237,9 +266,9 @@ const useStore = create(
         }
       });
 
-      // Parse Hades Idol explicitly from external block
-      if (data.external_upgrades["Hades Idol"] !== undefined) {
-        newState.hades_idol_level = parseInt(data.external_upgrades["Hades Idol"]) || 0;
+      // Legacy Fallback for very old Streamlit JSON files where Hades was inside settings
+      if (data.settings && data.settings.hades_idol_level !== undefined && newExt[21] === undefined) {
+        newExt[21] = parseInt(data.settings.hades_idol_level) || 0;
       }
 
       // Parse Geoduck Unlock from external block, with legacy fallback

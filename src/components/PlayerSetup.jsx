@@ -10,7 +10,7 @@ import {
 import { INTERNAL_UPGRADE_CAPS, UPGRADE_NAMES, ASC1_LOCKED_UPGS, ASC2_LOCKED_UPGS, CARD_TYPES, EXTERNAL_UI_GROUPS, UPGRADE_LEVEL_REQS } from '../game_data';
 
 export default function PlayerSetup() {
-  const { asc1_unlocked, asc2_unlocked, arch_level, current_max_floor, base_stats, upgrade_levels, external_levels, cards, arch_ability_infernal_bonus, total_infernal_cards, hades_idol_level, geoduck_unlocked, calculated_stats, setSetting, setBaseStat, setUpgradeLevel, setCardLevel, setExternalGroup, loadStateFromJson, setSandboxStat, hideMaxed, setHideMaxed, activeSubTab, setActiveSubTab, upgradeView, setUpgradeView } = useStore();
+  const { asc1_unlocked, asc2_unlocked, arch_level, current_max_floor, base_stats, upgrade_levels, external_levels, cards, arch_ability_infernal_bonus, total_infernal_cards, geoduck_unlocked, calculated_stats, setSetting, setBaseStat, setUpgradeLevel, setCardLevel, setExternalGroup, loadStateFromJson, setSandboxStat, hideMaxed, setHideMaxed, activeSubTab, setActiveSubTab, upgradeView, setUpgradeView } = useStore();
   const [isDragging, setIsDragging] = useState(false);
 
   // Add Arch Level and Internal Upgrade #12 (Stat Points) to get total budget
@@ -85,10 +85,6 @@ export default function PlayerSetup() {
     const external_upgrades = {};
     EXTERNAL_UI_GROUPS.forEach(group => {
       external_upgrades[group.name] = state.external_levels[group.rows[0]] || 0;
-      // Inject Hades right after Hestia for clean grouping!
-      if (group.id === 'hestia') {
-        external_upgrades["Hades Idol"] = state.hades_idol_level || 0;
-      }
     });
     external_upgrades["Geoduck Unlocked"] = !!state.geoduck_unlocked;
     external_upgrades["Arch Ability Infernal Bonus"] = parseFloat(state.arch_ability_infernal_bonus) / 100.0 || 0.0;
@@ -240,7 +236,7 @@ export default function PlayerSetup() {
 
         <div className="st-container">
           <h3 className="font-bold mb-4 flex items-center gap-2">💾 Export Data</h3>
-          <p className="text-sm text-st-text-light mb-4">Download your current UI configuration.</p>
+          <p className="text-sm text-st-text-light mb-4">Download your current Player Setup.</p>
           <button 
             onClick={handleExport}
             className="w-full px-4 py-2 bg-st-secondary text-st-text border border-st-border rounded hover:border-st-orange transition-colors font-medium shadow-sm cursor-pointer"
@@ -391,7 +387,7 @@ export default function PlayerSetup() {
             {upgradeView === 'external' && (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {EXTERNAL_UI_GROUPS.map((group) => {
-                  if (group.id === 'hestia') return null; 
+                  if (group.id === 'hestia' || group.id === 'hades') return null; 
                   const current_val = external_levels[group.rows[0]] ?? 0;
                   
                   return (
@@ -433,7 +429,7 @@ export default function PlayerSetup() {
                           disabled={group.id === 'geoduck' && !geoduck_unlocked} 
                           onFocus={(e) => e.target.select()}
                           onChange={(e) => setExternalGroup(group.rows, e.target.value === '' ? '' : parseInt(e.target.value))} 
-                          onBlur={(e) => setExternalGroup(group.rows, Math.max(group.ui_type === 'pet' ? -1 : 0, parseInt(e.target.value) || 0))}
+                          onBlur={(e) => setExternalGroup(group.rows, Math.min(group.max !== undefined ? group.max : 9999, Math.max(group.ui_type === 'pet' ? -1 : 0, parseInt(e.target.value) || 0)))}
                         />
                       )}
                       
@@ -452,7 +448,19 @@ export default function PlayerSetup() {
                             type="text" 
                             className="st-input" 
                             value={arch_ability_infernal_bonus} 
-                            onChange={(e) => setSetting('arch_ability_infernal_bonus', e.target.value)} 
+                            onChange={(e) => {
+                              let val = e.target.value.replace('+', '');
+                              if (val !== "" && val !== "-" && !val.startsWith('-')) {
+                                val = '-' + val;
+                              }
+                              setSetting('arch_ability_infernal_bonus', val);
+                            }} 
+                            onBlur={(e) => {
+                              let val = parseFloat(e.target.value);
+                              if (isNaN(val)) val = 0;
+                              if (val > 0) val = -val;
+                              setSetting('arch_ability_infernal_bonus', val.toString());
+                            }}
                           />
                         </div>
                       )}
@@ -563,7 +571,7 @@ export default function PlayerSetup() {
                       value={external_levels[4] !== undefined ? external_levels[4] : 0} 
                       onFocus={(e) => e.target.select()}
                       onChange={(e) => setExternalGroup([4], e.target.value === '' ? '' : parseInt(e.target.value))} 
-                      onBlur={(e) => setExternalGroup([4], Math.max(0, parseInt(e.target.value) || 0))}
+                      onBlur={(e) => setExternalGroup([4], Math.min(3000, Math.max(0, parseInt(e.target.value) || 0)))}
                     />
                   </div>
                 </div>
@@ -577,10 +585,10 @@ export default function PlayerSetup() {
                     <hr className="border-st-border mb-4"/>
                     <input 
                       type="number" className="st-input" 
-                      value={hades_idol_level} 
+                      value={external_levels[21] !== undefined ? external_levels[21] : 0} 
                       onFocus={(e) => e.target.select()}
-                      onChange={(e) => setSetting('hades_idol_level', e.target.value === '' ? '' : parseInt(e.target.value))}
-                      onBlur={(e) => setSetting('hades_idol_level', Math.max(0, parseInt(e.target.value) || 0))}
+                      onChange={(e) => setExternalGroup([21], e.target.value === '' ? '' : parseInt(e.target.value))}
+                      onBlur={(e) => setExternalGroup([21], Math.min(6666, Math.max(0, parseInt(e.target.value) || 0)))}
                     />
                   </div>
                 </div>

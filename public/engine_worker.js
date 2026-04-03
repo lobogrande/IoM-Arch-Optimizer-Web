@@ -61,7 +61,7 @@ def sync_base_player(state_proxy):
 
 import random
 
-def execute_simulation(test_stats_proxy, test_upgrades_proxy):
+def execute_simulation(test_stats_proxy, test_upgrades_proxy, test_external_proxy, test_cards_proxy):
     global base_player
     
     # Ensure true RNG variance across persistent Pyodide worker tasks
@@ -78,6 +78,19 @@ def execute_simulation(test_stats_proxy, test_upgrades_proxy):
     if test_upgrades:
         for k, v in test_upgrades.items():
             p.set_upgrade_level(int(k), int(v))
+            
+    test_external = test_external_proxy.to_py()
+    if test_external:
+        for k, v in test_external.items():
+            if int(k) == 21:
+                p.hades_idol_level = int(v)
+            else:
+                p.set_external_level(int(k), int(v))
+                
+    test_cards = test_cards_proxy.to_py()
+    if test_cards:
+        for k, v in test_cards.items():
+            p.set_card_level(str(k), int(v))
             
     sim = CombatSimulator(p)
     result = sim.run_simulation()
@@ -121,9 +134,9 @@ self.onmessage = function(e) {
             postMessage({ type: 'ERROR', payload: err.message });
         }
     } else if (e.data.command === 'RUN_TASK') {
-        const { taskId, test_stats, test_upgrades } = e.data;
+        const { taskId, test_stats, test_upgrades, test_external, test_cards } = e.data;
         try {
-            const resultProxy = run_sim(test_stats, test_upgrades || {});
+            const resultProxy = run_sim(test_stats, test_upgrades || {}, test_external || {}, test_cards || {});
             const result = resultProxy.toJs({ dict_converter: Object.fromEntries });
             resultProxy.destroy(); 
             postMessage({ type: 'RESULT', taskId: taskId, payload: result });

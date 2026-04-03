@@ -59,7 +59,6 @@ function App() {
           asc2_unlocked: store.asc2_unlocked,
           arch_level: store.arch_level,
           current_max_floor: store.current_max_floor,
-          hades_idol_level: store.hades_idol_level,
           arch_ability_infernal_bonus: parseFloat(store.arch_ability_infernal_bonus) / 100.0 || 0.0,
           total_infernal_cards: store.total_infernal_cards,
           base_stats: store.base_stats,
@@ -71,7 +70,7 @@ function App() {
       });
     }
   },[
-    store.asc1_unlocked, store.asc2_unlocked, store.arch_level, store.hades_idol_level, 
+    store.asc1_unlocked, store.asc2_unlocked, store.arch_level,
     store.arch_ability_infernal_bonus, store.total_infernal_cards, store.base_stats, 
     store.upgrade_levels, store.external_levels, store.cards, store.compendium_target_floor, store.current_max_floor
   ]);
@@ -86,7 +85,6 @@ function App() {
           asc2_unlocked: store.asc2_unlocked,
           arch_level: store.arch_level,
           current_max_floor: store.current_max_floor,
-          hades_idol_level: store.hades_idol_level,
           arch_ability_infernal_bonus: parseFloat(store.arch_ability_infernal_bonus) / 100.0 || 0.0,
           total_infernal_cards: store.total_infernal_cards,
           base_stats: store.sandbox_stats,
@@ -98,7 +96,7 @@ function App() {
       });
     }
   },[
-    store.asc1_unlocked, store.asc2_unlocked, store.arch_level, store.hades_idol_level, 
+    store.asc1_unlocked, store.asc2_unlocked, store.arch_level,
     store.arch_ability_infernal_bonus, store.total_infernal_cards, store.sandbox_stats, 
     store.upgrade_levels, store.external_levels, store.cards, store.sandbox_floor, store.current_max_floor
   ]);

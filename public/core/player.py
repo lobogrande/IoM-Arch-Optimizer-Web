@@ -79,7 +79,8 @@ class Player:
         17: ("Store VPs", "Ascension Bundle VP (Crosshair Auto-Tap Chance)"),
         18: ("Store VPs", "Ascension Bundle VP (Loot Mod Chance)"),
         19: ("Store VPs", "Ascension Bundle VP (Golden Crosshair Chance)"),
-        20: ("Cards", "Arch Ability Misc Card (Ability Cooldown Reduction)")
+        20: ("Cards", "Arch Ability Misc Card (Ability Cooldown Reduction)"),
+        21: ("Idol", "Hades Idol (Infernal Multiplier)")
     }
 
     def __init__(self):
@@ -163,6 +164,8 @@ class Player:
             elif lvl == 2: w['W20'] = -0.06
             elif lvl == 3: w['W20'] = -0.10
             elif lvl == 4: w['W20'] = self.arch_ability_infernal_bonus
+        elif row == 21:
+            self.hades_idol_level = lvl
 
     def u(self, cell): 
         if not self.asc1_unlocked:
@@ -180,6 +183,7 @@ class Player:
     def w(self, cell, default=0.0): 
         if cell == 'W4' and not self.asc1_unlocked: return 0.0 
         if cell == 'W8':
+            # TODO: Need accurate data for pre-Asc1 (A0) geoduck cap. Assuming 50% for now.
             cap = 0.75 if self.asc2_unlocked else 0.50
             return min(cap, self.external.get('W8_raw', 0.0))
         return self.external.get(cell, default)
@@ -343,7 +347,8 @@ class Player:
     def frag_loot_gain_mult(self):
         stat_calc = self.stat('Per') * 0.04
         val = (1 + self.u('F5') + self.u('H21') + stat_calc)
-        val *= (1 + self.w('W4')) * (1 + self.w('W5')) * (1 + min(0.75, self.w('W8')))
+        # The cap for W8 (Geoduck) is handled natively inside the self.w() method based on ascension
+        val *= (1 + self.w('W4')) * (1 + self.w('W5')) * (1 + self.w('W8'))
         val *= self.u('F42') * self.w('W15', default=1.0) * (1.0 + self.inf('dirt3') + self.inf('leg1'))
         return self._excel_round(val, 2)
 
