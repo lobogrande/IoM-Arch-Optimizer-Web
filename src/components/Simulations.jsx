@@ -1176,7 +1176,7 @@ export default function Simulations() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   {/* STATS ROI */}
                   <div className="border border-st-border rounded p-4 bg-st-bg">
-                    <h4 className="font-bold mb-2">1. Next Stat Point</h4>
+                    <h4 className="font-bold mb-2">1. Base Stats ROI</h4>
                     <p className="text-sm text-st-text-light mb-4">Tests adding +1 to every stat to see which yields the highest increase.</p>
                     <button 
                       onClick={() => handleAnalyzeStats(context)}
@@ -1210,7 +1210,7 @@ export default function Simulations() {
 
                   {/* UPGRADES ROI */}
                   <div className="border border-st-border rounded p-4 bg-st-bg">
-                    <h4 className="font-bold mb-2">2. Upgrade ROI (Internal)</h4>
+                    <h4 className="font-bold mb-2">2. Internal Upgrades ROI</h4>
                     <p className="text-sm text-st-text-light mb-4">Tests adding +1 level to every un-maxed internal upgrade.</p>
                     <button 
                       onClick={() => handleAnalyzeUpgrades(context)}
@@ -1246,7 +1246,7 @@ export default function Simulations() {
 
                   {/* EXTERNAL ROI */}
                   <div className="border border-st-border rounded p-4 bg-st-bg">
-                    <h4 className="font-bold mb-2">3. External Upgrades</h4>
+                    <h4 className="font-bold mb-2">3. External Upgrades ROI</h4>
                     <p className="text-sm text-st-text-light mb-4">Tests adding +1 to every un-maxed accessible external element (Skills, Pets, Idols).</p>
                     <button 
                       onClick={() => handleAnalyzeExternal(context)}
@@ -1282,7 +1282,7 @@ export default function Simulations() {
 
                   {/* CARDS ROI */}
                   <div className="border border-st-border rounded p-4 bg-st-bg">
-                    <h4 className="font-bold mb-2">4. Block Cards</h4>
+                    <h4 className="font-bold mb-2">4. Block Cards ROI</h4>
                     <p className="text-sm text-st-text-light mb-4">Tests adding +1 level to every valid, accessible Block Card based on your max floor.</p>
                     <button 
                       onClick={() => handleAnalyzeCards(context)}
