@@ -367,6 +367,54 @@ const useStore = create(
     if (data.profiles) {
       newState.profiles = data.profiles;
       newState.activeProfileId = data.activeProfileId !== undefined ? data.activeProfileId : null;
+
+      // Smart Auto-Matcher: Perform a semantic comparison to heal the workspace if it mathematically matches a profile!
+      const isEq = (a, b) => {
+        const keys = new Set([...Object.keys(a || {}), ...Object.keys(b || {})]);
+        for (const k of keys) {
+          if ((a[k] || 0) !== (b[k] || 0)) return false;
+        }
+        return true;
+      };
+
+      let matchedProfile = null;
+      for (const p of newState.profiles) {
+        const snap = p.data;
+        if (
+          newState.asc1_unlocked === snap.asc1_unlocked &&
+          newState.asc2_unlocked === snap.asc2_unlocked &&
+          newState.arch_level === snap.arch_level &&
+          newState.current_max_floor === snap.current_max_floor &&
+          !!newState.geoduck_unlocked === !!snap.geoduck_unlocked &&
+          parseFloat(newState.arch_ability_infernal_bonus || 0) === parseFloat(snap.arch_ability_infernal_bonus || 0) &&
+          (newState.total_infernal_cards || 0) === (snap.total_infernal_cards || 0) &&
+          isEq(newState.base_stats, snap.base_stats) &&
+          isEq(newState.upgrade_levels, snap.upgrade_levels) &&
+          isEq(newState.external_levels, snap.external_levels) &&
+          isEq(newState.cards, snap.cards)
+        ) {
+          matchedProfile = p;
+          // If this semantic match also matches the previously active profile ID, prioritize it
+          if (p.id === newState.activeProfileId) break;
+        }
+      }
+
+      if (matchedProfile) {
+        // Heal the workspace by explicitly mapping the profile's exact data references.
+        // This guarantees strict equality across the app and clears false-positive badges!
+        newState.activeProfileId = matchedProfile.id;
+        newState.asc1_unlocked = matchedProfile.data.asc1_unlocked;
+        newState.asc2_unlocked = matchedProfile.data.asc2_unlocked;
+        newState.arch_level = matchedProfile.data.arch_level;
+        newState.current_max_floor = matchedProfile.data.current_max_floor;
+        newState.geoduck_unlocked = matchedProfile.data.geoduck_unlocked;
+        newState.arch_ability_infernal_bonus = matchedProfile.data.arch_ability_infernal_bonus;
+        newState.total_infernal_cards = matchedProfile.data.total_infernal_cards;
+        newState.base_stats = { ...matchedProfile.data.base_stats };
+        newState.upgrade_levels = { ...matchedProfile.data.upgrade_levels };
+        newState.external_levels = { ...matchedProfile.data.external_levels };
+        newState.cards = { ...matchedProfile.data.cards };
+      }
     } else {
       const legacyId = 'prof_' + Date.now();
       newState.profiles =[ { id: legacyId, name: "Imported Legacy Save", data: getWorkspaceSnapshot(newState) } ];

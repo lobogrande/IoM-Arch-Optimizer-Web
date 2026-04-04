@@ -19,17 +19,26 @@ export default function PlayerSetup() {
     const active = profiles.find(p => p.id === activeProfileId);
     if (!active) return false;
 
-    const currentSnapshot = {
-      asc1_unlocked, asc2_unlocked, arch_level, current_max_floor, geoduck_unlocked,
-      arch_ability_infernal_bonus, total_infernal_cards,
-      base_stats: { ...base_stats },
-      upgrade_levels: { ...upgrade_levels },
-      external_levels: { ...external_levels },
-      cards: { ...cards }
+    const isEq = (a, b) => {
+      const keys = new Set([...Object.keys(a || {}), ...Object.keys(b || {})]);
+      for (const k of keys) if ((a[k] || 0) !== (b[k] || 0)) return false;
+      return true;
     };
+
+    if (asc1_unlocked !== active.data.asc1_unlocked) return true;
+    if (asc2_unlocked !== active.data.asc2_unlocked) return true;
+    if (arch_level !== active.data.arch_level) return true;
+    if (current_max_floor !== active.data.current_max_floor) return true;
+    if (!!geoduck_unlocked !== !!active.data.geoduck_unlocked) return true;
+    if (parseFloat(arch_ability_infernal_bonus || 0) !== parseFloat(active.data.arch_ability_infernal_bonus || 0)) return true;
+    if ((total_infernal_cards || 0) !== (active.data.total_infernal_cards || 0)) return true;
+    if (!isEq(base_stats, active.data.base_stats)) return true;
+    if (!isEq(upgrade_levels, active.data.upgrade_levels)) return true;
+    if (!isEq(external_levels, active.data.external_levels)) return true;
+    if (!isEq(cards, active.data.cards)) return true;
     
-    return JSON.stringify(currentSnapshot) !== JSON.stringify(active.data);
-  },[activeProfileId, profiles, asc1_unlocked, asc2_unlocked, arch_level, current_max_floor, geoduck_unlocked, arch_ability_infernal_bonus, total_infernal_cards, base_stats, upgrade_levels, external_levels, cards]);
+    return false;
+  },[ activeProfileId, profiles, asc1_unlocked, asc2_unlocked, arch_level, current_max_floor, geoduck_unlocked, arch_ability_infernal_bonus, total_infernal_cards, base_stats, upgrade_levels, external_levels, cards ]);
 
   // Add Arch Level and Internal Upgrade #12 (Stat Points) to get total budget
   const total_allowed = (parseInt(arch_level) || 1) + (upgrade_levels[12] || 0); 

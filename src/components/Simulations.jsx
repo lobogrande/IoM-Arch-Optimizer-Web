@@ -110,16 +110,25 @@ export default function Simulations() {
     const activeProfile = store.profiles?.find(p => p.id === store.activeProfileId);
     if (!activeProfile) return { id: null, name: "Guest", isModified: false, tag: "Guest" };
     
-    const currentSnapshot = {
-      asc1_unlocked: store.asc1_unlocked, asc2_unlocked: store.asc2_unlocked, arch_level: store.arch_level, current_max_floor: store.current_max_floor, geoduck_unlocked: store.geoduck_unlocked,
-      arch_ability_infernal_bonus: store.arch_ability_infernal_bonus, total_infernal_cards: store.total_infernal_cards,
-      base_stats: { ...store.base_stats },
-      upgrade_levels: { ...store.upgrade_levels },
-      external_levels: { ...store.external_levels },
-      cards: { ...store.cards }
+    const isEq = (a, b) => {
+      const keys = new Set([...Object.keys(a || {}), ...Object.keys(b || {})]);
+      for (const k of keys) if ((a[k] || 0) !== (b[k] || 0)) return false;
+      return true;
     };
     
-    const isMod = JSON.stringify(currentSnapshot) !== JSON.stringify(activeProfile.data);
+    let isMod = false;
+    if (store.asc1_unlocked !== activeProfile.data.asc1_unlocked) isMod = true;
+    else if (store.asc2_unlocked !== activeProfile.data.asc2_unlocked) isMod = true;
+    else if (store.arch_level !== activeProfile.data.arch_level) isMod = true;
+    else if (store.current_max_floor !== activeProfile.data.current_max_floor) isMod = true;
+    else if (!!store.geoduck_unlocked !== !!activeProfile.data.geoduck_unlocked) isMod = true;
+    else if (parseFloat(store.arch_ability_infernal_bonus || 0) !== parseFloat(activeProfile.data.arch_ability_infernal_bonus || 0)) isMod = true;
+    else if ((store.total_infernal_cards || 0) !== (activeProfile.data.total_infernal_cards || 0)) isMod = true;
+    else if (!isEq(store.base_stats, activeProfile.data.base_stats)) isMod = true;
+    else if (!isEq(store.upgrade_levels, activeProfile.data.upgrade_levels)) isMod = true;
+    else if (!isEq(store.external_levels, activeProfile.data.external_levels)) isMod = true;
+    else if (!isEq(store.cards, activeProfile.data.cards)) isMod = true;
+
     return {
       id: activeProfile.id,
       name: activeProfile.name,
