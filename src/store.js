@@ -2,6 +2,20 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { EXTERNAL_UI_GROUPS, ASC1_LOCKED_UPGS, ASC2_LOCKED_UPGS } from './game_data';
 
+const getWorkspaceSnapshot = (state) => ({
+  asc1_unlocked: state.asc1_unlocked,
+  asc2_unlocked: state.asc2_unlocked,
+  arch_level: state.arch_level,
+  current_max_floor: state.current_max_floor,
+  geoduck_unlocked: state.geoduck_unlocked,
+  arch_ability_infernal_bonus: state.arch_ability_infernal_bonus,
+  total_infernal_cards: state.total_infernal_cards,
+  base_stats: { ...state.base_stats },
+  upgrade_levels: { ...state.upgrade_levels },
+  external_levels: { ...state.external_levels },
+  cards: { ...state.cards }
+});
+
 const useStore = create(
   persist(
     (set) => ({
@@ -18,6 +32,11 @@ const useStore = create(
   sandboxShowUnreachable: false,
   sandboxShowCrits: false,
   sandboxBlockFilters: [ ],
+  
+  // Profiles System
+  profiles: [ ],
+  activeProfileId: null,
+
   asc1_unlocked: true,
   asc2_unlocked: false,
   arch_level: 45,
@@ -131,6 +150,34 @@ const useStore = create(
   setSandboxCalculatedStats: (stats) => set({ sandbox_calculated_stats: stats }),
   setSandboxBaseline: (data, stats) => set({ sandbox_baseline: data, sandbox_baseline_stats: stats || null }),
   toggleTheme: () => set((state) => ({ theme: state.theme === 'dark' ? 'light' : 'dark' })),
+  
+  // Profiles Actions
+  createProfile: (name) => set((state) => {
+    const newId = 'prof_' + Date.now();
+    return {
+      profiles:[ ...state.profiles, { id: newId, name, data: getWorkspaceSnapshot(state) } ],
+      activeProfileId: newId
+    };
+  }),
+  saveToProfile: (id) => set((state) => ({
+    profiles: state.profiles.map(p => p.id === id ? { ...p, data: getWorkspaceSnapshot(state) } : p)
+  })),
+  loadProfile: (id) => set((state) => {
+    const prof = state.profiles.find(p => p.id === id);
+    if (!prof) return { };
+    return { ...prof.data, activeProfileId: id }; // Dumps snapshot back into the workspace
+  }),
+  renameProfile: (id, newName) => set((state) => ({
+    profiles: state.profiles.map(p => p.id === id ? { ...p, name: newName } : p)
+  })),
+  deleteProfile: (id) => set((state) => {
+    const newProfiles = state.profiles.filter(p => p.id !== id);
+    return {
+      profiles: newProfiles,
+      activeProfileId: state.activeProfileId === id ? (newProfiles.length > 0 ? newProfiles[0].id : null) : state.activeProfileId
+    };
+  }),
+
   setHideMaxed: (val) => set({ hideMaxed: val }),
   setActiveTab: (val) => set({ activeTab: val }),
   setActiveSubTab: (val) => set({ activeSubTab: val }),
@@ -206,8 +253,10 @@ const useStore = create(
     ];
 
     const searchJson = (obj) => {
+      if (foundInfernalRaw !== null) return; // Stop if already found
       if (!obj || typeof obj !== 'object') return;
       for (const [k, v] of Object.entries(obj)) {
+        if (k === 'profiles') continue; // DO NOT dig into V2 profiles!
         if (legacyKeys.includes(k)) {
           foundInfernalRaw = v;
           return;
@@ -314,6 +363,64 @@ const useStore = create(
         ASC1_LOCKED_UPGS.forEach(id => newState.upgrade_levels[id] = 0);
         ASC2_LOCKED_UPGS.forEach(id => newState.upgrade_levels[id] = 0);
       }
+    }
+
+    // Profile Injection: Legacy Auto-Migration vs V2 Import
+    if (data.profiles) {
+      newState.profiles = data.profiles;
+      newState.activeProfileId = data.activeProfileId !== undefined ? data.activeProfileId : null;
+
+      // Smart Auto-Matcher: Perform a semantic comparison to heal the workspace if it mathematically matches a profile!
+      const isEq = (a, b) => {
+        const keys = new Set([...Object.keys(a || {}), ...Object.keys(b || {})]);
+        for (const k of keys) {
+          if (Number(a[k] || 0) !== Number(b[k] || 0)) return false;
+        }
+        return true;
+      };
+
+      let matchedProfile = null;
+      for (const p of newState.profiles) {
+        const snap = p.data;
+        if (
+          newState.asc1_unlocked === snap.asc1_unlocked &&
+          newState.asc2_unlocked === snap.asc2_unlocked &&
+          newState.arch_level === snap.arch_level &&
+          newState.current_max_floor === snap.current_max_floor &&
+          !!newState.geoduck_unlocked === !!snap.geoduck_unlocked &&
+          parseFloat(newState.arch_ability_infernal_bonus || 0) === parseFloat(snap.arch_ability_infernal_bonus || 0) &&
+          (newState.total_infernal_cards || 0) === (snap.total_infernal_cards || 0) &&
+          isEq(newState.base_stats, snap.base_stats) &&
+          isEq(newState.upgrade_levels, snap.upgrade_levels) &&
+          isEq(newState.external_levels, snap.external_levels) &&
+          isEq(newState.cards, snap.cards)
+        ) {
+          matchedProfile = p;
+          // If this semantic match also matches the previously active profile ID, prioritize it
+          if (p.id === newState.activeProfileId) break;
+        }
+      }
+
+      if (matchedProfile) {
+        // Heal the workspace by explicitly mapping the profile's exact data references.
+        // This guarantees strict equality across the app and clears false-positive badges!
+        newState.activeProfileId = matchedProfile.id;
+        newState.asc1_unlocked = matchedProfile.data.asc1_unlocked;
+        newState.asc2_unlocked = matchedProfile.data.asc2_unlocked;
+        newState.arch_level = matchedProfile.data.arch_level;
+        newState.current_max_floor = matchedProfile.data.current_max_floor;
+        newState.geoduck_unlocked = matchedProfile.data.geoduck_unlocked;
+        newState.arch_ability_infernal_bonus = matchedProfile.data.arch_ability_infernal_bonus;
+        newState.total_infernal_cards = matchedProfile.data.total_infernal_cards;
+        newState.base_stats = { ...matchedProfile.data.base_stats };
+        newState.upgrade_levels = { ...matchedProfile.data.upgrade_levels };
+        newState.external_levels = { ...matchedProfile.data.external_levels };
+        newState.cards = { ...matchedProfile.data.cards };
+      }
+    } else {
+      const legacyId = 'prof_' + Date.now();
+      newState.profiles =[ { id: legacyId, name: "Imported Legacy Save", data: getWorkspaceSnapshot(newState) } ];
+      newState.activeProfileId = legacyId;
     }
 
     return newState;

@@ -105,6 +105,54 @@ export default function Simulations() {
   const sandbox_baseline_stats = store.sandbox_baseline_stats;
   const setSandboxBaseline = store.setSandboxBaseline;
 
+  // Dynamically generate relational Profile Context for history logging
+  const profileContext = useMemo(() => {
+    const activeProfile = store.profiles?.find(p => p.id === store.activeProfileId);
+    if (!activeProfile) return { id: null, name: "Guest", isModified: false, tag: "Guest" };
+    
+    const isEq = (a, b) => {
+      const keys = new Set([...Object.keys(a || {}), ...Object.keys(b || {})]);
+      for (const k of keys) if (Number(a[k] || 0) !== Number(b[k] || 0)) return false;
+      return true;
+    };
+    
+    let isMod = false;
+    if (store.asc1_unlocked !== activeProfile.data.asc1_unlocked) isMod = true;
+    else if (store.asc2_unlocked !== activeProfile.data.asc2_unlocked) isMod = true;
+    else if (store.arch_level !== activeProfile.data.arch_level) isMod = true;
+    else if (store.current_max_floor !== activeProfile.data.current_max_floor) isMod = true;
+    else if (!!store.geoduck_unlocked !== !!activeProfile.data.geoduck_unlocked) isMod = true;
+    else if (parseFloat(store.arch_ability_infernal_bonus || 0) !== parseFloat(activeProfile.data.arch_ability_infernal_bonus || 0)) isMod = true;
+    else if ((store.total_infernal_cards || 0) !== (activeProfile.data.total_infernal_cards || 0)) isMod = true;
+    else if (!isEq(store.base_stats, activeProfile.data.base_stats)) isMod = true;
+    else if (!isEq(store.upgrade_levels, activeProfile.data.upgrade_levels)) isMod = true;
+    else if (!isEq(store.external_levels, activeProfile.data.external_levels)) isMod = true;
+    else if (!isEq(store.cards, activeProfile.data.cards)) isMod = true;
+
+    return {
+      id: activeProfile.id,
+      name: activeProfile.name,
+      isModified: isMod,
+      tag: isMod ? `${activeProfile.name} *` : activeProfile.name
+    };
+  },[ store.activeProfileId, store.profiles, store.asc1_unlocked, store.asc2_unlocked, store.arch_level, store.current_max_floor, store.geoduck_unlocked, store.arch_ability_infernal_bonus, store.total_infernal_cards, store.base_stats, store.upgrade_levels, store.external_levels, store.cards ]);
+
+  // Helper to dynamically render up-to-date Profile names in history tables
+  const getProfileDisplayName = (r) => {
+    if (r.ProfileId) {
+      const p = store.profiles?.find(x => x.id === r.ProfileId);
+      const baseName = p ? p.name : (r.ProfileName || "Deleted");
+      return baseName + (r.IsModified ? " *" : "");
+    }
+    if (r.Profile && r.Profile !== 'Guest' && r.Profile !== 'Legacy') {
+      const cleanName = r.Profile.replace(' *', '');
+      const isMod = r.Profile.endsWith(' *');
+      const p = store.profiles?.find(x => x.name === cleanName);
+      if (p) return p.name + (isMod ? " *" : "");
+    }
+    return r.Profile || 'Legacy';
+  };
+
   // --- HOISTED SANDBOX MEMOS (Must be at the top level to obey React Hook Rules) ---
   const sbData = store.sandbox_calculated_stats;
   const tFloor = store.sandbox_floor ?? store.current_max_floor;
@@ -747,6 +795,10 @@ export default function Simulations() {
           store.setOptResults(payload);
           store.addRunHistory({
               Include: true,
+              ProfileId: profileContext.id,
+              ProfileName: profileContext.name,
+              IsModified: profileContext.isModified,
+              Profile: profileContext.tag,
               Target: targetMetricKey,
               "Metric Score": finalSummary[targetMetricKey],
               "Avg Floor": finalSummary.avg_floor,
@@ -2014,6 +2066,10 @@ export default function Simulations() {
             };
 
             const synthEntry = {
+                ProfileId: profileContext.id,
+                ProfileName: profileContext.name,
+                IsModified: profileContext.isModified,
+                Profile: profileContext.tag,
                 Target: runTargetMetric,
                 "Ceiling Score": metaScore,
                 "Sources Data": checkedRuns,
@@ -2162,6 +2218,7 @@ export default function Simulations() {
                     <thead>
                       <tr className="border-b border-st-border bg-black/10">
                         <th className="p-3 w-10 text-center">Incl.</th>
+                        <th className="p-3">Profile</th>
                         <th className="p-3">Target</th>
                         <th className="p-3">Score / Yield</th>
                         <th className="p-3">Avg Floor</th>
@@ -2186,6 +2243,7 @@ export default function Simulations() {
                                 className="accent-st-orange w-4 h-4 cursor-pointer"
                               />
                             </td>
+                            <td className="p-3 font-bold text-xs truncate max-w-[100px]" title={getProfileDisplayName(r)}>{getProfileDisplayName(r)}</td>
                             <td className="p-3 font-mono text-xs">{r.Target.replace('_per_min', '')}</td>
                             <td className="p-3 font-bold text-st-orange">{score}</td>
                             <td className="p-3">{r['Avg Floor'].toFixed(1)}</td>
@@ -2259,7 +2317,7 @@ export default function Simulations() {
                     return (
                       <div key={idx} className="st-container space-y-3">
                         <div className="font-bold text-lg text-st-orange">
-                          🧬 Meta-Build | Target: `{synth.Target}` | Ceiling: `{dispScore}`
+                          🧬 Meta-Build | Profile: `{getProfileDisplayName(synth)}` | Target: `{synth.Target}` | Ceiling: `{dispScore}`
                           {!isFloorTarget && " (per 1k Arch Secs)"}
                           {synth['Theoretical Peak'] && ` | Peak: ${synth['Theoretical Peak']}`}
                         </div>

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import useStore from '../store';
 import { 
   UI_STAT_IMG_WIDTH, UI_BLOCK_CARD_WIDTH, 
@@ -10,8 +10,35 @@ import {
 import { INTERNAL_UPGRADE_CAPS, UPGRADE_NAMES, ASC1_LOCKED_UPGS, ASC2_LOCKED_UPGS, CARD_TYPES, EXTERNAL_UI_GROUPS, UPGRADE_LEVEL_REQS } from '../game_data';
 
 export default function PlayerSetup() {
-  const { asc1_unlocked, asc2_unlocked, arch_level, current_max_floor, base_stats, upgrade_levels, external_levels, cards, arch_ability_infernal_bonus, total_infernal_cards, geoduck_unlocked, calculated_stats, setSetting, setBaseStat, setUpgradeLevel, setCardLevel, setExternalGroup, loadStateFromJson, setSandboxStat, hideMaxed, setHideMaxed, activeSubTab, setActiveSubTab, upgradeView, setUpgradeView } = useStore();
+  const { asc1_unlocked, asc2_unlocked, arch_level, current_max_floor, base_stats, upgrade_levels, external_levels, cards, arch_ability_infernal_bonus, total_infernal_cards, geoduck_unlocked, calculated_stats, setSetting, setBaseStat, setUpgradeLevel, setCardLevel, setExternalGroup, loadStateFromJson, setSandboxStat, hideMaxed, setHideMaxed, activeSubTab, setActiveSubTab, upgradeView, setUpgradeView, profiles, activeProfileId, createProfile, loadProfile, saveToProfile, renameProfile, deleteProfile } = useStore();
   const [isDragging, setIsDragging] = useState(false);
+
+  // Deep equality check: Compares the active workspace to the saved profile snapshot
+  const hasUnsavedChanges = useMemo(() => {
+    if (!activeProfileId || profiles.length === 0) return false;
+    const active = profiles.find(p => p.id === activeProfileId);
+    if (!active) return false;
+
+    const isEq = (a, b) => {
+      const keys = new Set([...Object.keys(a || {}), ...Object.keys(b || {})]);
+      for (const k of keys) if (Number(a[k] || 0) !== Number(b[k] || 0)) return false;
+      return true;
+    };
+
+    if (asc1_unlocked !== active.data.asc1_unlocked) return true;
+    if (asc2_unlocked !== active.data.asc2_unlocked) return true;
+    if (arch_level !== active.data.arch_level) return true;
+    if (current_max_floor !== active.data.current_max_floor) return true;
+    if (!!geoduck_unlocked !== !!active.data.geoduck_unlocked) return true;
+    if (parseFloat(arch_ability_infernal_bonus || 0) !== parseFloat(active.data.arch_ability_infernal_bonus || 0)) return true;
+    if ((total_infernal_cards || 0) !== (active.data.total_infernal_cards || 0)) return true;
+    if (!isEq(base_stats, active.data.base_stats)) return true;
+    if (!isEq(upgrade_levels, active.data.upgrade_levels)) return true;
+    if (!isEq(external_levels, active.data.external_levels)) return true;
+    if (!isEq(cards, active.data.cards)) return true;
+    
+    return false;
+  },[ activeProfileId, profiles, asc1_unlocked, asc2_unlocked, arch_level, current_max_floor, geoduck_unlocked, arch_ability_infernal_bonus, total_infernal_cards, base_stats, upgrade_levels, external_levels, cards ]);
 
   // Add Arch Level and Internal Upgrade #12 (Stat Points) to get total budget
   const total_allowed = (parseInt(arch_level) || 1) + (upgrade_levels[12] || 0); 
@@ -109,7 +136,9 @@ export default function PlayerSetup() {
       base_stats: state.base_stats,
       internal_upgrades: internal_upgrades,
       external_upgrades: external_upgrades,
-      cards: ordered_cards
+      cards: ordered_cards,
+      profiles: state.profiles,
+      activeProfileId: state.activeProfileId
     };
 
     const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(exportData, null, 4));
@@ -165,6 +194,81 @@ export default function PlayerSetup() {
       
       {/* LEFT COLUMN: Global Settings & Data Sync */}
       <div className="w-full md:w-1/4 flex flex-col gap-4">
+
+        <div className="st-container">
+          <h3 className="font-bold mb-4 flex items-center justify-between">
+            <span className="flex items-center gap-2">👤 Player Profiles</span>
+            {hasUnsavedChanges && <span className="text-[10px] bg-st-orange text-[#2b2b2b] px-2 py-0.5 rounded font-bold uppercase shadow-sm">Unsaved</span>}
+          </h3>
+          
+          <div className="mb-4">
+            <select
+              className="w-full st-input font-bold"
+              value={activeProfileId || ""}
+              onChange={(e) => {
+                if (e.target.value) loadProfile(e.target.value);
+              }}
+            >
+              <option value="" disabled>{profiles.length === 0 ? "No profiles saved" : "Select a profile..."}</option>
+              {profiles.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+            </select>
+          </div>
+
+          <div className="grid grid-cols-2 gap-2 mb-2">
+            <button 
+              onClick={() => {
+                const name = window.prompt("Enter a name for this new profile:");
+                if (name && name.trim()) createProfile(name.trim().substring(0, 40));
+              }} 
+              className="py-2 bg-st-secondary border border-st-border text-st-text text-xs font-bold rounded hover:border-st-orange transition-colors shadow-sm"
+            >
+              ➕ New Profile
+            </button>
+            
+            <button 
+              onClick={() => {
+                if (!activeProfileId) return alert("Select a profile first!");
+                if (window.confirm("Overwrite this profile with your current active setup?")) {
+                  saveToProfile(activeProfileId);
+                }
+              }} 
+              disabled={!activeProfileId || !hasUnsavedChanges} 
+              className={`py-2 text-xs font-bold rounded transition-colors shadow-sm ${
+                hasUnsavedChanges 
+                  ? 'bg-[#2b2b2b] border border-st-orange text-st-orange hover:bg-st-orange hover:text-[#2b2b2b]' 
+                  : 'bg-st-secondary border border-st-border text-st-text-light opacity-50 cursor-not-allowed'
+              }`}
+            >
+              💾 Update Loadout
+            </button>
+          </div>
+          
+          <div className="grid grid-cols-2 gap-2">
+            <button 
+              onClick={() => {
+                if (!activeProfileId) return;
+                const p = profiles.find(x => x.id === activeProfileId);
+                const newName = window.prompt("Rename profile:", p.name);
+                if (newName && newName.trim()) renameProfile(activeProfileId, newName.trim().substring(0, 40));
+              }} 
+              disabled={!activeProfileId} 
+              className="py-2 bg-st-secondary border border-st-border text-st-text text-xs font-bold rounded hover:border-st-orange transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              ✏️ Rename
+            </button>
+            
+            <button 
+              onClick={() => {
+                if (!activeProfileId) return;
+                if (window.confirm("Delete this profile forever?")) deleteProfile(activeProfileId);
+              }} 
+              disabled={!activeProfileId} 
+              className="py-2 bg-st-secondary border border-red-900 text-red-400 text-xs font-bold rounded hover:bg-red-900 hover:text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              🗑️ Delete
+            </button>
+          </div>
+        </div>
         
         <div className="st-container">
           <h3 className="font-bold mb-4 flex items-center gap-2">⚙️ Global Settings</h3>
