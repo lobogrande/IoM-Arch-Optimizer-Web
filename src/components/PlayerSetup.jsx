@@ -21,7 +21,7 @@ export default function PlayerSetup() {
 
     const isEq = (a, b) => {
       const keys = new Set([...Object.keys(a || {}), ...Object.keys(b || {})]);
-      for (const k of keys) if ((a[k] || 0) !== (b[k] || 0)) return false;
+      for (const k of keys) if (Number(a[k] || 0) !== Number(b[k] || 0)) return false;
       return true;
     };
 

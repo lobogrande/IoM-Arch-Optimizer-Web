@@ -253,8 +253,10 @@ const useStore = create(
     ];
 
     const searchJson = (obj) => {
+      if (foundInfernalRaw !== null) return; // Stop if already found
       if (!obj || typeof obj !== 'object') return;
       for (const [k, v] of Object.entries(obj)) {
+        if (k === 'profiles') continue; // DO NOT dig into V2 profiles!
         if (legacyKeys.includes(k)) {
           foundInfernalRaw = v;
           return;
@@ -372,7 +374,7 @@ const useStore = create(
       const isEq = (a, b) => {
         const keys = new Set([...Object.keys(a || {}), ...Object.keys(b || {})]);
         for (const k of keys) {
-          if ((a[k] || 0) !== (b[k] || 0)) return false;
+          if (Number(a[k] || 0) !== Number(b[k] || 0)) return false;
         }
         return true;
       };
