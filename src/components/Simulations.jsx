@@ -105,10 +105,10 @@ export default function Simulations() {
   const sandbox_baseline_stats = store.sandbox_baseline_stats;
   const setSandboxBaseline = store.setSandboxBaseline;
 
-  // Dynamically generate the Profile Tag for history logging
-  const profileTag = useMemo(() => {
+  // Dynamically generate relational Profile Context for history logging
+  const profileContext = useMemo(() => {
     const activeProfile = store.profiles?.find(p => p.id === store.activeProfileId);
-    if (!activeProfile) return "Guest";
+    if (!activeProfile) return { id: null, name: "Guest", isModified: false, tag: "Guest" };
     
     const currentSnapshot = {
       asc1_unlocked: store.asc1_unlocked, asc2_unlocked: store.asc2_unlocked, arch_level: store.arch_level, current_max_floor: store.current_max_floor, geoduck_unlocked: store.geoduck_unlocked,
@@ -119,8 +119,30 @@ export default function Simulations() {
       cards: { ...store.cards }
     };
     
-    return JSON.stringify(currentSnapshot) !== JSON.stringify(activeProfile.data) ? `${activeProfile.name} *` : activeProfile.name;
+    const isMod = JSON.stringify(currentSnapshot) !== JSON.stringify(activeProfile.data);
+    return {
+      id: activeProfile.id,
+      name: activeProfile.name,
+      isModified: isMod,
+      tag: isMod ? `${activeProfile.name} *` : activeProfile.name
+    };
   },[ store.activeProfileId, store.profiles, store.asc1_unlocked, store.asc2_unlocked, store.arch_level, store.current_max_floor, store.geoduck_unlocked, store.arch_ability_infernal_bonus, store.total_infernal_cards, store.base_stats, store.upgrade_levels, store.external_levels, store.cards ]);
+
+  // Helper to dynamically render up-to-date Profile names in history tables
+  const getProfileDisplayName = (r) => {
+    if (r.ProfileId) {
+      const p = store.profiles?.find(x => x.id === r.ProfileId);
+      const baseName = p ? p.name : (r.ProfileName || "Deleted");
+      return baseName + (r.IsModified ? " *" : "");
+    }
+    if (r.Profile && r.Profile !== 'Guest' && r.Profile !== 'Legacy') {
+      const cleanName = r.Profile.replace(' *', '');
+      const isMod = r.Profile.endsWith(' *');
+      const p = store.profiles?.find(x => x.name === cleanName);
+      if (p) return p.name + (isMod ? " *" : "");
+    }
+    return r.Profile || 'Legacy';
+  };
 
   // --- HOISTED SANDBOX MEMOS (Must be at the top level to obey React Hook Rules) ---
   const sbData = store.sandbox_calculated_stats;
@@ -764,7 +786,10 @@ export default function Simulations() {
           store.setOptResults(payload);
           store.addRunHistory({
               Include: true,
-              Profile: profileTag,
+              ProfileId: profileContext.id,
+              ProfileName: profileContext.name,
+              IsModified: profileContext.isModified,
+              Profile: profileContext.tag,
               Target: targetMetricKey,
               "Metric Score": finalSummary[targetMetricKey],
               "Avg Floor": finalSummary.avg_floor,
@@ -2032,7 +2057,10 @@ export default function Simulations() {
             };
 
             const synthEntry = {
-                Profile: profileTag,
+                ProfileId: profileContext.id,
+                ProfileName: profileContext.name,
+                IsModified: profileContext.isModified,
+                Profile: profileContext.tag,
                 Target: runTargetMetric,
                 "Ceiling Score": metaScore,
                 "Sources Data": checkedRuns,
@@ -2206,7 +2234,7 @@ export default function Simulations() {
                                 className="accent-st-orange w-4 h-4 cursor-pointer"
                               />
                             </td>
-                            <td className="p-3 font-bold text-xs truncate max-w-[100px]" title={r.Profile || 'Legacy'}>{r.Profile || 'Legacy'}</td>
+                            <td className="p-3 font-bold text-xs truncate max-w-[100px]" title={getProfileDisplayName(r)}>{getProfileDisplayName(r)}</td>
                             <td className="p-3 font-mono text-xs">{r.Target.replace('_per_min', '')}</td>
                             <td className="p-3 font-bold text-st-orange">{score}</td>
                             <td className="p-3">{r['Avg Floor'].toFixed(1)}</td>
@@ -2280,7 +2308,7 @@ export default function Simulations() {
                     return (
                       <div key={idx} className="st-container space-y-3">
                         <div className="font-bold text-lg text-st-orange">
-                          🧬 Meta-Build | Profile: `{synth.Profile || 'Legacy'}` | Target: `{synth.Target}` | Ceiling: `{dispScore}`
+                          🧬 Meta-Build | Profile: `{getProfileDisplayName(synth)}` | Target: `{synth.Target}` | Ceiling: `{dispScore}`
                           {!isFloorTarget && " (per 1k Arch Secs)"}
                           {synth['Theoretical Peak'] && ` | Peak: ${synth['Theoretical Peak']}`}
                         </div>
