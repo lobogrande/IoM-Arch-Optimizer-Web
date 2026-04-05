@@ -1993,13 +1993,23 @@ export default function Simulations() {
             const avgMetrics = {};
             for(const [mk, mv] of Object.entries(bestData.metricsSum)) avgMetrics[mk] = mv / 500.0;
 
+            // Calculate exact confidence metrics from the Round 2 Finalists
+            const allSynthScores = r2Ids.map(bId => {
+                if (runTargetMetric === "highest_floor") return getCeilingScore(buildRes.get(bId).floors, 5);
+                else return buildRes.get(bId).sum_t / 500.0;
+            }).sort((a, b) => b - a);
+
+            const synthWorst = allSynthScores.length > 0 ? allSynthScores[allSynthScores.length - 1] : 0;
+            const synthAvg = allSynthScores.length > 0 ? allSynthScores.reduce((a,b)=>a+b,0) / allSynthScores.length : 0;
+            const synthRunnerUp = allSynthScores.length > 1 ? allSynthScores[1] : (allSynthScores.length > 0 ? allSynthScores[0] : 0);
+
             const synthSummary = {[runTargetMetric]: runTargetMetric === "highest_floor" ? absMax : bestData.sum_t / 500.0,
                 avg_floor: avgF,
                 abs_max_floor: absMax,
                 abs_max_chance: bestData.floors.filter(f => f === absMax).length / 500.0,
-                worst_val: 0,
-                avg_val: avgF,
-                runner_up_val: 0,
+                worst_val: synthWorst,
+                avg_val: synthAvg,
+                runner_up_val: synthRunnerUp,
                 floors: bestData.floors,
                 avg_metrics: avgMetrics,
                 stamina_trace: bestData.staminaTrace
@@ -2035,10 +2045,10 @@ export default function Simulations() {
                 elapsed: synthElapsed,
                 time_limit_secs: 999, // Unlocked
                 run_target_metric: runTargetMetric,
-                worst_val: 0,
-                avg_val: avgF,
-                runner_up_val: 0,
-                chart_hill_labels: [chartLabel, "🧬 Polished Meta-Build"],
+                worst_val: synthWorst,
+                avg_val: synthAvg,
+                runner_up_val: synthRunnerUp,
+                chart_hill_labels:[chartLabel, "🧬 Polished Meta-Build"],
                 chart_hill_scores: [avgHistoryScore, metaScore],
                 chart_hist: bestData.floors.reduce((acc, f) => { acc[f] = (acc[f] || 0) + 1; return acc; }, {}),
                 chart_loot: chartLoot,
