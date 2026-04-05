@@ -1732,12 +1732,6 @@ export default function Simulations() {
                 store.setSimsState('synthesis_result', null);
             }
             
-            // Clear stale ROI data
-            setRoiStatResults(null);
-            setRoiUpgResults(null);
-            setRoiExtResults(null);
-            setRoiCardResults(null);
-            
             // Snap to the appropriate tab based on what we are restoring
             setActiveSubTab(isMetaBuild ? 'synth' : 'optimizer');
             setResTab('build');
