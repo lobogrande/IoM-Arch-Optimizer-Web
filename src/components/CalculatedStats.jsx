@@ -4,9 +4,9 @@ import useStore from '../store';
 import { UPGRADE_NAMES, EXTERNAL_UI_GROUPS } from '../game_data';
 
 export default function CalculatedStats() {
-  const { asc1_unlocked, asc2_unlocked, current_max_floor, base_stats, upgrade_levels, external_levels, cards, calculated_stats, arch_ability_infernal_bonus } = useStore();
-  const[troubleshootStat, setTroubleshootStat] = useState("");
-  const [showTroubleshooter, setShowTroubleshooter] = useState(false);
+  const { asc1_unlocked, asc2_unlocked, current_max_floor, base_stats, upgrade_levels, external_levels, cards, calculated_stats, arch_ability_infernal_bonus, total_infernal_cards } = useStore();
+  const[ troubleshootStat, setTroubleshootStat ] = useState("");
+  const[ showTroubleshooter, setShowTroubleshooter ] = useState(false);
 
   // Helper to safely format numbers and prevent NaN errors while Pyodide is booting
   const fmt = (val, decimals = 0) => {
