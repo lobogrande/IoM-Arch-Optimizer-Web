@@ -241,7 +241,7 @@ class Player:
     # ==========================================================================
     @property
     def max_sta(self):
-        base_calc = 100 + self.u('F14') + self.u('F23') + self.u('H39') + self.u('F3')
+        base_calc = 100 + self.u('F14') + self.u('F23') + self.u('H39') + self.u('F3') + self.inf('leg4')
         stat_calc = self.stat('Agi') * (5 + self.u('F26'))
         asc2_calc = (1 + self.u('H28') + self.u('F54')) * (1 - 0.03 * self.stat('Corr'))
         
