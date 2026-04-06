@@ -1569,20 +1569,21 @@ export default function Simulations() {
       {activeSubTab === 'optimizer' && (
         <div className="space-y-6">
           <h2 className="text-2xl font-bold">🚀 Monte Carlo Stat Optimizer</h2>
-          <p className="text-st-text-light">Leverage Successive Halving to find the absolute mathematically perfect stat distribution using your browser's local CPU cores.</p>
+          <p className="text-st-text-light">Leverage Successive Halving to find highly optimized stat plateaus and statistical bests using your browser's local CPU cores.</p>
           
           <div className="st-container border-l-4 border-l-st-orange">
-            <h4 className="font-bold mb-2">💡 Best Practice: The 2-Step Optimization</h4>
-            <p className="text-sm">
-              <strong>1. The Scout Run:</strong> Leave your stats unlocked. Run a fast 10-30s simulation and look at the winning build. Did the AI drop any stats to 0? Did it push any to their Max?<br/><br/>
-              <strong>2. The Refined Run:</strong> Open the <strong>Stat Constraints</strong> below and lock those obvious stats to 0 or Max. By locking just 1 or 2 stats, the AI can scan the remaining stats with vastly higher precision in a fraction of the time!
-            </p>
+            <h4 className="font-bold mb-2">💡 Best Practice: The 3-Step Meta-Build Workflow</h4>
+            <div className="text-sm space-y-2">
+              <p><strong>1. The Scout Run:</strong> Leave your stats unlocked. Run a fast 10-30s simulation and look at the winning build. Did the AI drop any stats to 0? Did it push any to their Max?</p>
+              <p><strong>2. The Refined Runs:</strong> Open the <strong>Stat Constraints</strong> below and lock those obvious stats to 0 or Max. By locking just 1 or 2 stats, the AI can scan the remaining stats with vastly higher precision. Run this 3 to 5 times.</p>
+              <p><strong>3. The Synthesis:</strong> The optimizer provides <em>local maxima</em> (stat plateaus). To find the true global peak, you <strong>must</strong> take your top refined runs and merge them in the <strong>Synthesis Tab</strong>!</p>
+            </div>
           </div>
 
           <details className="st-container group cursor-pointer marker:text-st-orange mb-4">
             <summary className="font-bold">ℹ️ How accurate are these projections?</summary>
             <div className="mt-4 text-sm space-y-3 cursor-default">
-              <p><strong>The Good News:</strong> The environment generation in this engine is now <strong>100% identical</strong> to the live game's source code! The stat distributions this tool provides are mathematically perfect for your current upgrades.</p>
+              <p><strong>The Good News:</strong> The environment generation in this engine is now <strong>100% identical</strong> to the live game's source code! However, because of the chaotic nature of critical hits, this tool provides highly optimized <em>plateaus</em> rather than a single "perfect" solution.</p>
               <p><strong>The Reality Check #1:</strong> While the combat math is exact, the absolute output numbers (Max Floor, Kills/hr) are built on <strong>Statistical Averages</strong>. The AI runs hundreds of simulations and optimizes for <em>consistent, reliable farming</em>. Treat these numbers as your highly accurate, reliable baseline!</p>
               <p><strong>The Reality Check #2:</strong> The engine calculates <strong>100% Theoretical Efficiency</strong>. In the simulator, 0.000 seconds pass between killing an ore and hitting the next one. In the actual live game, minor animation delays and frame drops consume fractions of a second. Expect your actual real-world Yields to be roughly <strong>~5% to 10% lower</strong> than the mathematical perfection projected here.</p>
               {store.asc2_unlocked && (
