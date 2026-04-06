@@ -82,16 +82,16 @@ ASC_BOSS_DATA = {
         80: {'tier': 'dirt3'}, 95: {'tier': 'com3'},
         98: {'tier': 'myth3'},
         99: {
-        "tier": "mixed",
-        "special": {
-            0: "com4", 1: "rare3", 2: "epic3", 3: "leg3", 4: "myth3", 5: "div2",
-            6: "com4",  7: "rare3",  8: "epic3",  9: "leg3",  10: "myth3", 11: "div2",
-            12: "com4", 13: "rare3", 14: "epic3", 15: "leg3", 16: "myth3", 17: "div2",
-            18: "com4", 19: "rare3", 20: "epic3", 21: "leg3", 22: "myth3", 23: "div2"
+            "tier": "mixed",
+            "special": {
+                0: "com4", 1: "rare3", 2: "epic3", 3: "leg3", 4: "myth3", 5: "div2",
+                6: "com4",  7: "rare3",  8: "epic3",  9: "leg3",  10: "myth3", 11: "div2",
+                12: "com4", 13: "rare3", 14: "epic3", 15: "leg3", 16: "myth3", 17: "div2",
+                18: "com4", 19: "rare3", 20: "epic3", 21: "leg3", 22: "myth3", 23: "div2"
+            },
         },
         110: {'tier': 'rare3'}, 125: {'tier': 'epic3'}, 135: {'tier': 'leg3'}, 
         140: {'tier': 'myth3'}, 149: {'tier': 'div3'}
-        }
     }
 }
 

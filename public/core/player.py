@@ -227,7 +227,7 @@ class Player:
         if self.cards.get(block_id, 0) == 4 and self.asc1_unlocked:
             inf_mult = self.infernal_multiplier
             bases = {
-                'dirt1': (0.1, 4), 'dirt2': (0.12, 4), 'dirt3': (0.08, 4), 'com1': (0.06, 4), 'com2': (0.07, 4), 'com3': (0.08, 4),
+                'dirt1': (0.1, 4), 'dirt2': (0.12, 4), 'dirt3': (0.08, 4), 'dirt4': (0.1, 4), 'com1': (0.06, 4), 'com2': (0.07, 4), 'com3': (0.08, 4),
                 'rare1': (0.05, 4), 'rare2': (20.0, 0), 'rare3': (0.4, 4), 'epic1': (0.3, 4), 'epic2': (0.04, 4), 'epic3': (0.05, 4),
                 'leg1': (0.04, 4), 'leg2': (0.05, 4), 'leg3': (40.0, 0), 'myth1': (0.013, 4), 'myth2': (0.008, 4), 'myth3': (0.007, 4),
                 'div1': (0.1, 4), 'div2': (0.0125, 4), 'div3': (1.126, 0)
@@ -377,7 +377,7 @@ class Player:
     @property
     def gleaming_floor_chance(self): return (self.u('F19') + self.inf('myth1') + self.inf('div2')) if self.asc2_unlocked else 0.0
     @property
-    def gleaming_floor_multi(self): return (3.0 + self.u('F46')) if self.asc2_unlocked else 1.0
+    def gleaming_floor_multi(self): return (3.0 + self.u('F46') + self.inf('dirt4')) if self.asc2_unlocked else 1.0
 
     @property
     def enrage_charges(self): return 5 + self.w('W9')

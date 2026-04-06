@@ -92,6 +92,72 @@ export default function Simulations() {
   // Synthesis Tab State
   const [viewTargets, setViewTargets] = useState(null);
 
+  // Build Duel Tool State
+  const [duelStatsA, setDuelStatsA] = useState({ Str: 34, Agi: 0, Per: 21, Int: 0, Luck: 30, Div: 15, Corr: 8 });
+  const [duelStatsB, setDuelStatsB] = useState({ Str: 16, Agi: 2, Per: 30, Int: 0, Luck: 30, Div: 15, Corr: 15 });
+  const[isDueling, setIsDueling] = useState(false);
+  const [duelProgressMsg, setDuelProgressMsg] = useState("");
+  const [duelResults, setDuelResults] = useState(null);
+
+  const handleRunDuel = async () => {
+    setIsDueling(true);
+    setDuelProgressMsg("Booting Telemetry Engine...");
+    try {
+      const pool = new EngineWorkerPool();
+      await pool.init();
+      
+      const baseStateDict = {
+        asc1_unlocked: store.asc1_unlocked,
+        asc2_unlocked: store.asc2_unlocked,
+        arch_level: store.arch_level,
+        current_max_floor: store.current_max_floor,
+        arch_ability_infernal_bonus: parseFloat(store.arch_ability_infernal_bonus) / 100.0,
+        total_infernal_cards: store.total_infernal_cards,
+        base_stats: store.base_stats,
+        upgrade_levels: store.upgrade_levels,
+        external_levels: { ...store.external_levels, 8: store.geoduck_unlocked ? (store.external_levels[ 8 ] || 0) : 0 },
+        cards: store.cards
+      };
+        await pool.syncState(baseStateDict);
+          
+        const runsPerBuild = 100;
+        
+        const runBuild = async (statsToTest, buildName) => {
+        const sumData = {};
+        let count = 0;
+        const promises = [ ];
+        for (let i = 0; i < runsPerBuild; i++) {
+          const p = pool.runTask(statsToTest).then(res => {
+            if (!res.aborted) {
+              for (const [ k, v ] of Object.entries(res)) {
+                if (typeof v === 'number') sumData[k] = (sumData[k] || 0) + v;
+              }
+              count++;
+              setDuelProgressMsg(`⚔️ ${buildName}: Simulating run ${count}/${runsPerBuild}`);
+            }
+          });
+          promises.push(p);
+        }
+        await Promise.all(promises);
+        const avgData = {};
+        for (const [ k, v ] of Object.entries(sumData)) {
+          avgData[k] = v / count;
+        }
+        return avgData;
+      };
+
+      const resA = await runBuild(duelStatsA, "Build A");
+      const resB = await runBuild(duelStatsB, "Build B");
+      
+      setDuelResults({ A: resA, B: resB });
+      pool.terminate();
+    } catch (err) {
+      console.error(err);
+      alert("Duel failed: " + err.message);
+    }
+    setIsDueling(false);
+  };
+
   // Sandbox UI State
   const sandboxMinHits = store.sandboxMinHits;
   const setSandboxMinHits = store.setSandboxMinHits;
@@ -965,8 +1031,8 @@ export default function Simulations() {
                         const runsNeeded = peakChance > 0 ? Math.ceil(1.0 / peakChance) : 0;
                         
                         // Pull the true mathematical Total Time (Arch Seconds) directly from the engine metrics!
-                        const maxSta = (finalSum.avg_metrics && finalSum.avg_metrics.total_time) 
-                          ? finalSum.avg_metrics.total_time 
+                        const maxSta = (finalSum.avg_metrics && finalSum.avg_metrics.in_game_time) 
+                          ? finalSum.avg_metrics.in_game_time 
                           : ((finalSum.stamina_trace && finalSum.stamina_trace.stamina && finalSum.stamina_trace.stamina.length > 0) 
                             ? finalSum.stamina_trace.stamina[0] 
                             : 0);
@@ -1436,7 +1502,8 @@ export default function Simulations() {
         {[
           { id: 'optimizer', label: '🚀 Optimizer' },
           { id: 'synth', label: '🧬 Build Synthesis & History' },
-          { id: 'sandbox', label: '🧪 Hit Calculator (Sandbox)' }
+          { id: 'sandbox', label: '🧪 Hit Calculator (Sandbox)' },
+          { id: 'duel', label: '⚔️ Build Duel' }
         ].map((tab) => (
           <button
             key={tab.id}
@@ -2052,8 +2119,8 @@ export default function Simulations() {
 
             const absMaxChance = synthSummary.abs_max_chance;
             let tempMaxSta = 1000;
-            if (synthSummary.avg_metrics && synthSummary.avg_metrics.total_time) {
-                tempMaxSta = synthSummary.avg_metrics.total_time;
+            if (synthSummary.avg_metrics && synthSummary.avg_metrics.in_game_time) {
+                tempMaxSta = synthSummary.avg_metrics.in_game_time;
             } else if (synthSummary.stamina_trace && synthSummary.stamina_trace.stamina.length > 0) {
                 tempMaxSta = synthSummary.stamina_trace.stamina[0];
             }
@@ -2367,6 +2434,144 @@ export default function Simulations() {
         </div>
         );
       })()}
+
+      {/* =========================================
+          TAB: BUILD DUEL
+      ========================================= */}
+      {activeSubTab === 'duel' && (
+        <div className="space-y-6 animate-fade-in">
+          <h2 className="text-2xl font-bold">⚔️ Deep Telemetry (Build Duel)</h2>
+          <p className="text-st-text-light">Pit two builds against each other in a controlled environment to output their exact mathematical differences in Gross Swings, Overkill Damage, and Skill Uptime.</p>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* BUILD A INPUT */}
+            <div className="st-container border-t-4 border-t-blue-500">
+              <h4 className="font-bold mb-4 text-blue-400">Build A</h4>
+              <div className="grid grid-cols-4 gap-2">
+                {activeStats.map(stat => (
+                  <div key={stat}>
+                    <label className="block text-xs mb-1 font-bold">{stat}</label>
+                    <input 
+                      type="number" 
+                      value={duelStatsA[stat]} 
+                      onChange={(e) => setDuelStatsA({...duelStatsA, [stat]: parseInt(e.target.value) || 0})}
+                      className="st-input p-2 text-sm"
+                    />
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* BUILD B INPUT */}
+            <div className="st-container border-t-4 border-t-st-orange">
+              <h4 className="font-bold mb-4 text-st-orange">Build B</h4>
+              <div className="grid grid-cols-4 gap-2">
+                {activeStats.map(stat => (
+                  <div key={stat}>
+                    <label className="block text-xs mb-1 font-bold">{stat}</label>
+                    <input 
+                      type="number" 
+                      value={duelStatsB[stat]} 
+                      onChange={(e) => setDuelStatsB({...duelStatsB, [stat]: parseInt(e.target.value) || 0})}
+                      className="st-input p-2 text-sm"
+                    />
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {!isDueling ? (
+            <button 
+              onClick={handleRunDuel}
+              className="w-full py-3 bg-st-secondary border border-st-border text-st-text font-bold rounded-lg shadow hover:border-st-orange hover:text-st-orange transition-colors"
+            >
+              🏁 Run Telemetry Duel (100 Simulations)
+            </button>
+          ) : (
+            <div className="w-full p-4 border border-st-border rounded bg-st-bg">
+              <div className="text-sm font-bold text-center text-st-orange animate-pulse">{duelProgressMsg}</div>
+            </div>
+          )}
+
+          {duelResults && (
+            <div className="st-container mt-6 animate-fade-in">
+              <h4 className="text-xl font-bold mb-4">📊 Telemetry Results (Per Run Average)</h4>
+              <div className="overflow-x-auto">
+                <table className="w-full text-left border-collapse">
+                  <thead>
+                    <tr className="border-b border-st-border">
+                      <th className="p-3">Metric</th>
+                      <th className="p-3 font-bold text-blue-400">Build A</th>
+                      <th className="p-3 font-bold text-st-orange">Build B</th>
+                      <th className="p-3 text-center">Winner</th>
+                      <th className="p-3 text-right">% Diff</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {[
+                      { k: 'highest_floor', l: 'Avg Max Floor', higherIsBetter: true },
+                      { k: 'frag_6_per_min', l: 'Yield (Frag 6) per 1k Arch Secs', higherIsBetter: true },
+                      { k: 'gross_swings', l: 'Gross Swings (Stamina Spent)', higherIsBetter: true },
+                      { k: 'in_game_time', l: 'In-Game Seconds Passed', higherIsBetter: null },
+                      { k: 'stamina_refunded_flurry', l: 'Stamina Refunded (Flurry)', higherIsBetter: true },
+                      { k: 'stamina_refunded_mods', l: 'Stamina Refunded (Mods)', higherIsBetter: true },
+                      { k: 'crosshair_spawns', l: 'Crosshair Spawns', higherIsBetter: true },
+                      { k: 'flurry_casts', l: 'Flurry Casts', higherIsBetter: true },
+                      { k: 'enrage_casts', l: 'Enrage Casts', higherIsBetter: true },
+                      { k: 'quake_casts', l: 'Quake Casts', higherIsBetter: true },
+                      { k: 'melee_damage', l: 'Total Melee Damage', higherIsBetter: true },
+                      { k: 'crosshair_damage', l: 'Total Crosshair Damage', higherIsBetter: true },
+                      { k: 'quake_damage', l: 'Total Quake Damage', higherIsBetter: true },
+                      { k: 'overkill_damage', l: 'Total Overkill Damage (Wasted)', higherIsBetter: false },
+                      { k: 'div1_kills', l: 'Tier 1 Divine Kills', higherIsBetter: true },
+                      { k: 'div1_frags', l: 'Tier 1 Divine Frags', higherIsBetter: true },
+                      { k: 'div2_kills', l: 'Tier 2 Divine Kills', higherIsBetter: true },
+                      { k: 'div2_frags', l: 'Tier 2 Divine Frags', higherIsBetter: true },
+                      { k: 'div3_kills', l: 'Tier 3 Divine Kills', higherIsBetter: true },
+                      { k: 'div3_frags', l: 'Tier 3 Divine Frags', higherIsBetter: true },
+                      { k: 'div4_kills', l: 'Tier 4 Divine Kills', higherIsBetter: true },
+                      { k: 'div4_frags', l: 'Tier 4 Divine Frags', higherIsBetter: true }
+                    ].map((row) => {
+                      // If the metric is a "per_min" rate, convert it to "per 1k Arch Secs" so the UI label matches the math
+                      const isRate = row.k.includes('per_min');
+                      const valA = isRate ? ((duelResults.A[row.k] || 0) / 60.0) * 1000.0 : (duelResults.A[row.k] || 0);
+                      const valB = isRate ? ((duelResults.B[row.k] || 0) / 60.0) * 1000.0 : (duelResults.B[row.k] || 0);
+                      const isWinnerA = row.higherIsBetter !== null ? (row.higherIsBetter ? valA > valB : valA < valB) : null;
+                      const isWinnerB = row.higherIsBetter !== null ? (row.higherIsBetter ? valB > valA : valB < valA) : null;
+
+                      // Calculate exact % difference for the winner
+                      let diffStr = '-';
+                      if (isWinnerA && valB > 0) diffStr = `+${(((valA - valB) / valB) * 100).toFixed(1)}%`;
+                      else if (isWinnerB && valA > 0) diffStr = `+${(((valB - valA) / valA) * 100).toFixed(1)}%`;
+                      else if (isWinnerA && valB === 0) diffStr = 'MAX';
+                      else if (isWinnerB && valA === 0) diffStr = 'MAX';
+
+                      return (
+                        <tr key={row.k} className="border-b border-st-border/50 hover:bg-black/5">
+                          <td className="p-3 font-bold text-sm">{row.l}</td>
+                          <td className={`p-3 font-mono ${isWinnerA ? 'text-green-400 font-bold' : 'text-st-text-light'}`}>
+                            {valA.toLocaleString(undefined, { maximumFractionDigits: 1 })}
+                          </td>
+                          <td className={`p-3 font-mono ${isWinnerB ? 'text-green-400 font-bold' : 'text-st-text-light'}`}>
+                            {valB.toLocaleString(undefined, { maximumFractionDigits: 1 })}
+                          </td>
+                          <td className="p-3 font-bold text-center">
+                            {isWinnerA ? 'A' : isWinnerB ? 'B' : '-'}
+                          </td>
+                          <td className={`p-3 font-mono text-right font-bold ${diffStr !== '-' ? 'text-st-orange' : 'text-st-text-light'}`}>
+                            {diffStr}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* =========================================
           TAB: SANDBOX

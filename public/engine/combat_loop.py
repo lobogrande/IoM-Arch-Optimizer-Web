@@ -33,9 +33,23 @@ class RunState:
         self.stamina = player.max_sta
         self.speed_pool = 0
         self.total_time = 0.0
+        self.total_stamina_spent = 0.0
+        self.stamina_refunded_flurry = 0.0
+        self.stamina_refunded_mods = 0.0
         self.crosshair_timer = 0.0
         self.total_xp = 0.0
         self.total_frags = {0:0, 1:0, 2:0, 3:0, 4:0, 5:0, 6:0}
+        
+        # --- NEW TELEMETRY ---
+        self.crosshair_spawns = 0
+        self.crosshair_damage = 0.0
+        self.melee_damage = 0.0
+        self.quake_damage = 0.0
+        self.overkill_damage = 0.0
+        
+        # --- DIVINE TRACKING ---
+        self.div_tier_kills = {'div1':0, 'div2':0, 'div3':0, 'div4':0}
+        self.div_tier_frags = {'div1':0.0, 'div2':0.0, 'div3':0.0, 'div4':0.0}
         
         self.blocks_mined = 0
         self.specific_blocks_mined = {} # <--- Specific tracking for Card Farming
@@ -71,10 +85,16 @@ class CombatSimulator:
         loot_yield = block.frag_amt * block.modifiers.get('loot_multi', 1.0) * floor_obj.gleaming_multi
         if block.frag_type in state.total_frags:
             state.total_frags[block.frag_type] += loot_yield
+            if block.block_id.startswith('div'):
+                if block.block_id in state.div_tier_kills:
+                    state.div_tier_kills[block.block_id] += 1
+                    state.div_tier_frags[block.block_id] += loot_yield
             
         sta_gain = block.modifiers.get('stamina_gain', 0.0)
         if sta_gain > 0:
-            state.stamina = min(p_max_sta, state.stamina + sta_gain)
+            actual_gain = min(p_max_sta - state.stamina, sta_gain)
+            state.stamina += actual_gain
+            state.stamina_refunded_mods += actual_gain
             
         if block.modifiers.get('speed_active', False):
             state.speed_pool += block.modifiers.get('speed_gain', 0.0)
@@ -106,9 +126,9 @@ class CombatSimulator:
         p_gold_crosshair_chance = self.player.gold_crosshair_chance
         p_gold_crosshair_mult = self.player.gold_crosshair_mult
         # Default testing interval. The stress test will override this dynamically.
-        CROSSHAIR_SPAWN_INTERVAL = getattr(self, 'crosshair_interval', 999.0)
+        CROSSHAIR_SPAWN_INTERVAL = getattr(self, 'crosshair_interval', 3.5)
         
-# Crit Cache
+        # Crit Cache
         p_u_crit_ch = self.player.ultra_crit_chance
         p_u_crit_dmg = self.player.ultra_crit_dmg_mult
         p_s_crit_ch = self.player.super_crit_chance
@@ -163,6 +183,7 @@ class CombatSimulator:
                 if target_block is None or target_block.hp <= 0: continue
                     
                 state.stamina -= STAMINA_COST_PER_ORE
+                state.total_stamina_spent += STAMINA_COST_PER_ORE
                 
                 # --- MICRO-TICK COMBAT LOOP ---
                 while target_block.hp > 0 and state.stamina > 0:
@@ -185,6 +206,7 @@ class CombatSimulator:
                     # --- NEW: CROSSHAIR SPAWN & AUTO-TAP LOGIC ---
                     while state.crosshair_timer >= CROSSHAIR_SPAWN_INTERVAL:
                         state.crosshair_timer -= CROSSHAIR_SPAWN_INTERVAL
+                        state.crosshair_spawns += 1
                         
                         # Did it roll an Auto-Tap?
                         if random.random() < p_crosshair_auto_tap:
@@ -192,12 +214,18 @@ class CombatSimulator:
                             
                             # Did it roll a Gold (Crit) Crosshair?
                             if random.random() < p_gold_crosshair_chance:
-                                ch_dmg = ch_base_dmg * p_gold_crosshair_mult
+                                ch_crit_mult, ch_crit_type = roll_crit(is_enrage)
+                                state.hit_counts[ch_crit_type] += 1
+                                ch_dmg = ch_base_dmg * p_gold_crosshair_mult * ch_crit_mult
                             else:
                                 ch_dmg = ch_base_dmg
                                 
                             ch_eff_armor = max(0, target_block.armor - p_armor_pen)
                             ch_actual_dmg = max(1.0, ch_dmg - ch_eff_armor)
+                            
+                            eff_ch = min(ch_actual_dmg, target_block.hp)
+                            state.overkill_damage += (ch_actual_dmg - eff_ch)
+                            state.crosshair_damage += ch_actual_dmg
                             
                             target_block.hp -= ch_actual_dmg
                             # Note: No Stamina subtracted! Free damage!
@@ -207,7 +235,9 @@ class CombatSimulator:
                         
                     events = skills.tick(time_passed)
                     if events["stamina_restored"] > 0:
-                        state.stamina = min(p_max_sta, state.stamina + events["stamina_restored"])
+                        actual_gain = min(p_max_sta - state.stamina, events["stamina_restored"])
+                        state.stamina += actual_gain
+                        state.stamina_refunded_flurry += actual_gain
                         
                     crit_mult, crit_type = roll_crit(is_enrage)
                     state.hit_counts[crit_type] += 1
@@ -219,9 +249,15 @@ class CombatSimulator:
                     eff_armor = max(0, target_block.armor - p_armor_pen)
                     
                     # 3. Factor in Crit Multipliers, bounded by a minimum of 1 damage
-                    actual_dmg = max(1.0, base_dmg - eff_armor) * crit_mult
+                    actual_dmg = max(1.0, (base_dmg - eff_armor) * crit_mult)
+                    
+                    eff_melee = min(actual_dmg, target_block.hp)
+                    state.overkill_damage += (actual_dmg - eff_melee)
+                    state.melee_damage += actual_dmg
+                    
                     target_block.hp -= actual_dmg
                     state.stamina -= STAMINA_COST_PER_HIT
+                    state.total_stamina_spent += STAMINA_COST_PER_HIT
                     
                     # Quake AOE Proc
                     if skills.consume_attack():
@@ -233,7 +269,12 @@ class CombatSimulator:
                                 state.hit_counts[q_type] += 1
                                 
                                 bg_eff_armor = max(0, bg_block.armor - p_armor_pen)
-                                q_dmg = max(1.0, q_base - bg_eff_armor) * q_crit
+                                q_dmg = max(1.0, (q_base - bg_eff_armor) * q_crit)
+                                
+                                q_eff = min(q_dmg, bg_block.hp)
+                                state.overkill_damage += (q_dmg - q_eff)
+                                state.quake_damage += q_dmg
+                                
                                 bg_block.hp -= q_dmg
                                 if bg_block.hp <= 0:
                                     self._process_kill_rewards(bg_block, floor, state, p_max_sta)
@@ -245,6 +286,7 @@ class CombatSimulator:
                     
             current_floor_id += 1
             
+        state.skills_tracker = skills
         print(f"[ SIMULATION FINISHED ]")
         print(f"Reached Floor: {state.highest_floor}")
         print(f"Blocks Mined:    {state.blocks_mined:,}")
