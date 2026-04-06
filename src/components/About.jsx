@@ -91,12 +91,14 @@ export default function About() {
           
           {/* Architecture Container */}
           <div className="st-container">
-            <h4 className="text-xl font-bold mb-2">⚙️ How the Engine Works</h4>
-            <p className="text-st-text-light mb-6 text-sm">
+            <h4 className="text-xl font-bold mb-2">⚙️ Architecture & Telemetry</h4>
+            <p className="text-st-text-light mb-4 text-sm">
               This app runs a <strong>Python WebAssembly Engine (Pyodide)</strong> to emulate the exact C# source code math of the live game. It uses <strong>Monte Carlo Simulations</strong> combined with a <strong>3-Phase Successive Halving</strong> algorithm to narrow down the perfect stat distribution.
             </p>
+            <p className="text-st-text-light mb-6 text-sm">
+              Recently upgraded to a <strong>True-Time Architecture</strong>, the engine now measures combat loops in absolute real-world seconds (TTK) rather than just stamina usage. It features built-in <strong>Build Duel Telemetry</strong>, allowing you to pit two stat distributions head-to-head in a zero-variance vacuum to see mathematically why one beats the other.
+            </p>
 
-            {/* CSS-Grid Recreation of the Graphviz Diagram (Light Theme Friendly) */}
             <div className="bg-st-secondary border border-st-border rounded-lg p-6 font-mono text-sm text-center flex flex-col items-center gap-3">
               <div className="bg-st-bg border border-st-orange text-st-text px-6 py-2 rounded shadow-sm w-48">UI (Layer 5)</div>
               <div className="text-st-orange font-bold text-lg leading-none">↓</div>
@@ -119,7 +121,7 @@ export default function About() {
                 <div className="text-green-600 font-bold text-sm relative top-1 ml-10 hidden sm:block">↺ 500-Run Tie-Breakers</div>
               </div>
               
-              <div className="bg-st-bg border border-st-orange text-st-text px-6 py-2 rounded shadow-sm w-64">Micro-Tick Combat Engine<br/><span className="text-st-text-light text-xs">(1:1 C# Math)</span></div>
+              <div className="bg-st-bg border border-st-orange text-st-text px-6 py-2 rounded shadow-sm w-64">True-Time Micro-Tick Engine<br/><span className="text-st-text-light text-xs">(1:1 C# Math)</span></div>
               <div className="text-st-orange font-bold text-lg leading-none">↓</div>
               <div className="bg-green-600 text-white px-6 py-2 rounded shadow-sm border border-green-700 w-48 font-bold tracking-wide">Dashboard Output</div>
             </div>
