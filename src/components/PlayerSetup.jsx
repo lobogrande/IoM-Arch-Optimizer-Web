@@ -10,7 +10,7 @@ import {
 import { INTERNAL_UPGRADE_CAPS, UPGRADE_NAMES, ASC1_LOCKED_UPGS, ASC2_LOCKED_UPGS, CARD_TYPES, EXTERNAL_UI_GROUPS, UPGRADE_LEVEL_REQS } from '../game_data';
 
 export default function PlayerSetup() {
-  const { asc1_unlocked, asc2_unlocked, arch_level, current_max_floor, base_stats, upgrade_levels, external_levels, cards, arch_ability_infernal_bonus, total_infernal_cards, geoduck_unlocked, calculated_stats, setSetting, setBaseStat, setUpgradeLevel, setCardLevel, setExternalGroup, loadStateFromJson, setSandboxStat, hideMaxed, setHideMaxed, activeSubTab, setActiveSubTab, upgradeView, setUpgradeView, profiles, activeProfileId, createProfile, loadProfile, saveToProfile, renameProfile, deleteProfile } = useStore();
+  const { asc1_unlocked, asc2_unlocked, arch_level, current_max_floor, base_stats, upgrade_levels, external_levels, cards, arch_ability_infernal_bonus, total_infernal_cards, geoduck_unlocked, calculated_stats, setSetting, setBaseStat, setUpgradeLevel, setCardLevel, setExternalGroup, loadStateFromJson, setSandboxStat, hideMaxed, setHideMaxed, activeSubTab, setActiveSubTab, upgradeView, setUpgradeView, profiles, activeProfileId, createProfile, loadProfile, saveToProfile, renameProfile, deleteProfile, resetState } = useStore();
   const [isDragging, setIsDragging] = useState(false);
 
   // Deep equality check: Compares the active workspace to the saved profile snapshot
@@ -346,6 +346,21 @@ export default function PlayerSetup() {
             className="w-full px-4 py-2 bg-st-secondary text-st-text border border-st-border rounded hover:border-st-orange transition-colors font-medium shadow-sm cursor-pointer"
           >
             📥 Download JSON
+          </button>
+        </div>
+
+        <div className="st-container border-red-900/50 bg-red-900/10">
+          <h3 className="font-bold mb-2 flex items-center gap-2 text-red-500">⚠️ Danger Zone</h3>
+          <p className="text-sm text-st-text-light mb-4">Wipe your active workspace back to default settings.</p>
+          <button 
+            onClick={() => { 
+              if (window.confirm("Are you sure you want to wipe your current active setup?")) {
+                resetState(); 
+              }
+            }}
+            className="w-full px-4 py-2 border border-red-800 bg-red-900/40 hover:bg-red-800 hover:text-white transition-colors rounded text-red-400 font-bold shadow-sm"
+          >
+            🗑️ Factory Reset
           </button>
         </div>
 
