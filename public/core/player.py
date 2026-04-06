@@ -353,15 +353,15 @@ class Player:
         return self._excel_round(val, 2)
 
     @property
-    def exp_mod_chance(self): return self.u('H38') + self.u('H4') + (0.002 * self.stat('Luck')) + (0.0035 * self.stat('Int')) + self.u('F24') + self.u('F44')
+    def exp_mod_chance(self): return self.u('H38') + self.u('H4') + (0.002 * self.stat('Luck')) + (0.0035 * self.stat('Int')) + self.u('F24') + self.u('F44') + self.inf('div4')
     @property
     def exp_mod_gain(self): return (3.0 + self.u('F38') + self.u('H53')) * (1.0 + self.u('F55') + self.stat('Corr') * (0.01 + self.u('H52')))
     @property
-    def loot_mod_chance(self): return self.u('H5') + self.u('F24') + self.u('F44') + self.w('W18') + (0.0035 * self.stat('Per')) + (0.002 * self.stat('Luck')) + self.inf('myth2')
+    def loot_mod_chance(self): return self.u('H5') + self.u('F24') + self.u('F44') + self.w('W18') + (0.0035 * self.stat('Per')) + (0.002 * self.stat('Luck')) + self.inf('myth2') + self.inf('div4')
     @property
-    def loot_mod_gain(self): return (2.0 + self.u('F16') + self.u('F27')) * (1.0 + self.u('F55') + self.stat('Corr') * (0.01 + self.u('H52'))) * (1.0 + self.inf('dirt1'))
+    def loot_mod_gain(self): return (2.0 + self.u('F16') + self.u('F27')) * (1.0 + self.u('F55') + self.stat('Corr') * (0.01 + self.u('H52'))) * (1.0 + self.inf('dirt1') + self.inf('rare4'))
     @property
-    def speed_mod_chance(self): return self.u('F24') + self.u('F44') + (0.003 * self.stat('Agi')) + (0.002 * self.stat('Luck'))
+    def speed_mod_chance(self): return self.u('F24') + self.u('F44') + (0.003 * self.stat('Agi')) + (0.002 * self.stat('Luck')) + self.inf('div4')
     @property
     def speed_mod_gain(self): 
         # PROPER BLOCK BONKER BINDING (W14)
@@ -370,7 +370,7 @@ class Player:
     @property
     def speed_mod_attack_rate(self): return 2.0
     @property
-    def stamina_mod_chance(self): return self.u('H3') + self.u('H14') + self.u('F24') + self.u('F44') + self.u('H40') + self.u('H50') + (0.002 * self.stat('Luck')) + self.inf('myth3')
+    def stamina_mod_chance(self): return self.u('H3') + self.u('H14') + self.u('F24') + self.u('F44') + self.u('H40') + self.u('H50') + (0.002 * self.stat('Luck')) + self.inf('myth3') + self.inf('div4')
     @property
     def stamina_mod_gain(self): return self._excel_round((3.0 + self.u('F43') + self.u('H23')) * (1.0 + self.u('F55') + self.stat('Corr') * (0.01 + self.u('H52'))), 0) + self.inf('div3')
 
