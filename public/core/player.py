@@ -377,7 +377,7 @@ class Player:
     @property
     def gleaming_floor_chance(self): return (self.u('F19') + self.inf('myth1') + self.inf('div2')) if self.asc2_unlocked else 0.0
     @property
-    def gleaming_floor_multi(self): return (3.0 + self.u('F46') + self.inf('dirt4')) if self.asc2_unlocked else 1.0
+    def gleaming_floor_multi(self): return (3.0 + self.u('F46')) * (1.0 + self.inf('dirt4')) if self.asc2_unlocked else 1.0
 
     @property
     def enrage_charges(self): return 5 + self.w('W9')
