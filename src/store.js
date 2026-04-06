@@ -63,6 +63,10 @@ const useStore = create(
   synth_history: [ ],
   synthesis_result: null,
   
+  // Duel State
+  duelStatsA: { Str: 0, Agi: 0, Per: 0, Int: 0, Luck: 0, Div: 0, Corr: 0 },
+  duelStatsB: { Str: 0, Agi: 0, Per: 0, Int: 0, Luck: 0, Div: 0, Corr: 0 },
+
   // Sandbox State
   sandbox_stats: { Str: 0, Agi: 0, Per: 0, Int: 0, Luck: 0, Div: 0, Corr: 0 },
   sandbox_floor: 100,

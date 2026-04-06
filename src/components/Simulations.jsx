@@ -93,12 +93,16 @@ export default function Simulations() {
   const [viewTargets, setViewTargets] = useState(null);
 
   // Build Duel Tool State
-  const [duelOptGoal, setDuelOptGoal] = useState("Max Floor Push");
-  const [duelTargetFrag, setDuelTargetFrag] = useState(6);
-  const[duelTargetBlock, setDuelTargetBlock] = useState("div3");
-  const[duelStatsA, setDuelStatsA] = useState({ Str: 0, Agi: 0, Per: 0, Int: 0, Luck: 0, Div: 0, Corr: 0 });
-  const[duelStatsB, setDuelStatsB] = useState({ Str: 0, Agi: 0, Per: 0, Int: 0, Luck: 0, Div: 0, Corr: 0 });
-  const [isDueling, setIsDueling] = useState(false);
+  const[duelOptGoal, setDuelOptGoal] = useState("Max Floor Push");
+  const[duelTargetFrag, setDuelTargetFrag] = useState(6);
+  const [duelTargetBlock, setDuelTargetBlock] = useState("div3");
+
+  const duelStatsA = store.duelStatsA || { Str: 0, Agi: 0, Per: 0, Int: 0, Luck: 0, Div: 0, Corr: 0 };
+  const duelStatsB = store.duelStatsB || { Str: 0, Agi: 0, Per: 0, Int: 0, Luck: 0, Div: 0, Corr: 0 };
+  const setDuelStatsA = (val) => store.setSimsState('duelStatsA', val);
+  const setDuelStatsB = (val) => store.setSimsState('duelStatsB', val);
+
+  const[isDueling, setIsDueling] = useState(false);
   const [duelProgressMsg, setDuelProgressMsg] = useState("");
   const[duelProgressPct, setDuelProgressPct] = useState(0);
   const[duelResults, setDuelResults] = useState(null);
@@ -984,7 +988,7 @@ export default function Simulations() {
               })}
             </div>
 
-            <div className="flex flex-col md:flex-row gap-4 mt-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-2 mt-6">
               <button 
                 onClick={(e) => {
                   store.setBaseStats(store.opt_results.best_final);
@@ -993,9 +997,9 @@ export default function Simulations() {
                   btn.innerText = "✅ Applied!";
                   setTimeout(() => { btn.innerText = originalText; }, 2000);
                 }}
-                className="flex-1 py-2 bg-[#2b2b2b] border border-st-orange text-st-orange font-bold rounded hover:bg-st-orange hover:text-[#2b2b2b] transition-colors"
+                className="w-full py-2 bg-[#2b2b2b] border border-st-orange text-st-orange font-bold rounded hover:bg-st-orange hover:text-[#2b2b2b] transition-colors"
               >
-                ✨ Apply Build Globally
+                ✨ Apply Globally
               </button>
               <button 
                 onClick={() => {
@@ -1003,9 +1007,29 @@ export default function Simulations() {
                   setActiveSubTab('sandbox');
                   window.scrollTo({ top: 0, behavior: 'smooth' });
                 }}
-                className="flex-1 py-2 bg-[#2b2b2b] border border-st-orange text-st-orange font-bold rounded hover:bg-st-orange hover:text-[#2b2b2b] transition-colors"
+                className="w-full py-2 bg-[#2b2b2b] border border-st-orange text-st-orange font-bold rounded hover:bg-st-orange hover:text-[#2b2b2b] transition-colors"
               >
                 🧪 Send to Sandbox
+              </button>
+              <button 
+                onClick={() => {
+                  store.setSimsState('duelStatsA', store.opt_results.best_final);
+                  setActiveSubTab('duel');
+                  window.scrollTo({ top: 0, behavior: 'smooth' });
+                }}
+                className="w-full py-2 bg-[#2b2b2b] border border-blue-500 text-blue-400 font-bold rounded hover:bg-blue-900 hover:text-white transition-colors"
+              >
+                ⚔️ Send to Duel (A)
+              </button>
+              <button 
+                onClick={() => {
+                  store.setSimsState('duelStatsB', store.opt_results.best_final);
+                  setActiveSubTab('duel');
+                  window.scrollTo({ top: 0, behavior: 'smooth' });
+                }}
+                className="w-full py-2 bg-[#2b2b2b] border border-st-orange text-st-orange font-bold rounded hover:bg-st-orange hover:text-[#2b2b2b] transition-colors"
+              >
+                ⚔️ Send to Duel (B)
               </button>
             </div>
           </div>
@@ -2743,14 +2767,14 @@ export default function Simulations() {
             {/* LEFT PANEL: CONTROLS */}
             <div className="lg:col-span-1 space-y-6">
               <div className="st-container bg-black/10">
-                <div className="flex gap-2 mb-6">
+                <div className="grid grid-cols-2 gap-2 mb-2">
                   <button 
                     onClick={() => {
                       activeStats.forEach(s => store.setSandboxStat(s, store.base_stats[s] || 0));
                     }}
-                    className="flex-1 py-2 bg-st-secondary border border-st-border text-xs font-bold rounded hover:border-st-orange transition-colors"
+                    className="w-full py-2 bg-st-secondary border border-st-border text-xs font-bold rounded hover:border-st-orange transition-colors"
                   >
-                    🔄 Pull Global Stats
+                    🔄 Pull Global
                   </button>
                   <button 
                     onClick={() => {
@@ -2762,9 +2786,31 @@ export default function Simulations() {
                       activeStats.forEach(s => store.setBaseStat(s, store.sandbox_stats[s] || 0));
                       alert("✅ Sandbox stats pushed to Global UI!");
                     }}
-                    className="flex-1 py-2 bg-st-secondary border border-st-border text-xs font-bold rounded hover:border-st-orange transition-colors"
+                    className="w-full py-2 bg-st-secondary border border-st-border text-xs font-bold rounded hover:border-st-orange transition-colors"
                   >
-                    📤 Push to Global
+                    📤 Push Global
+                  </button>
+                </div>
+                <div className="grid grid-cols-2 gap-2 mb-6">
+                  <button 
+                    onClick={() => {
+                      store.setSimsState('duelStatsA', store.sandbox_stats);
+                      setActiveSubTab('duel');
+                      window.scrollTo({ top: 0, behavior: 'smooth' });
+                    }}
+                    className="w-full py-2 bg-[#2b2b2b] border border-blue-500 text-blue-400 text-xs font-bold rounded hover:bg-blue-900 hover:text-white transition-colors"
+                  >
+                    ⚔️ Duel (A)
+                  </button>
+                  <button 
+                    onClick={() => {
+                      store.setSimsState('duelStatsB', store.sandbox_stats);
+                      setActiveSubTab('duel');
+                      window.scrollTo({ top: 0, behavior: 'smooth' });
+                    }}
+                    className="w-full py-2 bg-[#2b2b2b] border border-st-orange text-st-orange text-xs font-bold rounded hover:bg-st-orange hover:text-[#2b2b2b] transition-colors"
+                  >
+                    ⚔️ Duel (B)
                   </button>
                 </div>
                 

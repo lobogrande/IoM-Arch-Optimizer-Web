@@ -389,7 +389,7 @@ export default function PlayerSetup() {
               {renderStat("Corruption", "Corr")}
             </div>
 
-            <div className="mt-6">
+            <div className="flex flex-col md:flex-row gap-2 mt-6">
               <button 
                 onClick={(e) => {['Str', 'Agi', 'Per', 'Int', 'Luck', 'Div', 'Corr'].forEach(s => {
                     if (setSandboxStat) setSandboxStat(s, base_stats[s] || 0);
@@ -399,10 +399,33 @@ export default function PlayerSetup() {
                   btn.innerText = "✅ Sent to Sandbox!";
                   setTimeout(() => { btn.innerText = originalText; }, 2000);
                 }}
-                className="w-full py-2 bg-[#2b2b2b] border border-st-orange text-st-orange font-bold rounded hover:bg-st-orange hover:text-[#2b2b2b] transition-colors"
+                className="flex-1 py-2 bg-[#2b2b2b] border border-st-orange text-st-orange font-bold rounded hover:bg-st-orange hover:text-[#2b2b2b] transition-colors"
               >
-                🧪 Send Current Stats to Sandbox
+                🧪 Send to Sandbox
               </button>
+              
+              <div className="flex flex-1 gap-2">
+                <button 
+                  onClick={() => {
+                    const statsToTransfer = {};['Str', 'Agi', 'Per', 'Int', 'Luck', 'Div', 'Corr'].forEach(s => statsToTransfer[s] = base_stats[s] || 0);
+                    setSetting('duelStatsA', statsToTransfer);
+                    alert("✅ Sent to Duel (Build A)");
+                  }}
+                  className="flex-1 py-2 bg-[#2b2b2b] border border-blue-500 text-blue-400 font-bold rounded hover:bg-blue-900 hover:text-white transition-colors"
+                >
+                  ⚔️ Duel (A)
+                </button>
+                <button 
+                  onClick={() => {
+                    const statsToTransfer = {};['Str', 'Agi', 'Per', 'Int', 'Luck', 'Div', 'Corr'].forEach(s => statsToTransfer[s] = base_stats[s] || 0);
+                    setSetting('duelStatsB', statsToTransfer);
+                    alert("✅ Sent to Duel (Build B)");
+                  }}
+                  className="flex-1 py-2 bg-[#2b2b2b] border border-st-orange text-st-orange font-bold rounded hover:bg-st-orange hover:text-[#2b2b2b] transition-colors"
+                >
+                  ⚔️ Duel (B)
+                </button>
+              </div>
             </div>
           </div>
         )}
