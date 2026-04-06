@@ -250,7 +250,13 @@ const useStore = create(
     opt_results: null,
     run_history: [ ],
     synth_history: [ ],
-    synthesis_result: null
+    synthesis_result: null,
+    lockedStats: { },
+    optGoal: "Max Floor Push",
+    targetFrag: 0,
+    targetBlock: "myth3",
+    timeLimit: 60,
+    simsPerSec: 15
   }),
 
   // Bulk load from JSON file
