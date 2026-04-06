@@ -38,14 +38,15 @@ export default function Welcome({ setActiveTab }) {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-5 gap-6">
-        {/* Guide */}
         <div className="md:col-span-3 st-container">
-          <h3 className="text-xl font-bold mb-4">👋 How to use this app</h3>
-          <p className="mb-4 text-st-text-light">If you are new here, follow these 3 steps to get started:</p>
-          <ol className="list-decimal list-inside space-y-2">
-            <li><strong>Input your Stats:</strong> Go to the <strong>Player Setup</strong> tab to manually enter your info, <strong>Import</strong> your json data <em>(Note: Use the export from this tool, not the in-game export!)</em>, or click a <strong>Preset Build</strong> below.</li>
-            <li><strong>Select your Goal:</strong> Go to the <strong>Simulations ➔ Optimizer</strong> tab and choose your target.</li>
-            <li><strong>Run the Engine:</strong> Let the AI find your perfect mathematical build.</li>
+          <h3 className="text-xl font-bold mb-4">👋 The Optimal Workflow</h3>
+          <p className="mb-4 text-st-text-light">To get the absolute perfect build, you should follow this specific path:</p>
+          <ol className="list-decimal list-inside space-y-3">
+            <li><strong>Set Up Player Data:</strong> Go to the <strong>Player Setup</strong> tab to manually enter your stats, <strong>Import</strong> a JSON save file <em>(Note: Use the export from this tool, not the in-game export!)</em>, or click a Preset Build below.</li>
+            <li><strong>Verify Inputs:</strong> Go to the <strong>Calculated Stats</strong> page. Compare the exact numbers there against your in-game UI to verify your imported setup is mathematically correct. Use the Troubleshooter to identify anything you missed in the Player Setup.</li>
+            <li><strong>Run the Optimizer:</strong> Go to the <strong>Simulations ➔ Optimizer</strong> tab. Run the simulation <strong>3 to 5 times</strong>. This creates a data set that accounts for random statistical variance.</li>
+            <li><strong>Synthesize the Meta:</strong> Go to the <strong>Simulations ➔ Synthesis</strong> tab. Select those recent runs and let the AI merge them into a single, true Meta-Build.</li>
+            <li><strong>Deep Dives (Optional):</strong> Use the <strong>ROI Analysis</strong> tab to find your best upgrade paths, <strong>Build Duels</strong> to test setups head-to-head, or the <strong>Sandbox</strong> for manual breakpoint tweaking.</li>
           </ol>
         </div>
 
