@@ -52,6 +52,7 @@ export default function CalculatedStats() {
               <option value="EXP & Fragment Gain">EXP & Fragment Gain</option>
               <option value="Mod Chances & Multipliers">Mod Chances & Multipliers</option>
               <option value="Abilities">Abilities (Instacharge / Cooldowns)</option>
+              <option value="Ascension 2">Ascension 2 (Gleaming / Infernal)</option>
             </select>
 
             {troubleshootStat && (() => {
@@ -62,8 +63,9 @@ export default function CalculatedStats() {
                 "Armor Pen": { settings: [], stats:["Per", "Int"], upgs:[10, 17, 29, 33, 36], exts:[], infs: ["leg3", "rare3"] },
                 "Crit Chances & Multipliers": { settings:[], stats: ["Luck", "Div"], upgs:[13, 18, 20, 30, 37, 40, 47, 49, 53], exts:[], infs:["com1", "com2", "com3", "epic2"] },
                 "EXP & Fragment Gain": { settings: [], stats:["Int", "Per", "Div"], upgs:[4, 11, 21, 28, 35, 42, 45, 51], exts:["Hestia Idol", "Axolotl Skin", "Geoduck Tribute", "Archaeology Bundle", "Ascension Bundle"], infs: ["dirt2", "dirt3", "leg1"] },
-                "Mod Chances & Multipliers": { settings: [], stats: ["Luck", "Div", "Corr"], upgs:[5, 14, 16, 23, 24, 26, 33, 35, 38, 40, 43, 44, 48, 50, 52, 53, 54, 55], exts:["Ascension Bundle", "Block Bonker Skill"], infs:["dirt1", "rare1", "epic1", "leg2", "myth2", "myth3", "div3"] },
-                "Abilities": { settings: [], stats:["Int", "Div"], upgs:[18, 22, 29, 31, 32, 39, 50], exts:["Arch Ability Card", "Avada Keda- Skill"], infs:[] }
+                "Mod Chances & Multipliers": { settings: [], stats:["Luck", "Div", "Corr"], upgs:[5, 14, 16, 23, 24, 26, 33, 35, 38, 40, 43, 44, 48, 50, 52, 53, 54, 55], exts:["Ascension Bundle", "Block Bonker Skill"], infs:["dirt1", "rare1", "epic1", "leg2", "myth2", "myth3", "div3"] },
+                "Abilities": { settings: [], stats:["Int", "Div"], upgs:[18, 22, 29, 31, 32, 39, 50], exts:["Arch Ability Card", "Avada Keda- Skill"], infs:[] },
+                "Ascension 2": { settings: ["total_infernal_cards"], stats: [], upgs:[19, 46], exts: ["Hades Idol"], infs:["myth1", "div2", "dirt4"] }
               };
               
               const data = TROUBLESHOOT_MAP[troubleshootStat];
@@ -156,6 +158,10 @@ export default function CalculatedStats() {
                   if (troubleshootStat === "Mod Chances & Multipliers") {
                     return `(+Scaling)`; // Generic fallback for mod chance clusters
                   }
+                  if (troubleshootStat === "Ascension 2") {
+                    if (key === 19) return `(+${(val * 0.1).toFixed(2)}% Gleaming Chance)`;
+                    if (key === 46) return `(+${(val * 0.03).toFixed(2)}x Gleaming Multi)`;
+                  }
                 }
 
                 // --- EXTERNAL UPGRADES ---
@@ -189,6 +195,9 @@ export default function CalculatedStats() {
                     }
                     if (key === "Avada Keda- Skill" && val === 1) return `(+5 Charges, -10s CD, +3% Insta)`;
                   }
+                  if (troubleshootStat === "Ascension 2") {
+                    if (key === "Hades Idol") return `(+${(val * 0.0045).toFixed(4)}% Infernal Base)`;
+                  }
                 }
 
                 return ""; 
@@ -200,6 +209,7 @@ export default function CalculatedStats() {
                     <h5 className="font-bold border-b border-gray-300 pb-1 mb-2">📊 Base Stats</h5>
                     {data.settings.map(s => {
                       if (s === 'current_max_floor') return <div key={s} className="text-sm mb-1 text-st-orange"><strong>Max Floor:</strong> <code className="bg-black/10 dark:bg-white/10 text-st-text px-1 rounded text-st-text">{current_max_floor}</code></div>;
+                      if (s === 'total_infernal_cards') return <div key={s} className="text-sm mb-1 text-st-orange"><strong>Total Infernals:</strong> <code className="bg-black/10 dark:bg-white/10 text-st-text px-1 rounded text-st-text">{total_infernal_cards}</code> <span className="text-xs text-st-text-light">(+0.002x Multi per card)</span></div>;
                       return null;
                     })}
                     {data.stats.map(s => {
@@ -236,12 +246,14 @@ export default function CalculatedStats() {
                       let effStr = "";
                       if (val !== 0) {
                         // Differentiate between Flat bonuses and Percentage multipliers exactly like Streamlit
-                        if (['rare2', 'leg3', 'div3'].includes(c)) {
-                          effStr = `(+${val.toFixed(1)} Flat)`;
-                        } else {
-                          effStr = `(+${(val * 100).toFixed(2)}% Multi)`;
-                        }
-                      }
+                    if (['rare2', 'leg3', 'div3'].includes(c)) {
+                      effStr = `(+${val.toFixed(1)} Flat)`;
+                    } else if (['myth1', 'div2'].includes(c)) {
+                      effStr = `(+${(val * 100).toFixed(2)}% Chance)`;
+                    } else {
+                      effStr = `(+${(val * 100).toFixed(2)}% Multi)`;
+                    }
+                  }
                       
                       return (
                         <div key={c} className="text-sm mb-1 capitalize">

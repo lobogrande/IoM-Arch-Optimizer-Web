@@ -134,7 +134,7 @@ def calculate_all_stats(js_data):
             "enr_avg_hits": avg_enr_sta
         })
         
-    inf_keys =["rare2", "div1", "leg3", "rare3", "epic3", "com1", "com2", "com3", "epic2", "dirt2", "dirt3", "leg1", "dirt1", "rare1", "epic1", "leg2", "myth2", "myth3", "div3"]
+    inf_keys =["rare2", "div1", "leg3", "rare3", "epic3", "com1", "com2", "com3", "epic2", "dirt2", "dirt3", "leg1", "dirt1", "rare1", "epic1", "leg2", "myth2", "myth3", "div3", "dirt4", "myth1", "div2"]
     inf_bonuses = {k: p.inf(k) for k in inf_keys}
 
     # Extract all calculated @property values
