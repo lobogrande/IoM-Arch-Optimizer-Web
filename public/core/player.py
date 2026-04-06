@@ -227,10 +227,10 @@ class Player:
         if self.cards.get(block_id, 0) == 4 and self.asc1_unlocked:
             inf_mult = self.infernal_multiplier
             bases = {
-                'dirt1': (0.1, 4), 'dirt2': (0.12, 4), 'dirt3': (0.08, 4), 'dirt4': (0.1, 4), 'com1': (0.06, 4), 'com2': (0.07, 4), 'com3': (0.08, 4),
-                'rare1': (0.05, 4), 'rare2': (20.0, 0), 'rare3': (0.4, 4), 'epic1': (0.3, 4), 'epic2': (0.04, 4), 'epic3': (0.05, 4),
-                'leg1': (0.04, 4), 'leg2': (0.05, 4), 'leg3': (40.0, 0), 'myth1': (0.013, 4), 'myth2': (0.008, 4), 'myth3': (0.007, 4),
-                'div1': (0.1, 4), 'div2': (0.0125, 4), 'div3': (1.126, 0)
+                'dirt1': (0.1, 4), 'dirt2': (0.12, 4), 'dirt3': (0.08, 4), 'dirt4': (0.1, 4), 'com1': (0.06, 4), 'com2': (0.07, 4), 'com3': (0.08, 4), 'com4': (0.015, 4),
+                'rare1': (0.05, 4), 'rare2': (20.0, 0), 'rare3': (0.4, 4), 'rare4': (0.08, 4), 'epic1': (0.3, 4), 'epic2': (0.04, 4), 'epic3': (0.05, 4), 'epic4': (0.1, 4),
+                'leg1': (0.04, 4), 'leg2': (0.05, 4), 'leg3': (40.0, 0), 'leg4': (20.0, 0), 'myth1': (0.013, 4), 'myth2': (0.008, 4), 'myth3': (0.007, 4), 'myth4': (0.01, 4),
+                'div1': (0.1, 4), 'div2': (0.0125, 4), 'div3': (1.126, 0), 'div4': (0.005, 4)
             }
             if block_id in bases:
                 return self._excel_round(bases[block_id][0] * inf_mult, bases[block_id][1])
