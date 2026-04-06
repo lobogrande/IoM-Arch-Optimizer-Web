@@ -93,11 +93,14 @@ export default function Simulations() {
   const [viewTargets, setViewTargets] = useState(null);
 
   // Build Duel Tool State
-  const [duelStatsA, setDuelStatsA] = useState({ Str: 34, Agi: 0, Per: 21, Int: 0, Luck: 30, Div: 15, Corr: 8 });
-  const [duelStatsB, setDuelStatsB] = useState({ Str: 16, Agi: 2, Per: 30, Int: 0, Luck: 30, Div: 15, Corr: 15 });
-  const[isDueling, setIsDueling] = useState(false);
+  const [duelOptGoal, setDuelOptGoal] = useState("Max Floor Push");
+  const [duelTargetFrag, setDuelTargetFrag] = useState(6);
+  const[duelTargetBlock, setDuelTargetBlock] = useState("div3");
+  const[duelStatsA, setDuelStatsA] = useState({ Str: 34, Agi: 0, Per: 21, Int: 0, Luck: 30, Div: 15, Corr: 8 });
+  const[duelStatsB, setDuelStatsB] = useState({ Str: 16, Agi: 2, Per: 30, Int: 0, Luck: 30, Div: 15, Corr: 15 });
+  const [isDueling, setIsDueling] = useState(false);
   const [duelProgressMsg, setDuelProgressMsg] = useState("");
-  const [duelResults, setDuelResults] = useState(null);
+  const[duelResults, setDuelResults] = useState(null);
 
   const handleRunDuel = async () => {
     setIsDueling(true);
@@ -119,21 +122,25 @@ export default function Simulations() {
         cards: store.cards
       };
         await pool.syncState(baseStateDict);
-          
-        const runsPerBuild = 100;
-        
-        const runBuild = async (statsToTest, buildName) => {
+      
+      const runsPerBuild = 500;
+      
+      const runBuild = async (statsToTest, buildName) => {
         const sumData = {};
         let count = 0;
+        const floors = [ ];
         const promises = [ ];
         for (let i = 0; i < runsPerBuild; i++) {
           const p = pool.runTask(statsToTest).then(res => {
             if (!res.aborted) {
-              for (const [ k, v ] of Object.entries(res)) {
+              for (const[ k, v ] of Object.entries(res)) {
                 if (typeof v === 'number') sumData[k] = (sumData[k] || 0) + v;
               }
+              floors.push(res.highest_floor);
               count++;
-              setDuelProgressMsg(`⚔️ ${buildName}: Simulating run ${count}/${runsPerBuild}`);
+              if (count % 25 === 0 || count === runsPerBuild) {
+                setDuelProgressMsg(`⚔️ ${buildName}: Simulating run ${count}/${runsPerBuild}`);
+              }
             }
           });
           promises.push(p);
@@ -142,6 +149,13 @@ export default function Simulations() {
         const avgData = {};
         for (const [ k, v ] of Object.entries(sumData)) {
           avgData[k] = v / count;
+        }
+        
+        if (floors.length > 0) {
+          const maxFloor = Math.max(...floors);
+          const maxCount = floors.filter(f => f === maxFloor).length;
+          avgData['abs_max_floor'] = maxFloor;
+          avgData['abs_max_chance'] = maxCount / floors.length;
         }
         return avgData;
       };
@@ -2441,7 +2455,60 @@ export default function Simulations() {
       {activeSubTab === 'duel' && (
         <div className="space-y-6 animate-fade-in">
           <h2 className="text-2xl font-bold">⚔️ Deep Telemetry (Build Duel)</h2>
-          <p className="text-st-text-light">Pit two builds against each other in a controlled environment to output their exact mathematical differences in Gross Swings, Overkill Damage, and Skill Uptime.</p>
+          <p className="text-st-text-light">Pit two builds against each other in a controlled environment to output their exact mathematical differences over <strong>500 simulations</strong>.</p>
+
+          <div className="st-container">
+            <h4 className="font-bold mb-4">🎯 Optimization Target</h4>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-bold mb-1">Telemetry Focus</label>
+                <select 
+                  value={duelOptGoal} 
+                  onChange={(e) => setDuelOptGoal(e.target.value)}
+                  className="w-full bg-st-bg border border-st-border rounded p-2 text-st-text focus:border-st-orange focus:outline-none"
+                >
+                  {OPT_GOALS.map(g => <option key={g} value={g}>{g}</option>)}
+                </select>
+              </div>
+              
+              <div>
+                {duelOptGoal === "Fragment Farming" && (
+                  <>
+                    <label className="block text-sm font-bold mb-1">Target Fragment</label>
+                    <select 
+                      value={duelTargetFrag} 
+                      onChange={(e) => setDuelTargetFrag(parseInt(e.target.value))}
+                      className="w-full bg-st-bg border border-st-border rounded p-2 text-st-text focus:border-st-orange focus:outline-none"
+                    >
+                      {Object.entries(FRAG_NAMES)
+                        .filter(([val]) => {
+                          const fragTier = parseInt(val);
+                          if (fragTier === 0) return false;
+                          if (fragTier === 6 && !store.asc1_unlocked) return false;
+                          return true;
+                        })
+                        .map(([val, name]) => (
+                          <option key={val} value={val}>{name}</option>
+                      ))}
+                    </select>
+                  </>
+                )}
+                {duelOptGoal === "Block Card Farming" && (
+                  <>
+                    <label className="block text-sm font-bold mb-1">Target Block ID</label>
+                    <input 
+                      type="text" 
+                      value={duelTargetBlock} 
+                      onChange={(e) => setDuelTargetBlock(e.target.value.toLowerCase())}
+                      onBlur={(e) => { if (e.target.value.trim() === '') setDuelTargetBlock('myth3'); }}
+                      placeholder="e.g., com1, myth3"
+                      className="w-full bg-st-bg border border-st-border rounded p-2 text-st-text focus:border-st-orange focus:outline-none"
+                    />
+                  </>
+                )}
+              </div>
+            </div>
+          </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {/* BUILD A INPUT */}
@@ -2486,7 +2553,7 @@ export default function Simulations() {
               onClick={handleRunDuel}
               className="w-full py-3 bg-st-secondary border border-st-border text-st-text font-bold rounded-lg shadow hover:border-st-orange hover:text-st-orange transition-colors"
             >
-              🏁 Run Telemetry Duel (100 Simulations)
+              🏁 Run Telemetry Duel (500 Simulations)
             </button>
           ) : (
             <div className="w-full p-4 border border-st-border rounded bg-st-bg">
@@ -2509,62 +2576,86 @@ export default function Simulations() {
                     </tr>
                   </thead>
                   <tbody>
-                    {[
-                      { k: 'highest_floor', l: 'Avg Max Floor', higherIsBetter: true },
-                      { k: 'frag_6_per_min', l: 'Yield (Frag 6) per 1k Arch Secs', higherIsBetter: true },
-                      { k: 'gross_swings', l: 'Gross Swings (Stamina Spent)', higherIsBetter: true },
-                      { k: 'in_game_time', l: 'In-Game Seconds Passed', higherIsBetter: null },
-                      { k: 'stamina_refunded_flurry', l: 'Stamina Refunded (Flurry)', higherIsBetter: true },
-                      { k: 'stamina_refunded_mods', l: 'Stamina Refunded (Mods)', higherIsBetter: true },
-                      { k: 'crosshair_spawns', l: 'Crosshair Spawns', higherIsBetter: true },
-                      { k: 'flurry_casts', l: 'Flurry Casts', higherIsBetter: true },
-                      { k: 'enrage_casts', l: 'Enrage Casts', higherIsBetter: true },
-                      { k: 'quake_casts', l: 'Quake Casts', higherIsBetter: true },
-                      { k: 'melee_damage', l: 'Total Melee Damage', higherIsBetter: true },
-                      { k: 'crosshair_damage', l: 'Total Crosshair Damage', higherIsBetter: true },
-                      { k: 'quake_damage', l: 'Total Quake Damage', higherIsBetter: true },
-                      { k: 'overkill_damage', l: 'Total Overkill Damage (Wasted)', higherIsBetter: false },
-                      { k: 'div1_kills', l: 'Tier 1 Divine Kills', higherIsBetter: true },
-                      { k: 'div1_frags', l: 'Tier 1 Divine Frags', higherIsBetter: true },
-                      { k: 'div2_kills', l: 'Tier 2 Divine Kills', higherIsBetter: true },
-                      { k: 'div2_frags', l: 'Tier 2 Divine Frags', higherIsBetter: true },
-                      { k: 'div3_kills', l: 'Tier 3 Divine Kills', higherIsBetter: true },
-                      { k: 'div3_frags', l: 'Tier 3 Divine Frags', higherIsBetter: true },
-                      { k: 'div4_kills', l: 'Tier 4 Divine Kills', higherIsBetter: true },
-                      { k: 'div4_frags', l: 'Tier 4 Divine Frags', higherIsBetter: true }
-                    ].map((row) => {
-                      // If the metric is a "per_min" rate, convert it to "per 1k Arch Secs" so the UI label matches the math
-                      const isRate = row.k.includes('per_min');
-                      const valA = isRate ? ((duelResults.A[row.k] || 0) / 60.0) * 1000.0 : (duelResults.A[row.k] || 0);
-                      const valB = isRate ? ((duelResults.B[row.k] || 0) / 60.0) * 1000.0 : (duelResults.B[row.k] || 0);
-                      const isWinnerA = row.higherIsBetter !== null ? (row.higherIsBetter ? valA > valB : valA < valB) : null;
-                      const isWinnerB = row.higherIsBetter !== null ? (row.higherIsBetter ? valB > valA : valB < valA) : null;
+                    {(() => {
+                      const rows = [ ];
+                      rows.push({ k: 'highest_floor', l: 'Avg Max Floor', higherIsBetter: true });
+                      
+                      if (duelOptGoal === "Max Floor Push") {
+                        rows.push({ k: 'abs_max_floor', l: 'Absolute Max Floor Reached', higherIsBetter: true, isRaw: true });
+                        rows.push({ k: 'abs_max_chance', l: 'Probability of Max Floor', higherIsBetter: true, isPercent: true });
+                      } else if (duelOptGoal === "Max EXP Yield") {
+                        rows.push({ k: 'xp_per_min', l: 'EXP Yield per 1k Arch Secs', higherIsBetter: true, isRate: true });
+                      } else if (duelOptGoal === "Fragment Farming") {
+                        rows.push({ k: `frag_${duelTargetFrag}_per_min`, l: `Yield (Frag ${duelTargetFrag}) per 1k Arch Secs`, higherIsBetter: true, isRate: true });
+                        
+                        const prefixMap = { 1: 'com', 2: 'rare', 3: 'epic', 4: 'leg', 5: 'myth', 6: 'div' };
+                        const pfx = prefixMap[duelTargetFrag];
+                        if (pfx) {[ 1, 2, 3, 4 ].forEach(tier => {
+                            rows.push({ k: `raw_block_${pfx}${tier}`, l: `Tier ${tier} Kills (${pfx}${tier})`, higherIsBetter: true, isRaw: true });
+                            rows.push({ k: `raw_frag_${pfx}${tier}`, l: `Tier ${tier} Frags (${pfx}${tier})`, higherIsBetter: true, isRaw: true });
+                          });
+                        }
+                      } else if (duelOptGoal === "Block Card Farming") {
+                        rows.push({ k: `block_${duelTargetBlock}_per_min`, l: `Kills (${duelTargetBlock}) per 1k Arch Secs`, higherIsBetter: true, isRate: true });
+                        rows.push({ k: `raw_block_${duelTargetBlock}`, l: `Avg Kills (${duelTargetBlock}) per Run`, higherIsBetter: true, isRaw: true });
+                      }
 
-                      // Calculate exact % difference for the winner
-                      let diffStr = '-';
-                      if (isWinnerA && valB > 0) diffStr = `+${(((valA - valB) / valB) * 100).toFixed(1)}%`;
-                      else if (isWinnerB && valA > 0) diffStr = `+${(((valB - valA) / valA) * 100).toFixed(1)}%`;
-                      else if (isWinnerA && valB === 0) diffStr = 'MAX';
-                      else if (isWinnerB && valA === 0) diffStr = 'MAX';
-
-                      return (
-                        <tr key={row.k} className="border-b border-st-border/50 hover:bg-black/5">
-                          <td className="p-3 font-bold text-sm">{row.l}</td>
-                          <td className={`p-3 font-mono ${isWinnerA ? 'text-green-400 font-bold' : 'text-st-text-light'}`}>
-                            {valA.toLocaleString(undefined, { maximumFractionDigits: 1 })}
-                          </td>
-                          <td className={`p-3 font-mono ${isWinnerB ? 'text-green-400 font-bold' : 'text-st-text-light'}`}>
-                            {valB.toLocaleString(undefined, { maximumFractionDigits: 1 })}
-                          </td>
-                          <td className="p-3 font-bold text-center">
-                            {isWinnerA ? 'A' : isWinnerB ? 'B' : '-'}
-                          </td>
-                          <td className={`p-3 font-mono text-right font-bold ${diffStr !== '-' ? 'text-st-orange' : 'text-st-text-light'}`}>
-                            {diffStr}
-                          </td>
-                        </tr>
+                      rows.push(
+                        { k: 'gross_swings', l: 'Gross Swings (Stamina Spent)', higherIsBetter: true },
+                        { k: 'in_game_time', l: 'In-Game Seconds Passed', higherIsBetter: null },
+                        { k: 'stamina_refunded_flurry', l: 'Stamina Refunded (Flurry)', higherIsBetter: true },
+                        { k: 'stamina_refunded_mods', l: 'Stamina Refunded (Mods)', higherIsBetter: true },
+                        { k: 'flurry_casts', l: 'Flurry Casts', higherIsBetter: true },
+                        { k: 'enrage_casts', l: 'Enrage Casts', higherIsBetter: true },
+                        { k: 'quake_casts', l: 'Quake Casts', higherIsBetter: true },
+                        { k: 'melee_damage', l: 'Total Melee Damage', higherIsBetter: true },
+                        { k: 'quake_damage', l: 'Total Quake Damage', higherIsBetter: true },
+                        { k: 'overkill_damage', l: 'Total Overkill Damage (Wasted)', higherIsBetter: false }
                       );
-                    })}
+
+                      return rows.map((row) => {
+                        const rawA = duelResults.A[row.k] || 0;
+                        const rawB = duelResults.B[row.k] || 0;
+                        
+                        const valA = row.isRate ? (rawA / 60.0) * 1000.0 : rawA;
+                        const valB = row.isRate ? (rawB / 60.0) * 1000.0 : rawB;
+
+                        const isWinnerA = row.higherIsBetter !== null ? (row.higherIsBetter ? valA > valB : valA < valB) : null;
+                        const isWinnerB = row.higherIsBetter !== null ? (row.higherIsBetter ? valB > valA : valB < valA) : null;
+
+                        let formattedA = valA.toLocaleString(undefined, { maximumFractionDigits: 1 });
+                        let formattedB = valB.toLocaleString(undefined, { maximumFractionDigits: 1 });
+                        
+                        if (row.isPercent) {
+                          formattedA = (valA * 100).toFixed(1) + '%';
+                          formattedB = (valB * 100).toFixed(1) + '%';
+                        }
+
+                        let diffStr = '-';
+                        if (isWinnerA && valB > 0) diffStr = `+${(((valA - valB) / valB) * 100).toFixed(1)}%`;
+                        else if (isWinnerB && valA > 0) diffStr = `+${(((valB - valA) / valA) * 100).toFixed(1)}%`;
+                        else if (isWinnerA && valB === 0) diffStr = 'MAX';
+                        else if (isWinnerB && valA === 0) diffStr = 'MAX';
+
+                        return (
+                          <tr key={row.k} className="border-b border-st-border/50 hover:bg-black/5">
+                            <td className="p-3 font-bold text-sm">{row.l}</td>
+                            <td className={`p-3 font-mono ${isWinnerA ? 'text-green-400 font-bold' : 'text-st-text-light'}`}>
+                              {formattedA}
+                            </td>
+                            <td className={`p-3 font-mono ${isWinnerB ? 'text-green-400 font-bold' : 'text-st-text-light'}`}>
+                              {formattedB}
+                            </td>
+                            <td className="p-3 font-bold text-center">
+                              {isWinnerA ? 'A' : isWinnerB ? 'B' : '-'}
+                            </td>
+                            <td className={`p-3 font-mono text-right font-bold ${diffStr !== '-' ? 'text-st-orange' : 'text-st-text-light'}`}>
+                              {diffStr}
+                            </td>
+                          </tr>
+                        );
+                      });
+                    })()}
                   </tbody>
                 </table>
               </div>

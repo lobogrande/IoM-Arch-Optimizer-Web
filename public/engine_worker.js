@@ -118,15 +118,7 @@ def execute_simulation(test_stats_proxy, test_upgrades_proxy, test_external_prox
         "enrage_casts": result.skills_tracker.total_enrage_casts,
         "quake_casts": result.skills_tracker.total_quake_casts,
         "stamina_refunded_flurry": result.stamina_refunded_flurry,
-        "stamina_refunded_mods": result.stamina_refunded_mods,
-        "div1_kills": result.div_tier_kills.get('div1', 0),
-        "div1_frags": result.div_tier_frags.get('div1', 0.0),
-        "div2_kills": result.div_tier_kills.get('div2', 0),
-        "div2_frags": result.div_tier_frags.get('div2', 0.0),
-        "div3_kills": result.div_tier_kills.get('div3', 0),
-        "div3_frags": result.div_tier_frags.get('div3', 0.0),
-        "div4_kills": result.div_tier_kills.get('div4', 0),
-        "div4_frags": result.div_tier_frags.get('div4', 0.0)
+        "stamina_refunded_mods": result.stamina_refunded_mods
     }
     
     for frag_tier, amt in result.total_frags.items():
@@ -135,6 +127,11 @@ def execute_simulation(test_stats_proxy, test_upgrades_proxy, test_external_prox
     if hasattr(result, 'specific_blocks_mined'):
         for block_id, count in result.specific_blocks_mined.items():
             metrics[f"block_{block_id}_per_min"] = count / arch_mins
+            metrics[f"raw_block_{block_id}"] = count
+            
+    if hasattr(result, 'specific_blocks_frags'):
+        for block_id, frags in result.specific_blocks_frags.items():
+            metrics[f"raw_frag_{block_id}"] = frags
             
     return metrics
     `;

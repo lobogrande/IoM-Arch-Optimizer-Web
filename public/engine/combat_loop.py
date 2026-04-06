@@ -53,6 +53,7 @@ class RunState:
         
         self.blocks_mined = 0
         self.specific_blocks_mined = {} # <--- Specific tracking for Card Farming
+        self.specific_blocks_frags = {} # <--- Specific fragment yield tracking for telemetry
         self.highest_floor = 1
         
         # --- TELEMETRY DATA ---
@@ -104,6 +105,7 @@ class CombatSimulator:
         # Tracking specific block tier/type kills
         block_id = block.block_id
         state.specific_blocks_mined[block_id] = state.specific_blocks_mined.get(block_id, 0) + 1
+        state.specific_blocks_frags[block_id] = state.specific_blocks_frags.get(block_id, 0.0) + loot_yield
 
 
     def run_simulation(self):
