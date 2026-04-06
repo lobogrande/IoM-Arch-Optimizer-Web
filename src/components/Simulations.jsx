@@ -1732,15 +1732,15 @@ export default function Simulations() {
               if (step1 >= 15) {
                 gColor = "#ff4b4b"; gBg = "rgba(255, 75, 75, 0.1)"; gIcon = "🔴";
                 gTitle = "Low Precision (Scout Only)";
-                gDesc = `The search grid is too massive. The AI must take huge leaps of ${step1} stat points. This run is only useful for spotting which stats the AI completely ignores. Do not trust the final numbers! Increase time or lock stats.`;
+                gDesc = `The search grid is too massive. The AI must take huge leaps of ${step1} stat points. This will output garbage data if you trust it blindly! Only use this to spot stats to lock for your next run.`;
               } else if (step1 >= 5) {
                 gColor = "#ffa229"; gBg = "rgba(255, 162, 41, 0.1)"; gIcon = "🟡";
                 gTitle = "Moderate Precision";
-                gDesc = `The AI is searching in leaps of ${step1} stat points. It will find a strong general build, but might miss the absolute mathematical peak. Safe to use as a Scout Run.`;
+                gDesc = `The AI is searching in leaps of ${step1} stat points. It will find a strong plateau, but you should run this a few times and use the Synthesis tab to finalize the build.`;
               } else {
                 gColor = "#4CAF50"; gBg = "rgba(76, 175, 80, 0.1)"; gIcon = "🟢";
                 gTitle = "High Precision (Recommended)";
-                gDesc = `The search area is extremely tight (leaps of ${step1} stat points). The AI has enough time to pinpoint the mathematically perfect build. Safe to trust!`;
+                gDesc = `The search area is extremely tight (leaps of ${step1} stat points). The AI has enough time to pinpoint a highly optimized plateau. Send at least 2-3 of these runs to Synthesis for improvement.`;
               }
 
               return (
