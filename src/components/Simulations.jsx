@@ -2523,11 +2523,22 @@ export default function Simulations() {
               <div className="grid grid-cols-4 gap-2">
                 {activeStats.map(stat => (
                   <div key={stat}>
-                    <label className="block text-xs mb-1 font-bold">{stat}</label>
+                    <label className="block text-xs mb-1 font-bold">
+                      {stat} <span className="font-normal text-[10px] text-st-text-light">(Max: {MAX_STAT_CAPS[stat]})</span>
+                    </label>
                     <input 
-                      type="number" 
-                      value={duelStatsA[stat]} 
-                      onChange={(e) => setDuelStatsA({...duelStatsA, [stat]: parseInt(e.target.value) || 0})}
+                      type="number"
+                      min="0"
+                      max={MAX_STAT_CAPS[stat]}
+                      value={duelStatsA[stat] !== undefined ? duelStatsA[stat] : 0} 
+                      onFocus={(e) => e.target.select()}
+                      onChange={(e) => setDuelStatsA({...duelStatsA, [stat]: e.target.value === '' ? '' : Math.max(0, parseInt(e.target.value) || 0)})}
+                      onBlur={(e) => {
+                        let parsed = parseInt(e.target.value) || 0;
+                        if (parsed > MAX_STAT_CAPS[stat]) parsed = MAX_STAT_CAPS[stat];
+                        if (parsed < 0) parsed = 0;
+                        setDuelStatsA({...duelStatsA, [stat]: parsed});
+                      }}
                       className="st-input p-2 text-sm"
                     />
                   </div>
@@ -2541,11 +2552,22 @@ export default function Simulations() {
               <div className="grid grid-cols-4 gap-2">
                 {activeStats.map(stat => (
                   <div key={stat}>
-                    <label className="block text-xs mb-1 font-bold">{stat}</label>
+                    <label className="block text-xs mb-1 font-bold">
+                      {stat} <span className="font-normal text-[10px] text-st-text-light">(Max: {MAX_STAT_CAPS[stat]})</span>
+                    </label>
                     <input 
-                      type="number" 
-                      value={duelStatsB[stat]} 
-                      onChange={(e) => setDuelStatsB({...duelStatsB, [stat]: parseInt(e.target.value) || 0})}
+                      type="number"
+                      min="0"
+                      max={MAX_STAT_CAPS[stat]}
+                      value={duelStatsB[stat] !== undefined ? duelStatsB[stat] : 0} 
+                      onFocus={(e) => e.target.select()}
+                      onChange={(e) => setDuelStatsB({...duelStatsB, [stat]: e.target.value === '' ? '' : Math.max(0, parseInt(e.target.value) || 0)})}
+                      onBlur={(e) => {
+                        let parsed = parseInt(e.target.value) || 0;
+                        if (parsed > MAX_STAT_CAPS[stat]) parsed = MAX_STAT_CAPS[stat];
+                        if (parsed < 0) parsed = 0;
+                        setDuelStatsB({...duelStatsB, [stat]: parsed});
+                      }}
                       className="st-input p-2 text-sm"
                     />
                   </div>
