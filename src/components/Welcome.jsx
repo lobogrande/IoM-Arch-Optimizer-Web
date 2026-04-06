@@ -43,7 +43,7 @@ export default function Welcome({ setActiveTab }) {
           <h3 className="text-xl font-bold mb-4">👋 How to use this app</h3>
           <p className="mb-4 text-st-text-light">If you are new here, follow these 3 steps to get started:</p>
           <ol className="list-decimal list-inside space-y-2">
-            <li><strong>Input your Stats:</strong> Go to the <strong>Player Setup</strong> tab to manually enter your info, <strong>Import</strong> your json data, or click a <strong>Preset Build</strong> below.</li>
+            <li><strong>Input your Stats:</strong> Go to the <strong>Player Setup</strong> tab to manually enter your info, <strong>Import</strong> your json data <em>(Note: Use the export from this tool, not the in-game export!)</em>, or click a <strong>Preset Build</strong> below.</li>
             <li><strong>Select your Goal:</strong> Go to the <strong>Simulations ➔ Optimizer</strong> tab and choose your target.</li>
             <li><strong>Run the Engine:</strong> Let the AI find your perfect mathematical build.</li>
           </ol>

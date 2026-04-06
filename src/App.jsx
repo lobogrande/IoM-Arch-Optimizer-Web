@@ -128,7 +128,12 @@ function App() {
           return (
             <button
               key={tab.id}
-              onClick={() => setActiveTab(tab.id)}
+              onClick={() => {
+                setActiveTab(tab.id);
+                if (tab.id === 'simulations') {
+                  store.setSimActiveSubTab('optimizer');
+                }
+              }}
               className={`px-4 py-2 font-medium whitespace-nowrap transition-colors duration-200 border-b-2 ${
                 isActive 
                   ? 'border-st-orange text-st-text' 
