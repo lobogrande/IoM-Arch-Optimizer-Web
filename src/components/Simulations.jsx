@@ -96,15 +96,17 @@ export default function Simulations() {
   const [duelOptGoal, setDuelOptGoal] = useState("Max Floor Push");
   const [duelTargetFrag, setDuelTargetFrag] = useState(6);
   const[duelTargetBlock, setDuelTargetBlock] = useState("div3");
-  const[duelStatsA, setDuelStatsA] = useState({ Str: 34, Agi: 0, Per: 21, Int: 0, Luck: 30, Div: 15, Corr: 8 });
-  const[duelStatsB, setDuelStatsB] = useState({ Str: 16, Agi: 2, Per: 30, Int: 0, Luck: 30, Div: 15, Corr: 15 });
+  const[duelStatsA, setDuelStatsA] = useState({ Str: 0, Agi: 0, Per: 0, Int: 0, Luck: 0, Div: 0, Corr: 0 });
+  const[duelStatsB, setDuelStatsB] = useState({ Str: 0, Agi: 0, Per: 0, Int: 0, Luck: 0, Div: 0, Corr: 0 });
   const [isDueling, setIsDueling] = useState(false);
   const [duelProgressMsg, setDuelProgressMsg] = useState("");
+  const[duelProgressPct, setDuelProgressPct] = useState(0);
   const[duelResults, setDuelResults] = useState(null);
 
   const handleRunDuel = async () => {
     setIsDueling(true);
     setDuelProgressMsg("Booting Telemetry Engine...");
+    setDuelProgressPct(0);
     try {
       const pool = new EngineWorkerPool();
       await pool.init();
@@ -121,11 +123,12 @@ export default function Simulations() {
         external_levels: { ...store.external_levels, 8: store.geoduck_unlocked ? (store.external_levels[ 8 ] || 0) : 0 },
         cards: store.cards
       };
-        await pool.syncState(baseStateDict);
+      await pool.syncState(baseStateDict);
       
       const runsPerBuild = 500;
+      const totalRuns = runsPerBuild * 2;
       
-      const runBuild = async (statsToTest, buildName) => {
+      const runBuild = async (statsToTest, buildName, buildIndex) => {
         const sumData = {};
         let count = 0;
         const floors = [ ];
@@ -138,8 +141,11 @@ export default function Simulations() {
               }
               floors.push(res.highest_floor);
               count++;
+              
+              const globalCount = (buildIndex * runsPerBuild) + count;
               if (count % 25 === 0 || count === runsPerBuild) {
                 setDuelProgressMsg(`⚔️ ${buildName}: Simulating run ${count}/${runsPerBuild}`);
+                setDuelProgressPct((globalCount / totalRuns) * 100);
               }
             }
           });
@@ -160,8 +166,8 @@ export default function Simulations() {
         return avgData;
       };
 
-      const resA = await runBuild(duelStatsA, "Build A");
-      const resB = await runBuild(duelStatsB, "Build B");
+      const resA = await runBuild(duelStatsA, "Build A", 0);
+      const resB = await runBuild(duelStatsB, "Build B", 1);
       
       setDuelResults({ A: resA, B: resB });
       pool.terminate();
@@ -2557,7 +2563,16 @@ export default function Simulations() {
             </button>
           ) : (
             <div className="w-full p-4 border border-st-border rounded bg-st-bg">
-              <div className="text-sm font-bold text-center text-st-orange animate-pulse">{duelProgressMsg}</div>
+              <div className="flex justify-between text-sm font-bold mb-2 text-st-orange">
+                <span>{duelProgressMsg}</span>
+                <span>{Math.floor(duelProgressPct)}%</span>
+              </div>
+              <div className="w-full bg-[#1e1e1e] rounded-full h-4 overflow-hidden border border-st-border">
+                <div 
+                  className="bg-st-orange h-4 transition-all duration-300"
+                  style={{ width: `${duelProgressPct}%` }}
+                ></div>
+              </div>
             </div>
           )}
 
