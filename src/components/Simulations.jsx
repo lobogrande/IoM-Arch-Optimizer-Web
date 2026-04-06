@@ -1112,7 +1112,8 @@ export default function Simulations() {
                     <div className="space-y-6">
                       <div>
                         <h4 className="font-bold text-lg">💰 Banked Yields</h4>
-                        <p className="text-sm text-st-text-light mb-2">Target {runMetric.includes("frag") ? "Fragments" : runMetric.includes("block") ? "Kills" : "EXP"} per <b>1k Arch Seconds</b></p>
+                        <p className="text-sm text-st-text-light mb-1">Target {runMetric.includes("frag") ? "Fragments" : runMetric.includes("block") ? "Kills" : "EXP"} per <b>1k Arch Seconds</b></p>
+                        <div className="text-xs text-st-orange/80 mb-2 italic">Note: 100-sim average. May vary ±5% due to RNG. Use Synthesis for exact measurement.</div>
                         <div className="text-3xl font-bold text-st-orange">{scaleScore(finalSum[runMetric]).toLocaleString(undefined, {minimumFractionDigits:1, maximumFractionDigits:1})}</div>
                       </div>
                       <hr className="border-st-border" />
@@ -1598,7 +1599,7 @@ export default function Simulations() {
             <summary className="font-bold">ℹ️ How accurate are these projections?</summary>
             <div className="mt-4 text-sm space-y-3 cursor-default">
               <p><strong>The Good News:</strong> The environment generation in this engine is now <strong>100% identical</strong> to the live game's source code! However, because of the chaotic nature of critical hits, this tool provides highly optimized <em>plateaus</em> rather than a single "perfect" solution.</p>
-              <p><strong>The Reality Check #1:</strong> While the combat math is exact, the absolute output numbers (Max Floor, Kills/hr) are built on <strong>Statistical Averages</strong>. The AI runs hundreds of simulations and optimizes for <em>consistent, reliable farming</em>. Treat these numbers as your highly accurate, reliable baseline!</p>
+              <p><strong>The Reality Check #1 (Score Variance):</strong> To keep optimizations lightning fast, the AI evaluates its final builds using <strong>100-simulation sprints</strong>. Because late-game drops rely on heavy RNG, you may see your final score bounce by ±5% between runs even if the AI picks the exact same stats! To flatten this RNG and get a true average, you must merge your runs in the <strong>Synthesis Tab</strong> (which uses deep 500-simulation marathons).</p>
               <p><strong>The Reality Check #2:</strong> The engine calculates <strong>100% Theoretical Efficiency</strong>. In the simulator, 0.000 seconds pass between killing an ore and hitting the next one. In the actual live game, minor animation delays and frame drops consume fractions of a second. Expect your actual real-world Yields to be roughly <strong>~5% to 10% lower</strong> than the mathematical perfection projected here.</p>
               {store.asc2_unlocked && (
                 <p>🌌 <strong>Ascension 2 Note:</strong> Because Asc2 unlocks the <em>Corruption</em> stat, the AI must search an entire extra dimension of math. Optimizations will naturally take longer to compute than Asc1 runs!</p>
@@ -2332,7 +2333,10 @@ export default function Simulations() {
               <div>
                 <h4 className="text-lg font-bold mb-1">📋 Run History Table</h4>
                 <div className="flex flex-col md:flex-row gap-4 items-center justify-between mb-4">
-                  <p className="text-sm text-st-text-light m-0">Check the boxes for your top runs to mix them into your Meta-Build.</p>
+                  <div className="text-sm text-st-text-light">
+                    <p className="mb-1">Check the boxes for your top runs to mix them into your Meta-Build.</p>
+                    <p className="italic text-st-orange/80 text-xs">⚠️ The Score/Yields below are from 100-simulation sprints. Expect up to ±10% variance on high-RNG floors until you Synthesize them!</p>
+                  </div>
                   <button 
                     onClick={() => handleRestore(checkedRuns[0], false)}
                     disabled={checkedRuns.length !== 1}
