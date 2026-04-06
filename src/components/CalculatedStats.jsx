@@ -76,13 +76,27 @@ export default function CalculatedStats() {
                 // --- BASE STATS ---
                 if (type === 'stat') {
                   if (troubleshootStat === "Max Stamina") {
-                    if (key === 'Agi') return `(+${val} Flat)`;
-                    if (key === 'Corr') return `(-${val}% Multi)`;
+                    if (key === 'Agi') {
+                      const f26 = (upgrade_levels[26] || 0) * 1.0;
+                      return `(+${val * (5 + f26)} Flat)`;
+                    }
+                    if (key === 'Corr') return `(-${val * 3}% Multi)`;
                   }
                   if (troubleshootStat === "Damage") {
-                    if (key === 'Str') return `(+${val} Flat & +${val}% Multi)`;
-                    if (key === 'Div') return `(+${val} Flat)`;
-                    if (key === 'Corr') return `(+${val}% Multi)`;
+                    if (key === 'Str') {
+                      const f25 = (upgrade_levels[25] || 0) * 0.2;
+                      const h25 = (upgrade_levels[25] || 0) * 0.001;
+                      const f47 = (upgrade_levels[47] || 0) * 0.01;
+                      return `(+${val * (1 + f25)} Flat & +${((0.01 + f47 + h25) * val * 100).toFixed(1)}% Multi)`;
+                    }
+                    if (key === 'Div') {
+                      const f34 = (upgrade_levels[34] || 0) * 0.2;
+                      return `(+${val * (2 + f34)} Flat)`;
+                    }
+                    if (key === 'Corr') {
+                      const f52 = (upgrade_levels[52] || 0) * 0.002;
+                      return `(+${((0.06 + f52) * val * 100).toFixed(1)}% Multi)`;
+                    }
                   }
                   if (troubleshootStat === "Armor Pen") {
                     if (key === 'Per') return `(+${val} Flat)`;
@@ -98,8 +112,11 @@ export default function CalculatedStats() {
                     if (key === 'Div') return `(+${val}% Super)`;
                   }
                   if (troubleshootStat === "Mod Chances & Multipliers") {
-                    if (key === 'Luck') return `(+${val}% All)`;
-                    if (key === 'Corr') return `(+${val}% Multis)`;
+                    if (key === 'Luck') return `(+${(val * 0.2).toFixed(1)}% All)`;
+                    if (key === 'Corr') {
+                      const h52 = (upgrade_levels[52] || 0) * 0.0002;
+                      return `(+${((0.01 + h52) * val * 100).toFixed(1)}% Multis)`;
+                    }
                   }
                   if (troubleshootStat === "Abilities") {
                     if (key === 'Int' || key === 'Div') return `(+${val}% Insta)`;
