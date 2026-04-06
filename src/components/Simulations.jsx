@@ -779,9 +779,22 @@ export default function Simulations() {
       const remP1 = (dynamicBudget - lockedSum) % step1;
       const p1Budget = dynamicBudget - remP1;
       
+      // SEED INJECTION: Capture user's current build to prevent the AI from giving them something worse
+      const seedBuild = {};
+      let seedValid = true;
+      let seedSum = 0;
+      activeStats.forEach(s => {
+          const val = store.base_stats[s] || 0;
+          seedBuild[s] = val;
+          seedSum += val;
+          if (val < bounds[s][0] || val > bounds[s][1]) seedValid = false;
+      });
+      if (seedSum > dynamicBudget) seedValid = false;
+      const validSeed = seedValid ? seedBuild : null;
+      
       let { bestDist: bestP1, summary: sumP1 } = await runOptimizationPhase(
         "Phase 1 (Coarse)", targetMetricKey, activeStats, p1Budget, step1, 25,
-        pool, fixedStats, bounds, timeLimit, globalStartTime, onProgressCb
+        pool, fixedStats, bounds, timeLimit, globalStartTime, onProgressCb, validSeed
       );
 
       bestP1 = topUpBuild(bestP1, activeStats, dynamicBudget, STAT_CAPS, lockedStats);
@@ -1569,20 +1582,22 @@ export default function Simulations() {
       {activeSubTab === 'optimizer' && (
         <div className="space-y-6">
           <h2 className="text-2xl font-bold">🚀 Monte Carlo Stat Optimizer</h2>
-          <p className="text-st-text-light">Leverage Successive Halving to find the absolute mathematically perfect stat distribution using your browser's local CPU cores.</p>
+          <p className="text-st-text-light">Leverage Successive Halving to find highly optimized stat plateaus and statistical bests using your browser's local CPU cores.</p>
           
           <div className="st-container border-l-4 border-l-st-orange">
-            <h4 className="font-bold mb-2">💡 Best Practice: The 2-Step Optimization</h4>
-            <p className="text-sm">
-              <strong>1. The Scout Run:</strong> Leave your stats unlocked. Run a fast 10-30s simulation and look at the winning build. Did the AI drop any stats to 0? Did it push any to their Max?<br/><br/>
-              <strong>2. The Refined Run:</strong> Open the <strong>Stat Constraints</strong> below and lock those obvious stats to 0 or Max. By locking just 1 or 2 stats, the AI can scan the remaining stats with vastly higher precision in a fraction of the time!
-            </p>
+            <h4 className="font-bold mb-2">💡 Best Practice: The Optimal Workflow</h4>
+            <div className="text-sm space-y-2">
+              <p><strong>1. The Scout Run:</strong> Leave your stats unlocked. Run a fast 10-30s simulation. Did the AI drop any stats to 0? Did it push any to their Max?</p>
+              <p><strong>2. The Refined Runs:</strong> Lock those obvious stats in the <strong>Stat Constraints</strong> below. By locking just 1 or 2 stats, the AI can scan the remaining stats with vastly higher precision. Run this 3 to 5 times.</p>
+              <p><strong>3. The Synthesis:</strong> This optimizer provides highly optimized <em>local maxima</em> (stat plateaus). You <strong>must</strong> take your top refined runs and merge them in the <strong>Synthesis Tab</strong> to find the true global peak!</p>
+              <p><strong>4. Deep Dives:</strong> Once you have your synthesized Meta-Build, test its performance in the <strong>Build Duel</strong>, calculate upgrades in the <strong>ROI Tab</strong>, or tweak its breakpoints manually in the <strong>Sandbox</strong>.</p>
+            </div>
           </div>
 
           <details className="st-container group cursor-pointer marker:text-st-orange mb-4">
             <summary className="font-bold">ℹ️ How accurate are these projections?</summary>
             <div className="mt-4 text-sm space-y-3 cursor-default">
-              <p><strong>The Good News:</strong> The environment generation in this engine is now <strong>100% identical</strong> to the live game's source code! The stat distributions this tool provides are mathematically perfect for your current upgrades.</p>
+              <p><strong>The Good News:</strong> The environment generation in this engine is now <strong>100% identical</strong> to the live game's source code! However, because of the chaotic nature of critical hits, this tool provides highly optimized <em>plateaus</em> rather than a single "perfect" solution.</p>
               <p><strong>The Reality Check #1:</strong> While the combat math is exact, the absolute output numbers (Max Floor, Kills/hr) are built on <strong>Statistical Averages</strong>. The AI runs hundreds of simulations and optimizes for <em>consistent, reliable farming</em>. Treat these numbers as your highly accurate, reliable baseline!</p>
               <p><strong>The Reality Check #2:</strong> The engine calculates <strong>100% Theoretical Efficiency</strong>. In the simulator, 0.000 seconds pass between killing an ore and hitting the next one. In the actual live game, minor animation delays and frame drops consume fractions of a second. Expect your actual real-world Yields to be roughly <strong>~5% to 10% lower</strong> than the mathematical perfection projected here.</p>
               {store.asc2_unlocked && (
@@ -1731,15 +1746,15 @@ export default function Simulations() {
               if (step1 >= 15) {
                 gColor = "#ff4b4b"; gBg = "rgba(255, 75, 75, 0.1)"; gIcon = "🔴";
                 gTitle = "Low Precision (Scout Only)";
-                gDesc = `The search grid is too massive. The AI must take huge leaps of ${step1} stat points. This run is only useful for spotting which stats the AI completely ignores. Do not trust the final numbers! Increase time or lock stats.`;
+                gDesc = `The search grid is too massive. The AI must take huge leaps of ${step1} stat points. This will output garbage data if you trust it blindly! Only use this to spot stats to lock for your next run.`;
               } else if (step1 >= 5) {
                 gColor = "#ffa229"; gBg = "rgba(255, 162, 41, 0.1)"; gIcon = "🟡";
                 gTitle = "Moderate Precision";
-                gDesc = `The AI is searching in leaps of ${step1} stat points. It will find a strong general build, but might miss the absolute mathematical peak. Safe to use as a Scout Run.`;
+                gDesc = `The AI is searching in leaps of ${step1} stat points. It will find a strong plateau, but you should run this a few times and use the Synthesis tab to finalize the build.`;
               } else {
                 gColor = "#4CAF50"; gBg = "rgba(76, 175, 80, 0.1)"; gIcon = "🟢";
                 gTitle = "High Precision (Recommended)";
-                gDesc = `The search area is extremely tight (leaps of ${step1} stat points). The AI has enough time to pinpoint the mathematically perfect build. Safe to trust!`;
+                gDesc = `The search area is extremely tight (leaps of ${step1} stat points). The AI has enough time to pinpoint a highly optimized plateau. Send at least 2-3 of these runs to Synthesis for improvement.`;
               }
 
               return (

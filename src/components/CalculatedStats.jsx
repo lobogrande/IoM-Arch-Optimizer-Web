@@ -61,8 +61,8 @@ export default function CalculatedStats() {
                 "Max Stamina": { settings:[ "current_max_floor" ], stats: [ "Agi", "Corr" ], upgs:[ 3, 14, 23, 26, 28, 39, 54 ], exts:[ "Block Bonker Skill" ], infs: [ "epic3", "leg4" ] },
                 "Damage": { settings: [ "current_max_floor" ], stats:[ "Str", "Corr", "Div" ], upgs:[ 9, 15, 20, 25, 32, 34, 36, 47, 49, 51, 52 ], exts: [ "Block Bonker Skill" ], infs:[ "rare2", "div1" ] },
                 "Armor Pen": { settings: [], stats: [ "Per", "Int" ], upgs: [ 10, 17, 29, 33, 36 ], exts: [], infs: [ "leg3", "rare3" ] },
-                "Crit Chances & Multipliers": { settings: [], stats: [ "Luck", "Div" ], upgs:[ 13, 18, 20, 30, 37, 40, 47, 49, 53 ], exts: [], infs:[ "com1", "com2", "com3", "epic2", "com4", "epic4" ] },
-                "EXP & Fragment Gain": { settings: [], stats: [ "Int", "Per", "Div" ], upgs:[ 4, 11, 21, 28, 35, 42, 45, 51 ], exts:[ "Hestia Idol", "Axolotl Skin", "Geoduck Tribute", "Archaeology Bundle", "Ascension Bundle" ], infs:[ "dirt2", "dirt3", "leg1" ] },
+                "Crit Chances & Multipliers": { settings: [], stats:[ "Luck", "Div" ], upgs:[ 13, 18, 20, 30, 37, 40, 47, 49, 53 ], exts: [], infs:[ "com1", "com2", "com3", "epic2", "com4", "epic4" ] },
+                "EXP & Fragment Gain": { settings: [], stats:[ "Int", "Per", "Div" ], upgs:[ 4, 11, 21, 28, 35, 42, 45, 51 ], exts:[ "Hestia Idol", "Axolotl Pet Quest Rank", "Geoduck Tribute", "Archaeology Bundle", "Ascension Bundle" ], infs:[ "dirt2", "dirt3", "leg1" ] },
                 "Mod Chances & Multipliers": { settings: [], stats:[ "Luck", "Div", "Corr" ], upgs:[ 5, 14, 16, 23, 24, 26, 33, 35, 38, 40, 43, 44, 48, 50, 52, 53, 54, 55 ], exts:[ "Ascension Bundle", "Block Bonker Skill" ], infs:[ "dirt1", "rare1", "epic1", "leg2", "myth2", "myth3", "div3", "rare4", "div4" ] },
                 "Abilities": { settings: [], stats: [ "Int", "Div" ], upgs:[ 18, 22, 29, 31, 32, 39, 50 ], exts: [ "Arch Ability Card", "Avada Keda- Skill" ], infs: [ "myth4" ] },
                 "Ascension 2": { settings:[ "total_infernal_cards" ], stats: [], upgs: [ 19, 46 ], exts:[ "Hades Idol" ], infs: [ "myth1", "div2", "dirt4" ] }
@@ -171,7 +171,7 @@ export default function CalculatedStats() {
                   
                   if (troubleshootStat === "EXP & Fragment Gain") {
                     if (key === "Hestia Idol") return `(+${(val * 0.01).toFixed(2)}% Frag Multi)`;
-                    if (key === "Axolotl Skin") return `(+${(val + 1) * 3}% Frag Multi)`;
+                    if (key === "Axolotl Pet Quest Rank") return `(+${(val + 1) * 3}% Frag Multi)`;
                     if (key === "Geoduck Tribute") {
                       const cap = asc2_unlocked ? 75 : 50;
                       return `(+${Math.min(val * 0.25, cap).toFixed(2)}% Frag Multi)`;

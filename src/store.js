@@ -330,6 +330,14 @@ const useStore = create(
     
     // Parse External (Idols/Pets)
     if (data.external_upgrades) {
+      // --- BACKWARDS COMPATIBILITY INTERCEPTORS ---
+      if (data.external_upgrades["Axolotl Skin"] !== undefined) {
+        data.external_upgrades["Axolotl Pet Quest Rank"] = data.external_upgrades["Axolotl Skin"];
+      }
+      if (data.external_upgrades["Dino Skin"] !== undefined) {
+        data.external_upgrades["Dino Pet Quest Rank"] = data.external_upgrades["Dino Skin"];
+      }
+
       const newExt = {};
       EXTERNAL_UI_GROUPS.forEach(group => {
         if (data.external_upgrades[group.name] !== undefined) {

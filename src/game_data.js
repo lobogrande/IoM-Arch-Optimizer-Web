@@ -34,8 +34,8 @@ export const CARD_TYPES =['dirt', 'com', 'rare', 'epic', 'leg', 'myth', 'div'];
 export const EXTERNAL_UI_GROUPS =[
     {id: "hestia", name: "Hestia Idol", rows:[4], ui_type: "number", max: 3000, img: "4_hestia.png"},
     {id: "hades", name: "Hades Idol", rows:[21], ui_type: "number", max: 6666},
-    {id: "axolotl", name: "Axolotl Skin", rows:[5], ui_type: "pet", max: 11, img: "5_axolotl.png"},
-    {id: "dino", name: "Dino Skin", rows: [6, 7], ui_type: "pet", max: 11, img: "6_7_dino.png"},
+    {id: "axolotl", name: "Axolotl Pet Quest Rank", rows:[5], ui_type: "pet", max: 11, img: "5_axolotl.png"},
+    {id: "dino", name: "Dino Pet Quest Rank", rows: [6, 7], ui_type: "pet", max: 11, img: "6_7_dino.png"},
     {id: "geoduck", name: "Geoduck Tribute", rows: [8], ui_type: "number", max: 9999, img: "8_geoduck.png"},
     {id: "avada", name: "Avada Keda- Skill", rows:[9, 10, 11], ui_type: "skill", imgs:["9_11_avada-keda_1.png", "9_11_avada-keda_2.png"]},
     {id: "block", name: "Block Bonker Skill", rows:[12, 13, 14], ui_type: "skill", imgs:["12_14_block-bonker_1.png", "12_14_block-bonker_2.png"]},

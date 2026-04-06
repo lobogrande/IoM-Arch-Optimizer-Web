@@ -561,7 +561,7 @@ export default function PlayerSetup() {
                               <input type="checkbox" checked={geoduck_unlocked} onChange={(e) => setSetting('geoduck_unlocked', e.target.checked)} className="w-4 h-4 accent-st-orange shrink-0 mt-0.5" />
                               <span>Geoduck Leg Fish T1 Tribute Completed</span>
                             </label>
-                            <span className="text-xs text-st-text-light mt-1 text-center">Enter Number of Mythic Chests Opened</span>
+                            <span className="text-xs text-st-text-light mt-1 text-center">Enter Number of Mythic Chests Owned</span>
                           </>
                         )}
                       </div>
