@@ -171,7 +171,7 @@ export default function CalculatedStats() {
                   
                   if (troubleshootStat === "EXP & Fragment Gain") {
                     if (key === "Hestia Idol") return `(+${(val * 0.01).toFixed(2)}% Frag Multi)`;
-                    if (key === "Axolotl Skin") return `(+${(val + 1) * 3}% Frag Multi)`;
+                    if (key === "Axolotl Pet Quest Rank") return `(+${(val + 1) * 3}% Frag Multi)`;
                     if (key === "Geoduck Tribute") {
                       const cap = asc2_unlocked ? 75 : 50;
                       return `(+${Math.min(val * 0.25, cap).toFixed(2)}% Frag Multi)`;
