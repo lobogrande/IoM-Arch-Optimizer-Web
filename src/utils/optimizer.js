@@ -312,9 +312,20 @@ export function getOptimalStepProfile(statsList, budget, bounds, simsPerSecond, 
  */
 export async function runOptimizationPhase(
     phaseName, targetMetric, statsList, budget, step, iterations, pool,
-    fixedStats, bounds, timeLimitSeconds, globalStartTime, onProgress
+    fixedStats, bounds, timeLimitSeconds, globalStartTime, onProgress,
+    seedDist = null
 ) {
     const dists = generateDistributions(statsList, budget, step, bounds);
+    
+    // ELITISM / SEED INJECTION: Ensure user's current build is always tested
+    if (seedDist) {
+        const seedKey = JSON.stringify(seedDist);
+        const exists = dists.some(d => JSON.stringify(d) === seedKey);
+        if (!exists) {
+            dists.push(seedDist);
+        }
+    }
+    
     if (!dists || dists.length === 0) return { bestDist: null, summary: null };
 
     const tracker = { };
