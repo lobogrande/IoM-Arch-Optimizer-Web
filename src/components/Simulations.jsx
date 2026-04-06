@@ -779,9 +779,22 @@ export default function Simulations() {
       const remP1 = (dynamicBudget - lockedSum) % step1;
       const p1Budget = dynamicBudget - remP1;
       
+      // SEED INJECTION: Capture user's current build to prevent the AI from giving them something worse
+      const seedBuild = {};
+      let seedValid = true;
+      let seedSum = 0;
+      activeStats.forEach(s => {
+          const val = store.base_stats[s] || 0;
+          seedBuild[s] = val;
+          seedSum += val;
+          if (val < bounds[s][0] || val > bounds[s][1]) seedValid = false;
+      });
+      if (seedSum > dynamicBudget) seedValid = false;
+      const validSeed = seedValid ? seedBuild : null;
+      
       let { bestDist: bestP1, summary: sumP1 } = await runOptimizationPhase(
         "Phase 1 (Coarse)", targetMetricKey, activeStats, p1Budget, step1, 25,
-        pool, fixedStats, bounds, timeLimit, globalStartTime, onProgressCb
+        pool, fixedStats, bounds, timeLimit, globalStartTime, onProgressCb, validSeed
       );
 
       bestP1 = topUpBuild(bestP1, activeStats, dynamicBudget, STAT_CAPS, lockedStats);
