@@ -91,12 +91,14 @@ export default function About() {
           
           {/* Architecture Container */}
           <div className="st-container">
-            <h4 className="text-xl font-bold mb-2">⚙️ How the Engine Works</h4>
+            <h4 className="text-xl font-bold mb-2">⚙️ Architecture & Telemetry</h4>
+            <p className="text-st-text-light mb-4 text-sm">
+              This app runs a <strong>Python WebAssembly Engine (Pyodide)</strong> to emulate the exact GameMaker (GML) source code math of the live game. It uses <strong>Monte Carlo Simulations</strong> combined with a <strong>3-Phase Successive Halving</strong> algorithm to narrow down the perfect stat distribution.
+            </p>
             <p className="text-st-text-light mb-6 text-sm">
-              This app runs a <strong>Python WebAssembly Engine (Pyodide)</strong> to emulate the exact C# source code math of the live game. It uses <strong>Monte Carlo Simulations</strong> combined with a <strong>3-Phase Successive Halving</strong> algorithm to narrow down the perfect stat distribution.
+              Recently upgraded to a <strong>True-Time Architecture</strong>, the engine now measures combat loops in absolute real-world seconds (TTK) rather than just stamina usage. It also features built-in <strong>Build Duel Telemetry</strong>, allowing you to pit two stat distributions head-to-head in a zero-variance vacuum to see mathematically why one beats the other.
             </p>
 
-            {/* CSS-Grid Recreation of the Graphviz Diagram (Light Theme Friendly) */}
             <div className="bg-st-secondary border border-st-border rounded-lg p-6 font-mono text-sm text-center flex flex-col items-center gap-3">
               <div className="bg-st-bg border border-st-orange text-st-text px-6 py-2 rounded shadow-sm w-48">UI (Layer 5)</div>
               <div className="text-st-orange font-bold text-lg leading-none">↓</div>
@@ -119,10 +121,45 @@ export default function About() {
                 <div className="text-green-600 font-bold text-sm relative top-1 ml-10 hidden sm:block">↺ 500-Run Tie-Breakers</div>
               </div>
               
-              <div className="bg-st-bg border border-st-orange text-st-text px-6 py-2 rounded shadow-sm w-64">Micro-Tick Combat Engine<br/><span className="text-st-text-light text-xs">(1:1 C# Math)</span></div>
+              <div className="bg-st-bg border border-st-orange text-st-text px-6 py-2 rounded shadow-sm w-64">True-Time Micro-Tick Engine<br/><span className="text-st-text-light text-xs">(1:1 GML Math)</span></div>
               <div className="text-st-orange font-bold text-lg leading-none">↓</div>
               <div className="bg-green-600 text-white px-6 py-2 rounded shadow-sm border border-green-700 w-48 font-bold tracking-wide">Dashboard Output</div>
             </div>
+          </div>
+
+          {/* FAQ & Mechanics */}
+          <div className="st-container space-y-4">
+            <h4 className="text-xl font-bold mb-2">🎓 Mechanics Deep Dive & FAQ</h4>
+            
+            <details className="group border border-st-border rounded p-3 cursor-pointer hover:border-st-orange transition-colors">
+              <summary className="font-bold outline-none list-none flex justify-between">
+                <span>What is a "Stat Plateau"?</span>
+                <span className="text-st-orange transition-transform group-open:rotate-180">▼</span>
+              </summary>
+              <p className="mt-3 text-sm text-st-text-light border-t border-st-border pt-3">
+                Because blocks in the game only take "whole hits," having enough damage to bring a block to 1 HP requires the exact same number of hits as doing no extra damage at all. The optimizer actively looks for these <strong>Stat Plateaus</strong> and stops recommending stats the instant you hit a "hits-to-kill" breakpoint, saving your stat points for other upgrades.
+              </p>
+            </details>
+
+            <details className="group border border-st-border rounded p-3 cursor-pointer hover:border-st-orange transition-colors">
+              <summary className="font-bold outline-none list-none flex justify-between">
+                <span>Why does the game yield less than the simulator? (Engine Slippage)</span>
+                <span className="text-st-orange transition-transform group-open:rotate-180">▼</span>
+              </summary>
+              <p className="mt-3 text-sm text-st-text-light border-t border-st-border pt-3">
+                The Python engine is a <em>0.000-delay perfect mathematical simulation</em>. In the live game, particularly in "Rabbit Mode," the GameMaker engine is forced to fast-forward. This causes dropped frames and slight delays in the physics of step-event, block attack, etc. This <strong>Game Engine Slippage</strong> may account for a consistent efficiency loss in the live game compared to the raw mathematical maximum.
+              </p>
+            </details>
+            
+            <details className="group border border-st-border rounded p-3 cursor-pointer hover:border-st-orange transition-colors">
+              <summary className="font-bold outline-none list-none flex justify-between">
+                <span>How do I use Build Duels & Telemetry?</span>
+                <span className="text-st-orange transition-transform group-open:rotate-180">▼</span>
+              </summary>
+              <p className="mt-3 text-sm text-st-text-light border-t border-st-border pt-3">
+                Head to the <strong>Simulations ➔ Build Duel</strong> tab. You can load two completely different Base Stat distributions and run them through a 100,000 second Arch Burn side-by-side. The Telemetry output will show you exactly who won and exactly how many crits, mods, and enrage casts it took to get there.
+              </p>
+            </details>
           </div>
 
           {/* --- TIP JAR --- */}
@@ -185,7 +222,7 @@ export default function About() {
           <div className="st-container border-st-orange/30">
             <h4 className="text-xl font-bold mb-2 text-st-orange">💬 Join the Community</h4>
             <p className="text-st-text-light text-sm mb-4">
-              Want to discuss strategies, read the latest patch notes, or help shape the next update? Join our official Discord server!
+              Want to discuss strategies, read the latest patch notes, or help shape the next update? Join the official Discord server!
             </p>
             <a 
               href="https://discord.gg/kNSt2CvMy5" 

@@ -227,10 +227,10 @@ class Player:
         if self.cards.get(block_id, 0) == 4 and self.asc1_unlocked:
             inf_mult = self.infernal_multiplier
             bases = {
-                'dirt1': (0.1, 4), 'dirt2': (0.12, 4), 'dirt3': (0.08, 4), 'dirt4': (0.1, 4), 'com1': (0.06, 4), 'com2': (0.07, 4), 'com3': (0.08, 4),
-                'rare1': (0.05, 4), 'rare2': (20.0, 0), 'rare3': (0.4, 4), 'epic1': (0.3, 4), 'epic2': (0.04, 4), 'epic3': (0.05, 4),
-                'leg1': (0.04, 4), 'leg2': (0.05, 4), 'leg3': (40.0, 0), 'myth1': (0.013, 4), 'myth2': (0.008, 4), 'myth3': (0.007, 4),
-                'div1': (0.1, 4), 'div2': (0.0125, 4), 'div3': (1.126, 0)
+                'dirt1': (0.1, 4), 'dirt2': (0.12, 4), 'dirt3': (0.08, 4), 'dirt4': (0.1, 4), 'com1': (0.06, 4), 'com2': (0.07, 4), 'com3': (0.08, 4), 'com4': (0.015, 4),
+                'rare1': (0.05, 4), 'rare2': (20.0, 0), 'rare3': (0.4, 4), 'rare4': (0.08, 4), 'epic1': (0.3, 4), 'epic2': (0.04, 4), 'epic3': (0.05, 4), 'epic4': (0.1, 4),
+                'leg1': (0.04, 4), 'leg2': (0.05, 4), 'leg3': (40.0, 0), 'leg4': (20.0, 0), 'myth1': (0.013, 4), 'myth2': (0.008, 4), 'myth3': (0.007, 4), 'myth4': (0.01, 4),
+                'div1': (0.1, 4), 'div2': (0.0125, 4), 'div3': (1.126, 0), 'div4': (0.005, 4)
             }
             if block_id in bases:
                 return self._excel_round(bases[block_id][0] * inf_mult, bases[block_id][1])
@@ -241,7 +241,7 @@ class Player:
     # ==========================================================================
     @property
     def max_sta(self):
-        base_calc = 100 + self.u('F14') + self.u('F23') + self.u('H39') + self.u('F3')
+        base_calc = 100 + self.u('F14') + self.u('F23') + self.u('H39') + self.u('F3') + self.inf('leg4')
         stat_calc = self.stat('Agi') * (5 + self.u('F26'))
         asc2_calc = (1 + self.u('H28') + self.u('F54')) * (1 - 0.03 * self.stat('Corr'))
         
@@ -296,21 +296,21 @@ class Player:
     def atk_spd(self): return 1.0
 
     @property
-    def crit_chance(self): return self.u('F13') + (0.02 * self.stat('Luck')) + (0.01 * self.stat('Agi'))
+    def crit_chance(self): return self.u('F13') + (0.02 * self.stat('Luck')) + (0.01 * self.stat('Agi')) + self.inf('com4')
     
     @property
     def crit_dmg_mult(self): 
-        val = 1.5 * (1.0 + self.u('H13') + self.u('F30') + self.inf('com1') + (0.03 + self.u('H47')) * self.stat('Str'))
+        val = 1.5 * (1.0 + self.u('H13') + self.u('F30') + self.inf('com1') + self.inf('epic4') + (0.03 + self.u('H47')) * self.stat('Str'))
         return self._csharp_round(val)
         
     @property
     def enraged_crit_dmg_mult(self): 
         enrage_crit_bonus = 1.0 + self.u('F18')
-        val = 1.5 * (1.0 + enrage_crit_bonus + self.u('H13') + self.u('F30') + self.inf('com1') + (0.03 + self.u('H47')) * self.stat('Str'))
+        val = 1.5 * (1.0 + enrage_crit_bonus + self.u('H13') + self.u('F30') + self.inf('com1') + self.inf('epic4') + (0.03 + self.u('H47')) * self.stat('Str'))
         return self._csharp_round(val)
         
     @property
-    def super_crit_chance(self): return self.u('H20') + self.u('F37') + ((0.02 + 0.01 * self.u('F34')) * self.stat('Div')) + self.inf('epic2')
+    def super_crit_chance(self): return self.u('H20') + self.u('F37') + ((0.02 + 0.01 * self.u('F34')) * self.stat('Div')) + self.inf('epic2') + self.inf('com4')
     
     @property
     def super_crit_dmg_mult(self): 
@@ -319,7 +319,7 @@ class Player:
         return self._csharp_round(val)
         
     @property
-    def ultra_crit_chance(self): return self.u('H37') + self.u('H49')
+    def ultra_crit_chance(self): return self.u('H37') + self.u('H49') + self.inf('com4')
     
     @property
     def ultra_crit_dmg_mult(self): 
@@ -328,7 +328,7 @@ class Player:
         return self._csharp_round(val)
 
     @property
-    def ability_insta_charge(self): return self.w('W11') + self.u('F39') + self.u('F50')
+    def ability_insta_charge(self): return self.w('W11') + self.u('F39') + self.u('F50') + self.inf('myth4')
     @property
     def crosshair_auto_tap(self): return self.w('W17') + self.u('H48') + self.u('H54') + ((0.02 + 0.01 * self.u('F34')) * self.stat('Div')) + self.inf('rare1')
     @property
@@ -353,15 +353,15 @@ class Player:
         return self._excel_round(val, 2)
 
     @property
-    def exp_mod_chance(self): return self.u('H38') + self.u('H4') + (0.002 * self.stat('Luck')) + (0.0035 * self.stat('Int')) + self.u('F24') + self.u('F44')
+    def exp_mod_chance(self): return self.u('H38') + self.u('H4') + (0.002 * self.stat('Luck')) + (0.0035 * self.stat('Int')) + self.u('F24') + self.u('F44') + self.inf('div4')
     @property
     def exp_mod_gain(self): return (3.0 + self.u('F38') + self.u('H53')) * (1.0 + self.u('F55') + self.stat('Corr') * (0.01 + self.u('H52')))
     @property
-    def loot_mod_chance(self): return self.u('H5') + self.u('F24') + self.u('F44') + self.w('W18') + (0.0035 * self.stat('Per')) + (0.002 * self.stat('Luck')) + self.inf('myth2')
+    def loot_mod_chance(self): return self.u('H5') + self.u('F24') + self.u('F44') + self.w('W18') + (0.0035 * self.stat('Per')) + (0.002 * self.stat('Luck')) + self.inf('myth2') + self.inf('div4')
     @property
-    def loot_mod_gain(self): return (2.0 + self.u('F16') + self.u('F27')) * (1.0 + self.u('F55') + self.stat('Corr') * (0.01 + self.u('H52'))) * (1.0 + self.inf('dirt1'))
+    def loot_mod_gain(self): return (2.0 + self.u('F16') + self.u('F27')) * (1.0 + self.u('F55') + self.stat('Corr') * (0.01 + self.u('H52'))) * (1.0 + self.inf('dirt1') + self.inf('rare4'))
     @property
-    def speed_mod_chance(self): return self.u('F24') + self.u('F44') + (0.003 * self.stat('Agi')) + (0.002 * self.stat('Luck'))
+    def speed_mod_chance(self): return self.u('F24') + self.u('F44') + (0.003 * self.stat('Agi')) + (0.002 * self.stat('Luck')) + self.inf('div4')
     @property
     def speed_mod_gain(self): 
         # PROPER BLOCK BONKER BINDING (W14)
@@ -370,7 +370,7 @@ class Player:
     @property
     def speed_mod_attack_rate(self): return 2.0
     @property
-    def stamina_mod_chance(self): return self.u('H3') + self.u('H14') + self.u('F24') + self.u('F44') + self.u('H40') + self.u('H50') + (0.002 * self.stat('Luck')) + self.inf('myth3')
+    def stamina_mod_chance(self): return self.u('H3') + self.u('H14') + self.u('F24') + self.u('F44') + self.u('H40') + self.u('H50') + (0.002 * self.stat('Luck')) + self.inf('myth3') + self.inf('div4')
     @property
     def stamina_mod_gain(self): return self._excel_round((3.0 + self.u('F43') + self.u('H23')) * (1.0 + self.u('F55') + self.stat('Corr') * (0.01 + self.u('H52'))), 0) + self.inf('div3')
 
