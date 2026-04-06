@@ -40,25 +40,8 @@ export default function PlayerSetup() {
     return false;
   },[ activeProfileId, profiles, asc1_unlocked, asc2_unlocked, arch_level, current_max_floor, geoduck_unlocked, arch_ability_infernal_bonus, total_infernal_cards, base_stats, upgrade_levels, external_levels, cards ]);
 
-  // Native React calculation for real-time Infernal Multiplier (Bypasses Python boot delay)
-  const liveInfernalMultiplier = useMemo(() => {
-    let arch_infernal_cards = 0;
-    if (asc1_unlocked) {
-      Object.values(cards || {}).forEach(lvl => {
-        if (lvl === 4) arch_infernal_cards++;
-      });
-    }
-    
-    const hades_level = external_levels[ 21 ] || 0;
-    const hades_bonus = asc1_unlocked ? (hades_level * 0.000045) : 0.0;
-    const arch_bonus = 1.0 + (0.04 * arch_infernal_cards) + (0.002 * (total_infernal_cards || 0));
-    
-    const rawMult = arch_bonus * (1.0 + hades_bonus);
-    return Math.ceil((rawMult * 10000) - 1e-9) / 10000.0;
-  },[ asc1_unlocked, cards, external_levels, total_infernal_cards ]);
-
   // Add Arch Level and Internal Upgrade #12 (Stat Points) to get total budget
-  const total_allowed = (parseInt(arch_level) || 1) + (upgrade_levels[ 12 ] || 0); 
+  const total_allowed = (parseInt(arch_level) || 1) + (upgrade_levels[12] || 0); 
   const current_allocated = Object.values(base_stats).reduce((a, b) => a + b, 0);
   const remaining = total_allowed - current_allocated;
 
@@ -654,7 +637,9 @@ export default function PlayerSetup() {
               <div className="w-full sm:w-1/2 sm:border-l border-st-border sm:pl-6 text-center sm:text-left">
                 <span className="text-sm font-bold block mb-1">🔥 Infernal Arch Card Bonus</span>
                 <span className="text-lg font-bold text-st-orange">
-                  {`${Number(liveInfernalMultiplier).toLocaleString(undefined, { minimumFractionDigits: 4, maximumFractionDigits: 4 })}x`}
+                  {calculated_stats?.infernal_multiplier 
+                    ? `${Number(calculated_stats.infernal_multiplier).toLocaleString(undefined, {minimumFractionDigits: 4, maximumFractionDigits: 4})}x` 
+                    : "(Syncing...)"}
                 </span>
               </div>
             </div>
