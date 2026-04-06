@@ -245,7 +245,12 @@ const useStore = create(
     sandbox_floor: 1,
     duelStatsA: { Str: 0, Agi: 0, Per: 0, Int: 0, Luck: 0, Div: 0, Corr: 0 },
     duelStatsB: { Str: 0, Agi: 0, Per: 0, Int: 0, Luck: 0, Div: 0, Corr: 0 },
-    activeProfileId: null
+    activeProfileId: null,
+    profiles: [ ],
+    opt_results: null,
+    run_history: [ ],
+    synth_history: [ ],
+    synthesis_result: null
   }),
 
   // Bulk load from JSON file
