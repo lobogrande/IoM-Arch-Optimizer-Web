@@ -411,7 +411,7 @@ export default function PlayerSetup() {
                     setSetting('duelStatsA', statsToTransfer);
                     alert("✅ Sent to Duel (Build A)");
                   }}
-                  className="flex-1 py-2 bg-[#2b2b2b] border border-blue-500 text-blue-400 font-bold rounded hover:bg-blue-900 hover:text-white transition-colors"
+                  className="flex-1 py-2 bg-[#2b2b2b] border border-st-orange text-st-orange font-bold rounded hover:bg-st-orange hover:text-[#2b2b2b] transition-colors"
                 >
                   ⚔️ Duel (A)
                 </button>

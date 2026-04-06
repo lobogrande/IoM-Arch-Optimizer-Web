@@ -1017,7 +1017,7 @@ export default function Simulations() {
                   setActiveSubTab('duel');
                   window.scrollTo({ top: 0, behavior: 'smooth' });
                 }}
-                className="w-full py-2 bg-[#2b2b2b] border border-blue-500 text-blue-400 font-bold rounded hover:bg-blue-900 hover:text-white transition-colors"
+                className="w-full py-2 bg-[#2b2b2b] border border-st-orange text-st-orange font-bold rounded hover:bg-st-orange hover:text-[#2b2b2b] transition-colors"
               >
                 ⚔️ Send to Duel (A)
               </button>
@@ -2798,7 +2798,7 @@ export default function Simulations() {
                       setActiveSubTab('duel');
                       window.scrollTo({ top: 0, behavior: 'smooth' });
                     }}
-                    className="w-full py-2 bg-[#2b2b2b] border border-blue-500 text-blue-400 text-xs font-bold rounded hover:bg-blue-900 hover:text-white transition-colors"
+                    className="w-full py-2 bg-[#2b2b2b] border border-st-orange text-st-orange text-xs font-bold rounded hover:bg-st-orange hover:text-[#2b2b2b] transition-colors"
                   >
                     ⚔️ Duel (A)
                   </button>
