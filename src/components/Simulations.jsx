@@ -2623,13 +2623,14 @@ export default function Simulations() {
                       } else if (duelOptGoal === "Max EXP Yield") {
                         rows.push({ k: 'xp_per_min', l: 'EXP Yield per 1k Arch Secs', higherIsBetter: true, isRate: true });
                       } else if (duelOptGoal === "Fragment Farming") {
-                        rows.push({ k: `frag_${duelTargetFrag}_per_min`, l: `Yield (Frag ${duelTargetFrag}) per 1k Arch Secs`, higherIsBetter: true, isRate: true });
+                        const fragName = FRAG_NAMES[duelTargetFrag] || `Frag ${duelTargetFrag}`;
+                        rows.push({ k: `frag_${duelTargetFrag}_per_min`, l: `Yield (${fragName}) per 1k Arch Secs`, higherIsBetter: true, isRate: true });
                         
                         const prefixMap = { 1: 'com', 2: 'rare', 3: 'epic', 4: 'leg', 5: 'myth', 6: 'div' };
                         const pfx = prefixMap[duelTargetFrag];
                         if (pfx) {[ 1, 2, 3, 4 ].forEach(tier => {
                             rows.push({ k: `raw_block_${pfx}${tier}`, l: `Tier ${tier} Kills (${pfx}${tier})`, higherIsBetter: true, isRaw: true });
-                            rows.push({ k: `raw_frag_${pfx}${tier}`, l: `Tier ${tier} Frags (${pfx}${tier})`, higherIsBetter: true, isRaw: true });
+                            rows.push({ k: `raw_frag_${pfx}${tier}`, l: `${fragName} fragments from ${pfx}${tier} blocks`, higherIsBetter: true, isRaw: true });
                           });
                         }
                       } else if (duelOptGoal === "Block Card Farming") {
