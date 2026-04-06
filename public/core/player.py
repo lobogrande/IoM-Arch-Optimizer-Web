@@ -296,21 +296,21 @@ class Player:
     def atk_spd(self): return 1.0
 
     @property
-    def crit_chance(self): return self.u('F13') + (0.02 * self.stat('Luck')) + (0.01 * self.stat('Agi'))
+    def crit_chance(self): return self.u('F13') + (0.02 * self.stat('Luck')) + (0.01 * self.stat('Agi')) + self.inf('com4')
     
     @property
     def crit_dmg_mult(self): 
-        val = 1.5 * (1.0 + self.u('H13') + self.u('F30') + self.inf('com1') + (0.03 + self.u('H47')) * self.stat('Str'))
+        val = 1.5 * (1.0 + self.u('H13') + self.u('F30') + self.inf('com1') + self.inf('epic4') + (0.03 + self.u('H47')) * self.stat('Str'))
         return self._csharp_round(val)
         
     @property
     def enraged_crit_dmg_mult(self): 
         enrage_crit_bonus = 1.0 + self.u('F18')
-        val = 1.5 * (1.0 + enrage_crit_bonus + self.u('H13') + self.u('F30') + self.inf('com1') + (0.03 + self.u('H47')) * self.stat('Str'))
+        val = 1.5 * (1.0 + enrage_crit_bonus + self.u('H13') + self.u('F30') + self.inf('com1') + self.inf('epic4') + (0.03 + self.u('H47')) * self.stat('Str'))
         return self._csharp_round(val)
         
     @property
-    def super_crit_chance(self): return self.u('H20') + self.u('F37') + ((0.02 + 0.01 * self.u('F34')) * self.stat('Div')) + self.inf('epic2')
+    def super_crit_chance(self): return self.u('H20') + self.u('F37') + ((0.02 + 0.01 * self.u('F34')) * self.stat('Div')) + self.inf('epic2') + self.inf('com4')
     
     @property
     def super_crit_dmg_mult(self): 
@@ -319,7 +319,7 @@ class Player:
         return self._csharp_round(val)
         
     @property
-    def ultra_crit_chance(self): return self.u('H37') + self.u('H49')
+    def ultra_crit_chance(self): return self.u('H37') + self.u('H49') + self.inf('com4')
     
     @property
     def ultra_crit_dmg_mult(self): 
