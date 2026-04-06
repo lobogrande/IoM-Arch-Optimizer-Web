@@ -2639,7 +2639,7 @@ export default function Simulations() {
 
                       rows.push(
                         { k: 'gross_swings', l: 'Gross Swings (Stamina Spent)', higherIsBetter: true },
-                        { k: 'in_game_time', l: 'In-Game Seconds Passed', higherIsBetter: null },
+                        { k: 'in_game_time', l: 'In-Game Seconds Passed', higherIsBetter: true },
                         { k: 'stamina_refunded_flurry', l: 'Stamina Refunded (Flurry)', higherIsBetter: true },
                         { k: 'stamina_refunded_mods', l: 'Stamina Refunded (Mods)', higherIsBetter: true },
                         { k: 'flurry_casts', l: 'Flurry Casts', higherIsBetter: true },
@@ -2669,10 +2669,17 @@ export default function Simulations() {
                         }
 
                         let diffStr = '-';
-                        if (isWinnerA && valB > 0) diffStr = `+${(((valA - valB) / valB) * 100).toFixed(1)}%`;
-                        else if (isWinnerB && valA > 0) diffStr = `+${(((valB - valA) / valA) * 100).toFixed(1)}%`;
-                        else if (isWinnerA && valB === 0) diffStr = 'MAX';
-                        else if (isWinnerB && valA === 0) diffStr = 'MAX';
+                        if (isWinnerA && valB > 0) {
+                          const pct = (((valA - valB) / valB) * 100);
+                          diffStr = `${pct > 0 ? '+' : ''}${pct.toFixed(1)}%`;
+                        } else if (isWinnerB && valA > 0) {
+                          const pct = (((valB - valA) / valA) * 100);
+                          diffStr = `${pct > 0 ? '+' : ''}${pct.toFixed(1)}%`;
+                        } else if (isWinnerA && valB === 0) {
+                          diffStr = 'MAX';
+                        } else if (isWinnerB && valA === 0) {
+                          diffStr = 'MAX';
+                        }
 
                         return (
                           <tr key={row.k} className="border-b border-st-border/50 hover:bg-black/5">
