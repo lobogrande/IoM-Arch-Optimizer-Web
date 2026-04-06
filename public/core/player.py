@@ -328,7 +328,7 @@ class Player:
         return self._csharp_round(val)
 
     @property
-    def ability_insta_charge(self): return self.w('W11') + self.u('F39') + self.u('F50')
+    def ability_insta_charge(self): return self.w('W11') + self.u('F39') + self.u('F50') + self.inf('myth4')
     @property
     def crosshair_auto_tap(self): return self.w('W17') + self.u('H48') + self.u('H54') + ((0.02 + 0.01 * self.u('F34')) * self.stat('Div')) + self.inf('rare1')
     @property
