@@ -63,6 +63,10 @@ const useStore = create(
   synth_history: [ ],
   synthesis_result: null,
   
+  // Duel State
+  duelStatsA: { Str: 0, Agi: 0, Per: 0, Int: 0, Luck: 0, Div: 0, Corr: 0 },
+  duelStatsB: { Str: 0, Agi: 0, Per: 0, Int: 0, Luck: 0, Div: 0, Corr: 0 },
+
   // Sandbox State
   sandbox_stats: { Str: 0, Agi: 0, Per: 0, Int: 0, Luck: 0, Div: 0, Corr: 0 },
   sandbox_floor: 100,
@@ -91,6 +95,8 @@ const useStore = create(
     if (key === 'asc2_unlocked' && value === false) {
       updates.base_stats = { ...state.base_stats, Corr: 0 };
       updates.sandbox_stats = { ...state.sandbox_stats, Corr: 0 };
+      if (state.duelStatsA) updates.duelStatsA = { ...state.duelStatsA, Corr: 0 };
+      if (state.duelStatsB) updates.duelStatsB = { ...state.duelStatsB, Corr: 0 };
       
       const newCards = { ...state.cards };
       Object.keys(newCards).forEach(c => {
@@ -108,6 +114,8 @@ const useStore = create(
       updates.asc2_unlocked = false; // Cascading lock
       updates.base_stats = { ...state.base_stats, Div: 0, Corr: 0 };
       updates.sandbox_stats = { ...state.sandbox_stats, Div: 0, Corr: 0 };
+      if (state.duelStatsA) updates.duelStatsA = { ...state.duelStatsA, Div: 0, Corr: 0 };
+      if (state.duelStatsB) updates.duelStatsB = { ...state.duelStatsB, Div: 0, Corr: 0 };
       
       const newCards = { ...state.cards };
       Object.keys(newCards).forEach(c => {
@@ -222,10 +230,10 @@ const useStore = create(
   
   // Wipe all data to default baseline
   resetState: () => set({
-    asc1_unlocked: true,
+    asc1_unlocked: false,
     asc2_unlocked: false,
-    arch_level: 45,
-    current_max_floor: 40,
+    arch_level: 1,
+    current_max_floor: 1,
     geoduck_unlocked: false,
     base_stats: { Str: 0, Agi: 0, Per: 0, Int: 0, Luck: 0, Div: 0, Corr: 0 },
     upgrade_levels: { },
@@ -234,7 +242,21 @@ const useStore = create(
     arch_ability_infernal_bonus: "0",
     total_infernal_cards: 0,
     sandbox_stats: { Str: 0, Agi: 0, Per: 0, Int: 0, Luck: 0, Div: 0, Corr: 0 },
-    sandbox_floor: 100
+    sandbox_floor: 1,
+    duelStatsA: { Str: 0, Agi: 0, Per: 0, Int: 0, Luck: 0, Div: 0, Corr: 0 },
+    duelStatsB: { Str: 0, Agi: 0, Per: 0, Int: 0, Luck: 0, Div: 0, Corr: 0 },
+    activeProfileId: null,
+    profiles: [ ],
+    opt_results: null,
+    run_history: [ ],
+    synth_history: [ ],
+    synthesis_result: null,
+    lockedStats: { },
+    optGoal: "Max Floor Push",
+    targetFrag: 0,
+    targetBlock: "myth3",
+    timeLimit: 60,
+    simsPerSec: 15
   }),
 
   // Bulk load from JSON file
@@ -335,6 +357,8 @@ const useStore = create(
     if (!newState.asc2_unlocked) {
       if (newState.base_stats) newState.base_stats.Corr = 0;
       if (newState.sandbox_stats) newState.sandbox_stats.Corr = 0;
+      if (newState.duelStatsA) newState.duelStatsA.Corr = 0;
+      if (newState.duelStatsB) newState.duelStatsB.Corr = 0;
       if (newState.cards) {
         Object.keys(newState.cards).forEach(c => {
           if (c.endsWith('4')) newState.cards[c] = 0;
@@ -353,6 +377,14 @@ const useStore = create(
       if (newState.sandbox_stats) {
         newState.sandbox_stats.Div = 0;
         newState.sandbox_stats.Corr = 0;
+      }
+      if (newState.duelStatsA) {
+        newState.duelStatsA.Div = 0;
+        newState.duelStatsA.Corr = 0;
+      }
+      if (newState.duelStatsB) {
+        newState.duelStatsB.Div = 0;
+        newState.duelStatsB.Corr = 0;
       }
       if (newState.cards) {
         Object.keys(newState.cards).forEach(c => {
@@ -419,7 +451,9 @@ const useStore = create(
       }
     } else {
       const legacyId = 'prof_' + Date.now();
-      newState.profiles =[ { id: legacyId, name: "Imported Legacy Save", data: getWorkspaceSnapshot(newState) } ];
+      const presetName = data._presetName || "Imported Legacy Save";
+      // Append the legacy import or template to the existing profiles array to prevent wiping!
+      newState.profiles = [ ...(state.profiles || []), { id: legacyId, name: presetName, data: getWorkspaceSnapshot(newState) } ];
       newState.activeProfileId = legacyId;
     }
 

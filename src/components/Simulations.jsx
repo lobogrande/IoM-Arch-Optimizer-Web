@@ -92,6 +92,96 @@ export default function Simulations() {
   // Synthesis Tab State
   const [viewTargets, setViewTargets] = useState(null);
 
+  // Build Duel Tool State
+  const[duelOptGoal, setDuelOptGoal] = useState("Max Floor Push");
+  const[duelTargetFrag, setDuelTargetFrag] = useState(6);
+  const [duelTargetBlock, setDuelTargetBlock] = useState("div3");
+
+  const duelStatsA = store.duelStatsA || { Str: 0, Agi: 0, Per: 0, Int: 0, Luck: 0, Div: 0, Corr: 0 };
+  const duelStatsB = store.duelStatsB || { Str: 0, Agi: 0, Per: 0, Int: 0, Luck: 0, Div: 0, Corr: 0 };
+  const setDuelStatsA = (val) => store.setSimsState('duelStatsA', val);
+  const setDuelStatsB = (val) => store.setSimsState('duelStatsB', val);
+
+  const[isDueling, setIsDueling] = useState(false);
+  const [duelProgressMsg, setDuelProgressMsg] = useState("");
+  const[duelProgressPct, setDuelProgressPct] = useState(0);
+  const[duelResults, setDuelResults] = useState(null);
+
+  const handleRunDuel = async () => {
+    setIsDueling(true);
+    setDuelProgressMsg("Booting Telemetry Engine...");
+    setDuelProgressPct(0);
+    try {
+      const pool = new EngineWorkerPool();
+      await pool.init();
+      
+      const baseStateDict = {
+        asc1_unlocked: store.asc1_unlocked,
+        asc2_unlocked: store.asc2_unlocked,
+        arch_level: store.arch_level,
+        current_max_floor: store.current_max_floor,
+        arch_ability_infernal_bonus: parseFloat(store.arch_ability_infernal_bonus) / 100.0,
+        total_infernal_cards: store.total_infernal_cards,
+        base_stats: store.base_stats,
+        upgrade_levels: store.upgrade_levels,
+        external_levels: { ...store.external_levels, 8: store.geoduck_unlocked ? (store.external_levels[ 8 ] || 0) : 0 },
+        cards: store.cards
+      };
+      await pool.syncState(baseStateDict);
+      
+      const runsPerBuild = 500;
+      const totalRuns = runsPerBuild * 2;
+      
+      const runBuild = async (statsToTest, buildName, buildIndex) => {
+        const sumData = {};
+        let count = 0;
+        const floors = [ ];
+        const promises = [ ];
+        for (let i = 0; i < runsPerBuild; i++) {
+          const p = pool.runTask(statsToTest).then(res => {
+            if (!res.aborted) {
+              for (const[ k, v ] of Object.entries(res)) {
+                if (typeof v === 'number') sumData[k] = (sumData[k] || 0) + v;
+              }
+              floors.push(res.highest_floor);
+              count++;
+              
+              const globalCount = (buildIndex * runsPerBuild) + count;
+              if (count % 25 === 0 || count === runsPerBuild) {
+                setDuelProgressMsg(`⚔️ ${buildName}: Simulating run ${count}/${runsPerBuild}`);
+                setDuelProgressPct((globalCount / totalRuns) * 100);
+              }
+            }
+          });
+          promises.push(p);
+        }
+        await Promise.all(promises);
+        const avgData = {};
+        for (const [ k, v ] of Object.entries(sumData)) {
+          avgData[k] = v / count;
+        }
+        
+        if (floors.length > 0) {
+          const maxFloor = Math.max(...floors);
+          const maxCount = floors.filter(f => f === maxFloor).length;
+          avgData['abs_max_floor'] = maxFloor;
+          avgData['abs_max_chance'] = maxCount / floors.length;
+        }
+        return avgData;
+      };
+
+      const resA = await runBuild(duelStatsA, "Build A", 0);
+      const resB = await runBuild(duelStatsB, "Build B", 1);
+      
+      setDuelResults({ A: resA, B: resB });
+      pool.terminate();
+    } catch (err) {
+      console.error(err);
+      alert("Duel failed: " + err.message);
+    }
+    setIsDueling(false);
+  };
+
   // Sandbox UI State
   const sandboxMinHits = store.sandboxMinHits;
   const setSandboxMinHits = store.setSandboxMinHits;
@@ -898,7 +988,7 @@ export default function Simulations() {
               })}
             </div>
 
-            <div className="flex flex-col md:flex-row gap-4 mt-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-2 mt-6">
               <button 
                 onClick={(e) => {
                   store.setBaseStats(store.opt_results.best_final);
@@ -907,9 +997,9 @@ export default function Simulations() {
                   btn.innerText = "✅ Applied!";
                   setTimeout(() => { btn.innerText = originalText; }, 2000);
                 }}
-                className="flex-1 py-2 bg-[#2b2b2b] border border-st-orange text-st-orange font-bold rounded hover:bg-st-orange hover:text-[#2b2b2b] transition-colors"
+                className="w-full py-2 bg-[#2b2b2b] border border-st-orange text-st-orange font-bold rounded hover:bg-st-orange hover:text-[#2b2b2b] transition-colors"
               >
-                ✨ Apply Build Globally
+                ✨ Apply Globally
               </button>
               <button 
                 onClick={() => {
@@ -917,9 +1007,29 @@ export default function Simulations() {
                   setActiveSubTab('sandbox');
                   window.scrollTo({ top: 0, behavior: 'smooth' });
                 }}
-                className="flex-1 py-2 bg-[#2b2b2b] border border-st-orange text-st-orange font-bold rounded hover:bg-st-orange hover:text-[#2b2b2b] transition-colors"
+                className="w-full py-2 bg-[#2b2b2b] border border-st-orange text-st-orange font-bold rounded hover:bg-st-orange hover:text-[#2b2b2b] transition-colors"
               >
                 🧪 Send to Sandbox
+              </button>
+              <button 
+                onClick={() => {
+                  store.setSimsState('duelStatsA', store.opt_results.best_final);
+                  setActiveSubTab('duel');
+                  window.scrollTo({ top: 0, behavior: 'smooth' });
+                }}
+                className="w-full py-2 bg-[#2b2b2b] border border-st-orange text-st-orange font-bold rounded hover:bg-st-orange hover:text-[#2b2b2b] transition-colors"
+              >
+                ⚔️ Send to Duel (A)
+              </button>
+              <button 
+                onClick={() => {
+                  store.setSimsState('duelStatsB', store.opt_results.best_final);
+                  setActiveSubTab('duel');
+                  window.scrollTo({ top: 0, behavior: 'smooth' });
+                }}
+                className="w-full py-2 bg-[#2b2b2b] border border-st-orange text-st-orange font-bold rounded hover:bg-st-orange hover:text-[#2b2b2b] transition-colors"
+              >
+                ⚔️ Send to Duel (B)
               </button>
             </div>
           </div>
@@ -965,8 +1075,8 @@ export default function Simulations() {
                         const runsNeeded = peakChance > 0 ? Math.ceil(1.0 / peakChance) : 0;
                         
                         // Pull the true mathematical Total Time (Arch Seconds) directly from the engine metrics!
-                        const maxSta = (finalSum.avg_metrics && finalSum.avg_metrics.total_time) 
-                          ? finalSum.avg_metrics.total_time 
+                        const maxSta = (finalSum.avg_metrics && finalSum.avg_metrics.in_game_time) 
+                          ? finalSum.avg_metrics.in_game_time 
                           : ((finalSum.stamina_trace && finalSum.stamina_trace.stamina && finalSum.stamina_trace.stamina.length > 0) 
                             ? finalSum.stamina_trace.stamina[0] 
                             : 0);
@@ -1436,7 +1546,8 @@ export default function Simulations() {
         {[
           { id: 'optimizer', label: '🚀 Optimizer' },
           { id: 'synth', label: '🧬 Build Synthesis & History' },
-          { id: 'sandbox', label: '🧪 Hit Calculator (Sandbox)' }
+          { id: 'sandbox', label: '🧪 Hit Calculator (Sandbox)' },
+          { id: 'duel', label: '⚔️ Build Duel' }
         ].map((tab) => (
           <button
             key={tab.id}
@@ -1732,12 +1843,6 @@ export default function Simulations() {
                 store.setSimsState('synthesis_result', null);
             }
             
-            // Clear stale ROI data
-            setRoiStatResults(null);
-            setRoiUpgResults(null);
-            setRoiExtResults(null);
-            setRoiCardResults(null);
-            
             // Snap to the appropriate tab based on what we are restoring
             setActiveSubTab(isMetaBuild ? 'synth' : 'optimizer');
             setResTab('build');
@@ -1993,13 +2098,23 @@ export default function Simulations() {
             const avgMetrics = {};
             for(const [mk, mv] of Object.entries(bestData.metricsSum)) avgMetrics[mk] = mv / 500.0;
 
+            // Calculate exact confidence metrics from the Round 2 Finalists
+            const allSynthScores = r2Ids.map(bId => {
+                if (runTargetMetric === "highest_floor") return getCeilingScore(buildRes.get(bId).floors, 5);
+                else return buildRes.get(bId).sum_t / 500.0;
+            }).sort((a, b) => b - a);
+
+            const synthWorst = allSynthScores.length > 0 ? allSynthScores[allSynthScores.length - 1] : 0;
+            const synthAvg = allSynthScores.length > 0 ? allSynthScores.reduce((a,b)=>a+b,0) / allSynthScores.length : 0;
+            const synthRunnerUp = allSynthScores.length > 1 ? allSynthScores[1] : (allSynthScores.length > 0 ? allSynthScores[0] : 0);
+
             const synthSummary = {[runTargetMetric]: runTargetMetric === "highest_floor" ? absMax : bestData.sum_t / 500.0,
                 avg_floor: avgF,
                 abs_max_floor: absMax,
                 abs_max_chance: bestData.floors.filter(f => f === absMax).length / 500.0,
-                worst_val: 0,
-                avg_val: avgF,
-                runner_up_val: 0,
+                worst_val: synthWorst,
+                avg_val: synthAvg,
+                runner_up_val: synthRunnerUp,
                 floors: bestData.floors,
                 avg_metrics: avgMetrics,
                 stamina_trace: bestData.staminaTrace
@@ -2035,10 +2150,10 @@ export default function Simulations() {
                 elapsed: synthElapsed,
                 time_limit_secs: 999, // Unlocked
                 run_target_metric: runTargetMetric,
-                worst_val: 0,
-                avg_val: avgF,
-                runner_up_val: 0,
-                chart_hill_labels: [chartLabel, "🧬 Polished Meta-Build"],
+                worst_val: synthWorst,
+                avg_val: synthAvg,
+                runner_up_val: synthRunnerUp,
+                chart_hill_labels:[chartLabel, "🧬 Polished Meta-Build"],
                 chart_hill_scores: [avgHistoryScore, metaScore],
                 chart_hist: bestData.floors.reduce((acc, f) => { acc[f] = (acc[f] || 0) + 1; return acc; }, {}),
                 chart_loot: chartLoot,
@@ -2048,8 +2163,8 @@ export default function Simulations() {
 
             const absMaxChance = synthSummary.abs_max_chance;
             let tempMaxSta = 1000;
-            if (synthSummary.avg_metrics && synthSummary.avg_metrics.total_time) {
-                tempMaxSta = synthSummary.avg_metrics.total_time;
+            if (synthSummary.avg_metrics && synthSummary.avg_metrics.in_game_time) {
+                tempMaxSta = synthSummary.avg_metrics.in_game_time;
             } else if (synthSummary.stamina_trace && synthSummary.stamina_trace.stamina.length > 0) {
                 tempMaxSta = synthSummary.stamina_trace.stamina[0];
             }
@@ -2365,6 +2480,260 @@ export default function Simulations() {
       })()}
 
       {/* =========================================
+          TAB: BUILD DUEL
+      ========================================= */}
+      {activeSubTab === 'duel' && (
+        <div className="space-y-6 animate-fade-in">
+          <h2 className="text-2xl font-bold">⚔️ Deep Telemetry (Build Duel)</h2>
+          <p className="text-st-text-light">Pit two builds against each other in a controlled environment to output their exact mathematical differences over <strong>500 simulations</strong>.</p>
+
+          <div className="st-container">
+            <h4 className="font-bold mb-4">🎯 Optimization Target</h4>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-bold mb-1">Telemetry Focus</label>
+                <select 
+                  value={duelOptGoal} 
+                  onChange={(e) => setDuelOptGoal(e.target.value)}
+                  className="w-full bg-st-bg border border-st-border rounded p-2 text-st-text focus:border-st-orange focus:outline-none"
+                >
+                  {OPT_GOALS.map(g => <option key={g} value={g}>{g}</option>)}
+                </select>
+              </div>
+              
+              <div>
+                {duelOptGoal === "Fragment Farming" && (
+                  <>
+                    <label className="block text-sm font-bold mb-1">Target Fragment</label>
+                    <select 
+                      value={duelTargetFrag} 
+                      onChange={(e) => setDuelTargetFrag(parseInt(e.target.value))}
+                      className="w-full bg-st-bg border border-st-border rounded p-2 text-st-text focus:border-st-orange focus:outline-none"
+                    >
+                      {Object.entries(FRAG_NAMES)
+                        .filter(([val]) => {
+                          const fragTier = parseInt(val);
+                          if (fragTier === 0) return false;
+                          if (fragTier === 6 && !store.asc1_unlocked) return false;
+                          return true;
+                        })
+                        .map(([val, name]) => (
+                          <option key={val} value={val}>{name}</option>
+                      ))}
+                    </select>
+                  </>
+                )}
+                {duelOptGoal === "Block Card Farming" && (
+                  <>
+                    <label className="block text-sm font-bold mb-1">Target Block ID</label>
+                    <input 
+                      type="text" 
+                      value={duelTargetBlock} 
+                      onChange={(e) => setDuelTargetBlock(e.target.value.toLowerCase())}
+                      onBlur={(e) => { if (e.target.value.trim() === '') setDuelTargetBlock('myth3'); }}
+                      placeholder="e.g., com1, myth3"
+                      className="w-full bg-st-bg border border-st-border rounded p-2 text-st-text focus:border-st-orange focus:outline-none"
+                    />
+                  </>
+                )}
+              </div>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* BUILD A INPUT */}
+            <div className="st-container border-t-4 border-t-blue-500">
+              <h4 className="font-bold mb-4 text-blue-400">Build A</h4>
+              <div className="grid grid-cols-4 gap-2">
+                {activeStats.map(stat => (
+                  <div key={stat}>
+                    <label className="block text-xs mb-1 font-bold">
+                      {stat} <span className="font-normal text-[10px] text-st-text-light">(Max: {MAX_STAT_CAPS[stat]})</span>
+                    </label>
+                    <input 
+                      type="number"
+                      min="0"
+                      max={MAX_STAT_CAPS[stat]}
+                      value={duelStatsA[stat] !== undefined ? duelStatsA[stat] : 0} 
+                      onFocus={(e) => e.target.select()}
+                      onChange={(e) => setDuelStatsA({...duelStatsA, [stat]: e.target.value === '' ? '' : Math.max(0, parseInt(e.target.value) || 0)})}
+                      onBlur={(e) => {
+                        let parsed = parseInt(e.target.value) || 0;
+                        if (parsed > MAX_STAT_CAPS[stat]) parsed = MAX_STAT_CAPS[stat];
+                        if (parsed < 0) parsed = 0;
+                        setDuelStatsA({...duelStatsA, [stat]: parsed});
+                      }}
+                      className="st-input p-2 text-sm"
+                    />
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* BUILD B INPUT */}
+            <div className="st-container border-t-4 border-t-st-orange">
+              <h4 className="font-bold mb-4 text-st-orange">Build B</h4>
+              <div className="grid grid-cols-4 gap-2">
+                {activeStats.map(stat => (
+                  <div key={stat}>
+                    <label className="block text-xs mb-1 font-bold">
+                      {stat} <span className="font-normal text-[10px] text-st-text-light">(Max: {MAX_STAT_CAPS[stat]})</span>
+                    </label>
+                    <input 
+                      type="number"
+                      min="0"
+                      max={MAX_STAT_CAPS[stat]}
+                      value={duelStatsB[stat] !== undefined ? duelStatsB[stat] : 0} 
+                      onFocus={(e) => e.target.select()}
+                      onChange={(e) => setDuelStatsB({...duelStatsB, [stat]: e.target.value === '' ? '' : Math.max(0, parseInt(e.target.value) || 0)})}
+                      onBlur={(e) => {
+                        let parsed = parseInt(e.target.value) || 0;
+                        if (parsed > MAX_STAT_CAPS[stat]) parsed = MAX_STAT_CAPS[stat];
+                        if (parsed < 0) parsed = 0;
+                        setDuelStatsB({...duelStatsB, [stat]: parsed});
+                      }}
+                      className="st-input p-2 text-sm"
+                    />
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {!isDueling ? (
+            <button 
+              onClick={handleRunDuel}
+              className="w-full py-3 bg-st-secondary border border-st-border text-st-text font-bold rounded-lg shadow hover:border-st-orange hover:text-st-orange transition-colors"
+            >
+              🏁 Run Telemetry Duel (500 Simulations)
+            </button>
+          ) : (
+            <div className="w-full p-4 border border-st-border rounded bg-st-bg">
+              <div className="flex justify-between text-sm font-bold mb-2 text-st-orange">
+                <span>{duelProgressMsg}</span>
+                <span>{Math.floor(duelProgressPct)}%</span>
+              </div>
+              <div className="w-full bg-[#1e1e1e] rounded-full h-4 overflow-hidden border border-st-border">
+                <div 
+                  className="bg-st-orange h-4 transition-all duration-300"
+                  style={{ width: `${duelProgressPct}%` }}
+                ></div>
+              </div>
+            </div>
+          )}
+
+          {duelResults && (
+            <div className="st-container mt-6 animate-fade-in">
+              <h4 className="text-xl font-bold mb-4">📊 Telemetry Results (Per Run Average)</h4>
+              <div className="overflow-x-auto">
+                <table className="w-full text-left border-collapse">
+                  <thead>
+                    <tr className="border-b border-st-border">
+                      <th className="p-3">Metric</th>
+                      <th className="p-3 font-bold text-blue-400">Build A</th>
+                      <th className="p-3 font-bold text-st-orange">Build B</th>
+                      <th className="p-3 text-center">Winner</th>
+                      <th className="p-3 text-right">% Diff</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {(() => {
+                      const rows = [ ];
+                      rows.push({ k: 'highest_floor', l: 'Avg Max Floor', higherIsBetter: true });
+                      
+                      if (duelOptGoal === "Max Floor Push") {
+                        rows.push({ k: 'abs_max_floor', l: 'Absolute Max Floor Reached', higherIsBetter: true, isRaw: true });
+                        rows.push({ k: 'abs_max_chance', l: 'Probability of Max Floor', higherIsBetter: true, isPercent: true });
+                      } else if (duelOptGoal === "Max EXP Yield") {
+                        rows.push({ k: 'xp_per_min', l: 'EXP Yield per 1k Arch Secs', higherIsBetter: true, isRate: true });
+                      } else if (duelOptGoal === "Fragment Farming") {
+                        const fragName = FRAG_NAMES[duelTargetFrag] || `Frag ${duelTargetFrag}`;
+                        rows.push({ k: `frag_${duelTargetFrag}_per_min`, l: `Yield (${fragName}) per 1k Arch Secs`, higherIsBetter: true, isRate: true });
+                        
+                        const prefixMap = { 1: 'com', 2: 'rare', 3: 'epic', 4: 'leg', 5: 'myth', 6: 'div' };
+                        const pfx = prefixMap[duelTargetFrag];
+                        if (pfx) {[ 1, 2, 3, 4 ].forEach(tier => {
+                            rows.push({ k: `raw_block_${pfx}${tier}`, l: `Tier ${tier} Kills (${pfx}${tier})`, higherIsBetter: true, isRaw: true });
+                            rows.push({ k: `raw_frag_${pfx}${tier}`, l: `${fragName} fragments from ${pfx}${tier} blocks`, higherIsBetter: true, isRaw: true });
+                          });
+                        }
+                      } else if (duelOptGoal === "Block Card Farming") {
+                        rows.push({ k: `block_${duelTargetBlock}_per_min`, l: `Kills (${duelTargetBlock}) per 1k Arch Secs`, higherIsBetter: true, isRate: true });
+                        rows.push({ k: `raw_block_${duelTargetBlock}`, l: `Avg Kills (${duelTargetBlock}) per Run`, higherIsBetter: true, isRaw: true });
+                      }
+
+                      rows.push(
+                        { k: 'gross_swings', l: 'Gross Swings (Stamina Spent)', higherIsBetter: true },
+                        { k: 'in_game_time', l: 'In-Game Seconds Passed', higherIsBetter: true },
+                        { k: 'stamina_refunded_flurry', l: 'Stamina Refunded (Flurry)', higherIsBetter: true },
+                        { k: 'stamina_refunded_mods', l: 'Stamina Refunded (Mods)', higherIsBetter: true },
+                        { k: 'flurry_casts', l: 'Flurry Casts', higherIsBetter: true },
+                        { k: 'enrage_casts', l: 'Enrage Casts', higherIsBetter: true },
+                        { k: 'quake_casts', l: 'Quake Casts', higherIsBetter: true },
+                        { k: 'melee_damage', l: 'Total Melee Damage', higherIsBetter: true },
+                        { k: 'quake_damage', l: 'Total Quake Damage', higherIsBetter: true },
+                        { k: 'overkill_damage', l: 'Total Overkill Damage (Wasted)', higherIsBetter: false }
+                      );
+
+                      return rows.map((row) => {
+                        const rawA = duelResults.A[row.k] || 0;
+                        const rawB = duelResults.B[row.k] || 0;
+                        
+                        const valA = row.isRate ? (rawA / 60.0) * 1000.0 : rawA;
+                        const valB = row.isRate ? (rawB / 60.0) * 1000.0 : rawB;
+
+                        const isWinnerA = row.higherIsBetter !== null ? (row.higherIsBetter ? valA > valB : valA < valB) : null;
+                        const isWinnerB = row.higherIsBetter !== null ? (row.higherIsBetter ? valB > valA : valB < valA) : null;
+
+                        let formattedA = valA.toLocaleString(undefined, { maximumFractionDigits: 1 });
+                        let formattedB = valB.toLocaleString(undefined, { maximumFractionDigits: 1 });
+                        
+                        if (row.isPercent) {
+                          formattedA = (valA * 100).toFixed(1) + '%';
+                          formattedB = (valB * 100).toFixed(1) + '%';
+                        }
+
+                        let diffStr = '-';
+                        if (isWinnerA && valB > 0) {
+                          const pct = (((valA - valB) / valB) * 100);
+                          diffStr = `${pct > 0 ? '+' : ''}${pct.toFixed(1)}%`;
+                        } else if (isWinnerB && valA > 0) {
+                          const pct = (((valB - valA) / valA) * 100);
+                          diffStr = `${pct > 0 ? '+' : ''}${pct.toFixed(1)}%`;
+                        } else if (isWinnerA && valB === 0) {
+                          diffStr = 'MAX';
+                        } else if (isWinnerB && valA === 0) {
+                          diffStr = 'MAX';
+                        }
+
+                        return (
+                          <tr key={row.k} className="border-b border-st-border/50 hover:bg-black/5">
+                            <td className="p-3 font-bold text-sm">{row.l}</td>
+                            <td className={`p-3 font-mono ${isWinnerA ? 'text-green-400 font-bold' : 'text-st-text-light'}`}>
+                              {formattedA}
+                            </td>
+                            <td className={`p-3 font-mono ${isWinnerB ? 'text-green-400 font-bold' : 'text-st-text-light'}`}>
+                              {formattedB}
+                            </td>
+                            <td className="p-3 font-bold text-center">
+                              {isWinnerA ? 'A' : isWinnerB ? 'B' : '-'}
+                            </td>
+                            <td className={`p-3 font-mono text-right font-bold ${diffStr !== '-' ? 'text-st-orange' : 'text-st-text-light'}`}>
+                              {diffStr}
+                            </td>
+                          </tr>
+                        );
+                      });
+                    })()}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* =========================================
           TAB: SANDBOX
       ========================================= */}
       {activeSubTab === 'sandbox' && (
@@ -2398,14 +2767,14 @@ export default function Simulations() {
             {/* LEFT PANEL: CONTROLS */}
             <div className="lg:col-span-1 space-y-6">
               <div className="st-container bg-black/10">
-                <div className="flex gap-2 mb-6">
+                <div className="grid grid-cols-2 gap-2 mb-2">
                   <button 
                     onClick={() => {
                       activeStats.forEach(s => store.setSandboxStat(s, store.base_stats[s] || 0));
                     }}
-                    className="flex-1 py-2 bg-st-secondary border border-st-border text-xs font-bold rounded hover:border-st-orange transition-colors"
+                    className="w-full py-2 bg-st-secondary border border-st-border text-xs font-bold rounded hover:border-st-orange transition-colors"
                   >
-                    🔄 Pull Global Stats
+                    🔄 Pull Global
                   </button>
                   <button 
                     onClick={() => {
@@ -2417,9 +2786,31 @@ export default function Simulations() {
                       activeStats.forEach(s => store.setBaseStat(s, store.sandbox_stats[s] || 0));
                       alert("✅ Sandbox stats pushed to Global UI!");
                     }}
-                    className="flex-1 py-2 bg-st-secondary border border-st-border text-xs font-bold rounded hover:border-st-orange transition-colors"
+                    className="w-full py-2 bg-st-secondary border border-st-border text-xs font-bold rounded hover:border-st-orange transition-colors"
                   >
-                    📤 Push to Global
+                    📤 Push Global
+                  </button>
+                </div>
+                <div className="grid grid-cols-2 gap-2 mb-6">
+                  <button 
+                    onClick={() => {
+                      store.setSimsState('duelStatsA', store.sandbox_stats);
+                      setActiveSubTab('duel');
+                      window.scrollTo({ top: 0, behavior: 'smooth' });
+                    }}
+                    className="w-full py-2 bg-[#2b2b2b] border border-st-orange text-st-orange text-xs font-bold rounded hover:bg-st-orange hover:text-[#2b2b2b] transition-colors"
+                  >
+                    ⚔️ Duel (A)
+                  </button>
+                  <button 
+                    onClick={() => {
+                      store.setSimsState('duelStatsB', store.sandbox_stats);
+                      setActiveSubTab('duel');
+                      window.scrollTo({ top: 0, behavior: 'smooth' });
+                    }}
+                    className="w-full py-2 bg-[#2b2b2b] border border-st-orange text-st-orange text-xs font-bold rounded hover:bg-st-orange hover:text-[#2b2b2b] transition-colors"
+                  >
+                    ⚔️ Duel (B)
                   </button>
                 </div>
                 

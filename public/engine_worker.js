@@ -95,23 +95,43 @@ def execute_simulation(test_stats_proxy, test_upgrades_proxy, test_external_prox
     sim = CombatSimulator(p)
     result = sim.run_simulation()
     
-    runtime_mins = result.total_time / 60.0 if result.total_time > 0 else 1.0
+    # Calculate Arch Minutes based on True In-Game Time for accurate real-time yield projection
+    arch_mins = result.total_time / 60.0 if result.total_time > 0 else 1.0
     
     metrics = {
         "highest_floor": result.highest_floor,
-        "xp_per_min": result.total_xp / runtime_mins,
-        "blocks_per_min": result.blocks_mined / runtime_mins,
+        "xp_per_min": result.total_xp / arch_mins,
+        "blocks_per_min": result.blocks_mined / arch_mins,
         "total_time": result.total_time,
         "stamina_trace_floor": result.history['floor'],
-        "stamina_trace_stamina": result.history['stamina']
+        "stamina_trace_stamina": result.history['stamina'],
+        
+        # Telemetry Dumps
+        "gross_swings": result.total_stamina_spent,
+        "in_game_time": result.total_time,
+        "crosshair_spawns": result.crosshair_spawns,
+        "crosshair_damage": result.crosshair_damage,
+        "melee_damage": result.melee_damage,
+        "quake_damage": result.quake_damage,
+        "overkill_damage": result.overkill_damage,
+        "flurry_casts": result.skills_tracker.total_flurry_casts,
+        "enrage_casts": result.skills_tracker.total_enrage_casts,
+        "quake_casts": result.skills_tracker.total_quake_casts,
+        "stamina_refunded_flurry": result.stamina_refunded_flurry,
+        "stamina_refunded_mods": result.stamina_refunded_mods
     }
     
     for frag_tier, amt in result.total_frags.items():
-        metrics[f"frag_{frag_tier}_per_min"] = amt / runtime_mins
+        metrics[f"frag_{frag_tier}_per_min"] = amt / arch_mins
         
     if hasattr(result, 'specific_blocks_mined'):
         for block_id, count in result.specific_blocks_mined.items():
-            metrics[f"block_{block_id}_per_min"] = count / runtime_mins
+            metrics[f"block_{block_id}_per_min"] = count / arch_mins
+            metrics[f"raw_block_{block_id}"] = count
+            
+    if hasattr(result, 'specific_blocks_frags'):
+        for block_id, frags in result.specific_blocks_frags.items():
+            metrics[f"raw_frag_{block_id}"] = frags
             
     return metrics
     `;
