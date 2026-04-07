@@ -1260,8 +1260,8 @@ export default function Simulations() {
                       };
 
                       const drops =[
-                        { name: "Base Card", odds: 1500, bg: "1" },
-                        { name: "Poly Fragments", odds: 7500, bg: "2" },
+                        { name: "Base Card", odds: 15000, bg: "1" },
+                        { name: "Poly Fragments", odds: 75000, bg: "2" },
                         { name: "Infernal Fragments", odds: 200000, bg: "4" }
                       ];
 
