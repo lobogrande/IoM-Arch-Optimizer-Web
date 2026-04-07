@@ -1563,8 +1563,8 @@ export default function Simulations() {
         {[
           { id: 'optimizer', label: '🚀 Optimizer' },
           { id: 'synth', label: '🧬 Build Synthesis & History' },
-          { id: 'sandbox', label: '🧪 Hit Calculator (Sandbox)' },
-          { id: 'duel', label: '⚔️ Build Duel' }
+          { id: 'duel', label: '⚔️ Build Duel' },
+          { id: 'sandbox', label: '🧪 Hit Calculator (Sandbox)' }
         ].map((tab) => (
           <button
             key={tab.id}
@@ -1579,6 +1579,38 @@ export default function Simulations() {
           </button>
         ))}
       </div>
+
+      {/* GLOBAL ENGINE CONTROLS */}
+      {activeSubTab !== 'sandbox' && (
+        <div className="st-container mb-8 flex flex-col md:flex-row gap-6 justify-between items-start md:items-center border-l-4 border-l-st-orange bg-st-secondary/30">
+          <div className="w-full md:w-2/3">
+            <label className="block text-sm font-bold mb-2">🔥 Global CPU Thermal Profile</label>
+            <select 
+              value={cpuProfile} 
+              onChange={(e) => setCpuProfile(e.target.value)}
+              className="w-full bg-st-bg border border-st-border rounded p-2 text-sm text-st-text focus:border-st-orange focus:outline-none"
+            >
+              <option value="eco">Eco Mode / Mobile (Max 1-2 Cores) - Saves Battery</option>
+              <option value="balanced">Balanced (Up to 6 Cores) - Safe for PCs</option>
+              <option value="max">Max Performance (All Cores) - ⚠️ Thermal Warning</option>
+            </select>
+            <div className="text-xs text-st-text-light mt-2">
+              Caps the engine's background Web Workers to prevent your device from thermal-throttling or draining battery during Monte Carlo simulations.
+            </div>
+          </div>
+          <div className="w-full md:w-1/3 flex flex-col gap-2 bg-st-bg border border-st-border p-3 rounded shadow-sm">
+            <div className="text-sm">
+              ⚡ <strong>Hardware Speed:</strong><br/>{simsPerSec} sims/sec <em>(Calibrated)</em>
+            </div>
+            <button 
+              onClick={() => setSimsPerSec(150)}
+              className="w-full py-1 bg-st-secondary border border-st-border rounded hover:border-st-orange text-xs font-bold transition-colors"
+            >
+              🔄 Recalibrate Speed
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* =========================================
           TAB: OPTIMIZER
@@ -1772,7 +1804,7 @@ export default function Simulations() {
 
           {/* Engine Tuning */}
           <details className="st-container group cursor-pointer marker:text-st-orange mb-6">
-            <summary className="font-bold">⚙️ Advanced: Engine Tuning & Hardware Benchmark</summary>
+            <summary className="font-bold">⚙️ Advanced: AI Execution Plan</summary>
             <div className="mt-4 text-sm cursor-default space-y-4">
               <p>
                 <strong>🧠 How does the Auto-Scaler work?</strong><br/>
@@ -1784,32 +1816,6 @@ export default function Simulations() {
               <p className="italic text-st-text-light">
                 (Execution Plan: Phase 1 leaps by {step1} ➔ Phase 2 leaps by {profData?.step_2 || '?'} ➔ Phase 3 leaps by {profData?.step_3 || '?'})
               </p>
-              <hr className="border-st-border" />
-              <div className="flex items-center justify-between border-b border-st-border pb-4">
-                <span>⚡ <strong>Hardware Speed:</strong> {simsPerSec} sims / second <em>(Auto-calibrated)</em></span>
-                <button 
-                  onClick={() => setSimsPerSec(150)}
-                  className="px-4 py-1 bg-st-secondary border border-st-border rounded hover:border-st-orange text-xs font-bold transition-colors"
-                >
-                  🔄 Reset Calibration
-                </button>
-              </div>
-              
-              <div className="pt-2">
-                <label className="block text-sm font-bold mb-2">🔥 CPU Thermal Profile (Core Limit)</label>
-                <select 
-                  value={cpuProfile} 
-                  onChange={(e) => setCpuProfile(e.target.value)}
-                  className="w-full bg-st-bg border border-st-border rounded p-2 text-st-text focus:border-st-orange focus:outline-none mb-2"
-                >
-                  <option value="eco">Eco Mode / Mobile (Max 1-2 Cores) - Saves Battery</option>
-                  <option value="balanced">Balanced (Up to 6 Cores) - Safe for PCs (Default)</option>
-                  <option value="max">Max Performance (All Cores) - ⚠️ Thermal Warning</option>
-                </select>
-                <div className="text-xs text-st-text-light">
-                  <strong>Why does this exist?</strong> Browsers don't have gaming thermal throttles. High-end modern CPUs have 20+ threads. Uncapping Web Workers will force 100% utilization across all cores, acting like a brutal stress test and causing massive fan noise or thermal shutdowns. <strong>Balanced mode</strong> caps usage to keep your PC cool while still running math extremely quickly.
-                </div>
-              </div>
             </div>
           </details>
 
