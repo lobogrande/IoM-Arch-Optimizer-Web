@@ -54,8 +54,11 @@ export default function Simulations() {
   const setTimeLimit = (v) => store.setSimsState('timeLimit', v);
   const setLockedStats = (v) => store.setSimsState('lockedStats', v);
   const setSimsPerSec = (v) => store.setSimsState('simsPerSec', v);
+  
+  const cpuProfile = store.cpuProfile || 'balanced';
+  const setCpuProfile = (v) => store.setSimsState('cpuProfile', v);
 
-  const [displayTime, setDisplayTime] = useState(store.timeLimit || 60); // Visual slider state
+  const[displayTime, setDisplayTime] = useState(store.timeLimit || 60); // Visual slider state
 
   // Debounce the visual slider so it reliably updates the engine math without freezing the browser
   useEffect(() => {
