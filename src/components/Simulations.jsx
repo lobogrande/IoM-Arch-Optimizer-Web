@@ -1591,7 +1591,7 @@ export default function Simulations() {
           <div className="st-container border-l-4 border-l-st-orange">
             <h4 className="font-bold mb-2">💡 Best Practice: The Optimal Workflow</h4>
             <div className="text-sm space-y-2">
-              <p><strong>1. The Scout Run:</strong> Leave your stats unlocked. Run a fast 10-30s simulation. Did the AI drop any stats to 0? Did it push any to their Max?</p>
+              <p><strong>1. The Scout Run:</strong> Leave your stats unlocked. Run a fast 30-60s simulation. Did the AI drop any stats to 0? Did it push any to their Max?</p>
               <p><strong>2. The Refined Runs:</strong> Lock those obvious stats in the <strong>Stat Constraints</strong> below. By locking just 1 or 2 stats, the AI can scan the remaining stats with vastly higher precision. Run this 3 to 5 times.</p>
               <p><strong>3. The Synthesis:</strong> This optimizer provides highly optimized <em>local maxima</em> (stat plateaus). You <strong>must</strong> take your top refined runs and merge them in the <strong>Synthesis Tab</strong> to find the true global peak!</p>
               <p><strong>4. Deep Dives:</strong> Once you have your synthesized Meta-Build, test its performance in the <strong>Build Duel</strong>, calculate upgrades in the <strong>ROI Tab</strong>, or tweak its breakpoints manually in the <strong>Sandbox</strong>.</p>
