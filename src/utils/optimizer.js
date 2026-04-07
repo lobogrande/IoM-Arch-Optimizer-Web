@@ -2,16 +2,33 @@
 // Script: src/utils/optimizer.js
 // Description: Client-side equivalent of parallel_worker.py. Houses the 
 //              Web Worker pool, grid generation (backtracking), and Auto-Scaler.
+import useStore from '../store';
+
 // ==============================================================================
 
 /**
- * Custom Web Worker Pool to max out the client's CPU cores.
+ * Custom Web Worker Pool to gracefully manage the client's CPU cores.
  */
 export class EngineWorkerPool {
     constructor(size) {
-        // Leave 1 core free for the React UI thread to prevent browser lockups
         const maxCores = navigator.hardwareConcurrency || 4;
-        this.size = size || Math.max(1, maxCores - 1);
+        const profile = useStore.getState().cpuProfile || 'balanced';
+        
+        let activeCores = 1;
+        if (size) {
+            activeCores = size;
+        } else if (profile === 'eco') {
+            // Mobile Battery Saver: 25% of cores, capped at 2 maximum
+            activeCores = Math.max(1, Math.min(2, Math.floor(maxCores * 0.25)));
+        } else if (profile === 'max') {
+            // Wind Tunnel Mode: All cores minus 1 for UI
+            activeCores = Math.max(1, maxCores - 1); 
+        } else {
+            // Balanced: 50% of cores, heavily capped at 6 to prevent thermal runaway on 20+ thread CPUs
+            activeCores = Math.max(1, Math.min(6, Math.floor(maxCores / 2)));
+        }
+        
+        this.size = activeCores;
         
         this.workers = [ ];
         this.idleWorkers = [ ];
