@@ -1581,34 +1581,36 @@ export default function Simulations() {
       </div>
 
       {/* GLOBAL ENGINE CONTROLS */}
-      <div className="st-container mb-8 flex flex-col md:flex-row gap-6 justify-between items-start md:items-center border-l-4 border-l-st-orange bg-st-secondary/30">
-        <div className="w-full md:w-2/3">
-          <label className="block text-sm font-bold mb-2">🔥 Global CPU Thermal Profile</label>
-          <select 
-            value={cpuProfile} 
-            onChange={(e) => setCpuProfile(e.target.value)}
-            className="w-full bg-st-bg border border-st-border rounded p-2 text-sm text-st-text focus:border-st-orange focus:outline-none"
-          >
-            <option value="eco">Eco Mode / Mobile (Max 1-2 Cores) - Saves Battery</option>
-            <option value="balanced">Balanced (Up to 6 Cores) - Safe for PCs</option>
-            <option value="max">Max Performance (All Cores) - ⚠️ Thermal Warning</option>
-          </select>
-          <div className="text-xs text-st-text-light mt-2">
-            Caps the engine's background Web Workers to prevent your device from thermal-throttling or draining battery during Monte Carlo simulations.
+      {activeSubTab !== 'sandbox' && (
+        <div className="st-container mb-8 flex flex-col md:flex-row gap-6 justify-between items-start md:items-center border-l-4 border-l-st-orange bg-st-secondary/30">
+          <div className="w-full md:w-2/3">
+            <label className="block text-sm font-bold mb-2">🔥 Global CPU Thermal Profile</label>
+            <select 
+              value={cpuProfile} 
+              onChange={(e) => setCpuProfile(e.target.value)}
+              className="w-full bg-st-bg border border-st-border rounded p-2 text-sm text-st-text focus:border-st-orange focus:outline-none"
+            >
+              <option value="eco">Eco Mode / Mobile (Max 1-2 Cores) - Saves Battery</option>
+              <option value="balanced">Balanced (Up to 6 Cores) - Safe for PCs</option>
+              <option value="max">Max Performance (All Cores) - ⚠️ Thermal Warning</option>
+            </select>
+            <div className="text-xs text-st-text-light mt-2">
+              Caps the engine's background Web Workers to prevent your device from thermal-throttling or draining battery during Monte Carlo simulations.
+            </div>
+          </div>
+          <div className="w-full md:w-1/3 flex flex-col gap-2 bg-st-bg border border-st-border p-3 rounded shadow-sm">
+            <div className="text-sm">
+              ⚡ <strong>Hardware Speed:</strong><br/>{simsPerSec} sims/sec <em>(Calibrated)</em>
+            </div>
+            <button 
+              onClick={() => setSimsPerSec(150)}
+              className="w-full py-1 bg-st-secondary border border-st-border rounded hover:border-st-orange text-xs font-bold transition-colors"
+            >
+              🔄 Recalibrate Speed
+            </button>
           </div>
         </div>
-        <div className="w-full md:w-1/3 flex flex-col gap-2 bg-st-bg border border-st-border p-3 rounded shadow-sm">
-          <div className="text-sm">
-            ⚡ <strong>Hardware Speed:</strong><br/>{simsPerSec} sims/sec <em>(Calibrated)</em>
-          </div>
-          <button 
-            onClick={() => setSimsPerSec(150)}
-            className="w-full py-1 bg-st-secondary border border-st-border rounded hover:border-st-orange text-xs font-bold transition-colors"
-          >
-            🔄 Recalibrate Speed
-          </button>
-        </div>
-      </div>
+      )}
 
       {/* =========================================
           TAB: OPTIMIZER
