@@ -2,6 +2,14 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { EXTERNAL_UI_GROUPS, ASC1_LOCKED_UPGS, ASC2_LOCKED_UPGS } from './game_data';
 
+// Helper to reliably detect mobile devices via UserAgent or Touch + Screen Size
+const isMobileDevice = () => {
+  if (typeof window === 'undefined') return false;
+  const isTouch = navigator.maxTouchPoints > 0 || 'ontouchstart' in window;
+  const isMobileUA = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+  return isMobileUA || (isTouch && window.innerWidth <= 768);
+};
+
 const getWorkspaceSnapshot = (state) => ({
   asc1_unlocked: state.asc1_unlocked,
   asc2_unlocked: state.asc2_unlocked,
@@ -257,7 +265,7 @@ const useStore = create(
     targetBlock: "myth3",
     timeLimit: 60,
     simsPerSec: 15,
-    cpuProfile: 'balanced'
+    cpuProfile: isMobileDevice() ? 'eco' : 'balanced'
   }),
 
   // Bulk load from JSON file
