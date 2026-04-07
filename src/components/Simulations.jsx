@@ -1116,7 +1116,11 @@ export default function Simulations() {
                       <div>
                         <h4 className="font-bold text-lg">💰 Banked Yields</h4>
                         <p className="text-sm text-st-text-light mb-1">Target {runMetric.includes("frag") ? "Fragments" : runMetric.includes("block") ? "Kills" : "EXP"} per <b>1k Arch Seconds</b></p>
-                        <div className="text-xs text-st-orange/80 mb-2 italic">Note: 100-sim average. May vary ±5% due to RNG. Use Synthesis for exact measurement.</div>
+                        {context === 'optimizer' ? (
+                          <div className="text-xs text-st-orange/80 mb-2 italic">Note: 100-sim average. May vary ±5% due to RNG. Use Synthesis for a more accurate measurement.</div>
+                        ) : (
+                          <div className="text-xs text-green-500/80 mb-2 italic">Note: 500-sim marathon average. RNG variance minimized.</div>
+                        )}
                         <div className="text-3xl font-bold text-st-orange">{scaleScore(finalSum[runMetric]).toLocaleString(undefined, {minimumFractionDigits:1, maximumFractionDigits:1})}</div>
                       </div>
                       <hr className="border-st-border" />
@@ -2321,7 +2325,7 @@ export default function Simulations() {
               {/* Tournament Controls */}
               <div className="st-container">
                 <h4 className="text-lg font-bold mb-2">🏆 Run Tie-Breaker Tournament</h4>
-                <p className="text-sm text-st-text-light mb-4">Once you have checked the <strong>Include</strong> box for a few of your top runs (we recommend 2 to 5) in the history table below, click Synthesize to merge them.</p>
+                <p className="text-sm text-st-text-light mb-4">Once you have checked the <strong>Include</strong> box for a few of your top runs (recommended to use 2 to 5) in the history table below, click Synthesize to merge them.</p>
                 <div className="flex flex-col md:flex-row gap-4">
                   {!isAnyRunning ? (
                     <button 
