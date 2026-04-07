@@ -1563,8 +1563,8 @@ export default function Simulations() {
         {[
           { id: 'optimizer', label: '🚀 Optimizer' },
           { id: 'synth', label: '🧬 Build Synthesis & History' },
-          { id: 'sandbox', label: '🧪 Hit Calculator (Sandbox)' },
-          { id: 'duel', label: '⚔️ Build Duel' }
+          { id: 'duel', label: '⚔️ Build Duel' },
+          { id: 'sandbox', label: '🧪 Hit Calculator (Sandbox)' }
         ].map((tab) => (
           <button
             key={tab.id}
