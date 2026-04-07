@@ -1803,7 +1803,7 @@ export default function Simulations() {
                   className="w-full bg-st-bg border border-st-border rounded p-2 text-st-text focus:border-st-orange focus:outline-none mb-2"
                 >
                   <option value="eco">Eco Mode / Mobile (Max 1-2 Cores) - Saves Battery</option>
-                  <option value="balanced">Balanced (Max 4-6 Cores) - Safe for PCs (Default)</option>
+                  <option value="balanced">Balanced (Up to 6 Cores) - Safe for PCs (Default)</option>
                   <option value="max">Max Performance (All Cores) - ⚠️ Thermal Warning</option>
                 </select>
                 <div className="text-xs text-st-text-light">
