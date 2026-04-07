@@ -256,7 +256,8 @@ const useStore = create(
     targetFrag: 0,
     targetBlock: "myth3",
     timeLimit: 60,
-    simsPerSec: 15
+    simsPerSec: 15,
+    cpuProfile: 'balanced'
   }),
 
   // Bulk load from JSON file
