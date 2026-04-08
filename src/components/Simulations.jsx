@@ -1456,7 +1456,9 @@ export default function Simulations() {
                             </tr>
                           </thead>
                           <tbody>
-                            {store.opt_results.roi_stats.map((r, i) => (
+                            {store.opt_results.roi_stats.length === 0 ? (
+                              <tr><td colSpan="2" className="py-4 text-center text-st-text-light italic">No positive marginal gains found.</td></tr>
+                            ) : store.opt_results.roi_stats.map((r, i) => (
                               <tr key={r.stat} className="border-b border-st-border/50 hover:bg-black/5 transition-colors">
                                 <td className="py-2 pr-4 font-bold">{r.stat}</td>
                                 <td className="py-2 font-mono text-st-orange">{r.gain > 0 ? '+' : ''}{r.gain.toFixed(2)}</td>
@@ -1491,7 +1493,9 @@ export default function Simulations() {
                             </tr>
                           </thead>
                           <tbody>
-                            {store.opt_results.roi_upgrades.map((r, i) => (
+                            {store.opt_results.roi_upgrades.length === 0 ? (
+                              <tr><td colSpan="3" className="py-4 text-center text-st-text-light italic">No positive marginal gains found.</td></tr>
+                            ) : store.opt_results.roi_upgrades.map((r, i) => (
                               <tr key={r.id} className="border-b border-st-border/50 hover:bg-black/5 transition-colors">
                                 <td className="py-2 pr-4 text-sm font-bold">{r.name}</td>
                                 <td className="py-2 pr-4 text-xs text-st-text-light">{r.action}</td>
@@ -1527,7 +1531,9 @@ export default function Simulations() {
                             </tr>
                           </thead>
                           <tbody>
-                            {store.opt_results.roi_externals.map((r, i) => (
+                            {store.opt_results.roi_externals.length === 0 ? (
+                              <tr><td colSpan="3" className="py-4 text-center text-st-text-light italic">No positive marginal gains found.</td></tr>
+                            ) : store.opt_results.roi_externals.map((r, i) => (
                               <tr key={r.id} className="border-b border-st-border/50 hover:bg-black/5 transition-colors">
                                 <td className="py-2 pr-4 text-sm font-bold">{r.name}</td>
                                 <td className="py-2 pr-4 text-xs text-st-text-light">{r.action}</td>
@@ -1563,7 +1569,9 @@ export default function Simulations() {
                             </tr>
                           </thead>
                           <tbody>
-                            {store.opt_results.roi_cards.map((r, i) => (
+                            {store.opt_results.roi_cards.length === 0 ? (
+                              <tr><td colSpan="3" className="py-4 text-center text-st-text-light italic">No positive marginal gains found.</td></tr>
+                            ) : store.opt_results.roi_cards.map((r, i) => (
                               <tr key={r.id} className="border-b border-st-border/50 hover:bg-black/5 transition-colors">
                                 <td className="py-2 pr-4 text-sm font-bold capitalize">{r.name}</td>
                                 <td className="py-2 pr-4 text-xs text-st-text-light">{r.action}</td>
