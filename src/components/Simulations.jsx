@@ -2413,7 +2413,20 @@ export default function Simulations() {
                   <table className="w-full text-left border-collapse text-sm">
                     <thead>
                       <tr className="border-b border-st-border bg-black/10">
-                        <th className="p-3 w-10 text-center">Incl.</th>
+                        <th className="p-3 w-10 text-center">
+                          <input 
+                            type="checkbox" 
+                            checked={visibleHistory.length > 0 && visibleHistory.every(r => r.Include)}
+                            onChange={() => {
+                              const newHistory = [...history];
+                              const targetState = !(visibleHistory.length > 0 && visibleHistory.every(r => r.Include));
+                              visibleHistory.forEach(r => { newHistory[r._global_idx].Include = targetState; });
+                              store.setSimsState('run_history', newHistory);
+                            }}
+                            className="accent-st-orange w-4 h-4 cursor-pointer"
+                            title="Select/Deselect All Visible"
+                          />
+                        </th>
                         <th className="p-3">Profile</th>
                         <th className="p-3">Target</th>
                         <th className="p-3">Score / Yield</th>
