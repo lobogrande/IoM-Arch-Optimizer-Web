@@ -925,7 +925,7 @@ export default function Simulations() {
           store.setSimsState('synthesis_result', null);
           store.setOptResults(payload);
           store.addRunHistory({
-              Include: true,
+              Include: false,
               ProfileId: profileContext.id,
               ProfileName: profileContext.name,
               IsModified: profileContext.isModified,
