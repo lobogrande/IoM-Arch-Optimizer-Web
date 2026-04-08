@@ -180,20 +180,30 @@ export default function About() {
             </a>
           </div>
 
-          {/* Source Code */}
+          {/* Source Code & Releases */}
           <div className="st-container">
-            <h4 className="text-xl font-bold mb-2">📂 Source Code & Documentation</h4>
+            <h4 className="text-xl font-bold mb-2">📂 Source Code & Patch Notes</h4>
             <p className="text-st-text-light text-sm mb-4">
-              This engine is completely open-source. You can view the raw mathematical architecture, the C# logic translations, and the complete Readme on GitHub.
+              This engine is completely open-source. You can view the raw mathematical architecture, read the full update history (Patch Notes), and view the complete Readme on GitHub.
             </p>
-            <a 
-              href="https://github.com/lobogrande/IoM-Arch-Image_DataMiner" 
-              target="_blank" 
-              rel="noopener noreferrer"
-              className="block w-full text-center bg-st-secondary border border-st-border hover:border-st-orange text-st-text py-2 rounded font-medium transition-colors shadow-sm"
-            >
-              🔗 View GitHub Repository
-            </a>
+            <div className="flex flex-col sm:flex-row gap-3">
+              <a 
+                href="https://github.com/lobogrande/IoM-Arch-Optimizer-Web" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="flex-1 text-center bg-st-secondary border border-st-border hover:border-st-orange text-st-text py-2 rounded font-medium transition-colors shadow-sm"
+              >
+                🔗 GitHub Repository
+              </a>
+              <a 
+                href="https://github.com/lobogrande/IoM-Arch-Optimizer-Web/releases" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="flex-1 text-center bg-st-secondary border border-st-border hover:border-blue-500 text-st-text py-2 rounded font-medium transition-colors shadow-sm"
+              >
+                📜 Read Patch Notes
+              </a>
+            </div>
           </div>
 
           {/* Wall of Fame */}
