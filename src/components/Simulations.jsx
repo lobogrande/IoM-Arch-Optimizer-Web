@@ -454,7 +454,9 @@ export default function Simulations() {
           const avg = statResults[k].sum / statResults[k].count;
           const gain = ((avg - baseVal) / 60.0) * 1000.0;
           return { stat: k, gain: gain };
-        }).sort((a, b) => b.gain - a.gain);
+        })
+        .filter(r => r.gain > 0.001)
+        .sort((a, b) => b.gain - a.gain);
         store.saveRoiToCurrentRun(context, 'roi_stats', finalRes);
       } else {
         alert("All stats are already maxed out! No further points can be tested.");
@@ -481,6 +483,11 @@ export default function Simulations() {
       const bestFinal = store.opt_results.best_final;
       const asc2LockedRows =[19, 27, 34, 46, 52, 55];
 
+      // --- ROI SMART FILTERING ---
+      const pureExpUpgs = [ 4, 11, 38 ];
+      const pureLootUpgs = [ 5, 16, 27, 42 ];
+      const pureEconUpgs =[ 4, 5, 11, 16, 19, 21, 27, 38, 42, 46 ];
+
       const baseStateDict = {
         asc1_unlocked: store.asc1_unlocked,
         asc2_unlocked: store.asc2_unlocked,
@@ -503,6 +510,11 @@ export default function Simulations() {
 
         if (!store.asc1_unlocked && ASC1_LOCKED_UPGS.includes(upgId)) return;
         if (!store.asc2_unlocked && ASC2_LOCKED_UPGS.includes(upgId)) return;
+        
+        // Smart Filtering to prevent RNG noise from recommending irrelevant upgrades
+        if (targetMetric === "xp_per_min" && pureLootUpgs.includes(upgId)) return;
+        if (targetMetric.includes("frag") && pureExpUpgs.includes(upgId)) return;
+        if (targetMetric.includes("block") && pureEconUpgs.includes(upgId)) return;
         
         const currentFloor = Number(store.current_max_floor) || 1;
         if (currentFloor < (UPGRADE_LEVEL_REQS[upgId] || 0)) return;
@@ -529,7 +541,9 @@ export default function Simulations() {
           const avg = upgResults[k].sum / upgResults[k].count;
           const gain = ((avg - baseVal) / 60.0) * 1000.0;
           return { id: k, name: upgResults[k].name, gain: gain, action: upgResults[k].action };
-        }).sort((a, b) => b.gain - a.gain);
+        })
+        .filter(r => r.gain > 0.001)
+        .sort((a, b) => b.gain - a.gain);
         store.saveRoiToCurrentRun(context, 'roi_upgrades', finalRes.slice(0, 10));
       } else {
         alert("All internal upgrades are maxed out! No further upgrades can be tested.");
@@ -550,10 +564,13 @@ export default function Simulations() {
       const pool = new EngineWorkerPool();
       await pool.init();
       const extResults = {};
-      const promises = [ ];
+      const promises =[ ];
       const targetMetric = store.opt_results.run_target_metric;
       const baseVal = store.opt_results.final_summary_out[targetMetric];
       const bestFinal = store.opt_results.best_final;
+
+      // --- ROI SMART FILTERING ---
+      const pureLootExts = [ 'hestia', 'axolotl', 'geoduck', 'arch_bundle' ];
 
       const baseStateDict = {
         asc1_unlocked: store.asc1_unlocked,
@@ -587,6 +604,10 @@ export default function Simulations() {
         if (group.id === 'asc_bundle' && !store.asc1_unlocked) return;
         if (group.id === 'arch_card' && !store.asc1_unlocked) return;
         if (currentVal >= maxVal) return;
+        
+        // Smart Filtering
+        if (targetMetric === "xp_per_min" && pureLootExts.includes(group.id)) return;
+        if (targetMetric.includes("block") && pureLootExts.includes(group.id)) return;
 
         let actionText = "";
         if (group.ui_type === 'skill' || group.ui_type === 'bundle') {
@@ -619,7 +640,9 @@ export default function Simulations() {
           const avg = extResults[k].sum / extResults[k].count;
           const gain = ((avg - baseVal) / 60.0) * 1000.0;
           return { id: k, name: extResults[k].name, gain: gain, action: extResults[k].action };
-        }).sort((a, b) => b.gain - a.gain);
+        })
+        .filter(r => r.gain > 0.001)
+        .sort((a, b) => b.gain - a.gain);
         store.saveRoiToCurrentRun(context, 'roi_externals', finalRes.slice(0, 10));
       } else {
         alert("All eligible external upgrades are maxed out!");
@@ -693,7 +716,9 @@ export default function Simulations() {
           const avg = cardResults[k].sum / cardResults[k].count;
           const gain = ((avg - baseVal) / 60.0) * 1000.0;
           return { id: k, name: cardResults[k].name, gain: gain, action: cardResults[k].action };
-        }).sort((a, b) => b.gain - a.gain);
+        })
+        .filter(r => r.gain > 0.001)
+        .sort((a, b) => b.gain - a.gain);
         store.saveRoiToCurrentRun(context, 'roi_cards', finalRes.slice(0, 10));
       } else {
         alert("All eligible block cards are maxed out!");
@@ -900,7 +925,7 @@ export default function Simulations() {
           store.setSimsState('synthesis_result', null);
           store.setOptResults(payload);
           store.addRunHistory({
-              Include: true,
+              Include: false,
               ProfileId: profileContext.id,
               ProfileName: profileContext.name,
               IsModified: profileContext.isModified,
@@ -1431,7 +1456,9 @@ export default function Simulations() {
                             </tr>
                           </thead>
                           <tbody>
-                            {store.opt_results.roi_stats.map((r, i) => (
+                            {store.opt_results.roi_stats.length === 0 ? (
+                              <tr><td colSpan="2" className="py-4 text-center text-st-text-light italic">No positive marginal gains found.</td></tr>
+                            ) : store.opt_results.roi_stats.map((r, i) => (
                               <tr key={r.stat} className="border-b border-st-border/50 hover:bg-black/5 transition-colors">
                                 <td className="py-2 pr-4 font-bold">{r.stat}</td>
                                 <td className="py-2 font-mono text-st-orange">{r.gain > 0 ? '+' : ''}{r.gain.toFixed(2)}</td>
@@ -1466,7 +1493,9 @@ export default function Simulations() {
                             </tr>
                           </thead>
                           <tbody>
-                            {store.opt_results.roi_upgrades.map((r, i) => (
+                            {store.opt_results.roi_upgrades.length === 0 ? (
+                              <tr><td colSpan="3" className="py-4 text-center text-st-text-light italic">No positive marginal gains found.</td></tr>
+                            ) : store.opt_results.roi_upgrades.map((r, i) => (
                               <tr key={r.id} className="border-b border-st-border/50 hover:bg-black/5 transition-colors">
                                 <td className="py-2 pr-4 text-sm font-bold">{r.name}</td>
                                 <td className="py-2 pr-4 text-xs text-st-text-light">{r.action}</td>
@@ -1502,7 +1531,9 @@ export default function Simulations() {
                             </tr>
                           </thead>
                           <tbody>
-                            {store.opt_results.roi_externals.map((r, i) => (
+                            {store.opt_results.roi_externals.length === 0 ? (
+                              <tr><td colSpan="3" className="py-4 text-center text-st-text-light italic">No positive marginal gains found.</td></tr>
+                            ) : store.opt_results.roi_externals.map((r, i) => (
                               <tr key={r.id} className="border-b border-st-border/50 hover:bg-black/5 transition-colors">
                                 <td className="py-2 pr-4 text-sm font-bold">{r.name}</td>
                                 <td className="py-2 pr-4 text-xs text-st-text-light">{r.action}</td>
@@ -1538,7 +1569,9 @@ export default function Simulations() {
                             </tr>
                           </thead>
                           <tbody>
-                            {store.opt_results.roi_cards.map((r, i) => (
+                            {store.opt_results.roi_cards.length === 0 ? (
+                              <tr><td colSpan="3" className="py-4 text-center text-st-text-light italic">No positive marginal gains found.</td></tr>
+                            ) : store.opt_results.roi_cards.map((r, i) => (
                               <tr key={r.id} className="border-b border-st-border/50 hover:bg-black/5 transition-colors">
                                 <td className="py-2 pr-4 text-sm font-bold capitalize">{r.name}</td>
                                 <td className="py-2 pr-4 text-xs text-st-text-light">{r.action}</td>
@@ -2380,7 +2413,20 @@ export default function Simulations() {
                   <table className="w-full text-left border-collapse text-sm">
                     <thead>
                       <tr className="border-b border-st-border bg-black/10">
-                        <th className="p-3 w-10 text-center">Incl.</th>
+                        <th className="p-3 w-10 text-center">
+                          <input 
+                            type="checkbox" 
+                            checked={visibleHistory.length > 0 && visibleHistory.every(r => r.Include)}
+                            onChange={() => {
+                              const newHistory = [...history];
+                              const targetState = !(visibleHistory.length > 0 && visibleHistory.every(r => r.Include));
+                              visibleHistory.forEach(r => { newHistory[r._global_idx].Include = targetState; });
+                              store.setSimsState('run_history', newHistory);
+                            }}
+                            className="accent-st-orange w-4 h-4 cursor-pointer"
+                            title="Select/Deselect All Visible"
+                          />
+                        </th>
                         <th className="p-3">Profile</th>
                         <th className="p-3">Target</th>
                         <th className="p-3">Score / Yield</th>
