@@ -454,7 +454,9 @@ export default function Simulations() {
           const avg = statResults[k].sum / statResults[k].count;
           const gain = ((avg - baseVal) / 60.0) * 1000.0;
           return { stat: k, gain: gain };
-        }).sort((a, b) => b.gain - a.gain);
+        })
+        .filter(r => r.gain > 0.001)
+        .sort((a, b) => b.gain - a.gain);
         store.saveRoiToCurrentRun(context, 'roi_stats', finalRes);
       } else {
         alert("All stats are already maxed out! No further points can be tested.");
@@ -539,7 +541,9 @@ export default function Simulations() {
           const avg = upgResults[k].sum / upgResults[k].count;
           const gain = ((avg - baseVal) / 60.0) * 1000.0;
           return { id: k, name: upgResults[k].name, gain: gain, action: upgResults[k].action };
-        }).sort((a, b) => b.gain - a.gain);
+        })
+        .filter(r => r.gain > 0.001)
+        .sort((a, b) => b.gain - a.gain);
         store.saveRoiToCurrentRun(context, 'roi_upgrades', finalRes.slice(0, 10));
       } else {
         alert("All internal upgrades are maxed out! No further upgrades can be tested.");
@@ -636,7 +640,9 @@ export default function Simulations() {
           const avg = extResults[k].sum / extResults[k].count;
           const gain = ((avg - baseVal) / 60.0) * 1000.0;
           return { id: k, name: extResults[k].name, gain: gain, action: extResults[k].action };
-        }).sort((a, b) => b.gain - a.gain);
+        })
+        .filter(r => r.gain > 0.001)
+        .sort((a, b) => b.gain - a.gain);
         store.saveRoiToCurrentRun(context, 'roi_externals', finalRes.slice(0, 10));
       } else {
         alert("All eligible external upgrades are maxed out!");
@@ -710,7 +716,9 @@ export default function Simulations() {
           const avg = cardResults[k].sum / cardResults[k].count;
           const gain = ((avg - baseVal) / 60.0) * 1000.0;
           return { id: k, name: cardResults[k].name, gain: gain, action: cardResults[k].action };
-        }).sort((a, b) => b.gain - a.gain);
+        })
+        .filter(r => r.gain > 0.001)
+        .sort((a, b) => b.gain - a.gain);
         store.saveRoiToCurrentRun(context, 'roi_cards', finalRes.slice(0, 10));
       } else {
         alert("All eligible block cards are maxed out!");
