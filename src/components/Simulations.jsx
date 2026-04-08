@@ -481,6 +481,11 @@ export default function Simulations() {
       const bestFinal = store.opt_results.best_final;
       const asc2LockedRows =[19, 27, 34, 46, 52, 55];
 
+      // --- ROI SMART FILTERING ---
+      const pureExpUpgs = [ 4, 11, 38 ];
+      const pureLootUpgs = [ 5, 16, 27, 42 ];
+      const pureEconUpgs =[ 4, 5, 11, 16, 19, 21, 27, 38, 42, 46 ];
+
       const baseStateDict = {
         asc1_unlocked: store.asc1_unlocked,
         asc2_unlocked: store.asc2_unlocked,
@@ -503,6 +508,11 @@ export default function Simulations() {
 
         if (!store.asc1_unlocked && ASC1_LOCKED_UPGS.includes(upgId)) return;
         if (!store.asc2_unlocked && ASC2_LOCKED_UPGS.includes(upgId)) return;
+        
+        // Smart Filtering to prevent RNG noise from recommending irrelevant upgrades
+        if (targetMetric === "xp_per_min" && pureLootUpgs.includes(upgId)) return;
+        if (targetMetric.includes("frag") && pureExpUpgs.includes(upgId)) return;
+        if (targetMetric.includes("block") && pureEconUpgs.includes(upgId)) return;
         
         const currentFloor = Number(store.current_max_floor) || 1;
         if (currentFloor < (UPGRADE_LEVEL_REQS[upgId] || 0)) return;
@@ -550,10 +560,13 @@ export default function Simulations() {
       const pool = new EngineWorkerPool();
       await pool.init();
       const extResults = {};
-      const promises = [ ];
+      const promises =[ ];
       const targetMetric = store.opt_results.run_target_metric;
       const baseVal = store.opt_results.final_summary_out[targetMetric];
       const bestFinal = store.opt_results.best_final;
+
+      // --- ROI SMART FILTERING ---
+      const pureLootExts = [ 'hestia', 'axolotl', 'geoduck', 'arch_bundle' ];
 
       const baseStateDict = {
         asc1_unlocked: store.asc1_unlocked,
@@ -587,6 +600,10 @@ export default function Simulations() {
         if (group.id === 'asc_bundle' && !store.asc1_unlocked) return;
         if (group.id === 'arch_card' && !store.asc1_unlocked) return;
         if (currentVal >= maxVal) return;
+        
+        // Smart Filtering
+        if (targetMetric === "xp_per_min" && pureLootExts.includes(group.id)) return;
+        if (targetMetric.includes("block") && pureLootExts.includes(group.id)) return;
 
         let actionText = "";
         if (group.ui_type === 'skill' || group.ui_type === 'bundle') {
