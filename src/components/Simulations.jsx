@@ -90,7 +90,9 @@ export default function Simulations() {
   const[isRoiLoading, setIsRoiLoading] = useState(false);
   const[roiProgressMsg, setRoiProgressMsg] = useState("");
 
-  const isAnyRunning = isOptimizing || isSynthesizing || isRoiLoading;
+  const [isBenchmarking, setIsBenchmarking] = useState(false);
+
+  const isAnyRunning = isOptimizing || isSynthesizing || isRoiLoading || isBenchmarking;
 
   // Synthesis Tab State
   const [viewTargets, setViewTargets] = useState(null);
@@ -109,6 +111,47 @@ export default function Simulations() {
   const [duelProgressMsg, setDuelProgressMsg] = useState("");
   const[duelProgressPct, setDuelProgressPct] = useState(0);
   const[duelResults, setDuelResults] = useState(null);
+
+  const handleRunBenchmark = async () => {
+    if (isAnyRunning) return;
+    setIsBenchmarking(true);
+    try {
+      const pool = new EngineWorkerPool();
+      await pool.init();
+      
+      await pool.syncState({
+        asc1_unlocked: store.asc1_unlocked,
+        asc2_unlocked: store.asc2_unlocked,
+        arch_level: store.arch_level,
+        current_max_floor: store.current_max_floor,
+        arch_ability_infernal_bonus: parseFloat(store.arch_ability_infernal_bonus) / 100.0,
+        total_infernal_cards: store.total_infernal_cards,
+        base_stats: store.base_stats,
+        upgrade_levels: store.upgrade_levels,
+        external_levels: { ...store.external_levels, 8: store.geoduck_unlocked ? (store.external_levels[ 8 ] || 0) : 0 },
+        cards: store.cards
+      });
+      
+      const start = Date.now();
+      const promises =[ ];
+      
+      // Fire 50 simultaneous tasks to instantly gauge multi-core throughput
+      for (let i = 0; i < 50; i++) {
+        promises.push(pool.runTask(store.base_stats));
+      }
+      
+      await Promise.all(promises);
+      const elapsed = (Date.now() - start) / 1000;
+      pool.terminate();
+      
+      if (elapsed > 0) {
+        setSimsPerSec(Math.max(1, Math.floor(50 / elapsed)));
+      }
+    } catch (err) {
+      console.error("Benchmark failed:", err);
+    }
+    setIsBenchmarking(false);
+  };
 
   const handleRunDuel = async () => {
     setIsDueling(true);
@@ -1640,11 +1683,12 @@ export default function Simulations() {
               ⚡ <strong>Hardware Speed:</strong><br/>{simsPerSec} sims/sec <em>(Calibrated)</em>
             </div>
             <button 
-              onClick={() => setSimsPerSec(150)}
-              className="w-full py-1 bg-st-secondary border border-st-border rounded hover:border-st-orange text-xs font-bold transition-colors"
-            >
-              🔄 Recalibrate Speed
-            </button>
+            onClick={handleRunBenchmark}
+            disabled={isAnyRunning}
+            className="w-full py-1 bg-st-secondary border border-st-border rounded hover:border-st-orange text-xs font-bold transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {isBenchmarking ? '⏳ Benchmarking...' : '🔄 Recalibrate Speed'}
+          </button>
           </div>
         </div>
       )}
