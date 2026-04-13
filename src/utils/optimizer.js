@@ -348,7 +348,7 @@ export async function runOptimizationPhase(
     const tracker = { };
     dists.forEach(d => {
         const key = JSON.stringify(d);
-        tracker[key] = { dist: d, sumTarget: 0.0, sumFloor: 0.0, runs: 0, metricsSum: { }, floors: [ ] };
+        tracker[key] = { dist: d, sumTarget: 0.0, sumFloor: 0.0, runs: 0, metricsSum: { }, floors: [ ], traces: { } };
     });
 
     let activeKeys = Object.keys(tracker);
@@ -394,9 +394,9 @@ export async function runOptimizationPhase(
                         }
                     }
 
-                    // Profile stamina trace from the last run for telemetry
-                    if (!tr.staminaTrace && result.stamina_trace_floor) {
-                        tr.staminaTrace = {
+                    // Profile stamina traces per unique floor reached
+                    if (result.highest_floor && result.stamina_trace_floor && !tr.traces[result.highest_floor]) {
+                        tr.traces[result.highest_floor] = {
                             floor: result.stamina_trace_floor,
                             stamina: result.stamina_trace_stamina
                         };
@@ -472,6 +472,9 @@ export async function runOptimizationPhase(
         avgMetrics[mk] = mv / runsCompleted;
     }
 
+    const sortedFloors = [...bestData.floors].sort((a, b) => a - b);
+    const medianFloor = sortedFloors[Math.floor(sortedFloors.length / 2)];
+
     const summary = {
         [targetMetric]: bestData.sumTarget / runsCompleted,
         avg_floor: bestData.sumFloor / runsCompleted,
@@ -482,7 +485,9 @@ export async function runOptimizationPhase(
         runner_up_val: runnerUp,
         floors: bestData.floors,
         avg_metrics: avgMetrics,
-        stamina_trace: bestData.staminaTrace
+        stamina_trace_max: bestData.traces[absMaxFloor] || null,
+        stamina_trace_median: bestData.traces[medianFloor] || null,
+        stamina_trace: bestData.traces[medianFloor] || null // Backwards compatibility for old JSON saves
     };
 
     return { bestDist, summary };
