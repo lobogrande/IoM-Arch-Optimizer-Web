@@ -1463,26 +1463,52 @@ export default function Simulations() {
                     useResizeHandler={true} style={{ width: '100%', height: '100%' }} config={{ displayModeBar: false }}
                   />
                 </div>
-                {store.opt_results.final_summary_out.stamina_trace && (
-                  <div className="w-full h-[350px] border border-st-border rounded bg-st-bg p-2">
-                    <Plot
-                      data={[ {
-                        x: store.opt_results.final_summary_out.stamina_trace.floor,
-                        y: store.opt_results.final_summary_out.stamina_trace.stamina,
-                        type: 'scatter', mode: 'lines', fill: 'tozeroy',
-                        line: { color: '#ffa229' }, fillcolor: 'rgba(255, 162, 41, 0.2)'
-                      } ]}
-                      layout={{
-                        font: { color: store.theme === 'dark' ? '#FAFAFA' : '#31333F' },
-                        title: 'Stamina Depletion Trace (Sample Run)',
-                        paper_bgcolor: 'rgba(0,0,0,0)', plot_bgcolor: 'rgba(0,0,0,0)',
-                        margin: { t: 40, b: 40, l: 40, r: 20 },
-                        xaxis: { title: 'Floor Level', color: chartFontColor, gridcolor: chartGridColor }, yaxis: { title: 'Stamina Remaining', color: chartFontColor, gridcolor: chartGridColor }
-                      }}
-                      useResizeHandler={true} style={{ width: '100%', height: '100%' }} config={{ displayModeBar: false }}
-                    />
-                  </div>
-                )}
+                {(store.opt_results.final_summary_out.stamina_trace || store.opt_results.final_summary_out.stamina_trace_median) && (() => {
+                  const out = store.opt_results.final_summary_out;
+                  const traces = [ ];
+                  
+                  // Primary: Median Run (or fallback to legacy single trace)
+                  const medTrace = out.stamina_trace_median || out.stamina_trace;
+                  if (medTrace) {
+                    traces.push({
+                      x: medTrace.floor,
+                      y: medTrace.stamina,
+                      name: 'Median Run',
+                      type: 'scatter', mode: 'lines', fill: 'tozeroy',
+                      line: { color: '#ffa229', width: 2 }, fillcolor: 'rgba(255, 162, 41, 0.2)'
+                    });
+                  }
+                  
+                  // Secondary Overlay: Absolute Peak Run (Green Line)
+                  if (out.stamina_trace_max && out.stamina_trace_max !== medTrace) {
+                    traces.push({
+                      x: out.stamina_trace_max.floor,
+                      y: out.stamina_trace_max.stamina,
+                      name: 'Peak Run',
+                      type: 'scatter', mode: 'lines',
+                      line: { color: '#4CAF50', width: 3 }
+                    });
+                  }
+
+                  return (
+                    <div className="w-full h-[350px] border border-st-border rounded bg-st-bg p-2">
+                      <Plot
+                        data={traces}
+                        layout={{
+                          font: { color: store.theme === 'dark' ? '#FAFAFA' : '#31333F' },
+                          title: 'Stamina Depletion Traces',
+                          paper_bgcolor: 'rgba(0,0,0,0)', plot_bgcolor: 'rgba(0,0,0,0)',
+                          margin: { t: 40, b: 40, l: 40, r: 20 },
+                          showlegend: traces.length > 1,
+                          legend: { orientation: 'h', y: -0.2, x: 0.5, xanchor: 'center' },
+                          xaxis: { title: 'Floor Level', color: chartFontColor, gridcolor: chartGridColor }, 
+                          yaxis: { title: 'Stamina Remaining', color: chartFontColor, gridcolor: chartGridColor }
+                        }}
+                        useResizeHandler={true} style={{ width: '100%', height: '100%' }} config={{ displayModeBar: false }}
+                      />
+                    </div>
+                  );
+                })()}
               </div>
             )}
           </div>
