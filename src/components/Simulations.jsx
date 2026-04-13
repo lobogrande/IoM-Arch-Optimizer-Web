@@ -1143,41 +1143,77 @@ export default function Simulations() {
                 <div className="lg:col-span-2 space-y-6">
                   {isFloorTarget ? (
                     <div className="space-y-4">
-                      <h4 className="font-bold text-lg border-b border-st-border pb-2">🏆 Push Potential</h4>
-                      <div className="flex flex-col">
-                        <span className="text-st-text-light text-sm">Theoretical Peak Floor</span>
-                        <span className="text-2xl font-bold">Floor {finalSum.abs_max_floor}</span>
-                      </div>
-                      <div className="flex flex-col">
-                        <span className="text-st-text-light text-sm">Peak Probability</span>
-                        <span className="text-2xl font-bold">{(finalSum.abs_max_chance * 100).toFixed(1)}%</span>
-                      </div>
-
-                      {/* 🎲 Reality Check Injection */}
+                      <h4 className="font-bold text-lg border-b border-st-border pb-2">🏆 Right-Tail Push Potential</h4>
+                      <p className="text-xs text-st-text-light">Floor progression relies on compounding RNG (critical hits and mod chains). Here is the expected cost to ride the right-tail of the bell curve based on your simulated runs.</p>
+                      
                       {(() => {
-                        const peakChance = finalSum.abs_max_chance || 0;
-                        const runsNeeded = peakChance > 0 ? Math.ceil(1.0 / peakChance) : 0;
+                        const floors = finalSum.floors || [ ];
+                        if (floors.length === 0) return null;
                         
-                        // Pull the true mathematical Total Time (Arch Seconds) directly from the engine metrics!
-                        const maxSta = (finalSum.avg_metrics && finalSum.avg_metrics.in_game_time) 
-                          ? finalSum.avg_metrics.in_game_time 
-                          : ((finalSum.stamina_trace && finalSum.stamina_trace.stamina && finalSum.stamina_trace.stamina.length > 0) 
-                            ? finalSum.stamina_trace.stamina[0] 
-                            : 0);
-                            
-                        const archSecsCost = (runsNeeded * maxSta) / 1000.0;
+                        const sorted = [...floors].sort((a,b) => b - a); // Descending
+                        const tot = sorted.length;
                         
-                        return peakChance > 0 ? (
-                          <div className="bg-yellow-900/20 border-l-4 border-yellow-500 p-3 rounded text-sm text-yellow-500">
-                            🎲 <strong>Reality Check:</strong> Requires avg <strong>{runsNeeded.toLocaleString()} runs</strong> (~<strong>{archSecsCost.toFixed(1)}k</strong> Arch Secs) to replicate peak.
-                          </div>
-                        ) : null;
-                      })()}
+                        const getStats = (percentile) => {
+                          const idx = Math.max(0, Math.floor(tot * percentile) - 1);
+                          const targetFloor = sorted[idx];
+                          
+                          // Calculate cumulative right-tail probability (chance to hit >= targetFloor)
+                          const count = sorted.filter(f => f >= targetFloor).length;
+                          const prob = count / tot;
+                          const runsNeeded = prob > 0 ? 1.0 / prob : 0;
+                          
+                          const maxSta = (finalSum.avg_metrics && finalSum.avg_metrics.in_game_time) 
+                            ? finalSum.avg_metrics.in_game_time 
+                            : ((finalSum.stamina_trace && finalSum.stamina_trace.stamina && finalSum.stamina_trace.stamina.length > 0) 
+                              ? finalSum.stamina_trace.stamina[0] 
+                              : 0);
+                          
+                          const cost = (runsNeeded * maxSta) / 1000.0;
+                          return { floor: targetFloor, prob, runs: Math.ceil(runsNeeded), cost };
+                        };
 
-                      <div className="flex flex-col">
-                        <span className="text-st-text-light text-sm">Average Consistency Floor</span>
-                        <span className="text-2xl font-bold">Floor {finalSum.avg_floor.toFixed(1)}</span>
-                      </div>
+                        const tiers =[
+                          { label: "Average (Top 50%)", data: getStats(0.50), color: "text-st-text" },
+                          { label: "Lucky (Top 10%)", data: getStats(0.10), color: "text-blue-400" },
+                          { label: "Miracle (Top 1%)", data: getStats(0.01), color: "text-purple-400" },
+                          { label: "Absolute Peak", data: getStats(0.00), color: "text-st-orange" }
+                        ];
+
+                        // Deduplicate identical floors (e.g., if 1% and Peak are the same floor)
+                        const uniqueTiers = [ ];
+                        const seenFloors = new Set();
+                        tiers.forEach(t => {
+                          if (!seenFloors.has(t.data.floor)) {
+                            uniqueTiers.push(t);
+                            seenFloors.add(t.data.floor);
+                          }
+                        });
+
+                        return (
+                          <div className="overflow-x-auto">
+                            <table className="w-full text-left text-sm border-collapse">
+                              <thead>
+                                <tr className="border-b border-st-border text-st-text-light">
+                                  <th className="py-2 pr-2">Probability</th>
+                                  <th className="py-2 pr-2">Floor</th>
+                                  <th className="py-2">Avg Cost</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {uniqueTiers.map((t, i) => (
+                                  <tr key={i} className="border-b border-st-border/50 hover:bg-black/5">
+                                    <td className="py-2 pr-2 font-bold">{t.label}</td>
+                                    <td className={`py-2 pr-2 font-mono font-bold ${t.color}`}>Flr {t.data.floor}</td>
+                                    <td className="py-2 text-st-text-light">
+                                      ~{t.data.cost.toFixed(1)}k Arch Secs <span className="text-xs">({t.data.runs} runs)</span>
+                                    </td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                          </div>
+                        );
+                      })()}
                     </div>
                   ) : (
                     <div className="space-y-6">
