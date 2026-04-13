@@ -54,8 +54,10 @@ class FloorGenerator:
 
         # CHANCE SETS: (Minimum Floor, [1-in-X chances for Dirt -> Divine])
         # Formatted top-down so we easily break early on the highest applicable bracket.
+        # Added 150 based on empirical data collection
         self.CHANCE_SETS =[
-            (100,[3, 6, 7, 7, 7, 14, 30]),
+            (150,[3, 6, 6, 6, 6, 10, 14]),
+            (100,[3, 6, 7, 7, 7, 13, 30]),
             (70,[3, 6, 7, 7, 8, 17, 40]),
             (60,[3, 7, 7, 6, 8, 18, 45]),
             (50,[3, 7, 7, 6, 8, 18, 50]),
