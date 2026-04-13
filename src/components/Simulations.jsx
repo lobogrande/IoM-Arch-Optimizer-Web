@@ -2145,7 +2145,7 @@ export default function Simulations() {
             const r1Promises =[];
             candidates.forEach(dist => {
                 const bId = JSON.stringify(dist);
-                if (!buildRes.has(bId)) buildRes.set(bId, { dist, sum_t: 0, sum_f: 0, floors:[], metricsSum: {} });
+                if (!buildRes.has(bId)) buildRes.set(bId, { dist, sum_t: 0, sum_f: 0, floors:[], metricsSum: {}, traces: {} });
                 
                 for (let i = 0; i < 50; i++) {
                     const p = pool.runTask(dist).then(res => {
@@ -2161,8 +2161,8 @@ export default function Simulations() {
                                 tr.metricsSum[mk] = (tr.metricsSum[mk] || 0.0) + mv;
                             }
                         }
-                        if (!tr.staminaTrace && res.stamina_trace_floor) {
-                            tr.staminaTrace = { floor: res.stamina_trace_floor, stamina: res.stamina_trace_stamina };
+                        if (res.highest_floor && res.stamina_trace_floor && !tr.traces[res.highest_floor]) {
+                            tr.traces[res.highest_floor] = { floor: res.stamina_trace_floor, stamina: res.stamina_trace_stamina };
                         }
 
                         completedSims++;
@@ -2217,8 +2217,8 @@ export default function Simulations() {
                                 tr.metricsSum[mk] = (tr.metricsSum[mk] || 0.0) + mv;
                             }
                         }
-                        if (!tr.staminaTrace && res.stamina_trace_floor) {
-                            tr.staminaTrace = { floor: res.stamina_trace_floor, stamina: res.stamina_trace_stamina };
+                        if (res.highest_floor && res.stamina_trace_floor && !tr.traces[res.highest_floor]) {
+                            tr.traces[res.highest_floor] = { floor: res.stamina_trace_floor, stamina: res.stamina_trace_stamina };
                         }
 
                         completedSims++;
@@ -2266,6 +2266,9 @@ export default function Simulations() {
             const synthAvg = allSynthScores.length > 0 ? allSynthScores.reduce((a,b)=>a+b,0) / allSynthScores.length : 0;
             const synthRunnerUp = allSynthScores.length > 1 ? allSynthScores[1] : (allSynthScores.length > 0 ? allSynthScores[0] : 0);
 
+            const sortedFloors = [...bestData.floors].sort((a,b) => a - b);
+            const medianFloor = sortedFloors[Math.floor(sortedFloors.length / 2)];
+            
             const synthSummary = {[runTargetMetric]: runTargetMetric === "highest_floor" ? absMax : bestData.sum_t / 500.0,
                 avg_floor: avgF,
                 abs_max_floor: absMax,
@@ -2275,7 +2278,9 @@ export default function Simulations() {
                 runner_up_val: synthRunnerUp,
                 floors: bestData.floors,
                 avg_metrics: avgMetrics,
-                stamina_trace: bestData.staminaTrace
+                stamina_trace_max: bestData.traces[absMax] || null,
+                stamina_trace_median: bestData.traces[medianFloor] || null,
+                stamina_trace: bestData.traces[medianFloor] || null
             };
 
             const sameTargetRuns = checkedRuns.map(r => {
