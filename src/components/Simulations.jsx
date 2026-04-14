@@ -58,7 +58,10 @@ export default function Simulations() {
   const cpuProfile = store.cpuProfile || 'balanced';
   const setCpuProfile = (v) => store.setSimsState('cpuProfile', v);
 
-  const[displayTime, setDisplayTime] = useState(store.timeLimit || 60); // Visual slider state
+  const allowUnspent = store.allowUnspent || false;
+  const setAllowUnspent = (v) => store.setSimsState('allowUnspent', v);
+
+  const [displayTime, setDisplayTime] = useState(store.timeLimit || 60); // Visual slider state
 
   // Debounce the visual slider so it reliably updates the engine math without freezing the browser
   useEffect(() => {
@@ -391,27 +394,35 @@ export default function Simulations() {
   // Dynamic Limits based on Ascensions and Caps
   const totalAllowed = parseInt(store.arch_level) + parseInt(store.upgrade_levels[12] || 0);
   const capInc = parseInt(store.upgrade_levels[45] || 0) * 5; // H45 scales by 5
+  const dynamicBudget = parseInt(store.arch_level) + parseInt(store.upgrade_levels[12] || 0);
+
   const STAT_CAPS = {
     Str: 50 + capInc, Agi: 50 + capInc, Per: 25 + capInc, Int: 25 + capInc, Luck: 25 + capInc,
     Div: store.asc1_unlocked ? (10 + capInc) : 0, 
-    Corr: store.asc2_unlocked ? (10 + capInc) : 0
+    Corr: store.asc2_unlocked ? (10 + capInc) : 0,
+    Unassigned: dynamicBudget
   };
 
   const MAX_STAT_CAPS = {
     Str: 55, Agi: 55, Per: 30, Int: 30, Luck: 30,
     Div: store.asc1_unlocked ? 15 : 0, 
-    Corr: store.asc2_unlocked ? 15 : 0
+    Corr: store.asc2_unlocked ? 15 : 0,
+    Unassigned: 9999
   };
 
-  const activeStats = [ 'Str', 'Agi', 'Per', 'Int', 'Luck' ];
+  const activeStats =[ 'Str', 'Agi', 'Per', 'Int', 'Luck' ];
   if (store.asc1_unlocked) activeStats.push('Div');
   if (store.asc2_unlocked) activeStats.push('Corr');
 
+  const optActiveStats = [...activeStats];
+  if (optGoal === "Block Card Farming" && allowUnspent) {
+    optActiveStats.push('Unassigned');
+  }
+
   // --- REACTIVE AI CALIBRATION ---
-  const dynamicBudget = parseInt(store.arch_level) + parseInt(store.upgrade_levels[12] || 0);
   const bounds = {};
   let lockedSum = 0;
-  activeStats.forEach(s => {
+  optActiveStats.forEach(s => {
     if (lockedStats[s] !== undefined) {
       bounds[s] = [lockedStats[s], lockedStats[s]];
       lockedSum += lockedStats[s];
@@ -424,8 +435,8 @@ export default function Simulations() {
   // Memoize the heavy AI Profile calculation so it doesn't freeze the browser thread!
   const profData = useMemo(() => {
     if (isOverBudget) return null;
-    return getOptimalStepProfile(activeStats, dynamicBudget, bounds, simsPerSec, timeLimit);
-  },[JSON.stringify(activeStats), dynamicBudget, JSON.stringify(bounds), simsPerSec, timeLimit, isOverBudget]);
+    return getOptimalStepProfile(optActiveStats, dynamicBudget, bounds, simsPerSec, timeLimit);
+  },[JSON.stringify(optActiveStats), dynamicBudget, JSON.stringify(bounds), simsPerSec, timeLimit, isOverBudget]);
   
   const step1 = profData ? profData.step_1 : 100;
 
@@ -827,7 +838,7 @@ export default function Simulations() {
 
       const fixedStats = {};
       Object.keys(store.base_stats).forEach(k => {
-        if (!activeStats.includes(k)) fixedStats[k] = store.base_stats[k];
+        if (!optActiveStats.includes(k)) fixedStats[k] = store.base_stats[k];
       });
 
       let totalSimsExecuted = 0;
@@ -854,8 +865,12 @@ export default function Simulations() {
       const seedBuild = {};
       let seedValid = true;
       let seedSum = 0;
-      activeStats.forEach(s => {
-          const val = store.base_stats[s] || 0;
+      optActiveStats.forEach(s => {
+          let val = store.base_stats[s] || 0;
+          if (s === 'Unassigned') {
+              const globalSpent = activeStats.reduce((acc, stat) => acc + (store.base_stats[stat] || 0), 0);
+              val = Math.max(0, dynamicBudget - globalSpent);
+          }
           seedBuild[s] = val;
           seedSum += val;
           if (val < bounds[s][0] || val > bounds[s][1]) seedValid = false;
@@ -864,11 +879,11 @@ export default function Simulations() {
       const validSeed = seedValid ? seedBuild : null;
       
       let { bestDist: bestP1, summary: sumP1 } = await runOptimizationPhase(
-        "Phase 1 (Coarse)", targetMetricKey, activeStats, p1Budget, step1, 25,
+        "Phase 1 (Coarse)", targetMetricKey, optActiveStats, p1Budget, step1, 25,
         pool, fixedStats, bounds, timeLimit, globalStartTime, onProgressCb, validSeed
       );
 
-      bestP1 = topUpBuild(bestP1, activeStats, dynamicBudget, STAT_CAPS, lockedStats);
+      bestP1 = topUpBuild(bestP1, optActiveStats, dynamicBudget, STAT_CAPS, lockedStats);
 
       let bestFinal = bestP1;
       let finalSummary = sumP1;
@@ -878,7 +893,7 @@ export default function Simulations() {
       if (bestP1 && ((Date.now() - globalStartTime) / 1000) < timeLimit) {
         const boundsP2 = {};
         let lockedSumP2 = 0;
-        activeStats.forEach(s => {
+        optActiveStats.forEach(s => {
           if (lockedStats[s] !== undefined) {
             boundsP2[s] = bounds[s];
             lockedSumP2 += bounds[s][0];
@@ -894,10 +909,10 @@ export default function Simulations() {
         const p2Budget = dynamicBudget - remP2;
 
         const res2 = await runOptimizationPhase(
-          "Phase 2 (Fine)", targetMetricKey, activeStats, p2Budget, step2, 50,
+          "Phase 2 (Fine)", targetMetricKey, optActiveStats, p2Budget, step2, 50,
           pool, fixedStats, boundsP2, timeLimit, globalStartTime, onProgressCb
         );
-        bestP2 = topUpBuild(res2.bestDist, activeStats, dynamicBudget, STAT_CAPS, lockedStats);
+        bestP2 = topUpBuild(res2.bestDist, optActiveStats, dynamicBudget, STAT_CAPS, lockedStats);
         sumP2 = res2.summary;
         if (bestP2) { bestFinal = bestP2; finalSummary = sumP2; }
       }
@@ -906,7 +921,7 @@ export default function Simulations() {
       if (bestP2 && ((Date.now() - globalStartTime) / 1000) < timeLimit) {
         const boundsP3 = {};
         const p3Radius = profData.p3_radius || Math.min(2, step2);
-        activeStats.forEach(s => {
+        optActiveStats.forEach(s => {
           if (lockedStats[s] !== undefined) {
             boundsP3[s] = bounds[s];
           } else {
@@ -918,10 +933,10 @@ export default function Simulations() {
         });
 
         const res3 = await runOptimizationPhase(
-          `Phase 3 (Radius ±${p3Radius})`, targetMetricKey, activeStats, dynamicBudget, profData.step_3 || 1, 100,
+          `Phase 3 (Radius ±${p3Radius})`, targetMetricKey, optActiveStats, dynamicBudget, profData.step_3 || 1, 100,
           pool, fixedStats, boundsP3, timeLimit, globalStartTime, onProgressCb
         );
-        const bestP3 = topUpBuild(res3.bestDist, activeStats, dynamicBudget, STAT_CAPS, lockedStats);
+        const bestP3 = topUpBuild(res3.bestDist, optActiveStats, dynamicBudget, STAT_CAPS, lockedStats);
         if (bestP3) { bestFinal = bestP3; finalSummary = res3.summary; }
       }
 
@@ -1019,13 +1034,75 @@ export default function Simulations() {
     if (store.opt_results.show_wall) innerTabs.push({ id: 'wall', label: '🧱 Progression Wall' });
 
     const avgMetrics = finalSum.avg_metrics || {};
-    const availableBlocks = Object.keys(avgMetrics)
-      .filter(k => k.startsWith("block_"))
-      .map(k => k.replace("block_", "").replace("_per_min", ""))
-      .sort();
+        const availableBlocks = Object.keys(avgMetrics)
+          .filter(k => k.startsWith("block_"))
+          .map(k => k.replace("block_", "").replace("_per_min", ""))
+          .sort();
 
-    return (
-      <div className="mt-8 animate-fade-in space-y-6" id={`dashboard-anchor-${context}`}>
+        const scrollToAndHighlight = (elementId) => {
+          // Wait 150ms for React to switch tabs and render the new DOM elements
+          setTimeout(() => {
+            const el = document.getElementById(elementId);
+            if (el) {
+              el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+              // Add a temporary orange glow effect to draw the eye to the updated number
+              el.classList.add('ring-4', 'ring-st-orange', 'transition-all', 'duration-300', 'rounded');
+              setTimeout(() => el.classList.remove('ring-4', 'ring-st-orange', 'transition-all', 'duration-300', 'rounded'), 1500);
+            } else {
+              // Fallback just in case the element ID isn't found
+              window.scrollTo({ top: 0, behavior: 'smooth' });
+            }
+          }, 150);
+        };
+
+        const handleApplyStat = (stat) => {
+          const current = store.base_stats[stat] || 0;
+          store.setBaseStat(stat, current + 1);
+          store.setActiveTab('setup');
+          store.setActiveSubTab('stats');
+          scrollToAndHighlight(`setup-stat-${stat}`);
+        };
+
+        const handleApplyUpgrade = (idStr) => {
+          const id = parseInt(idStr);
+          const current = store.upgrade_levels[id] || 0;
+          store.setUpgradeLevel(id, current + 1);
+          store.setActiveTab('setup');
+          store.setActiveSubTab('upgrades');
+          store.setUpgradeView('internal');
+          scrollToAndHighlight(`setup-upg-${id}`);
+        };
+
+        const handleApplyExternal = (groupId) => {
+          const group = EXTERNAL_UI_GROUPS.find(g => g.id === groupId);
+          if (!group) return;
+          const current = store.external_levels[group.rows[0]] || 0;
+          store.setExternalGroup(group.rows, current + 1);
+          if (groupId === 'geoduck' && !store.geoduck_unlocked) {
+            store.setSetting('geoduck_unlocked', true);
+          }
+          
+          store.setActiveTab('setup');
+          if (groupId === 'hestia' || groupId === 'hades') {
+            store.setActiveSubTab('idols');
+          } else {
+            store.setActiveSubTab('upgrades');
+            store.setUpgradeView('external');
+          }
+          
+          scrollToAndHighlight(`setup-ext-${groupId}`);
+        };
+
+        const handleApplyCard = (cardId) => {
+          const current = store.cards[cardId] || 0;
+          store.setCardLevel(cardId, current + 1);
+          store.setActiveTab('setup');
+          store.setActiveSubTab('cards');
+          scrollToAndHighlight(`setup-card-${cardId}`);
+        };
+
+        return (
+          <div className="mt-8 animate-fade-in space-y-6" id={`dashboard-anchor-${context}`}>
         <div className="bg-[#1e1e1e] border-l-4 border-l-green-500 p-4 rounded shadow">
           <h3 className="text-xl font-bold text-green-400">✅ Simulation Complete in {store.opt_results.elapsed.toFixed(1)} seconds!</h3>
         </div>
@@ -1055,14 +1132,16 @@ export default function Simulations() {
           <div className="st-container animate-fade-in">
             <h3 className="text-2xl font-bold mb-4">🏆 Optimal Stat Build</h3>
             <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-4">
-              {activeStats.map(stat => {
+              {([...activeStats, store.opt_results.best_final.Unassigned !== undefined ? 'Unassigned' : null].filter(Boolean)).map(stat => {
                 const allocated = store.opt_results.best_final[stat] || 0;
-                const current = store.base_stats[stat] || 0;
+                const current = stat === 'Unassigned' 
+                    ? Math.max(0, dynamicBudget - activeStats.reduce((acc, s) => acc + (store.base_stats[s] || 0), 0))
+                    : store.base_stats[stat] || 0;
                 const delta = allocated - current;
                 
                 return (
-                  <div key={stat} className="st-container flex flex-col items-center text-center">
-                    <div className="font-bold">{stat}</div>
+                  <div key={stat} className={`st-container flex flex-col items-center text-center ${stat === 'Unassigned' ? 'border-st-orange/30 bg-st-orange/5' : ''}`}>
+                    <div className="font-bold">{stat === 'Unassigned' ? 'Unspent' : stat}</div>
                     <div className="text-3xl font-mono mt-2 text-st-orange">{allocated}</div>
                     <div className={`text-sm font-bold ${delta > 0 ? 'text-green-400' : delta < 0 ? 'text-red-400' : 'text-st-text-light'}`}>
                       {delta > 0 ? `+${delta}` : delta < 0 ? delta : '-'}
@@ -1542,7 +1621,12 @@ export default function Simulations() {
                   {/* STATS ROI */}
                   <div className="border border-st-border rounded p-4 bg-st-bg">
                     <h4 className="font-bold mb-2">1. Base Stats ROI</h4>
-                    <p className="text-sm text-st-text-light mb-4">Tests adding +1 to every stat to see which yields the highest increase.</p>
+                    <p className="text-sm text-st-text-light mb-4">
+                      Tests adding +1 to every stat to see which yields the highest increase.
+                      {store.opt_results?.best_final?.Unassigned !== undefined && (
+                        <span className="block mt-1 text-st-orange">💡 <strong>Crippled Build:</strong> Use this to see exactly what you would gain by spending one of your Unspent points!</span>
+                      )}
+                    </p>
                     <button 
                       onClick={() => handleAnalyzeStats(context)}
                       disabled={isRoiLoading}
@@ -1557,16 +1641,20 @@ export default function Simulations() {
                           <thead>
                             <tr className="border-b border-st-border text-st-text-light text-sm">
                               <th className="py-2 pr-4">Stat (+1)</th>
-                              <th className="py-2">Marginal Gain (per 1k Arch Secs)</th>
+                              <th className="py-2">Gain (per 1k Secs)</th>
+                              <th className="py-2 w-20 text-right">Apply</th>
                             </tr>
                           </thead>
                           <tbody>
                             {store.opt_results.roi_stats.length === 0 ? (
-                              <tr><td colSpan="2" className="py-4 text-center text-st-text-light italic">No positive marginal gains found.</td></tr>
+                              <tr><td colSpan="3" className="py-4 text-center text-st-text-light italic">No positive marginal gains found.</td></tr>
                             ) : store.opt_results.roi_stats.map((r, i) => (
                               <tr key={r.stat} className="border-b border-st-border/50 hover:bg-black/5 transition-colors">
                                 <td className="py-2 pr-4 font-bold">{r.stat}</td>
                                 <td className="py-2 font-mono text-st-orange">{r.gain > 0 ? '+' : ''}{r.gain.toFixed(2)}</td>
+                                <td className="py-2 text-right">
+                                  <button onClick={() => handleApplyStat(r.stat)} className="px-3 py-1 bg-st-orange text-[#2b2b2b] font-bold text-xs rounded hover:bg-[#ffb045] transition-colors">Apply</button>
+                                </td>
                               </tr>
                             ))}
                           </tbody>
@@ -1594,17 +1682,21 @@ export default function Simulations() {
                             <tr className="border-b border-st-border text-st-text-light text-sm">
                               <th className="py-2 pr-4">Upgrade</th>
                               <th className="py-2 pr-4">Action</th>
-                              <th className="py-2">Marginal Gain (per 1k Arch Secs)</th>
+                              <th className="py-2">Gain</th>
+                              <th className="py-2 w-20 text-right">Apply</th>
                             </tr>
                           </thead>
                           <tbody>
                             {store.opt_results.roi_upgrades.length === 0 ? (
-                              <tr><td colSpan="3" className="py-4 text-center text-st-text-light italic">No positive marginal gains found.</td></tr>
+                              <tr><td colSpan="4" className="py-4 text-center text-st-text-light italic">No positive marginal gains found.</td></tr>
                             ) : store.opt_results.roi_upgrades.map((r, i) => (
                               <tr key={r.id} className="border-b border-st-border/50 hover:bg-black/5 transition-colors">
                                 <td className="py-2 pr-4 text-sm font-bold">{r.name}</td>
                                 <td className="py-2 pr-4 text-xs text-st-text-light">{r.action}</td>
                                 <td className="py-2 font-mono text-st-orange">{r.gain > 0 ? '+' : ''}{r.gain.toFixed(2)}</td>
+                                <td className="py-2 text-right">
+                                  <button onClick={() => handleApplyUpgrade(r.id)} className="px-3 py-1 bg-st-orange text-[#2b2b2b] font-bold text-xs rounded hover:bg-[#ffb045] transition-colors">Apply</button>
+                                </td>
                               </tr>
                             ))}
                           </tbody>
@@ -1632,17 +1724,21 @@ export default function Simulations() {
                             <tr className="border-b border-st-border text-st-text-light text-sm">
                               <th className="py-2 pr-4">External</th>
                               <th className="py-2 pr-4">Action</th>
-                              <th className="py-2">Marginal Gain (per 1k Arch Secs)</th>
+                              <th className="py-2">Gain</th>
+                              <th className="py-2 w-20 text-right">Apply</th>
                             </tr>
                           </thead>
                           <tbody>
                             {store.opt_results.roi_externals.length === 0 ? (
-                              <tr><td colSpan="3" className="py-4 text-center text-st-text-light italic">No positive marginal gains found.</td></tr>
+                              <tr><td colSpan="4" className="py-4 text-center text-st-text-light italic">No positive marginal gains found.</td></tr>
                             ) : store.opt_results.roi_externals.map((r, i) => (
                               <tr key={r.id} className="border-b border-st-border/50 hover:bg-black/5 transition-colors">
                                 <td className="py-2 pr-4 text-sm font-bold">{r.name}</td>
                                 <td className="py-2 pr-4 text-xs text-st-text-light">{r.action}</td>
                                 <td className="py-2 font-mono text-st-orange">{r.gain > 0 ? '+' : ''}{r.gain.toFixed(2)}</td>
+                                <td className="py-2 text-right">
+                                  <button onClick={() => handleApplyExternal(r.id)} className="px-3 py-1 bg-st-orange text-[#2b2b2b] font-bold text-xs rounded hover:bg-[#ffb045] transition-colors">Apply</button>
+                                </td>
                               </tr>
                             ))}
                           </tbody>
@@ -1670,17 +1766,21 @@ export default function Simulations() {
                             <tr className="border-b border-st-border text-st-text-light text-sm">
                               <th className="py-2 pr-4">Block Card</th>
                               <th className="py-2 pr-4">Action</th>
-                              <th className="py-2">Marginal Gain (per 1k Arch Secs)</th>
+                              <th className="py-2">Gain</th>
+                              <th className="py-2 w-20 text-right">Apply</th>
                             </tr>
                           </thead>
                           <tbody>
                             {store.opt_results.roi_cards.length === 0 ? (
-                              <tr><td colSpan="3" className="py-4 text-center text-st-text-light italic">No positive marginal gains found.</td></tr>
+                              <tr><td colSpan="4" className="py-4 text-center text-st-text-light italic">No positive marginal gains found.</td></tr>
                             ) : store.opt_results.roi_cards.map((r, i) => (
                               <tr key={r.id} className="border-b border-st-border/50 hover:bg-black/5 transition-colors">
                                 <td className="py-2 pr-4 text-sm font-bold capitalize">{r.name}</td>
                                 <td className="py-2 pr-4 text-xs text-st-text-light">{r.action}</td>
                                 <td className="py-2 font-mono text-st-orange">{r.gain > 0 ? '+' : ''}{r.gain.toFixed(2)}</td>
+                                <td className="py-2 text-right">
+                                  <button onClick={() => handleApplyCard(r.id)} className="px-3 py-1 bg-st-orange text-[#2b2b2b] font-bold text-xs rounded hover:bg-[#ffb045] transition-colors">Apply</button>
+                                </td>
                               </tr>
                             ))}
                           </tbody>
@@ -1833,6 +1933,15 @@ export default function Simulations() {
                     placeholder="e.g., com1, myth3"
                     className="w-full bg-st-bg border border-st-border rounded p-2 text-st-text focus:border-st-orange focus:outline-none"
                   />
+                  <label className="flex items-center space-x-2 mt-3 cursor-pointer text-st-text-light hover:text-st-orange transition-colors">
+                    <input 
+                      type="checkbox"
+                      checked={allowUnspent}
+                      onChange={(e) => setAllowUnspent(e.target.checked)}
+                      className="accent-st-orange w-4 h-4"
+                    />
+                    <span className="text-sm font-bold">Allow Unspent Points (Crippled Build)</span>
+                  </label>
                 </>
               )}
             </div>
@@ -1846,6 +1955,12 @@ export default function Simulations() {
               <p>💡 <strong>Strategy Tip:</strong> If your target spawns on early floors (e.g., Dirt), you don't need Max Stamina or Armor Pen to reach it! Lock <strong>Agility</strong> and <strong>Perception</strong> to 0 to massively increase the precision of the AI's search.<br/><br/>⚠️ <strong>Wait, what if my target is late-game?</strong> If you are farming Tier 4 blocks (which spawn on Floor 81+), you STILL have to survive the gauntlet of tough ores to get there. Do not lock your survival stats to 0, or the AI will die before reaching your target!</p>
             )}
           </div>
+          
+          {optGoal === "Block Card Farming" && allowUnspent && (
+            <div className="bg-red-900/20 border-l-4 border-red-500 p-3 rounded text-sm text-red-500 mt-4">
+              ⚠️ <strong>Dimensionality Warning:</strong> You have activated the "Unspent Points" bucket! The AI must now search an 8th mathematical dimension. This increases the total possible combinations exponentially. To prevent timeouts or garbage low-precision data, you <strong>MUST</strong> lock at least 1 or 2 stats (like Strength or Agility) to 0 in the constraints below!
+            </div>
+          )}
 
           <hr className="border-st-border" />
 
@@ -1857,16 +1972,20 @@ export default function Simulations() {
             </div>
 
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 cursor-default">
-              {activeStats.map(stat => (
-                <div key={stat} className="st-container flex flex-col items-center">
-                  <div className="font-bold mb-2 text-sm">{stat}</div>
+              {optActiveStats.map(stat => (
+                <div key={stat} className={`st-container flex flex-col items-center ${stat === 'Unassigned' ? 'border-st-orange/50 bg-st-orange/5' : ''}`}>
+                  <div className="font-bold mb-2 text-sm">{stat === 'Unassigned' ? 'Unspent Points' : stat}</div>
                   
-                  <img 
-                    src={`/assets/stats_small/${stat.toLowerCase()}.png`} 
-                    onError={(e) => { e.target.onerror = null; e.target.src = `/assets/stats/${stat.toLowerCase()}.png` }}
-                    alt={stat} 
-                    className="h-10 w-10 pixelated mb-3"
-                  />
+                  {stat === 'Unassigned' ? (
+                    <div className="h-10 w-10 flex items-center justify-center text-3xl mb-3">🛑</div>
+                  ) : (
+                    <img 
+                      src={`/assets/stats_small/${stat.toLowerCase()}.png`} 
+                      onError={(e) => { e.target.onerror = null; e.target.src = `/assets/stats/${stat.toLowerCase()}.png` }}
+                      alt={stat} 
+                      className="h-10 w-10 pixelated mb-3"
+                    />
+                  )}
                   
                   <label className="flex items-center space-x-2 text-sm mb-2 cursor-pointer">
                     <input 
@@ -2096,7 +2215,10 @@ export default function Simulations() {
                 cards: store.cards
             };
 
-            const statKeys = activeStats;
+            const statKeys = [...activeStats];
+            if (checkedRuns.some(r => r.Unassigned !== undefined)) {
+                statKeys.push('Unassigned');
+            }
             const candidatesMap = new Map();
             const originalBIds =[];
 
@@ -2469,7 +2591,14 @@ export default function Simulations() {
               {/* Tournament Controls */}
               <div className="st-container">
                 <h4 className="text-lg font-bold mb-2">🏆 Run Tie-Breaker Tournament</h4>
-                <p className="text-sm text-st-text-light mb-4">Once you have checked the <strong>Include</strong> box for a few of your top runs (recommended to use 2 to 5) in the history table below, click Synthesize to merge them.</p>
+                <p className="text-sm text-st-text-light mb-4">Once you have checked the <strong>Include</strong> box for a few of your top runs (recommend to use 2 to 5) in the history table below, click Synthesize to merge them.</p>
+                
+                {checkedRuns.some(r => r.Unassigned !== undefined) && (
+                  <div className="bg-red-900/20 border-l-4 border-red-500 p-3 rounded text-sm text-red-500 mb-4">
+                    ⚠️ <strong>Crippled Build Synthesis:</strong> You selected builds with <strong>Unspent Points</strong>! The tournament will dynamically mutate across the 8th dimension to find the mathematically perfect balance of unassigned stats for this specific target.
+                  </div>
+                )}
+
                 <div className="flex flex-col md:flex-row gap-4">
                   {!isAnyRunning ? (
                     <button 
@@ -2521,59 +2650,66 @@ export default function Simulations() {
                 </div>
 
                 <div className="overflow-x-auto border border-st-border rounded bg-st-bg">
-                  <table className="w-full text-left border-collapse text-sm">
-                    <thead>
-                      <tr className="border-b border-st-border bg-black/10">
-                        <th className="p-3 w-10 text-center">
-                          <input 
-                            type="checkbox" 
-                            checked={visibleHistory.length > 0 && visibleHistory.every(r => r.Include)}
-                            onChange={() => {
-                              const newHistory = [...history];
-                              const targetState = !(visibleHistory.length > 0 && visibleHistory.every(r => r.Include));
-                              visibleHistory.forEach(r => { newHistory[r._global_idx].Include = targetState; });
-                              store.setSimsState('run_history', newHistory);
-                            }}
-                            className="accent-st-orange w-4 h-4 cursor-pointer"
-                            title="Select/Deselect All Visible"
-                          />
-                        </th>
-                        <th className="p-3">Profile</th>
-                        <th className="p-3">Target</th>
-                        <th className="p-3">Score / Yield</th>
-                        <th className="p-3">Avg Floor</th>
-                        <th className="p-3">Max Floor</th>
-                        {activeStats.map(s => <th key={s} className="p-3">{s}</th>)}
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {visibleHistory.length === 0 ? (
-                        <tr><td colSpan="12" className="p-4 text-center text-st-text-light">No runs match current filter.</td></tr>
-                      ) : visibleHistory.map((r) => {
-                        const isFloor = r.Target === 'highest_floor';
-                        const score = isFloor ? r['Metric Score'] : ((r['Metric Score'] / 60.0) * 1000.0).toFixed(1);
-                        
-                        return (
-                          <tr key={r._global_idx} className="border-b border-st-border/50 hover:bg-black/5 transition-colors">
-                            <td className="p-3 text-center">
+                  {(() => {
+                    const tableStats = [...activeStats];
+                    if (visibleHistory.some(r => r.Unassigned !== undefined)) tableStats.push('Unassigned');
+
+                    return (
+                      <table className="w-full text-left border-collapse text-sm">
+                        <thead>
+                          <tr className="border-b border-st-border bg-black/10">
+                            <th className="p-3 w-10 text-center">
                               <input 
                                 type="checkbox" 
-                                checked={r.Include || false} 
-                                onChange={() => toggleInclude(r._global_idx)}
+                                checked={visibleHistory.length > 0 && visibleHistory.every(r => r.Include)}
+                                onChange={() => {
+                                  const newHistory = [...history];
+                                  const targetState = !(visibleHistory.length > 0 && visibleHistory.every(r => r.Include));
+                                  visibleHistory.forEach(r => { newHistory[r._global_idx].Include = targetState; });
+                                  store.setSimsState('run_history', newHistory);
+                                }}
                                 className="accent-st-orange w-4 h-4 cursor-pointer"
+                                title="Select/Deselect All Visible"
                               />
-                            </td>
-                            <td className="p-3 font-bold text-xs truncate max-w-[100px]" title={getProfileDisplayName(r)}>{getProfileDisplayName(r)}</td>
-                            <td className="p-3 font-mono text-xs">{r.Target.replace('_per_min', '')}</td>
-                            <td className="p-3 font-bold text-st-orange">{score}</td>
-                            <td className="p-3">{r['Avg Floor'].toFixed(1)}</td>
-                            <td className="p-3">{r['Max Floor']}</td>
-                            {activeStats.map(s => <td key={s} className="p-3 text-st-text-light">{r[s] !== undefined ? r[s] : '-'}</td>)}
+                            </th>
+                            <th className="p-3">Profile</th>
+                            <th className="p-3">Target</th>
+                            <th className="p-3">Score / Yield</th>
+                            <th className="p-3">Avg Floor</th>
+                            <th className="p-3">Max Floor</th>
+                            {tableStats.map(s => <th key={s} className="p-3">{s === 'Unassigned' ? 'Unspent' : s}</th>)}
                           </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
+                        </thead>
+                        <tbody>
+                          {visibleHistory.length === 0 ? (
+                            <tr><td colSpan="12" className="p-4 text-center text-st-text-light">No runs match current filter.</td></tr>
+                          ) : visibleHistory.map((r) => {
+                            const isFloor = r.Target === 'highest_floor';
+                            const score = isFloor ? r['Metric Score'] : ((r['Metric Score'] / 60.0) * 1000.0).toFixed(1);
+                            
+                            return (
+                              <tr key={r._global_idx} className="border-b border-st-border/50 hover:bg-black/5 transition-colors">
+                                <td className="p-3 text-center">
+                                  <input 
+                                    type="checkbox" 
+                                    checked={r.Include || false} 
+                                    onChange={() => toggleInclude(r._global_idx)}
+                                    className="accent-st-orange w-4 h-4 cursor-pointer"
+                                  />
+                                </td>
+                                <td className="p-3 font-bold text-xs truncate max-w-[100px]" title={getProfileDisplayName(r)}>{getProfileDisplayName(r)}</td>
+                                <td className="p-3 font-mono text-xs">{r.Target.replace('_per_min', '')}</td>
+                                <td className="p-3 font-bold text-st-orange">{score}</td>
+                                <td className="p-3">{r['Avg Floor'].toFixed(1)}</td>
+                                <td className="p-3">{r['Max Floor']}</td>
+                                {tableStats.map(s => <td key={s} className={`p-3 ${s === 'Unassigned' ? 'text-st-orange font-bold' : 'text-st-text-light'}`}>{r[s] !== undefined ? r[s] : '-'}</td>)}
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    );
+                  })()}
                 </div>
               </div>
 
