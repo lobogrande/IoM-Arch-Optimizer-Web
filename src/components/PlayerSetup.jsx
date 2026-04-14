@@ -155,7 +155,7 @@ export default function PlayerSetup() {
     if (statKey === 'Corr' && !asc2_unlocked) return null;
 
     return (
-      <div className="st-container flex flex-col items-center justify-center p-4">
+      <div id={`setup-stat-${statKey}`} className="st-container flex flex-col items-center justify-center p-4">
         <div className="text-center mb-2">
           <span className="font-bold">{label}</span><br/>
           <span className="text-sm text-st-text-light">(Max: {STAT_CAPS[statKey]})</span>
@@ -494,7 +494,7 @@ export default function PlayerSetup() {
                   const name = UPGRADE_NAMES[id] || `Upgrade ${id}`;
 
                   return (
-                    <div key={id} className="st-container flex flex-col items-center justify-center p-4">
+                    <div key={id} id={`setup-upg-${id}`} className="st-container flex flex-col items-center justify-center p-4">
                       <div className="text-center mb-2">
                         <span className="font-bold text-sm">{name}</span><br/>
                         <span className="text-xs text-st-text-light">(Max: {max_lvl})</span>
@@ -536,7 +536,7 @@ export default function PlayerSetup() {
                   const current_val = external_levels[group.rows[0]] ?? 0;
                   
                   return (
-                    <div key={group.id} className="st-container flex flex-col items-center justify-between p-4 text-center">
+                    <div key={group.id} id={`setup-ext-${group.id}`} className="st-container flex flex-col items-center justify-between p-4 text-center">
                       <span className="font-bold text-sm mb-4">{group.name}</span>
                       
                       <div className="flex flex-col items-center justify-center flex-grow mb-4 gap-2">
@@ -662,7 +662,7 @@ export default function PlayerSetup() {
                   const max_card_level = asc1_unlocked ? 4 : 3;
 
                   return (
-                    <div key={card_id} className={`st-container p-2 flex flex-col items-center ${is_locked ? 'opacity-40' : ''}`}>
+                    <div key={card_id} id={`setup-card-${card_id}`} className={`st-container p-2 flex flex-col items-center ${is_locked ? 'opacity-40' : ''}`}>
                       <div className="font-bold text-xs mb-2 capitalize">{card_id}</div>
                       
                       <div className="relative mb-3 flex items-center justify-center" style={{ width: UI_BLOCK_CARD_WIDTH * 0.6, height: UI_BLOCK_CARD_WIDTH * 0.8 }}>
@@ -706,7 +706,7 @@ export default function PlayerSetup() {
               </div>
             ) : (
               <div className="flex flex-col sm:flex-row gap-6 justify-start">
-                <div className="st-container flex flex-col items-center justify-between p-4 w-full sm:w-64">
+                <div id="setup-ext-hestia" className="st-container flex flex-col items-center justify-between p-4 w-full sm:w-64">
                   <span className="font-bold mb-4">Hestia Idol</span>
                   <div className="w-full flex justify-center mb-4">
                     <img src="/assets/upgrades/idols/hestia_idol.png" alt="Hestia" className="h-auto object-contain" style={{ width: UI_EXT_IMG_STD, imageRendering: 'pixelated' }} onError={(e) => e.target.style.display = 'none'} />
@@ -723,7 +723,7 @@ export default function PlayerSetup() {
                   </div>
                 </div>
 
-                <div className="st-container flex flex-col items-center justify-between p-4 w-full sm:w-64">
+                <div id="setup-ext-hades" className="st-container flex flex-col items-center justify-between p-4 w-full sm:w-64">
                   <span className="font-bold mb-4">Hades Idol</span>
                   <div className="w-full flex justify-center mb-4">
                     <img src="/assets/upgrades/idols/hades_idol.png" alt="Hades" className="h-auto object-contain" style={{ width: UI_EXT_IMG_STD, imageRendering: 'pixelated' }} onError={(e) => e.target.style.display = 'none'} />
