@@ -2508,7 +2508,14 @@ export default function Simulations() {
               {/* Tournament Controls */}
               <div className="st-container">
                 <h4 className="text-lg font-bold mb-2">🏆 Run Tie-Breaker Tournament</h4>
-                <p className="text-sm text-st-text-light mb-4">Once you have checked the <strong>Include</strong> box for a few of your top runs (recommended to use 2 to 5) in the history table below, click Synthesize to merge them.</p>
+                <p className="text-sm text-st-text-light mb-4">Once you have checked the <strong>Include</strong> box for a few of your top runs (recommend to use 2 to 5) in the history table below, click Synthesize to merge them.</p>
+                
+                {checkedRuns.some(r => r.Unassigned !== undefined) && (
+                  <div className="bg-red-900/20 border-l-4 border-red-500 p-3 rounded text-sm text-red-500 mb-4">
+                    ⚠️ <strong>Crippled Build Synthesis:</strong> You selected builds with <strong>Unspent Points</strong>! The tournament will dynamically mutate across the 8th dimension to find the mathematically perfect balance of unassigned stats for this specific target.
+                  </div>
+                )}
+
                 <div className="flex flex-col md:flex-row gap-4">
                   {!isAnyRunning ? (
                     <button 
