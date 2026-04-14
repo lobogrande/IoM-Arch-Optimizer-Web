@@ -435,8 +435,8 @@ export default function Simulations() {
   // Memoize the heavy AI Profile calculation so it doesn't freeze the browser thread!
   const profData = useMemo(() => {
     if (isOverBudget) return null;
-    return getOptimalStepProfile(activeStats, dynamicBudget, bounds, simsPerSec, timeLimit);
-  },[JSON.stringify(activeStats), dynamicBudget, JSON.stringify(bounds), simsPerSec, timeLimit, isOverBudget]);
+    return getOptimalStepProfile(optActiveStats, dynamicBudget, bounds, simsPerSec, timeLimit);
+  },[JSON.stringify(optActiveStats), dynamicBudget, JSON.stringify(bounds), simsPerSec, timeLimit, isOverBudget]);
   
   const step1 = profData ? profData.step_1 : 100;
 
