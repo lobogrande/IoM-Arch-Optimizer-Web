@@ -838,7 +838,7 @@ export default function Simulations() {
 
       const fixedStats = {};
       Object.keys(store.base_stats).forEach(k => {
-        if (!activeStats.includes(k)) fixedStats[k] = store.base_stats[k];
+        if (!optActiveStats.includes(k)) fixedStats[k] = store.base_stats[k];
       });
 
       let totalSimsExecuted = 0;
@@ -879,11 +879,11 @@ export default function Simulations() {
       const validSeed = seedValid ? seedBuild : null;
       
       let { bestDist: bestP1, summary: sumP1 } = await runOptimizationPhase(
-        "Phase 1 (Coarse)", targetMetricKey, activeStats, p1Budget, step1, 25,
+        "Phase 1 (Coarse)", targetMetricKey, optActiveStats, p1Budget, step1, 25,
         pool, fixedStats, bounds, timeLimit, globalStartTime, onProgressCb, validSeed
       );
 
-      bestP1 = topUpBuild(bestP1, activeStats, dynamicBudget, STAT_CAPS, lockedStats);
+      bestP1 = topUpBuild(bestP1, optActiveStats, dynamicBudget, STAT_CAPS, lockedStats);
 
       let bestFinal = bestP1;
       let finalSummary = sumP1;
@@ -893,7 +893,7 @@ export default function Simulations() {
       if (bestP1 && ((Date.now() - globalStartTime) / 1000) < timeLimit) {
         const boundsP2 = {};
         let lockedSumP2 = 0;
-        activeStats.forEach(s => {
+        optActiveStats.forEach(s => {
           if (lockedStats[s] !== undefined) {
             boundsP2[s] = bounds[s];
             lockedSumP2 += bounds[s][0];
@@ -909,10 +909,10 @@ export default function Simulations() {
         const p2Budget = dynamicBudget - remP2;
 
         const res2 = await runOptimizationPhase(
-          "Phase 2 (Fine)", targetMetricKey, activeStats, p2Budget, step2, 50,
+          "Phase 2 (Fine)", targetMetricKey, optActiveStats, p2Budget, step2, 50,
           pool, fixedStats, boundsP2, timeLimit, globalStartTime, onProgressCb
         );
-        bestP2 = topUpBuild(res2.bestDist, activeStats, dynamicBudget, STAT_CAPS, lockedStats);
+        bestP2 = topUpBuild(res2.bestDist, optActiveStats, dynamicBudget, STAT_CAPS, lockedStats);
         sumP2 = res2.summary;
         if (bestP2) { bestFinal = bestP2; finalSummary = sumP2; }
       }
@@ -921,7 +921,7 @@ export default function Simulations() {
       if (bestP2 && ((Date.now() - globalStartTime) / 1000) < timeLimit) {
         const boundsP3 = {};
         const p3Radius = profData.p3_radius || Math.min(2, step2);
-        activeStats.forEach(s => {
+        optActiveStats.forEach(s => {
           if (lockedStats[s] !== undefined) {
             boundsP3[s] = bounds[s];
           } else {
@@ -933,10 +933,10 @@ export default function Simulations() {
         });
 
         const res3 = await runOptimizationPhase(
-          `Phase 3 (Radius ±${p3Radius})`, targetMetricKey, activeStats, dynamicBudget, profData.step_3 || 1, 100,
+          `Phase 3 (Radius ±${p3Radius})`, targetMetricKey, optActiveStats, dynamicBudget, profData.step_3 || 1, 100,
           pool, fixedStats, boundsP3, timeLimit, globalStartTime, onProgressCb
         );
-        const bestP3 = topUpBuild(res3.bestDist, activeStats, dynamicBudget, STAT_CAPS, lockedStats);
+        const bestP3 = topUpBuild(res3.bestDist, optActiveStats, dynamicBudget, STAT_CAPS, lockedStats);
         if (bestP3) { bestFinal = bestP3; finalSummary = res3.summary; }
       }
 
