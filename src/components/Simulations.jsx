@@ -1081,9 +1081,15 @@ export default function Simulations() {
           if (groupId === 'geoduck' && !store.geoduck_unlocked) {
             store.setSetting('geoduck_unlocked', true);
           }
+          
           store.setActiveTab('setup');
-          store.setActiveSubTab('upgrades');
-          store.setUpgradeView('external');
+          if (groupId === 'hestia' || groupId === 'hades') {
+            store.setActiveSubTab('idols');
+          } else {
+            store.setActiveSubTab('upgrades');
+            store.setUpgradeView('external');
+          }
+          
           scrollToAndHighlight(`setup-ext-${groupId}`);
         };
 
