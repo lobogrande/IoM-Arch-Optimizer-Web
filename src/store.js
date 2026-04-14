@@ -265,7 +265,8 @@ const useStore = create(
     targetBlock: "myth3",
     timeLimit: 60,
     simsPerSec: 15,
-    cpuProfile: isMobileDevice() ? 'eco' : 'balanced'
+    cpuProfile: isMobileDevice() ? 'eco' : 'balanced',
+    allowUnspent: false
   }),
 
   // Bulk load from JSON file
