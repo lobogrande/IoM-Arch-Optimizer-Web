@@ -1039,12 +1039,28 @@ export default function Simulations() {
           .map(k => k.replace("block_", "").replace("_per_min", ""))
           .sort();
 
+        const scrollToAndHighlight = (elementId) => {
+          // Wait 150ms for React to switch tabs and render the new DOM elements
+          setTimeout(() => {
+            const el = document.getElementById(elementId);
+            if (el) {
+              el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+              // Add a temporary orange glow effect to draw the eye to the updated number
+              el.classList.add('ring-4', 'ring-st-orange', 'transition-all', 'duration-300', 'rounded');
+              setTimeout(() => el.classList.remove('ring-4', 'ring-st-orange', 'transition-all', 'duration-300', 'rounded'), 1500);
+            } else {
+              // Fallback just in case the element ID isn't found
+              window.scrollTo({ top: 0, behavior: 'smooth' });
+            }
+          }, 150);
+        };
+
         const handleApplyStat = (stat) => {
           const current = store.base_stats[stat] || 0;
           store.setBaseStat(stat, current + 1);
           store.setActiveTab('setup');
           store.setActiveSubTab('stats');
-          window.scrollTo({ top: 0, behavior: 'smooth' });
+          scrollToAndHighlight(`setup-stat-${stat}`);
         };
 
         const handleApplyUpgrade = (idStr) => {
@@ -1054,7 +1070,7 @@ export default function Simulations() {
           store.setActiveTab('setup');
           store.setActiveSubTab('upgrades');
           store.setUpgradeView('internal');
-          window.scrollTo({ top: 0, behavior: 'smooth' });
+          scrollToAndHighlight(`setup-upg-${id}`);
         };
 
         const handleApplyExternal = (groupId) => {
@@ -1068,7 +1084,7 @@ export default function Simulations() {
           store.setActiveTab('setup');
           store.setActiveSubTab('upgrades');
           store.setUpgradeView('external');
-          window.scrollTo({ top: 0, behavior: 'smooth' });
+          scrollToAndHighlight(`setup-ext-${groupId}`);
         };
 
         const handleApplyCard = (cardId) => {
@@ -1076,7 +1092,7 @@ export default function Simulations() {
           store.setCardLevel(cardId, current + 1);
           store.setActiveTab('setup');
           store.setActiveSubTab('cards');
-          window.scrollTo({ top: 0, behavior: 'smooth' });
+          scrollToAndHighlight(`setup-card-${cardId}`);
         };
 
         return (
