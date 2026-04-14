@@ -1619,16 +1619,20 @@ export default function Simulations() {
                           <thead>
                             <tr className="border-b border-st-border text-st-text-light text-sm">
                               <th className="py-2 pr-4">Stat (+1)</th>
-                              <th className="py-2">Marginal Gain (per 1k Arch Secs)</th>
+                              <th className="py-2">Gain (per 1k Secs)</th>
+                              <th className="py-2 w-20 text-right">Apply</th>
                             </tr>
                           </thead>
                           <tbody>
                             {store.opt_results.roi_stats.length === 0 ? (
-                              <tr><td colSpan="2" className="py-4 text-center text-st-text-light italic">No positive marginal gains found.</td></tr>
+                              <tr><td colSpan="3" className="py-4 text-center text-st-text-light italic">No positive marginal gains found.</td></tr>
                             ) : store.opt_results.roi_stats.map((r, i) => (
                               <tr key={r.stat} className="border-b border-st-border/50 hover:bg-black/5 transition-colors">
                                 <td className="py-2 pr-4 font-bold">{r.stat}</td>
                                 <td className="py-2 font-mono text-st-orange">{r.gain > 0 ? '+' : ''}{r.gain.toFixed(2)}</td>
+                                <td className="py-2 text-right">
+                                  <button onClick={() => handleApplyStat(r.stat)} className="px-3 py-1 bg-st-orange text-[#2b2b2b] font-bold text-xs rounded hover:bg-[#ffb045] transition-colors">Apply</button>
+                                </td>
                               </tr>
                             ))}
                           </tbody>
