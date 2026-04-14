@@ -1872,6 +1872,12 @@ export default function Simulations() {
               <p>💡 <strong>Strategy Tip:</strong> If your target spawns on early floors (e.g., Dirt), you don't need Max Stamina or Armor Pen to reach it! Lock <strong>Agility</strong> and <strong>Perception</strong> to 0 to massively increase the precision of the AI's search.<br/><br/>⚠️ <strong>Wait, what if my target is late-game?</strong> If you are farming Tier 4 blocks (which spawn on Floor 81+), you STILL have to survive the gauntlet of tough ores to get there. Do not lock your survival stats to 0, or the AI will die before reaching your target!</p>
             )}
           </div>
+          
+          {optGoal === "Block Card Farming" && allowUnspent && (
+            <div className="bg-red-900/20 border-l-4 border-red-500 p-3 rounded text-sm text-red-500 mt-4">
+              ⚠️ <strong>Dimensionality Warning:</strong> You have activated the "Unspent Points" bucket! The AI must now search an 8th mathematical dimension. This increases the total possible combinations exponentially. To prevent timeouts or garbage low-precision data, you <strong>MUST</strong> lock at least 1 or 2 stats (like Strength or Agility) to 0 in the constraints below!
+            </div>
+          )}
 
           <hr className="border-st-border" />
 
@@ -1883,16 +1889,20 @@ export default function Simulations() {
             </div>
 
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 cursor-default">
-              {activeStats.map(stat => (
-                <div key={stat} className="st-container flex flex-col items-center">
-                  <div className="font-bold mb-2 text-sm">{stat}</div>
+              {optActiveStats.map(stat => (
+                <div key={stat} className={`st-container flex flex-col items-center ${stat === 'Unassigned' ? 'border-st-orange/50 bg-st-orange/5' : ''}`}>
+                  <div className="font-bold mb-2 text-sm">{stat === 'Unassigned' ? 'Unspent Points' : stat}</div>
                   
-                  <img 
-                    src={`/assets/stats_small/${stat.toLowerCase()}.png`} 
-                    onError={(e) => { e.target.onerror = null; e.target.src = `/assets/stats/${stat.toLowerCase()}.png` }}
-                    alt={stat} 
-                    className="h-10 w-10 pixelated mb-3"
-                  />
+                  {stat === 'Unassigned' ? (
+                    <div className="h-10 w-10 flex items-center justify-center text-3xl mb-3">🛑</div>
+                  ) : (
+                    <img 
+                      src={`/assets/stats_small/${stat.toLowerCase()}.png`} 
+                      onError={(e) => { e.target.onerror = null; e.target.src = `/assets/stats/${stat.toLowerCase()}.png` }}
+                      alt={stat} 
+                      className="h-10 w-10 pixelated mb-3"
+                    />
+                  )}
                   
                   <label className="flex items-center space-x-2 text-sm mb-2 cursor-pointer">
                     <input 
