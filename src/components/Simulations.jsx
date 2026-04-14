@@ -1660,17 +1660,21 @@ export default function Simulations() {
                             <tr className="border-b border-st-border text-st-text-light text-sm">
                               <th className="py-2 pr-4">Upgrade</th>
                               <th className="py-2 pr-4">Action</th>
-                              <th className="py-2">Marginal Gain (per 1k Arch Secs)</th>
+                              <th className="py-2">Gain</th>
+                              <th className="py-2 w-20 text-right">Apply</th>
                             </tr>
                           </thead>
                           <tbody>
                             {store.opt_results.roi_upgrades.length === 0 ? (
-                              <tr><td colSpan="3" className="py-4 text-center text-st-text-light italic">No positive marginal gains found.</td></tr>
+                              <tr><td colSpan="4" className="py-4 text-center text-st-text-light italic">No positive marginal gains found.</td></tr>
                             ) : store.opt_results.roi_upgrades.map((r, i) => (
                               <tr key={r.id} className="border-b border-st-border/50 hover:bg-black/5 transition-colors">
                                 <td className="py-2 pr-4 text-sm font-bold">{r.name}</td>
                                 <td className="py-2 pr-4 text-xs text-st-text-light">{r.action}</td>
                                 <td className="py-2 font-mono text-st-orange">{r.gain > 0 ? '+' : ''}{r.gain.toFixed(2)}</td>
+                                <td className="py-2 text-right">
+                                  <button onClick={() => handleApplyUpgrade(r.id)} className="px-3 py-1 bg-st-orange text-[#2b2b2b] font-bold text-xs rounded hover:bg-[#ffb045] transition-colors">Apply</button>
+                                </td>
                               </tr>
                             ))}
                           </tbody>
