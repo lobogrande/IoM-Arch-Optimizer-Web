@@ -1559,7 +1559,12 @@ export default function Simulations() {
                   {/* STATS ROI */}
                   <div className="border border-st-border rounded p-4 bg-st-bg">
                     <h4 className="font-bold mb-2">1. Base Stats ROI</h4>
-                    <p className="text-sm text-st-text-light mb-4">Tests adding +1 to every stat to see which yields the highest increase.</p>
+                    <p className="text-sm text-st-text-light mb-4">
+                      Tests adding +1 to every stat to see which yields the highest increase.
+                      {store.opt_results?.best_final?.Unassigned !== undefined && (
+                        <span className="block mt-1 text-st-orange">💡 <strong>Crippled Build:</strong> Use this to see exactly what you would gain by spending one of your Unspent points!</span>
+                      )}
+                    </p>
                     <button 
                       onClick={() => handleAnalyzeStats(context)}
                       disabled={isRoiLoading}
