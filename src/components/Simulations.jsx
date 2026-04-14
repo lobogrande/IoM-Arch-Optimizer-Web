@@ -1070,14 +1070,16 @@ export default function Simulations() {
           <div className="st-container animate-fade-in">
             <h3 className="text-2xl font-bold mb-4">🏆 Optimal Stat Build</h3>
             <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-4">
-              {activeStats.map(stat => {
+              {([...activeStats, store.opt_results.best_final.Unassigned !== undefined ? 'Unassigned' : null].filter(Boolean)).map(stat => {
                 const allocated = store.opt_results.best_final[stat] || 0;
-                const current = store.base_stats[stat] || 0;
+                const current = stat === 'Unassigned' 
+                    ? Math.max(0, dynamicBudget - activeStats.reduce((acc, s) => acc + (store.base_stats[s] || 0), 0))
+                    : store.base_stats[stat] || 0;
                 const delta = allocated - current;
                 
                 return (
-                  <div key={stat} className="st-container flex flex-col items-center text-center">
-                    <div className="font-bold">{stat}</div>
+                  <div key={stat} className={`st-container flex flex-col items-center text-center ${stat === 'Unassigned' ? 'border-st-orange/30 bg-st-orange/5' : ''}`}>
+                    <div className="font-bold">{stat === 'Unassigned' ? 'Unspent' : stat}</div>
                     <div className="text-3xl font-mono mt-2 text-st-orange">{allocated}</div>
                     <div className={`text-sm font-bold ${delta > 0 ? 'text-green-400' : delta < 0 ? 'text-red-400' : 'text-st-text-light'}`}>
                       {delta > 0 ? `+${delta}` : delta < 0 ? delta : '-'}
@@ -1848,6 +1850,15 @@ export default function Simulations() {
                     placeholder="e.g., com1, myth3"
                     className="w-full bg-st-bg border border-st-border rounded p-2 text-st-text focus:border-st-orange focus:outline-none"
                   />
+                  <label className="flex items-center space-x-2 mt-3 cursor-pointer text-st-text-light hover:text-st-orange transition-colors">
+                    <input 
+                      type="checkbox"
+                      checked={allowUnspent}
+                      onChange={(e) => setAllowUnspent(e.target.checked)}
+                      className="accent-st-orange w-4 h-4"
+                    />
+                    <span className="text-sm font-bold">Allow Unspent Points (Crippled Build)</span>
+                  </label>
                 </>
               )}
             </div>
@@ -2539,59 +2550,66 @@ export default function Simulations() {
                 </div>
 
                 <div className="overflow-x-auto border border-st-border rounded bg-st-bg">
-                  <table className="w-full text-left border-collapse text-sm">
-                    <thead>
-                      <tr className="border-b border-st-border bg-black/10">
-                        <th className="p-3 w-10 text-center">
-                          <input 
-                            type="checkbox" 
-                            checked={visibleHistory.length > 0 && visibleHistory.every(r => r.Include)}
-                            onChange={() => {
-                              const newHistory = [...history];
-                              const targetState = !(visibleHistory.length > 0 && visibleHistory.every(r => r.Include));
-                              visibleHistory.forEach(r => { newHistory[r._global_idx].Include = targetState; });
-                              store.setSimsState('run_history', newHistory);
-                            }}
-                            className="accent-st-orange w-4 h-4 cursor-pointer"
-                            title="Select/Deselect All Visible"
-                          />
-                        </th>
-                        <th className="p-3">Profile</th>
-                        <th className="p-3">Target</th>
-                        <th className="p-3">Score / Yield</th>
-                        <th className="p-3">Avg Floor</th>
-                        <th className="p-3">Max Floor</th>
-                        {activeStats.map(s => <th key={s} className="p-3">{s}</th>)}
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {visibleHistory.length === 0 ? (
-                        <tr><td colSpan="12" className="p-4 text-center text-st-text-light">No runs match current filter.</td></tr>
-                      ) : visibleHistory.map((r) => {
-                        const isFloor = r.Target === 'highest_floor';
-                        const score = isFloor ? r['Metric Score'] : ((r['Metric Score'] / 60.0) * 1000.0).toFixed(1);
-                        
-                        return (
-                          <tr key={r._global_idx} className="border-b border-st-border/50 hover:bg-black/5 transition-colors">
-                            <td className="p-3 text-center">
+                  {(() => {
+                    const tableStats = [...activeStats];
+                    if (visibleHistory.some(r => r.Unassigned !== undefined)) tableStats.push('Unassigned');
+
+                    return (
+                      <table className="w-full text-left border-collapse text-sm">
+                        <thead>
+                          <tr className="border-b border-st-border bg-black/10">
+                            <th className="p-3 w-10 text-center">
                               <input 
                                 type="checkbox" 
-                                checked={r.Include || false} 
-                                onChange={() => toggleInclude(r._global_idx)}
+                                checked={visibleHistory.length > 0 && visibleHistory.every(r => r.Include)}
+                                onChange={() => {
+                                  const newHistory = [...history];
+                                  const targetState = !(visibleHistory.length > 0 && visibleHistory.every(r => r.Include));
+                                  visibleHistory.forEach(r => { newHistory[r._global_idx].Include = targetState; });
+                                  store.setSimsState('run_history', newHistory);
+                                }}
                                 className="accent-st-orange w-4 h-4 cursor-pointer"
+                                title="Select/Deselect All Visible"
                               />
-                            </td>
-                            <td className="p-3 font-bold text-xs truncate max-w-[100px]" title={getProfileDisplayName(r)}>{getProfileDisplayName(r)}</td>
-                            <td className="p-3 font-mono text-xs">{r.Target.replace('_per_min', '')}</td>
-                            <td className="p-3 font-bold text-st-orange">{score}</td>
-                            <td className="p-3">{r['Avg Floor'].toFixed(1)}</td>
-                            <td className="p-3">{r['Max Floor']}</td>
-                            {activeStats.map(s => <td key={s} className="p-3 text-st-text-light">{r[s] !== undefined ? r[s] : '-'}</td>)}
+                            </th>
+                            <th className="p-3">Profile</th>
+                            <th className="p-3">Target</th>
+                            <th className="p-3">Score / Yield</th>
+                            <th className="p-3">Avg Floor</th>
+                            <th className="p-3">Max Floor</th>
+                            {tableStats.map(s => <th key={s} className="p-3">{s === 'Unassigned' ? 'Unspent' : s}</th>)}
                           </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
+                        </thead>
+                        <tbody>
+                          {visibleHistory.length === 0 ? (
+                            <tr><td colSpan="12" className="p-4 text-center text-st-text-light">No runs match current filter.</td></tr>
+                          ) : visibleHistory.map((r) => {
+                            const isFloor = r.Target === 'highest_floor';
+                            const score = isFloor ? r['Metric Score'] : ((r['Metric Score'] / 60.0) * 1000.0).toFixed(1);
+                            
+                            return (
+                              <tr key={r._global_idx} className="border-b border-st-border/50 hover:bg-black/5 transition-colors">
+                                <td className="p-3 text-center">
+                                  <input 
+                                    type="checkbox" 
+                                    checked={r.Include || false} 
+                                    onChange={() => toggleInclude(r._global_idx)}
+                                    className="accent-st-orange w-4 h-4 cursor-pointer"
+                                  />
+                                </td>
+                                <td className="p-3 font-bold text-xs truncate max-w-[100px]" title={getProfileDisplayName(r)}>{getProfileDisplayName(r)}</td>
+                                <td className="p-3 font-mono text-xs">{r.Target.replace('_per_min', '')}</td>
+                                <td className="p-3 font-bold text-st-orange">{score}</td>
+                                <td className="p-3">{r['Avg Floor'].toFixed(1)}</td>
+                                <td className="p-3">{r['Max Floor']}</td>
+                                {tableStats.map(s => <td key={s} className={`p-3 ${s === 'Unassigned' ? 'text-st-orange font-bold' : 'text-st-text-light'}`}>{r[s] !== undefined ? r[s] : '-'}</td>)}
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    );
+                  })()}
                 </div>
               </div>
 
