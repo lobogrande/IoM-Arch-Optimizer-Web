@@ -58,7 +58,10 @@ export default function Simulations() {
   const cpuProfile = store.cpuProfile || 'balanced';
   const setCpuProfile = (v) => store.setSimsState('cpuProfile', v);
 
-  const[displayTime, setDisplayTime] = useState(store.timeLimit || 60); // Visual slider state
+  const allowUnspent = store.allowUnspent || false;
+  const setAllowUnspent = (v) => store.setSimsState('allowUnspent', v);
+
+  const [displayTime, setDisplayTime] = useState(store.timeLimit || 60); // Visual slider state
 
   // Debounce the visual slider so it reliably updates the engine math without freezing the browser
   useEffect(() => {
@@ -391,27 +394,35 @@ export default function Simulations() {
   // Dynamic Limits based on Ascensions and Caps
   const totalAllowed = parseInt(store.arch_level) + parseInt(store.upgrade_levels[12] || 0);
   const capInc = parseInt(store.upgrade_levels[45] || 0) * 5; // H45 scales by 5
+  const dynamicBudget = parseInt(store.arch_level) + parseInt(store.upgrade_levels[12] || 0);
+
   const STAT_CAPS = {
     Str: 50 + capInc, Agi: 50 + capInc, Per: 25 + capInc, Int: 25 + capInc, Luck: 25 + capInc,
     Div: store.asc1_unlocked ? (10 + capInc) : 0, 
-    Corr: store.asc2_unlocked ? (10 + capInc) : 0
+    Corr: store.asc2_unlocked ? (10 + capInc) : 0,
+    Unassigned: dynamicBudget
   };
 
   const MAX_STAT_CAPS = {
     Str: 55, Agi: 55, Per: 30, Int: 30, Luck: 30,
     Div: store.asc1_unlocked ? 15 : 0, 
-    Corr: store.asc2_unlocked ? 15 : 0
+    Corr: store.asc2_unlocked ? 15 : 0,
+    Unassigned: 9999
   };
 
-  const activeStats = [ 'Str', 'Agi', 'Per', 'Int', 'Luck' ];
+  const activeStats =[ 'Str', 'Agi', 'Per', 'Int', 'Luck' ];
   if (store.asc1_unlocked) activeStats.push('Div');
   if (store.asc2_unlocked) activeStats.push('Corr');
 
+  const optActiveStats = [...activeStats];
+  if (optGoal === "Block Card Farming" && allowUnspent) {
+    optActiveStats.push('Unassigned');
+  }
+
   // --- REACTIVE AI CALIBRATION ---
-  const dynamicBudget = parseInt(store.arch_level) + parseInt(store.upgrade_levels[12] || 0);
   const bounds = {};
   let lockedSum = 0;
-  activeStats.forEach(s => {
+  optActiveStats.forEach(s => {
     if (lockedStats[s] !== undefined) {
       bounds[s] = [lockedStats[s], lockedStats[s]];
       lockedSum += lockedStats[s];
