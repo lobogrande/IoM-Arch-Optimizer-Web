@@ -865,8 +865,12 @@ export default function Simulations() {
       const seedBuild = {};
       let seedValid = true;
       let seedSum = 0;
-      activeStats.forEach(s => {
-          const val = store.base_stats[s] || 0;
+      optActiveStats.forEach(s => {
+          let val = store.base_stats[s] || 0;
+          if (s === 'Unassigned') {
+              const globalSpent = activeStats.reduce((acc, stat) => acc + (store.base_stats[stat] || 0), 0);
+              val = Math.max(0, dynamicBudget - globalSpent);
+          }
           seedBuild[s] = val;
           seedSum += val;
           if (val < bounds[s][0] || val > bounds[s][1]) seedValid = false;
@@ -2107,7 +2111,10 @@ export default function Simulations() {
                 cards: store.cards
             };
 
-            const statKeys = activeStats;
+            const statKeys = [...activeStats];
+            if (checkedRuns.some(r => r.Unassigned !== undefined)) {
+                statKeys.push('Unassigned');
+            }
             const candidatesMap = new Map();
             const originalBIds =[];
 
