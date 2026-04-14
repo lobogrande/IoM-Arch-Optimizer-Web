@@ -1034,13 +1034,53 @@ export default function Simulations() {
     if (store.opt_results.show_wall) innerTabs.push({ id: 'wall', label: '🧱 Progression Wall' });
 
     const avgMetrics = finalSum.avg_metrics || {};
-    const availableBlocks = Object.keys(avgMetrics)
-      .filter(k => k.startsWith("block_"))
-      .map(k => k.replace("block_", "").replace("_per_min", ""))
-      .sort();
+        const availableBlocks = Object.keys(avgMetrics)
+          .filter(k => k.startsWith("block_"))
+          .map(k => k.replace("block_", "").replace("_per_min", ""))
+          .sort();
 
-    return (
-      <div className="mt-8 animate-fade-in space-y-6" id={`dashboard-anchor-${context}`}>
+        const handleApplyStat = (stat) => {
+          const current = store.base_stats[stat] || 0;
+          store.setBaseStat(stat, current + 1);
+          store.setActiveTab('setup');
+          store.setActiveSubTab('stats');
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+        };
+
+        const handleApplyUpgrade = (idStr) => {
+          const id = parseInt(idStr);
+          const current = store.upgrade_levels[id] || 0;
+          store.setUpgradeLevel(id, current + 1);
+          store.setActiveTab('setup');
+          store.setActiveSubTab('upgrades');
+          store.setUpgradeView('internal');
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+        };
+
+        const handleApplyExternal = (groupId) => {
+          const group = EXTERNAL_UI_GROUPS.find(g => g.id === groupId);
+          if (!group) return;
+          const current = store.external_levels[group.rows[0]] || 0;
+          store.setExternalGroup(group.rows, current + 1);
+          if (groupId === 'geoduck' && !store.geoduck_unlocked) {
+            store.setSetting('geoduck_unlocked', true);
+          }
+          store.setActiveTab('setup');
+          store.setActiveSubTab('upgrades');
+          store.setUpgradeView('external');
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+        };
+
+        const handleApplyCard = (cardId) => {
+          const current = store.cards[cardId] || 0;
+          store.setCardLevel(cardId, current + 1);
+          store.setActiveTab('setup');
+          store.setActiveSubTab('cards');
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+        };
+
+        return (
+          <div className="mt-8 animate-fade-in space-y-6" id={`dashboard-anchor-${context}`}>
         <div className="bg-[#1e1e1e] border-l-4 border-l-green-500 p-4 rounded shadow">
           <h3 className="text-xl font-bold text-green-400">✅ Simulation Complete in {store.opt_results.elapsed.toFixed(1)} seconds!</h3>
         </div>
