@@ -501,11 +501,12 @@ export default function Simulations() {
     });
 
     cols.push({
-      headerName: "Actions",
-      minWidth: 140,
-      sortable: false,
-      filter: false,
-      cellRenderer: (p) => {
+        headerName: "Actions",
+        flex: 1,
+        minWidth: 140,
+        sortable: false,
+        filter: false,
+        cellRenderer: (p) => {
         return (
           <div className="flex gap-2 items-center justify-center h-full">
             <button 
@@ -1970,6 +1971,13 @@ export default function Simulations() {
           flex-direction: row !important;
           color: ${store.theme === 'dark' ? '#FAFAFA' : '#31333F'} !important;
         }
+
+        /* Overpower AG Grid's numeric column reverse layout */
+        .ag-theme-quartz .ag-right-aligned-header .ag-header-cell-label,
+        .ag-theme-quartz-dark .ag-right-aligned-header .ag-header-cell-label {
+          flex-direction: row !important;
+        }
+
         /* Force Cells to Center */
         .ag-theme-quartz .ag-cell,
         .ag-theme-quartz-dark .ag-cell {
