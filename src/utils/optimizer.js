@@ -222,8 +222,8 @@ export function getOptimalStepProfile(statsList, budget, bounds, simsPerSecond, 
     const freeStats = statsList.filter(s => bounds[s][0] !== bounds[s][1]);
     const numFree = freeStats.length;
     
-    let lockedSum = 0;
-    statsList.forEach(s => { if (bounds[s][0] === bounds[s][1]) lockedSum += bounds[s][0]; });
+    let minSum = 0;
+    statsList.forEach(s => { minSum += bounds[s][0]; });
 
     const effectiveSimsSec = Math.max(1.0, parseFloat(simsPerSecond));
     let bestProfile = null;
@@ -231,7 +231,9 @@ export function getOptimalStepProfile(statsList, budget, bounds, simsPerSecond, 
     for (let step1 = 3; step1 <= Math.max(100, budget + 1); step1++) {
         
         // --- PROPER MODULO ALIGNMENT FOR PHASE 1 ETA ---
-        const remP1 = (budget - lockedSum) % step1;
+        // We must subtract the absolute minimum starting floor of the entire grid
+        // to ensure the remainder perfectly aligns with the step size!
+        const remP1 = (budget - minSum) % step1;
         const p1Budget = budget - remP1;
 
         // --- PREVENT ASC2 DIMENSIONALITY EXPLOSION ---
@@ -496,19 +498,22 @@ export async function runOptimizationPhase(
 /**
  * Ensures any points stripped by the Modulo Aligner are mathematically placed back into the build
  */
-export function topUpBuild(build, statsList, totalBudget, effectiveCaps, lockedStats) {
+export function topUpBuild(build, statsList, totalBudget, effectiveCaps, bounds) {
     if (!build) return build;
     const b = { ...build };
     let currentSum = statsList.reduce((acc, s) => acc + (b[s] || 0), 0);
     let missing = totalBudget - currentSum;
 
     if (missing > 0) {
-        const unlockedStats = statsList.filter(s => lockedStats[s] === undefined);
+        // Only skip strictly exact-locked stats. Ranges/Mins/Maxes can absorb top-ups!
+        const unlockedStats = statsList.filter(s => bounds[s][0] !== bounds[s][1]);
         unlockedStats.sort((s1, s2) => (b[s2] || 0) - (b[s1] || 0));
 
         for (const s of unlockedStats) {
             if (missing <= 0) break;
-            const room = (effectiveCaps[s] || 0) - (b[s] || 0);
+            // Respect the absolute maximum cap or the user's custom max bound!
+            const maxAllowed = Math.min(effectiveCaps[s] || 0, bounds[s][1]);
+            const room = maxAllowed - (b[s] || 0);
             if (room > 0) {
                 const add = Math.min(room, missing);
                 b[s] += add;

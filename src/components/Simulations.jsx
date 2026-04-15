@@ -368,24 +368,24 @@ export default function Simulations() {
         )
       },
       { field: "name", headerName: "Block", pinned: "left" },
-      { field: "mod_hp", headerName: "HP", valueFormatter: p => Math.floor(p.value).toLocaleString(), type: 'numericColumn' },
-      { field: "mod_eff_armor", headerName: "Armor", valueFormatter: p => Math.floor(p.value).toLocaleString(), type: 'numericColumn' },
-      { field: "edps", headerName: "EDPS", cellRenderer: createDiffRenderer("edps", false), type: 'numericColumn', cellStyle: { color: '#ffa229', fontWeight: 'bold' } },
-      { field: "enr_edps", headerName: "Enr EDPS", cellRenderer: createDiffRenderer("enr_edps", false), type: 'numericColumn', cellStyle: { color: '#f87171', fontWeight: 'bold' } },
-      { field: "reg_hit", headerName: "Reg Hit", cellRenderer: createDiffRenderer("reg_hit", false), type: 'numericColumn' },
-      { field: "avg_hits", headerName: "Avg Hits", cellRenderer: createDiffRenderer("avg_hits", true), type: 'numericColumn', cellStyle: { fontWeight: 'bold' } },
-      { field: "max_hits", headerName: "Max Hits", cellRenderer: createDiffRenderer("max_hits", true), type: 'numericColumn', cellStyle: { color: '#7D808D' } }
+      { field: "mod_hp", headerName: "HP", valueFormatter: p => Math.floor(p.value).toLocaleString() },
+      { field: "mod_eff_armor", headerName: "Armor", valueFormatter: p => Math.floor(p.value).toLocaleString() },
+      { field: "edps", headerName: "EDPS", cellRenderer: createDiffRenderer("edps", false), cellStyle: { color: '#ffa229', fontWeight: 'bold' } },
+      { field: "enr_edps", headerName: "Enr EDPS", cellRenderer: createDiffRenderer("enr_edps", false), cellStyle: { color: '#f87171', fontWeight: 'bold' } },
+      { field: "reg_hit", headerName: "Reg Hit", cellRenderer: createDiffRenderer("reg_hit", false) },
+      { field: "avg_hits", headerName: "Avg Hits", cellRenderer: createDiffRenderer("avg_hits", true), cellStyle: { fontWeight: 'bold' } },
+      { field: "max_hits", headerName: "Max Hits", cellRenderer: createDiffRenderer("max_hits", true), cellStyle: { color: '#7D808D' } }
     ];
 
     if (sandboxShowCrits) {
       cols.push(
-        { field: "crit", headerName: "Crit", cellRenderer: createDiffRenderer("crit", false), type: 'numericColumn', cellStyle: { backgroundColor: 'rgba(0,0,0,0.05)' } },
-        { field: "scrit", headerName: "sCrit", cellRenderer: createDiffRenderer("scrit", false), type: 'numericColumn', cellStyle: { backgroundColor: 'rgba(0,0,0,0.05)' } },
-        { field: "ucrit", headerName: "uCrit", cellRenderer: createDiffRenderer("ucrit", false), type: 'numericColumn', cellStyle: { backgroundColor: 'rgba(0,0,0,0.05)' } },
-        { field: "enr_hit", headerName: "Enr Hit", cellRenderer: createDiffRenderer("enr_hit", false), type: 'numericColumn', cellStyle: { color: '#fca5a5', backgroundColor: 'rgba(127,29,29,0.05)' } },
-        { field: "enr_crit", headerName: "Enr Crit", cellRenderer: createDiffRenderer("enr_crit", false), type: 'numericColumn', cellStyle: { color: '#fca5a5', backgroundColor: 'rgba(127,29,29,0.05)' } },
-        { field: "enr_scrit", headerName: "Enr sCrit", cellRenderer: createDiffRenderer("enr_scrit", false), type: 'numericColumn', cellStyle: { color: '#fca5a5', backgroundColor: 'rgba(127,29,29,0.05)' } },
-        { field: "enr_ucrit", headerName: "Enr uCrit", cellRenderer: createDiffRenderer("enr_ucrit", false), type: 'numericColumn', cellStyle: { color: '#fca5a5', backgroundColor: 'rgba(127,29,29,0.05)' } }
+        { field: "crit", headerName: "Crit", cellRenderer: createDiffRenderer("crit", false), cellStyle: { backgroundColor: 'rgba(0,0,0,0.05)' } },
+        { field: "scrit", headerName: "sCrit", cellRenderer: createDiffRenderer("scrit", false), cellStyle: { backgroundColor: 'rgba(0,0,0,0.05)' } },
+        { field: "ucrit", headerName: "uCrit", cellRenderer: createDiffRenderer("ucrit", false), cellStyle: { backgroundColor: 'rgba(0,0,0,0.05)' } },
+        { field: "enr_hit", headerName: "Enr Hit", cellRenderer: createDiffRenderer("enr_hit", false), cellStyle: { color: '#fca5a5', backgroundColor: 'rgba(127,29,29,0.05)' } },
+        { field: "enr_crit", headerName: "Enr Crit", cellRenderer: createDiffRenderer("enr_crit", false), cellStyle: { color: '#fca5a5', backgroundColor: 'rgba(127,29,29,0.05)' } },
+        { field: "enr_scrit", headerName: "Enr sCrit", cellRenderer: createDiffRenderer("enr_scrit", false), cellStyle: { color: '#fca5a5', backgroundColor: 'rgba(127,29,29,0.05)' } },
+        { field: "enr_ucrit", headerName: "Enr uCrit", cellRenderer: createDiffRenderer("enr_ucrit", false), cellStyle: { color: '#fca5a5', backgroundColor: 'rgba(127,29,29,0.05)' } }
       );
     }
     return cols;
@@ -414,20 +414,148 @@ export default function Simulations() {
   if (store.asc1_unlocked) activeStats.push('Div');
   if (store.asc2_unlocked) activeStats.push('Corr');
 
-  const optActiveStats = [...activeStats];
+  const optActiveStats =[ ...activeStats ];
   if (optGoal === "Block Card Farming" && allowUnspent) {
     optActiveStats.push('Unassigned');
   }
+
+  const handleRestore = (runData, isMetaBuild = false) => {
+    if (runData._restore_state) {
+      if (runData._restore_state.opt_results) {
+          store.setOptResults(runData._restore_state.opt_results);
+          store.setSimsState('synthesis_result', runData._restore_state.synthesis_result);
+      } else {
+          store.setOptResults(runData._restore_state);
+          store.setSimsState('synthesis_result', null);
+      }
+      
+      setActiveSubTab(isMetaBuild ? 'synth' : 'optimizer');
+      setResTab('build');
+      setDataTab('performance');
+
+      if (runData.Target && runData.Target.startsWith('block_')) {
+          setCardSelBlock(runData.Target.replace('block_', '').replace('_per_min', ''));
+      } else {
+          setCardSelBlock('');
+      }
+      
+      setTimeout(() => {
+        const anchorId = isMetaBuild ? 'synth-results-anchor' : 'dashboard-anchor-optimizer';
+        const el = document.getElementById(anchorId);
+        if (el) {
+          el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        } else {
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+      }, 150);
+    }
+  };
+
+  const synthHistoryColumns = useMemo(() => {
+    const cols =[
+      { 
+        headerName: "Profile", 
+        valueGetter: (p) => getProfileDisplayName(p.data),
+        minWidth: 150,
+        pinned: "left"
+      },
+      { 
+        field: "Target", 
+        headerName: "Target", 
+        valueFormatter: p => p.value ? p.value.replace('_per_min', '') : '',
+        minWidth: 120 
+      },
+      { 
+        field: "Ceiling Score", 
+        headerName: "Ceiling Score",
+        valueFormatter: p => {
+          if (p.value === undefined || p.value === null) return "0";
+          const isFloor = p.data.Target === 'highest_floor';
+          return isFloor ? p.value.toFixed(2) : ((p.value / 60.0) * 1000.0).toFixed(1);
+        },
+        cellStyle: { color: '#ffa229', fontWeight: 'bold' }
+      },
+      {
+        field: "Theoretical Peak",
+        headerName: "Peak Flr",
+        valueFormatter: p => p.value ? p.value : '-',
+        width: 100
+      }
+    ];
+
+    const tableStats =[ ...activeStats ];
+    if (store.synth_history && store.synth_history.some(r => r.Unassigned !== undefined)) {
+      tableStats.push('Unassigned');
+    }
+
+    tableStats.forEach(s => {
+      cols.push({
+        field: s,
+        headerName: s === 'Unassigned' ? 'Unspent' : s,
+        width: 90,
+        cellStyle: s === 'Unassigned' ? { color: '#ffa229', fontWeight: 'bold' } : { }
+      });
+    });
+
+    cols.push({
+        headerName: "Actions",
+        flex: 1,
+        suppressAutoSize: true,
+        minWidth: 140,
+        sortable: false,
+        filter: false,
+        cellRenderer: (p) => {
+        return (
+          <div className="flex gap-2 items-center justify-center h-full">
+            <button 
+              onClick={() => handleRestore(p.data, true)}
+              className="px-2 py-1 bg-st-orange text-[#2b2b2b] font-bold text-xs rounded hover:bg-[#ffb045] transition-colors"
+            >
+              📊 View
+            </button>
+            <button 
+              onClick={() => {
+                const kept =[ ...store.synth_history ];
+                const idx = kept.indexOf(p.data);
+                if (idx > -1) {
+                  kept.splice(idx, 1);
+                  store.setSimsState('synth_history', kept);
+                  if (store.synthesis_result && store.synthesis_result.stats === p.data) {
+                    store.setSimsState('synthesis_result', null);
+                  }
+                }
+              }}
+              className="px-2 py-1 bg-[#2b2b2b] border border-red-900 text-red-400 font-bold text-xs rounded hover:bg-red-900 hover:text-white transition-colors"
+            >
+              🗑️ Del
+            </button>
+          </div>
+        );
+      }
+    });
+
+    return cols;
+  },[ activeStats, store.synth_history, store.synthesis_result ]);
 
   // --- REACTIVE AI CALIBRATION ---
   const bounds = {};
   let lockedSum = 0;
   optActiveStats.forEach(s => {
-    if (lockedStats[s] !== undefined) {
-      bounds[s] = [lockedStats[s], lockedStats[s]];
-      lockedSum += lockedStats[s];
+    const lock = lockedStats[s];
+    if (lock !== undefined) {
+      let bMin = 0, bMax = STAT_CAPS[s];
+      if (typeof lock === 'number') {
+        bMin = lock; bMax = lock; // Legacy save backwards compatibility
+      } else {
+        if (lock.type === 'exact') { bMin = lock.val; bMax = lock.val; }
+        else if (lock.type === 'min') { bMin = lock.val; bMax = STAT_CAPS[s]; }
+        else if (lock.type === 'max') { bMin = 0; bMax = lock.val; }
+        else if (lock.type === 'range') { bMin = lock.min; bMax = lock.max; }
+      }
+      bounds[s] =[ bMin, bMax ];
+      if (bMin === bMax) lockedSum += bMin; // Only EXACT locks count towards the modulo fixed sum!
     } else {
-      bounds[s] =[0, STAT_CAPS[s]];
+      bounds[s] =[ 0, STAT_CAPS[s] ];
     }
   });
   const isOverBudget = lockedSum > dynamicBudget;
@@ -445,17 +573,38 @@ export default function Simulations() {
     if (newLocks[stat] !== undefined) {
       delete newLocks[stat];
     } else {
-      newLocks[stat] = store.base_stats[stat] || 0;
+      newLocks[stat] = { type: 'exact', val: store.base_stats[stat] || 0 };
     }
     setLockedStats(newLocks);
   };
 
-  const handleLockValueChange = (stat, val) => {
+  const handleLockChange = (stat, field, val) => {
     let parsed = parseInt(val) || 0;
     if (parsed > STAT_CAPS[stat]) parsed = STAT_CAPS[stat];
     if (parsed < 0) parsed = 0;
     
-    setLockedStats({ ...lockedStats, [stat]: parsed });
+    const current = lockedStats[stat];
+    const lockObj = current !== undefined ? (typeof current === 'number' ? { type: 'exact', val: current } : current) : { type: 'exact', val: 0 };
+    
+    if (field === 'type') {
+       const baseVal = lockObj.val !== undefined ? lockObj.val : (lockObj.min !== undefined ? lockObj.min : 0);
+       if (val === 'range') {
+         setLockedStats({ ...lockedStats, [stat]: { type: val, min: baseVal, max: STAT_CAPS[stat] } });
+       } else {
+         setLockedStats({ ...lockedStats, [stat]: { type: val, val: baseVal } });
+       }
+       return;
+    }
+
+    const newLock = { ...lockObj, [field]: parsed };
+    
+    // Automatically prevent min/max collision bounding
+    if (newLock.type === 'range') {
+       if (field === 'min' && newLock.min > newLock.max) newLock.max = newLock.min;
+       if (field === 'max' && newLock.max < newLock.min) newLock.min = newLock.max;
+    }
+
+    setLockedStats({ ...lockedStats, [stat]: newLock });
   };
 
   // --- ROI ANALYZERS ---
@@ -858,7 +1007,9 @@ export default function Simulations() {
       };
 
       // --- PHASE 1 (Coarse) ---
-      const remP1 = (dynamicBudget - lockedSum) % step1;
+      let minSum = 0;
+      optActiveStats.forEach(s => { minSum += bounds[s][0]; });
+      const remP1 = (dynamicBudget - minSum) % step1;
       const p1Budget = dynamicBudget - remP1;
       
       // SEED INJECTION: Capture user's current build to prevent the AI from giving them something worse
@@ -883,7 +1034,7 @@ export default function Simulations() {
         pool, fixedStats, bounds, timeLimit, globalStartTime, onProgressCb, validSeed
       );
 
-      bestP1 = topUpBuild(bestP1, optActiveStats, dynamicBudget, STAT_CAPS, lockedStats);
+      bestP1 = topUpBuild(bestP1, optActiveStats, dynamicBudget, STAT_CAPS, bounds);
 
       let bestFinal = bestP1;
       let finalSummary = sumP1;
@@ -894,13 +1045,15 @@ export default function Simulations() {
         const boundsP2 = {};
         let lockedSumP2 = 0;
         optActiveStats.forEach(s => {
-          if (lockedStats[s] !== undefined) {
+          if (bounds[s][0] === bounds[s][1]) {
+            // Exact locks are frozen and passed down identically
             boundsP2[s] = bounds[s];
             lockedSumP2 += bounds[s][0];
           } else {
+            // Unlocked or Range constraints get zoomed in, but strictly clamped by the master bounds!
             boundsP2[s] =[
-              Math.max(0, bestP1[s] - step1),
-              Math.min(STAT_CAPS[s], bestP1[s] + step1)
+              Math.max(bounds[s][0], bestP1[s] - step1),
+              Math.min(bounds[s][1], bestP1[s] + step1)
             ];
           }
         });
@@ -912,7 +1065,7 @@ export default function Simulations() {
           "Phase 2 (Fine)", targetMetricKey, optActiveStats, p2Budget, step2, 50,
           pool, fixedStats, boundsP2, timeLimit, globalStartTime, onProgressCb
         );
-        bestP2 = topUpBuild(res2.bestDist, optActiveStats, dynamicBudget, STAT_CAPS, lockedStats);
+        bestP2 = topUpBuild(res2.bestDist, optActiveStats, dynamicBudget, STAT_CAPS, boundsP2);
         sumP2 = res2.summary;
         if (bestP2) { bestFinal = bestP2; finalSummary = sumP2; }
       }
@@ -922,12 +1075,12 @@ export default function Simulations() {
         const boundsP3 = {};
         const p3Radius = profData.p3_radius || Math.min(2, step2);
         optActiveStats.forEach(s => {
-          if (lockedStats[s] !== undefined) {
+          if (bounds[s][0] === bounds[s][1]) {
             boundsP3[s] = bounds[s];
           } else {
             boundsP3[s] =[
-              Math.max(0, bestP2[s] - p3Radius),
-              Math.min(STAT_CAPS[s], bestP2[s] + p3Radius)
+              Math.max(bounds[s][0], bestP2[s] - p3Radius),
+              Math.min(bounds[s][1], bestP2[s] + p3Radius)
             ];
           }
         });
@@ -936,7 +1089,7 @@ export default function Simulations() {
           `Phase 3 (Radius ±${p3Radius})`, targetMetricKey, optActiveStats, dynamicBudget, profData.step_3 || 1, 100,
           pool, fixedStats, boundsP3, timeLimit, globalStartTime, onProgressCb
         );
-        const bestP3 = topUpBuild(res3.bestDist, optActiveStats, dynamicBudget, STAT_CAPS, lockedStats);
+        const bestP3 = topUpBuild(res3.bestDist, optActiveStats, dynamicBudget, STAT_CAPS, boundsP3);
         if (bestP3) { bestFinal = bestP3; finalSummary = res3.summary; }
       }
 
@@ -1799,6 +1952,67 @@ export default function Simulations() {
 
   return (
     <div className="animate-fade-in pb-24">
+      <style>{`
+        /* ☢️ ABSOLUTE NUCLEAR OPTION: Target AG Grid's structural DOM elements directly */
+        .ag-theme-quartz, .ag-theme-quartz-dark {
+          --ag-background-color: ${store.theme === 'dark' ? '#0E1117' : '#FFFFFF'} !important;
+          --ag-foreground-color: ${store.theme === 'dark' ? '#FAFAFA' : '#31333F'} !important;
+          --ag-header-background-color: ${store.theme === 'dark' ? '#262730' : '#F0F2F6'} !important;
+          --ag-header-foreground-color: ${store.theme === 'dark' ? '#FAFAFA' : '#31333F'} !important;
+          --ag-border-color: ${store.theme === 'dark' ? 'rgba(250, 250, 250, 0.15)' : 'rgba(49, 51, 63, 0.15)'} !important;
+        }
+
+        /* 1. Fix the empty right-side background & global wrapper */
+        .ag-theme-quartz .ag-root-wrapper,
+        .ag-theme-quartz-dark .ag-root-wrapper,
+        .ag-theme-quartz .ag-body-viewport,
+        .ag-theme-quartz-dark .ag-body-viewport {
+          background-color: ${store.theme === 'dark' ? '#0E1117' : '#FFFFFF'} !important;
+        }
+
+        /* 2. Fix the Headers (White with black text issue) */
+        .ag-theme-quartz .ag-header,
+        .ag-theme-quartz-dark .ag-header {
+          background-color: ${store.theme === 'dark' ? '#262730' : '#F0F2F6'} !important;
+          color: ${store.theme === 'dark' ? '#FAFAFA' : '#31333F'} !important;
+          border-bottom: 1px solid ${store.theme === 'dark' ? 'rgba(250, 250, 250, 0.15)' : 'rgba(49, 51, 63, 0.15)'} !important;
+        }
+
+        /* 3. Fix the Rows */
+        .ag-theme-quartz .ag-row,
+        .ag-theme-quartz-dark .ag-row {
+          background-color: ${store.theme === 'dark' ? '#0E1117' : '#FFFFFF'} !important;
+          color: ${store.theme === 'dark' ? '#FAFAFA' : '#31333F'} !important;
+          border-bottom: 1px solid ${store.theme === 'dark' ? 'rgba(250, 250, 250, 0.1)' : 'rgba(49, 51, 63, 0.1)'} !important;
+        }
+        .ag-theme-quartz .ag-row:hover,
+        .ag-theme-quartz-dark .ag-row:hover {
+          background-color: ${store.theme === 'dark' ? '#262730' : '#F0F2F6'} !important;
+        }
+
+        /* 4. Fix the Dashed Vertical Lines & Centering */
+        .ag-theme-quartz .ag-header-cell, .ag-theme-quartz .ag-cell,
+        .ag-theme-quartz-dark .ag-header-cell, .ag-theme-quartz-dark .ag-cell {
+          border-right: 1px solid ${store.theme === 'dark' ? 'rgba(250, 250, 250, 0.15)' : 'rgba(49, 51, 63, 0.15)'} !important;
+          border-left: none !important; /* Prevents overlapping dashed effect */
+        }
+
+        /* Force Headers to Center */
+        .ag-theme-quartz .ag-header-cell-label,
+        .ag-theme-quartz-dark .ag-header-cell-label {
+          justify-content: center !important;
+          color: ${store.theme === 'dark' ? '#FAFAFA' : '#31333F'} !important;
+        }
+
+        /* Force Cells to Center */
+        .ag-theme-quartz .ag-cell,
+        .ag-theme-quartz-dark .ag-cell {
+          display: flex !important;
+          align-items: center !important;
+          justify-content: center !important;
+          text-align: center !important;
+        }
+      `}</style>
       
       {/* SUB-TABS ROUTING */}
       <div className="flex overflow-x-auto border-b border-st-border mb-6 no-scrollbar">
@@ -1972,41 +2186,83 @@ export default function Simulations() {
             </div>
 
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 cursor-default">
-              {optActiveStats.map(stat => (
-                <div key={stat} className={`st-container flex flex-col items-center ${stat === 'Unassigned' ? 'border-st-orange/50 bg-st-orange/5' : ''}`}>
-                  <div className="font-bold mb-2 text-sm">{stat === 'Unassigned' ? 'Unspent Points' : stat}</div>
-                  
-                  {stat === 'Unassigned' ? (
-                    <div className="h-10 w-10 flex items-center justify-center text-3xl mb-3">🛑</div>
-                  ) : (
-                    <img 
-                      src={`/assets/stats_small/${stat.toLowerCase()}.png`} 
-                      onError={(e) => { e.target.onerror = null; e.target.src = `/assets/stats/${stat.toLowerCase()}.png` }}
-                      alt={stat} 
-                      className="h-10 w-10 pixelated mb-3"
-                    />
-                  )}
-                  
-                  <label className="flex items-center space-x-2 text-sm mb-2 cursor-pointer">
-                    <input 
-                      type="checkbox"
-                      checked={lockedStats[stat] !== undefined}
-                      onChange={() => handleLockToggle(stat)}
-                      className="accent-st-orange w-4 h-4"
-                    />
-                    <span>Lock Value</span>
-                  </label>
-                  
-                  <input
-                    type="number"
-                    value={lockedStats[stat] !== undefined ? lockedStats[stat] : store.base_stats[stat] || 0}
-                    onFocus={(e) => e.target.select()}
-                    onChange={(e) => handleLockValueChange(stat, e.target.value)}
-                    disabled={lockedStats[stat] === undefined}
-                    className="st-input disabled:opacity-50 disabled:cursor-not-allowed"
-                  />
-                </div>
-              ))}
+              {optActiveStats.map(stat => {
+                const lock = lockedStats[stat];
+                const isLocked = lock !== undefined;
+                const lockObj = isLocked ? (typeof lock === 'number' ? { type: 'exact', val: lock } : lock) : null;
+
+                return (
+                  <div key={stat} className={`st-container flex flex-col items-center justify-between ${stat === 'Unassigned' ? 'border-st-orange/50 bg-st-orange/5' : ''}`}>
+                    <div className="font-bold mb-2 text-sm text-center">{stat === 'Unassigned' ? 'Unspent Points' : stat}</div>
+                    
+                    {stat === 'Unassigned' ? (
+                      <div className="h-10 w-10 flex items-center justify-center text-3xl mb-3">🛑</div>
+                    ) : (
+                      <img 
+                        src={`/assets/stats_small/${stat.toLowerCase()}.png`} 
+                        onError={(e) => { e.target.onerror = null; e.target.src = `/assets/stats/${stat.toLowerCase()}.png` }}
+                        alt={stat} 
+                        className="h-10 w-10 pixelated mb-3"
+                      />
+                    )}
+                    
+                    <label className="flex items-center space-x-2 text-sm mb-2 cursor-pointer w-full justify-center">
+                      <input 
+                        type="checkbox"
+                        checked={isLocked}
+                        onChange={() => handleLockToggle(stat)}
+                        className="accent-st-orange w-4 h-4"
+                      />
+                      <span className="select-none">Constraints</span>
+                    </label>
+                    
+                    <div className="w-full flex flex-col gap-1 mt-auto">
+                      <select 
+                        value={lockObj ? lockObj.type : 'exact'}
+                        onChange={(e) => handleLockChange(stat, 'type', e.target.value)}
+                        disabled={!isLocked}
+                        className="w-full bg-st-secondary border border-st-border rounded p-1 text-xs text-st-text focus:border-st-orange focus:outline-none text-center disabled:opacity-50 disabled:cursor-not-allowed h-7"
+                      >
+                        <option value="exact">= Exact</option>
+                        <option value="min">≥ Min</option>
+                        <option value="max">≤ Max</option>
+                        <option value="range">↔ Range</option>
+                      </select>
+
+                      {(!lockObj || lockObj.type !== 'range') ? (
+                        <input
+                          type="number"
+                          value={lockObj ? lockObj.val : (store.base_stats[stat] || 0)}
+                          onFocus={(e) => e.target.select()}
+                          onChange={(e) => handleLockChange(stat, 'val', e.target.value)}
+                          disabled={!isLocked}
+                          className="w-full bg-st-secondary border border-transparent rounded p-1 text-xs text-center focus:border-st-orange focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed h-7"
+                        />
+                      ) : (
+                        <div className="flex items-center gap-1">
+                          <input
+                            type="number"
+                            value={lockObj.min}
+                            onFocus={(e) => e.target.select()}
+                            onChange={(e) => handleLockChange(stat, 'min', e.target.value)}
+                            className="w-full bg-st-secondary border border-transparent rounded p-1 text-xs text-center focus:border-st-orange focus:outline-none h-7"
+                            style={{ minWidth: 0 }}
+                          />
+                          <span className="text-xs text-st-text-light font-bold">-</span>
+                          <input
+                            type="number"
+                            value={lockObj.max}
+                            onFocus={(e) => e.target.select()}
+                            onChange={(e) => handleLockChange(stat, 'max', e.target.value)}
+                            className="w-full bg-st-secondary border border-transparent rounded p-1 text-xs text-center focus:border-st-orange focus:outline-none h-7"
+                            style={{ minWidth: 0 }}
+                          />
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           </details>
 
@@ -2135,41 +2391,6 @@ export default function Simulations() {
         
         const checkedRuns = visibleHistory.filter(r => r.Include);
 
-        const handleRestore = (runData, isMetaBuild = false) => {
-          if (runData._restore_state) {
-            // Restore dashboard state cleanly for both regular runs and meta-builds
-            if (runData._restore_state.opt_results) {
-                store.setOptResults(runData._restore_state.opt_results);
-                store.setSimsState('synthesis_result', runData._restore_state.synthesis_result);
-            } else {
-                store.setOptResults(runData._restore_state);
-                store.setSimsState('synthesis_result', null);
-            }
-            
-            // Snap to the appropriate tab based on what we are restoring
-            setActiveSubTab(isMetaBuild ? 'synth' : 'optimizer');
-            setResTab('build');
-            setDataTab('performance');
-
-            if (runData.Target && runData.Target.startsWith('block_')) {
-                setCardSelBlock(runData.Target.replace('block_', '').replace('_per_min', ''));
-            } else {
-                setCardSelBlock('');
-            }
-            
-            // Allow React a split second to render the tab, then scroll down to the appropriate dashboard anchor
-            setTimeout(() => {
-              const anchorId = isMetaBuild ? 'synth-results-anchor' : 'dashboard-anchor-optimizer';
-              const el = document.getElementById(anchorId);
-              if (el) {
-                el.scrollIntoView({ behavior: 'smooth', block: 'start' });
-              } else {
-                window.scrollTo({ top: 0, behavior: 'smooth' });
-              }
-            }, 150);
-          }
-        };
-
         const toggleInclude = (globalIdx) => {
           const newHistory = [...history];
           newHistory[globalIdx].Include = !newHistory[globalIdx].Include;
@@ -2251,15 +2472,30 @@ export default function Simulations() {
             candidatesMap.set(avgBId, { ...avgDist });
 
             // 3. Smart Mutation (Radii generation)
+            const getBounds = (s) => {
+               const lock = lockedStats[s];
+               if (!lock) return [0, STAT_CAPS[s]];
+               if (typeof lock === 'number') return[lock, lock];
+               if (lock.type === 'exact') return[lock.val, lock.val];
+               if (lock.type === 'min') return [lock.val, STAT_CAPS[s]];
+               if (lock.type === 'max') return [0, lock.val];
+               if (lock.type === 'range') return [lock.min, lock.max];
+               return[0, STAT_CAPS[s]];
+            };
+
             const baseDists = Array.from(candidatesMap.values());
             baseDists.forEach(baseDist => {
                 const isAvg = JSON.stringify(baseDist) === avgBId;
-                const radii = isAvg ?[1, 2] : [1];
+                const radii = isAvg ?[1, 2] :[1];
                 radii.forEach(radius => {
                     statKeys.forEach(sFrom => {
-                        if (baseDist[sFrom] >= radius && lockedStats[sFrom] === undefined) {
+                        const boundsFrom = getBounds(sFrom);
+                        // Prevent taking points if it drops us below the Min Bound, or if it is Exact-locked
+                        if (baseDist[sFrom] - radius >= boundsFrom[0] && boundsFrom[0] !== boundsFrom[1]) {
                             statKeys.forEach(sTo => {
-                                if (sFrom !== sTo && baseDist[sTo] <= STAT_CAPS[sTo] - radius && lockedStats[sTo] === undefined) {
+                                const boundsTo = getBounds(sTo);
+                                // Prevent adding points if it exceeds the Max Bound, or if it is Exact-locked
+                                if (sFrom !== sTo && baseDist[sTo] + radius <= boundsTo[1] && boundsTo[0] !== boundsTo[1]) {
                                     const neighbor = { ...baseDist };
                                     neighbor[sFrom] -= radius;
                                     neighbor[sTo] += radius;
@@ -2663,7 +2899,7 @@ export default function Simulations() {
                                 type="checkbox" 
                                 checked={visibleHistory.length > 0 && visibleHistory.every(r => r.Include)}
                                 onChange={() => {
-                                  const newHistory = [...history];
+                                  const newHistory =[ ...history ];
                                   const targetState = !(visibleHistory.length > 0 && visibleHistory.every(r => r.Include));
                                   visibleHistory.forEach(r => { newHistory[r._global_idx].Include = targetState; });
                                   store.setSimsState('run_history', newHistory);
@@ -2678,17 +2914,18 @@ export default function Simulations() {
                             <th className="p-3">Avg Floor</th>
                             <th className="p-3">Max Floor</th>
                             {tableStats.map(s => <th key={s} className="p-3">{s === 'Unassigned' ? 'Unspent' : s}</th>)}
+                            <th className="p-3 w-10 text-center"></th>
                           </tr>
                         </thead>
                         <tbody>
                           {visibleHistory.length === 0 ? (
-                            <tr><td colSpan="12" className="p-4 text-center text-st-text-light">No runs match current filter.</td></tr>
+                            <tr><td colSpan="15" className="p-4 text-center text-st-text-light">No runs match current filter.</td></tr>
                           ) : visibleHistory.map((r) => {
                             const isFloor = r.Target === 'highest_floor';
                             const score = isFloor ? r['Metric Score'] : ((r['Metric Score'] / 60.0) * 1000.0).toFixed(1);
                             
                             return (
-                              <tr key={r._global_idx} className="border-b border-st-border/50 hover:bg-black/5 transition-colors">
+                              <tr key={r._global_idx} className="border-b border-st-border/50 hover:bg-black/5 transition-colors group">
                                 <td className="p-3 text-center">
                                   <input 
                                     type="checkbox" 
@@ -2703,6 +2940,19 @@ export default function Simulations() {
                                 <td className="p-3">{r['Avg Floor'].toFixed(1)}</td>
                                 <td className="p-3">{r['Max Floor']}</td>
                                 {tableStats.map(s => <td key={s} className={`p-3 ${s === 'Unassigned' ? 'text-st-orange font-bold' : 'text-st-text-light'}`}>{r[s] !== undefined ? r[s] : '-'}</td>)}
+                                <td className="p-3 text-center">
+                                  <button
+                                    onClick={() => {
+                                      const newHistory =[ ...history ];
+                                      newHistory.splice(r._global_idx, 1);
+                                      store.setSimsState('run_history', newHistory);
+                                    }}
+                                    className="text-red-500 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity"
+                                    title="Delete this run"
+                                  >
+                                    🗑️
+                                  </button>
+                                </td>
                               </tr>
                             );
                           })}
@@ -2766,52 +3016,23 @@ export default function Simulations() {
                   <h3 className="text-xl font-bold">📚 Meta-Build History Log</h3>
                   <p className="text-sm text-st-text-light mb-4">A permanent record of your optimized Meta-Builds.</p>
                   
-                  {store.synth_history.map((synth, idx) => {
-                    const isFloorTarget = synth.Target === 'highest_floor';
-                    const dispScore = isFloorTarget ? synth['Ceiling Score'] : ((synth['Ceiling Score'] / 60.0) * 1000.0).toFixed(1);
-                    
-                    return (
-                      <div key={idx} className="st-container space-y-3">
-                        <div className="font-bold text-lg text-st-orange">
-                          🧬 Meta-Build | Profile: `{getProfileDisplayName(synth)}` | Target: `{synth.Target}` | Ceiling: `{dispScore}`
-                          {!isFloorTarget && " (per 1k Arch Secs)"}
-                          {synth['Theoretical Peak'] && ` | Peak: ${synth['Theoretical Peak']}`}
-                        </div>
-                        
-                        <div className="bg-st-secondary p-2 rounded text-sm font-mono border border-st-border">
-                          {activeStats.map(s => `${s}: ${synth[s] !== undefined ? synth[s] : '-'}`).join('  |  ')}
-                        </div>
-
-                        {synth['Peak Probability'] > 0 && (
-                          <div className="text-xs text-st-text-light italic">
-                            🎲 Reality Check: Floor {synth['Theoretical Peak']} hit in {(synth['Peak Probability']*100).toFixed(1)}% of sims. Requires avg {Math.ceil(1/synth['Peak Probability'])} runs (~{(synth['Arch Secs Cost']/1000).toFixed(1)}k Arch Secs) to replicate.
-                          </div>
-                        )}
-
-                        <div className="flex flex-col md:flex-row gap-2 mt-3">
-                          <button 
-                            onClick={() => handleRestore(synth, true)}
-                            className="flex-1 py-1 bg-st-orange text-[#2b2b2b] font-bold rounded hover:bg-[#ffb045] transition-colors text-sm"
-                          >
-                            📊 View Dashboard
-                          </button>
-                          <button 
-                            onClick={() => {
-                              const kept = [...store.synth_history];
-                              kept.splice(idx, 1);
-                              store.setSimsState('synth_history', kept);
-                              if (store.synthesis_result && store.synthesis_result.stats === synth) {
-                                store.setSimsState('synthesis_result', null);
-                              }
-                            }}
-                            className="flex-1 py-1 bg-[#2b2b2b] border border-red-900 text-red-400 font-bold rounded hover:bg-red-900 hover:text-white transition-colors text-sm"
-                          >
-                            🗑️ Delete
-                          </button>
-                        </div>
-                      </div>
-                    );
-                  })}
+                  <div 
+                    className={`border border-st-border rounded bg-st-bg h-[400px] w-full outline-none ${store.theme === 'dark' ? 'ag-theme-quartz-dark' : 'ag-theme-quartz'}`}
+                    tabIndex={-1}
+                    onMouseEnter={(e) => {
+                      if (!e.currentTarget.contains(document.activeElement)) {
+                        e.currentTarget.focus();
+                      }
+                    }}
+                  >
+                    <AgGridReact
+                      theme="legacy"
+                      rowData={store.synth_history}
+                      defaultColDef={sandboxDefaultColDef}
+                      autoSizeStrategy={sandboxAutoSizeStrategy}
+                      columnDefs={synthHistoryColumns}
+                    />
+                  </div>
                 </div>
               )}
             </>
@@ -3306,67 +3527,6 @@ export default function Simulations() {
                   }
                 }}
               >
-                <style>{`
-                  /* ☢️ ABSOLUTE NUCLEAR OPTION: Target AG Grid's structural DOM elements directly */
-                  .ag-theme-quartz, .ag-theme-quartz-dark {
-                    --ag-background-color: ${store.theme === 'dark' ? '#0E1117' : '#FFFFFF'} !important;
-                    --ag-foreground-color: ${store.theme === 'dark' ? '#FAFAFA' : '#31333F'} !important;
-                    --ag-header-background-color: ${store.theme === 'dark' ? '#262730' : '#F0F2F6'} !important;
-                    --ag-header-foreground-color: ${store.theme === 'dark' ? '#FAFAFA' : '#31333F'} !important;
-                    --ag-border-color: ${store.theme === 'dark' ? 'rgba(250, 250, 250, 0.15)' : 'rgba(49, 51, 63, 0.15)'} !important;
-                  }
-
-                  /* 1. Fix the empty right-side background & global wrapper */
-                  .ag-theme-quartz .ag-root-wrapper,
-                  .ag-theme-quartz-dark .ag-root-wrapper,
-                  .ag-theme-quartz .ag-body-viewport,
-                  .ag-theme-quartz-dark .ag-body-viewport {
-                    background-color: ${store.theme === 'dark' ? '#0E1117' : '#FFFFFF'} !important;
-                  }
-
-                  /* 2. Fix the Headers (White with black text issue) */
-                  .ag-theme-quartz .ag-header,
-                  .ag-theme-quartz-dark .ag-header {
-                    background-color: ${store.theme === 'dark' ? '#262730' : '#F0F2F6'} !important;
-                    color: ${store.theme === 'dark' ? '#FAFAFA' : '#31333F'} !important;
-                    border-bottom: 1px solid ${store.theme === 'dark' ? 'rgba(250, 250, 250, 0.15)' : 'rgba(49, 51, 63, 0.15)'} !important;
-                  }
-
-                  /* 3. Fix the Rows */
-                  .ag-theme-quartz .ag-row,
-                  .ag-theme-quartz-dark .ag-row {
-                    background-color: ${store.theme === 'dark' ? '#0E1117' : '#FFFFFF'} !important;
-                    color: ${store.theme === 'dark' ? '#FAFAFA' : '#31333F'} !important;
-                    border-bottom: 1px solid ${store.theme === 'dark' ? 'rgba(250, 250, 250, 0.1)' : 'rgba(49, 51, 63, 0.1)'} !important;
-                  }
-                  .ag-theme-quartz .ag-row:hover,
-                  .ag-theme-quartz-dark .ag-row:hover {
-                    background-color: ${store.theme === 'dark' ? '#262730' : '#F0F2F6'} !important;
-                  }
-
-                  /* 4. Fix the Dashed Vertical Lines & Centering */
-                  .ag-theme-quartz .ag-header-cell, .ag-theme-quartz .ag-cell,
-                  .ag-theme-quartz-dark .ag-header-cell, .ag-theme-quartz-dark .ag-cell {
-                    border-right: 1px solid ${store.theme === 'dark' ? 'rgba(250, 250, 250, 0.15)' : 'rgba(49, 51, 63, 0.15)'} !important;
-                    border-left: none !important; /* Prevents overlapping dashed effect */
-                  }
-
-                  /* Force Headers to Center */
-                  .ag-theme-quartz .ag-header-cell-label,
-                  .ag-theme-quartz-dark .ag-header-cell-label {
-                    justify-content: center !important;
-                    color: ${store.theme === 'dark' ? '#FAFAFA' : '#31333F'} !important;
-                  }
-                  /* Force Cells to Center */
-                  .ag-theme-quartz .ag-cell,
-                  .ag-theme-quartz-dark .ag-cell {
-                    display: flex !important;
-                    align-items: center !important;
-                    justify-content: center !important;
-                    text-align: center !important;
-                  }
-                `}</style>
-                
                 {!sbData ? (
                   <div className="flex items-center justify-center h-full text-st-text-light">Calculating sandbox math...</div>
                 ) : (
