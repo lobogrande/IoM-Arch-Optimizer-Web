@@ -368,24 +368,24 @@ export default function Simulations() {
         )
       },
       { field: "name", headerName: "Block", pinned: "left" },
-      { field: "mod_hp", headerName: "HP", valueFormatter: p => Math.floor(p.value).toLocaleString(), type: 'numericColumn' },
-      { field: "mod_eff_armor", headerName: "Armor", valueFormatter: p => Math.floor(p.value).toLocaleString(), type: 'numericColumn' },
-      { field: "edps", headerName: "EDPS", cellRenderer: createDiffRenderer("edps", false), type: 'numericColumn', cellStyle: { color: '#ffa229', fontWeight: 'bold' } },
-      { field: "enr_edps", headerName: "Enr EDPS", cellRenderer: createDiffRenderer("enr_edps", false), type: 'numericColumn', cellStyle: { color: '#f87171', fontWeight: 'bold' } },
-      { field: "reg_hit", headerName: "Reg Hit", cellRenderer: createDiffRenderer("reg_hit", false), type: 'numericColumn' },
-      { field: "avg_hits", headerName: "Avg Hits", cellRenderer: createDiffRenderer("avg_hits", true), type: 'numericColumn', cellStyle: { fontWeight: 'bold' } },
-      { field: "max_hits", headerName: "Max Hits", cellRenderer: createDiffRenderer("max_hits", true), type: 'numericColumn', cellStyle: { color: '#7D808D' } }
+      { field: "mod_hp", headerName: "HP", valueFormatter: p => Math.floor(p.value).toLocaleString() },
+      { field: "mod_eff_armor", headerName: "Armor", valueFormatter: p => Math.floor(p.value).toLocaleString() },
+      { field: "edps", headerName: "EDPS", cellRenderer: createDiffRenderer("edps", false), cellStyle: { color: '#ffa229', fontWeight: 'bold' } },
+      { field: "enr_edps", headerName: "Enr EDPS", cellRenderer: createDiffRenderer("enr_edps", false), cellStyle: { color: '#f87171', fontWeight: 'bold' } },
+      { field: "reg_hit", headerName: "Reg Hit", cellRenderer: createDiffRenderer("reg_hit", false) },
+      { field: "avg_hits", headerName: "Avg Hits", cellRenderer: createDiffRenderer("avg_hits", true), cellStyle: { fontWeight: 'bold' } },
+      { field: "max_hits", headerName: "Max Hits", cellRenderer: createDiffRenderer("max_hits", true), cellStyle: { color: '#7D808D' } }
     ];
 
     if (sandboxShowCrits) {
       cols.push(
-        { field: "crit", headerName: "Crit", cellRenderer: createDiffRenderer("crit", false), type: 'numericColumn', cellStyle: { backgroundColor: 'rgba(0,0,0,0.05)' } },
-        { field: "scrit", headerName: "sCrit", cellRenderer: createDiffRenderer("scrit", false), type: 'numericColumn', cellStyle: { backgroundColor: 'rgba(0,0,0,0.05)' } },
-        { field: "ucrit", headerName: "uCrit", cellRenderer: createDiffRenderer("ucrit", false), type: 'numericColumn', cellStyle: { backgroundColor: 'rgba(0,0,0,0.05)' } },
-        { field: "enr_hit", headerName: "Enr Hit", cellRenderer: createDiffRenderer("enr_hit", false), type: 'numericColumn', cellStyle: { color: '#fca5a5', backgroundColor: 'rgba(127,29,29,0.05)' } },
-        { field: "enr_crit", headerName: "Enr Crit", cellRenderer: createDiffRenderer("enr_crit", false), type: 'numericColumn', cellStyle: { color: '#fca5a5', backgroundColor: 'rgba(127,29,29,0.05)' } },
-        { field: "enr_scrit", headerName: "Enr sCrit", cellRenderer: createDiffRenderer("enr_scrit", false), type: 'numericColumn', cellStyle: { color: '#fca5a5', backgroundColor: 'rgba(127,29,29,0.05)' } },
-        { field: "enr_ucrit", headerName: "Enr uCrit", cellRenderer: createDiffRenderer("enr_ucrit", false), type: 'numericColumn', cellStyle: { color: '#fca5a5', backgroundColor: 'rgba(127,29,29,0.05)' } }
+        { field: "crit", headerName: "Crit", cellRenderer: createDiffRenderer("crit", false), cellStyle: { backgroundColor: 'rgba(0,0,0,0.05)' } },
+        { field: "scrit", headerName: "sCrit", cellRenderer: createDiffRenderer("scrit", false), cellStyle: { backgroundColor: 'rgba(0,0,0,0.05)' } },
+        { field: "ucrit", headerName: "uCrit", cellRenderer: createDiffRenderer("ucrit", false), cellStyle: { backgroundColor: 'rgba(0,0,0,0.05)' } },
+        { field: "enr_hit", headerName: "Enr Hit", cellRenderer: createDiffRenderer("enr_hit", false), cellStyle: { color: '#fca5a5', backgroundColor: 'rgba(127,29,29,0.05)' } },
+        { field: "enr_crit", headerName: "Enr Crit", cellRenderer: createDiffRenderer("enr_crit", false), cellStyle: { color: '#fca5a5', backgroundColor: 'rgba(127,29,29,0.05)' } },
+        { field: "enr_scrit", headerName: "Enr sCrit", cellRenderer: createDiffRenderer("enr_scrit", false), cellStyle: { color: '#fca5a5', backgroundColor: 'rgba(127,29,29,0.05)' } },
+        { field: "enr_ucrit", headerName: "Enr uCrit", cellRenderer: createDiffRenderer("enr_ucrit", false), cellStyle: { color: '#fca5a5', backgroundColor: 'rgba(127,29,29,0.05)' } }
       );
     }
     return cols;
@@ -473,14 +473,12 @@ export default function Simulations() {
           const isFloor = p.data.Target === 'highest_floor';
           return isFloor ? p.value.toFixed(2) : ((p.value / 60.0) * 1000.0).toFixed(1);
         },
-        type: 'numericColumn',
         cellStyle: { color: '#ffa229', fontWeight: 'bold' }
       },
       {
         field: "Theoretical Peak",
         headerName: "Peak Flr",
         valueFormatter: p => p.value ? p.value : '-',
-        type: 'numericColumn',
         width: 100
       }
     ];
@@ -495,7 +493,6 @@ export default function Simulations() {
         field: s,
         headerName: s === 'Unassigned' ? 'Unspent' : s,
         width: 90,
-        type: 'numericColumn',
         cellStyle: s === 'Unassigned' ? { color: '#ffa229', fontWeight: 'bold' } : { }
       });
     });
@@ -1968,14 +1965,7 @@ export default function Simulations() {
         .ag-theme-quartz .ag-header-cell-label,
         .ag-theme-quartz-dark .ag-header-cell-label {
           justify-content: center !important;
-          flex-direction: row !important;
           color: ${store.theme === 'dark' ? '#FAFAFA' : '#31333F'} !important;
-        }
-
-        /* Overpower AG Grid's numeric column reverse layout */
-        .ag-theme-quartz .ag-right-aligned-header .ag-header-cell-label,
-        .ag-theme-quartz-dark .ag-right-aligned-header .ag-header-cell-label {
-          flex-direction: row !important;
         }
 
         /* Force Cells to Center */
