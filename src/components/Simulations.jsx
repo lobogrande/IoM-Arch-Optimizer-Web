@@ -539,13 +539,14 @@ export default function Simulations() {
 
   // --- REACTIVE AI CALIBRATION ---
   const bounds = {};
-  let lockedSum = 0;
+  let minSum = 0;
+  let maxSum = 0;
   optActiveStats.forEach(s => {
     const lock = lockedStats[s];
     if (lock !== undefined) {
       let bMin = 0, bMax = STAT_CAPS[s];
       if (typeof lock === 'number') {
-        bMin = lock; bMax = lock; // Legacy save backwards compatibility
+        bMin = lock; bMax = lock; 
       } else {
         if (lock.type === 'exact') { bMin = lock.val; bMax = lock.val; }
         else if (lock.type === 'min') { bMin = lock.val; bMax = STAT_CAPS[s]; }
@@ -553,18 +554,22 @@ export default function Simulations() {
         else if (lock.type === 'range') { bMin = lock.min; bMax = lock.max; }
       }
       bounds[s] =[ bMin, bMax ];
-      if (bMin === bMax) lockedSum += bMin; // Only EXACT locks count towards the modulo fixed sum!
     } else {
       bounds[s] =[ 0, STAT_CAPS[s] ];
     }
+    minSum += bounds[s][0];
+    maxSum += bounds[s][1];
   });
-  const isOverBudget = lockedSum > dynamicBudget;
+  
+  // A build is mathematically impossible if the required minimums exceed the budget,
+  // OR if the maximum possible caps are smaller than the budget (points would be stranded).
+  const isImpossible = minSum > dynamicBudget || maxSum < dynamicBudget;
 
   // Memoize the heavy AI Profile calculation so it doesn't freeze the browser thread!
   const profData = useMemo(() => {
-    if (isOverBudget) return null;
+    if (isImpossible) return null;
     return getOptimalStepProfile(optActiveStats, dynamicBudget, bounds, simsPerSec, timeLimit);
-  },[JSON.stringify(optActiveStats), dynamicBudget, JSON.stringify(bounds), simsPerSec, timeLimit, isOverBudget]);
+  },[JSON.stringify(optActiveStats), dynamicBudget, JSON.stringify(bounds), simsPerSec, timeLimit, isImpossible]);
   
   const step1 = profData ? profData.step_1 : 100;
 
@@ -954,8 +959,8 @@ export default function Simulations() {
         cards: store.cards
       };
 
-      if (isOverBudget) {
-        alert(`❌ Invalid Locks: You locked ${lockedSum} points, but budget is only ${dynamicBudget}.`);
+      if (isImpossible) {
+        alert(`❌ Invalid Constraints: Your locks require between ${minSum} and ${maxSum} points, but your budget is exactly ${dynamicBudget}.`);
         setIsOptimizing(false);
         return;
       }
@@ -2296,6 +2301,20 @@ export default function Simulations() {
 
             {/* Precision Gauge */}
             {(() => {
+              if (isImpossible || !profData) {
+                return (
+                  <div style={{ border: `1px solid #ff4b4b`, borderLeft: `5px solid #ff4b4b`, backgroundColor: "rgba(255, 75, 75, 0.1)" }} className="p-4 rounded mb-4">
+                    <div className="font-bold text-lg mb-1">🛑 Invalid Constraints</div>
+                    <div className="text-sm">
+                      Your constraints are mathematically impossible. 
+                      {minSum > dynamicBudget ? ` Your minimum requirements (${minSum}) exceed your total points budget (${dynamicBudget}).` : ''}
+                      {maxSum < dynamicBudget ? ` The maximum points you allow the AI to spend (${maxSum}) is less than your total budget (${dynamicBudget}). You must enable "Unspent Points" or raise your max limits.` : ''}
+                      {minSum <= dynamicBudget && maxSum >= dynamicBudget && !profData ? ' The combination of exact locks creates a modulo trap where the budget cannot be cleanly spent.' : ''}
+                    </div>
+                  </div>
+                );
+              }
+
               let gColor, gBg, gIcon, gTitle, gDesc;
               if (step1 >= 15) {
                 gColor = "#ff4b4b"; gBg = "rgba(255, 75, 75, 0.1)"; gIcon = "🔴";
