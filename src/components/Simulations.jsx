@@ -502,7 +502,6 @@ export default function Simulations() {
 
     cols.push({
       headerName: "Actions",
-      pinned: "right",
       minWidth: 140,
       sortable: false,
       filter: false,
@@ -1968,6 +1967,7 @@ export default function Simulations() {
         .ag-theme-quartz .ag-header-cell-label,
         .ag-theme-quartz-dark .ag-header-cell-label {
           justify-content: center !important;
+          flex-direction: row !important;
           color: ${store.theme === 'dark' ? '#FAFAFA' : '#31333F'} !important;
         }
         /* Force Cells to Center */
