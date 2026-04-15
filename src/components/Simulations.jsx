@@ -1007,7 +1007,9 @@ export default function Simulations() {
       };
 
       // --- PHASE 1 (Coarse) ---
-      const remP1 = (dynamicBudget - lockedSum) % step1;
+      let minSum = 0;
+      optActiveStats.forEach(s => { minSum += bounds[s][0]; });
+      const remP1 = (dynamicBudget - minSum) % step1;
       const p1Budget = dynamicBudget - remP1;
       
       // SEED INJECTION: Capture user's current build to prevent the AI from giving them something worse
@@ -1032,7 +1034,7 @@ export default function Simulations() {
         pool, fixedStats, bounds, timeLimit, globalStartTime, onProgressCb, validSeed
       );
 
-      bestP1 = topUpBuild(bestP1, optActiveStats, dynamicBudget, STAT_CAPS, lockedStats);
+      bestP1 = topUpBuild(bestP1, optActiveStats, dynamicBudget, STAT_CAPS, bounds);
 
       let bestFinal = bestP1;
       let finalSummary = sumP1;
@@ -1063,7 +1065,7 @@ export default function Simulations() {
           "Phase 2 (Fine)", targetMetricKey, optActiveStats, p2Budget, step2, 50,
           pool, fixedStats, boundsP2, timeLimit, globalStartTime, onProgressCb
         );
-        bestP2 = topUpBuild(res2.bestDist, optActiveStats, dynamicBudget, STAT_CAPS, lockedStats);
+        bestP2 = topUpBuild(res2.bestDist, optActiveStats, dynamicBudget, STAT_CAPS, boundsP2);
         sumP2 = res2.summary;
         if (bestP2) { bestFinal = bestP2; finalSummary = sumP2; }
       }
@@ -1087,7 +1089,7 @@ export default function Simulations() {
           `Phase 3 (Radius ±${p3Radius})`, targetMetricKey, optActiveStats, dynamicBudget, profData.step_3 || 1, 100,
           pool, fixedStats, boundsP3, timeLimit, globalStartTime, onProgressCb
         );
-        const bestP3 = topUpBuild(res3.bestDist, optActiveStats, dynamicBudget, STAT_CAPS, lockedStats);
+        const bestP3 = topUpBuild(res3.bestDist, optActiveStats, dynamicBudget, STAT_CAPS, boundsP3);
         if (bestP3) { bestFinal = bestP3; finalSummary = res3.summary; }
       }
 
@@ -2184,41 +2186,83 @@ export default function Simulations() {
             </div>
 
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 cursor-default">
-              {optActiveStats.map(stat => (
-                <div key={stat} className={`st-container flex flex-col items-center ${stat === 'Unassigned' ? 'border-st-orange/50 bg-st-orange/5' : ''}`}>
-                  <div className="font-bold mb-2 text-sm">{stat === 'Unassigned' ? 'Unspent Points' : stat}</div>
-                  
-                  {stat === 'Unassigned' ? (
-                    <div className="h-10 w-10 flex items-center justify-center text-3xl mb-3">🛑</div>
-                  ) : (
-                    <img 
-                      src={`/assets/stats_small/${stat.toLowerCase()}.png`} 
-                      onError={(e) => { e.target.onerror = null; e.target.src = `/assets/stats/${stat.toLowerCase()}.png` }}
-                      alt={stat} 
-                      className="h-10 w-10 pixelated mb-3"
-                    />
-                  )}
-                  
-                  <label className="flex items-center space-x-2 text-sm mb-2 cursor-pointer">
-                    <input 
-                      type="checkbox"
-                      checked={lockedStats[stat] !== undefined}
-                      onChange={() => handleLockToggle(stat)}
-                      className="accent-st-orange w-4 h-4"
-                    />
-                    <span>Lock Value</span>
-                  </label>
-                  
-                  <input
-                    type="number"
-                    value={lockedStats[stat] !== undefined ? lockedStats[stat] : store.base_stats[stat] || 0}
-                    onFocus={(e) => e.target.select()}
-                    onChange={(e) => handleLockValueChange(stat, e.target.value)}
-                    disabled={lockedStats[stat] === undefined}
-                    className="st-input disabled:opacity-50 disabled:cursor-not-allowed"
-                  />
-                </div>
-              ))}
+              {optActiveStats.map(stat => {
+                const lock = lockedStats[stat];
+                const isLocked = lock !== undefined;
+                const lockObj = isLocked ? (typeof lock === 'number' ? { type: 'exact', val: lock } : lock) : null;
+
+                return (
+                  <div key={stat} className={`st-container flex flex-col items-center justify-between ${stat === 'Unassigned' ? 'border-st-orange/50 bg-st-orange/5' : ''}`}>
+                    <div className="font-bold mb-2 text-sm text-center">{stat === 'Unassigned' ? 'Unspent Points' : stat}</div>
+                    
+                    {stat === 'Unassigned' ? (
+                      <div className="h-10 w-10 flex items-center justify-center text-3xl mb-3">🛑</div>
+                    ) : (
+                      <img 
+                        src={`/assets/stats_small/${stat.toLowerCase()}.png`} 
+                        onError={(e) => { e.target.onerror = null; e.target.src = `/assets/stats/${stat.toLowerCase()}.png` }}
+                        alt={stat} 
+                        className="h-10 w-10 pixelated mb-3"
+                      />
+                    )}
+                    
+                    <label className="flex items-center space-x-2 text-sm mb-2 cursor-pointer w-full justify-center">
+                      <input 
+                        type="checkbox"
+                        checked={isLocked}
+                        onChange={() => handleLockToggle(stat)}
+                        className="accent-st-orange w-4 h-4"
+                      />
+                      <span className="select-none">Constraints</span>
+                    </label>
+                    
+                    <div className="w-full flex flex-col gap-1 mt-auto">
+                      <select 
+                        value={lockObj ? lockObj.type : 'exact'}
+                        onChange={(e) => handleLockChange(stat, 'type', e.target.value)}
+                        disabled={!isLocked}
+                        className="w-full bg-st-secondary border border-st-border rounded p-1 text-xs text-st-text focus:border-st-orange focus:outline-none text-center disabled:opacity-50 disabled:cursor-not-allowed h-7"
+                      >
+                        <option value="exact">= Exact</option>
+                        <option value="min">≥ Min</option>
+                        <option value="max">≤ Max</option>
+                        <option value="range">↔ Range</option>
+                      </select>
+
+                      {(!lockObj || lockObj.type !== 'range') ? (
+                        <input
+                          type="number"
+                          value={lockObj ? lockObj.val : (store.base_stats[stat] || 0)}
+                          onFocus={(e) => e.target.select()}
+                          onChange={(e) => handleLockChange(stat, 'val', e.target.value)}
+                          disabled={!isLocked}
+                          className="w-full bg-st-secondary border border-transparent rounded p-1 text-xs text-center focus:border-st-orange focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed h-7"
+                        />
+                      ) : (
+                        <div className="flex items-center gap-1">
+                          <input
+                            type="number"
+                            value={lockObj.min}
+                            onFocus={(e) => e.target.select()}
+                            onChange={(e) => handleLockChange(stat, 'min', e.target.value)}
+                            className="w-full bg-st-secondary border border-transparent rounded p-1 text-xs text-center focus:border-st-orange focus:outline-none h-7"
+                            style={{ minWidth: 0 }}
+                          />
+                          <span className="text-xs text-st-text-light font-bold">-</span>
+                          <input
+                            type="number"
+                            value={lockObj.max}
+                            onFocus={(e) => e.target.select()}
+                            onChange={(e) => handleLockChange(stat, 'max', e.target.value)}
+                            className="w-full bg-st-secondary border border-transparent rounded p-1 text-xs text-center focus:border-st-orange focus:outline-none h-7"
+                            style={{ minWidth: 0 }}
+                          />
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           </details>
 
@@ -2428,15 +2472,30 @@ export default function Simulations() {
             candidatesMap.set(avgBId, { ...avgDist });
 
             // 3. Smart Mutation (Radii generation)
+            const getBounds = (s) => {
+               const lock = lockedStats[s];
+               if (!lock) return [0, STAT_CAPS[s]];
+               if (typeof lock === 'number') return[lock, lock];
+               if (lock.type === 'exact') return[lock.val, lock.val];
+               if (lock.type === 'min') return [lock.val, STAT_CAPS[s]];
+               if (lock.type === 'max') return [0, lock.val];
+               if (lock.type === 'range') return [lock.min, lock.max];
+               return[0, STAT_CAPS[s]];
+            };
+
             const baseDists = Array.from(candidatesMap.values());
             baseDists.forEach(baseDist => {
                 const isAvg = JSON.stringify(baseDist) === avgBId;
-                const radii = isAvg ?[1, 2] : [1];
+                const radii = isAvg ?[1, 2] :[1];
                 radii.forEach(radius => {
                     statKeys.forEach(sFrom => {
-                        if (baseDist[sFrom] >= radius && lockedStats[sFrom] === undefined) {
+                        const boundsFrom = getBounds(sFrom);
+                        // Prevent taking points if it drops us below the Min Bound, or if it is Exact-locked
+                        if (baseDist[sFrom] - radius >= boundsFrom[0] && boundsFrom[0] !== boundsFrom[1]) {
                             statKeys.forEach(sTo => {
-                                if (sFrom !== sTo && baseDist[sTo] <= STAT_CAPS[sTo] - radius && lockedStats[sTo] === undefined) {
+                                const boundsTo = getBounds(sTo);
+                                // Prevent adding points if it exceeds the Max Bound, or if it is Exact-locked
+                                if (sFrom !== sTo && baseDist[sTo] + radius <= boundsTo[1] && boundsTo[0] !== boundsTo[1]) {
                                     const neighbor = { ...baseDist };
                                     neighbor[sFrom] -= radius;
                                     neighbor[sTo] += radius;
