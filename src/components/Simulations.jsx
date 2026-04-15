@@ -2899,7 +2899,7 @@ export default function Simulations() {
                                 type="checkbox" 
                                 checked={visibleHistory.length > 0 && visibleHistory.every(r => r.Include)}
                                 onChange={() => {
-                                  const newHistory = [...history];
+                                  const newHistory =[ ...history ];
                                   const targetState = !(visibleHistory.length > 0 && visibleHistory.every(r => r.Include));
                                   visibleHistory.forEach(r => { newHistory[r._global_idx].Include = targetState; });
                                   store.setSimsState('run_history', newHistory);
@@ -2914,17 +2914,18 @@ export default function Simulations() {
                             <th className="p-3">Avg Floor</th>
                             <th className="p-3">Max Floor</th>
                             {tableStats.map(s => <th key={s} className="p-3">{s === 'Unassigned' ? 'Unspent' : s}</th>)}
+                            <th className="p-3 w-10 text-center"></th>
                           </tr>
                         </thead>
                         <tbody>
                           {visibleHistory.length === 0 ? (
-                            <tr><td colSpan="12" className="p-4 text-center text-st-text-light">No runs match current filter.</td></tr>
+                            <tr><td colSpan="15" className="p-4 text-center text-st-text-light">No runs match current filter.</td></tr>
                           ) : visibleHistory.map((r) => {
                             const isFloor = r.Target === 'highest_floor';
                             const score = isFloor ? r['Metric Score'] : ((r['Metric Score'] / 60.0) * 1000.0).toFixed(1);
                             
                             return (
-                              <tr key={r._global_idx} className="border-b border-st-border/50 hover:bg-black/5 transition-colors">
+                              <tr key={r._global_idx} className="border-b border-st-border/50 hover:bg-black/5 transition-colors group">
                                 <td className="p-3 text-center">
                                   <input 
                                     type="checkbox" 
@@ -2939,6 +2940,19 @@ export default function Simulations() {
                                 <td className="p-3">{r['Avg Floor'].toFixed(1)}</td>
                                 <td className="p-3">{r['Max Floor']}</td>
                                 {tableStats.map(s => <td key={s} className={`p-3 ${s === 'Unassigned' ? 'text-st-orange font-bold' : 'text-st-text-light'}`}>{r[s] !== undefined ? r[s] : '-'}</td>)}
+                                <td className="p-3 text-center">
+                                  <button
+                                    onClick={() => {
+                                      const newHistory =[ ...history ];
+                                      newHistory.splice(r._global_idx, 1);
+                                      store.setSimsState('run_history', newHistory);
+                                    }}
+                                    className="text-red-500 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity"
+                                    title="Delete this run"
+                                  >
+                                    🗑️
+                                  </button>
+                                </td>
                               </tr>
                             );
                           })}
