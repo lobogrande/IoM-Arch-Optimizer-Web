@@ -414,10 +414,130 @@ export default function Simulations() {
   if (store.asc1_unlocked) activeStats.push('Div');
   if (store.asc2_unlocked) activeStats.push('Corr');
 
-  const optActiveStats = [...activeStats];
+  const optActiveStats =[ ...activeStats ];
   if (optGoal === "Block Card Farming" && allowUnspent) {
     optActiveStats.push('Unassigned');
   }
+
+  const handleRestore = (runData, isMetaBuild = false) => {
+    if (runData._restore_state) {
+      if (runData._restore_state.opt_results) {
+          store.setOptResults(runData._restore_state.opt_results);
+          store.setSimsState('synthesis_result', runData._restore_state.synthesis_result);
+      } else {
+          store.setOptResults(runData._restore_state);
+          store.setSimsState('synthesis_result', null);
+      }
+      
+      setActiveSubTab(isMetaBuild ? 'synth' : 'optimizer');
+      setResTab('build');
+      setDataTab('performance');
+
+      if (runData.Target && runData.Target.startsWith('block_')) {
+          setCardSelBlock(runData.Target.replace('block_', '').replace('_per_min', ''));
+      } else {
+          setCardSelBlock('');
+      }
+      
+      setTimeout(() => {
+        const anchorId = isMetaBuild ? 'synth-results-anchor' : 'dashboard-anchor-optimizer';
+        const el = document.getElementById(anchorId);
+        if (el) {
+          el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        } else {
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+      }, 150);
+    }
+  };
+
+  const synthHistoryColumns = useMemo(() => {
+    const cols =[
+      { 
+        headerName: "Profile", 
+        valueGetter: (p) => getProfileDisplayName(p.data),
+        minWidth: 150,
+        pinned: "left"
+      },
+      { 
+        field: "Target", 
+        headerName: "Target", 
+        valueFormatter: p => p.value ? p.value.replace('_per_min', '') : '',
+        minWidth: 120 
+      },
+      { 
+        field: "Ceiling Score", 
+        headerName: "Ceiling Score",
+        valueFormatter: p => {
+          if (p.value === undefined || p.value === null) return "0";
+          const isFloor = p.data.Target === 'highest_floor';
+          return isFloor ? p.value.toFixed(2) : ((p.value / 60.0) * 1000.0).toFixed(1);
+        },
+        type: 'numericColumn',
+        cellStyle: { color: '#ffa229', fontWeight: 'bold' }
+      },
+      {
+        field: "Theoretical Peak",
+        headerName: "Peak Flr",
+        valueFormatter: p => p.value ? p.value : '-',
+        type: 'numericColumn',
+        width: 100
+      }
+    ];
+
+    const tableStats =[ ...activeStats ];
+    if (store.synth_history && store.synth_history.some(r => r.Unassigned !== undefined)) {
+      tableStats.push('Unassigned');
+    }
+
+    tableStats.forEach(s => {
+      cols.push({
+        field: s,
+        headerName: s === 'Unassigned' ? 'Unspent' : s,
+        width: 90,
+        type: 'numericColumn',
+        cellStyle: s === 'Unassigned' ? { color: '#ffa229', fontWeight: 'bold' } : { }
+      });
+    });
+
+    cols.push({
+      headerName: "Actions",
+      pinned: "right",
+      minWidth: 140,
+      sortable: false,
+      filter: false,
+      cellRenderer: (p) => {
+        return (
+          <div className="flex gap-2 items-center justify-center h-full">
+            <button 
+              onClick={() => handleRestore(p.data, true)}
+              className="px-2 py-1 bg-st-orange text-[#2b2b2b] font-bold text-xs rounded hover:bg-[#ffb045] transition-colors"
+            >
+              📊 View
+            </button>
+            <button 
+              onClick={() => {
+                const kept =[ ...store.synth_history ];
+                const idx = kept.indexOf(p.data);
+                if (idx > -1) {
+                  kept.splice(idx, 1);
+                  store.setSimsState('synth_history', kept);
+                  if (store.synthesis_result && store.synthesis_result.stats === p.data) {
+                    store.setSimsState('synthesis_result', null);
+                  }
+                }
+              }}
+              className="px-2 py-1 bg-[#2b2b2b] border border-red-900 text-red-400 font-bold text-xs rounded hover:bg-red-900 hover:text-white transition-colors"
+            >
+              🗑️ Del
+            </button>
+          </div>
+        );
+      }
+    });
+
+    return cols;
+  },[ activeStats, store.synth_history, store.synthesis_result ]);
 
   // --- REACTIVE AI CALIBRATION ---
   const bounds = {};
@@ -1799,6 +1919,66 @@ export default function Simulations() {
 
   return (
     <div className="animate-fade-in pb-24">
+      <style>{`
+        /* ☢️ ABSOLUTE NUCLEAR OPTION: Target AG Grid's structural DOM elements directly */
+        .ag-theme-quartz, .ag-theme-quartz-dark {
+          --ag-background-color: ${store.theme === 'dark' ? '#0E1117' : '#FFFFFF'} !important;
+          --ag-foreground-color: ${store.theme === 'dark' ? '#FAFAFA' : '#31333F'} !important;
+          --ag-header-background-color: ${store.theme === 'dark' ? '#262730' : '#F0F2F6'} !important;
+          --ag-header-foreground-color: ${store.theme === 'dark' ? '#FAFAFA' : '#31333F'} !important;
+          --ag-border-color: ${store.theme === 'dark' ? 'rgba(250, 250, 250, 0.15)' : 'rgba(49, 51, 63, 0.15)'} !important;
+        }
+
+        /* 1. Fix the empty right-side background & global wrapper */
+        .ag-theme-quartz .ag-root-wrapper,
+        .ag-theme-quartz-dark .ag-root-wrapper,
+        .ag-theme-quartz .ag-body-viewport,
+        .ag-theme-quartz-dark .ag-body-viewport {
+          background-color: ${store.theme === 'dark' ? '#0E1117' : '#FFFFFF'} !important;
+        }
+
+        /* 2. Fix the Headers (White with black text issue) */
+        .ag-theme-quartz .ag-header,
+        .ag-theme-quartz-dark .ag-header {
+          background-color: ${store.theme === 'dark' ? '#262730' : '#F0F2F6'} !important;
+          color: ${store.theme === 'dark' ? '#FAFAFA' : '#31333F'} !important;
+          border-bottom: 1px solid ${store.theme === 'dark' ? 'rgba(250, 250, 250, 0.15)' : 'rgba(49, 51, 63, 0.15)'} !important;
+        }
+
+        /* 3. Fix the Rows */
+        .ag-theme-quartz .ag-row,
+        .ag-theme-quartz-dark .ag-row {
+          background-color: ${store.theme === 'dark' ? '#0E1117' : '#FFFFFF'} !important;
+          color: ${store.theme === 'dark' ? '#FAFAFA' : '#31333F'} !important;
+          border-bottom: 1px solid ${store.theme === 'dark' ? 'rgba(250, 250, 250, 0.1)' : 'rgba(49, 51, 63, 0.1)'} !important;
+        }
+        .ag-theme-quartz .ag-row:hover,
+        .ag-theme-quartz-dark .ag-row:hover {
+          background-color: ${store.theme === 'dark' ? '#262730' : '#F0F2F6'} !important;
+        }
+
+        /* 4. Fix the Dashed Vertical Lines & Centering */
+        .ag-theme-quartz .ag-header-cell, .ag-theme-quartz .ag-cell,
+        .ag-theme-quartz-dark .ag-header-cell, .ag-theme-quartz-dark .ag-cell {
+          border-right: 1px solid ${store.theme === 'dark' ? 'rgba(250, 250, 250, 0.15)' : 'rgba(49, 51, 63, 0.15)'} !important;
+          border-left: none !important; /* Prevents overlapping dashed effect */
+        }
+
+        /* Force Headers to Center */
+        .ag-theme-quartz .ag-header-cell-label,
+        .ag-theme-quartz-dark .ag-header-cell-label {
+          justify-content: center !important;
+          color: ${store.theme === 'dark' ? '#FAFAFA' : '#31333F'} !important;
+        }
+        /* Force Cells to Center */
+        .ag-theme-quartz .ag-cell,
+        .ag-theme-quartz-dark .ag-cell {
+          display: flex !important;
+          align-items: center !important;
+          justify-content: center !important;
+          text-align: center !important;
+        }
+      `}</style>
       
       {/* SUB-TABS ROUTING */}
       <div className="flex overflow-x-auto border-b border-st-border mb-6 no-scrollbar">
@@ -2134,41 +2314,6 @@ export default function Simulations() {
                                       .filter(r => currentViewTargets.includes(r.Target));
         
         const checkedRuns = visibleHistory.filter(r => r.Include);
-
-        const handleRestore = (runData, isMetaBuild = false) => {
-          if (runData._restore_state) {
-            // Restore dashboard state cleanly for both regular runs and meta-builds
-            if (runData._restore_state.opt_results) {
-                store.setOptResults(runData._restore_state.opt_results);
-                store.setSimsState('synthesis_result', runData._restore_state.synthesis_result);
-            } else {
-                store.setOptResults(runData._restore_state);
-                store.setSimsState('synthesis_result', null);
-            }
-            
-            // Snap to the appropriate tab based on what we are restoring
-            setActiveSubTab(isMetaBuild ? 'synth' : 'optimizer');
-            setResTab('build');
-            setDataTab('performance');
-
-            if (runData.Target && runData.Target.startsWith('block_')) {
-                setCardSelBlock(runData.Target.replace('block_', '').replace('_per_min', ''));
-            } else {
-                setCardSelBlock('');
-            }
-            
-            // Allow React a split second to render the tab, then scroll down to the appropriate dashboard anchor
-            setTimeout(() => {
-              const anchorId = isMetaBuild ? 'synth-results-anchor' : 'dashboard-anchor-optimizer';
-              const el = document.getElementById(anchorId);
-              if (el) {
-                el.scrollIntoView({ behavior: 'smooth', block: 'start' });
-              } else {
-                window.scrollTo({ top: 0, behavior: 'smooth' });
-              }
-            }, 150);
-          }
-        };
 
         const toggleInclude = (globalIdx) => {
           const newHistory = [...history];
@@ -2766,52 +2911,23 @@ export default function Simulations() {
                   <h3 className="text-xl font-bold">📚 Meta-Build History Log</h3>
                   <p className="text-sm text-st-text-light mb-4">A permanent record of your optimized Meta-Builds.</p>
                   
-                  {store.synth_history.map((synth, idx) => {
-                    const isFloorTarget = synth.Target === 'highest_floor';
-                    const dispScore = isFloorTarget ? synth['Ceiling Score'] : ((synth['Ceiling Score'] / 60.0) * 1000.0).toFixed(1);
-                    
-                    return (
-                      <div key={idx} className="st-container space-y-3">
-                        <div className="font-bold text-lg text-st-orange">
-                          🧬 Meta-Build | Profile: `{getProfileDisplayName(synth)}` | Target: `{synth.Target}` | Ceiling: `{dispScore}`
-                          {!isFloorTarget && " (per 1k Arch Secs)"}
-                          {synth['Theoretical Peak'] && ` | Peak: ${synth['Theoretical Peak']}`}
-                        </div>
-                        
-                        <div className="bg-st-secondary p-2 rounded text-sm font-mono border border-st-border">
-                          {activeStats.map(s => `${s}: ${synth[s] !== undefined ? synth[s] : '-'}`).join('  |  ')}
-                        </div>
-
-                        {synth['Peak Probability'] > 0 && (
-                          <div className="text-xs text-st-text-light italic">
-                            🎲 Reality Check: Floor {synth['Theoretical Peak']} hit in {(synth['Peak Probability']*100).toFixed(1)}% of sims. Requires avg {Math.ceil(1/synth['Peak Probability'])} runs (~{(synth['Arch Secs Cost']/1000).toFixed(1)}k Arch Secs) to replicate.
-                          </div>
-                        )}
-
-                        <div className="flex flex-col md:flex-row gap-2 mt-3">
-                          <button 
-                            onClick={() => handleRestore(synth, true)}
-                            className="flex-1 py-1 bg-st-orange text-[#2b2b2b] font-bold rounded hover:bg-[#ffb045] transition-colors text-sm"
-                          >
-                            📊 View Dashboard
-                          </button>
-                          <button 
-                            onClick={() => {
-                              const kept = [...store.synth_history];
-                              kept.splice(idx, 1);
-                              store.setSimsState('synth_history', kept);
-                              if (store.synthesis_result && store.synthesis_result.stats === synth) {
-                                store.setSimsState('synthesis_result', null);
-                              }
-                            }}
-                            className="flex-1 py-1 bg-[#2b2b2b] border border-red-900 text-red-400 font-bold rounded hover:bg-red-900 hover:text-white transition-colors text-sm"
-                          >
-                            🗑️ Delete
-                          </button>
-                        </div>
-                      </div>
-                    );
-                  })}
+                  <div 
+                    className={`border border-st-border rounded bg-st-bg h-[400px] w-full outline-none ${store.theme === 'dark' ? 'ag-theme-quartz-dark' : 'ag-theme-quartz'}`}
+                    tabIndex={-1}
+                    onMouseEnter={(e) => {
+                      if (!e.currentTarget.contains(document.activeElement)) {
+                        e.currentTarget.focus();
+                      }
+                    }}
+                  >
+                    <AgGridReact
+                      theme="legacy"
+                      rowData={store.synth_history}
+                      defaultColDef={sandboxDefaultColDef}
+                      autoSizeStrategy={sandboxAutoSizeStrategy}
+                      columnDefs={synthHistoryColumns}
+                    />
+                  </div>
                 </div>
               )}
             </>
@@ -3306,67 +3422,6 @@ export default function Simulations() {
                   }
                 }}
               >
-                <style>{`
-                  /* ☢️ ABSOLUTE NUCLEAR OPTION: Target AG Grid's structural DOM elements directly */
-                  .ag-theme-quartz, .ag-theme-quartz-dark {
-                    --ag-background-color: ${store.theme === 'dark' ? '#0E1117' : '#FFFFFF'} !important;
-                    --ag-foreground-color: ${store.theme === 'dark' ? '#FAFAFA' : '#31333F'} !important;
-                    --ag-header-background-color: ${store.theme === 'dark' ? '#262730' : '#F0F2F6'} !important;
-                    --ag-header-foreground-color: ${store.theme === 'dark' ? '#FAFAFA' : '#31333F'} !important;
-                    --ag-border-color: ${store.theme === 'dark' ? 'rgba(250, 250, 250, 0.15)' : 'rgba(49, 51, 63, 0.15)'} !important;
-                  }
-
-                  /* 1. Fix the empty right-side background & global wrapper */
-                  .ag-theme-quartz .ag-root-wrapper,
-                  .ag-theme-quartz-dark .ag-root-wrapper,
-                  .ag-theme-quartz .ag-body-viewport,
-                  .ag-theme-quartz-dark .ag-body-viewport {
-                    background-color: ${store.theme === 'dark' ? '#0E1117' : '#FFFFFF'} !important;
-                  }
-
-                  /* 2. Fix the Headers (White with black text issue) */
-                  .ag-theme-quartz .ag-header,
-                  .ag-theme-quartz-dark .ag-header {
-                    background-color: ${store.theme === 'dark' ? '#262730' : '#F0F2F6'} !important;
-                    color: ${store.theme === 'dark' ? '#FAFAFA' : '#31333F'} !important;
-                    border-bottom: 1px solid ${store.theme === 'dark' ? 'rgba(250, 250, 250, 0.15)' : 'rgba(49, 51, 63, 0.15)'} !important;
-                  }
-
-                  /* 3. Fix the Rows */
-                  .ag-theme-quartz .ag-row,
-                  .ag-theme-quartz-dark .ag-row {
-                    background-color: ${store.theme === 'dark' ? '#0E1117' : '#FFFFFF'} !important;
-                    color: ${store.theme === 'dark' ? '#FAFAFA' : '#31333F'} !important;
-                    border-bottom: 1px solid ${store.theme === 'dark' ? 'rgba(250, 250, 250, 0.1)' : 'rgba(49, 51, 63, 0.1)'} !important;
-                  }
-                  .ag-theme-quartz .ag-row:hover,
-                  .ag-theme-quartz-dark .ag-row:hover {
-                    background-color: ${store.theme === 'dark' ? '#262730' : '#F0F2F6'} !important;
-                  }
-
-                  /* 4. Fix the Dashed Vertical Lines & Centering */
-                  .ag-theme-quartz .ag-header-cell, .ag-theme-quartz .ag-cell,
-                  .ag-theme-quartz-dark .ag-header-cell, .ag-theme-quartz-dark .ag-cell {
-                    border-right: 1px solid ${store.theme === 'dark' ? 'rgba(250, 250, 250, 0.15)' : 'rgba(49, 51, 63, 0.15)'} !important;
-                    border-left: none !important; /* Prevents overlapping dashed effect */
-                  }
-
-                  /* Force Headers to Center */
-                  .ag-theme-quartz .ag-header-cell-label,
-                  .ag-theme-quartz-dark .ag-header-cell-label {
-                    justify-content: center !important;
-                    color: ${store.theme === 'dark' ? '#FAFAFA' : '#31333F'} !important;
-                  }
-                  /* Force Cells to Center */
-                  .ag-theme-quartz .ag-cell,
-                  .ag-theme-quartz-dark .ag-cell {
-                    display: flex !important;
-                    align-items: center !important;
-                    justify-content: center !important;
-                    text-align: center !important;
-                  }
-                `}</style>
-                
                 {!sbData ? (
                   <div className="flex items-center justify-center h-full text-st-text-light">Calculating sandbox math...</div>
                 ) : (
