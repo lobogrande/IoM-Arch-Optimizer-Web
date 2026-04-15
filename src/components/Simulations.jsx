@@ -541,11 +541,21 @@ export default function Simulations() {
   const bounds = {};
   let lockedSum = 0;
   optActiveStats.forEach(s => {
-    if (lockedStats[s] !== undefined) {
-      bounds[s] = [lockedStats[s], lockedStats[s]];
-      lockedSum += lockedStats[s];
+    const lock = lockedStats[s];
+    if (lock !== undefined) {
+      let bMin = 0, bMax = STAT_CAPS[s];
+      if (typeof lock === 'number') {
+        bMin = lock; bMax = lock; // Legacy save backwards compatibility
+      } else {
+        if (lock.type === 'exact') { bMin = lock.val; bMax = lock.val; }
+        else if (lock.type === 'min') { bMin = lock.val; bMax = STAT_CAPS[s]; }
+        else if (lock.type === 'max') { bMin = 0; bMax = lock.val; }
+        else if (lock.type === 'range') { bMin = lock.min; bMax = lock.max; }
+      }
+      bounds[s] =[ bMin, bMax ];
+      if (bMin === bMax) lockedSum += bMin; // Only EXACT locks count towards the modulo fixed sum!
     } else {
-      bounds[s] =[0, STAT_CAPS[s]];
+      bounds[s] =[ 0, STAT_CAPS[s] ];
     }
   });
   const isOverBudget = lockedSum > dynamicBudget;
@@ -563,17 +573,38 @@ export default function Simulations() {
     if (newLocks[stat] !== undefined) {
       delete newLocks[stat];
     } else {
-      newLocks[stat] = store.base_stats[stat] || 0;
+      newLocks[stat] = { type: 'exact', val: store.base_stats[stat] || 0 };
     }
     setLockedStats(newLocks);
   };
 
-  const handleLockValueChange = (stat, val) => {
+  const handleLockChange = (stat, field, val) => {
     let parsed = parseInt(val) || 0;
     if (parsed > STAT_CAPS[stat]) parsed = STAT_CAPS[stat];
     if (parsed < 0) parsed = 0;
     
-    setLockedStats({ ...lockedStats, [stat]: parsed });
+    const current = lockedStats[stat];
+    const lockObj = current !== undefined ? (typeof current === 'number' ? { type: 'exact', val: current } : current) : { type: 'exact', val: 0 };
+    
+    if (field === 'type') {
+       const baseVal = lockObj.val !== undefined ? lockObj.val : (lockObj.min !== undefined ? lockObj.min : 0);
+       if (val === 'range') {
+         setLockedStats({ ...lockedStats, [stat]: { type: val, min: baseVal, max: STAT_CAPS[stat] } });
+       } else {
+         setLockedStats({ ...lockedStats, [stat]: { type: val, val: baseVal } });
+       }
+       return;
+    }
+
+    const newLock = { ...lockObj, [field]: parsed };
+    
+    // Automatically prevent min/max collision bounding
+    if (newLock.type === 'range') {
+       if (field === 'min' && newLock.min > newLock.max) newLock.max = newLock.min;
+       if (field === 'max' && newLock.max < newLock.min) newLock.min = newLock.max;
+    }
+
+    setLockedStats({ ...lockedStats, [stat]: newLock });
   };
 
   // --- ROI ANALYZERS ---
@@ -1012,13 +1043,15 @@ export default function Simulations() {
         const boundsP2 = {};
         let lockedSumP2 = 0;
         optActiveStats.forEach(s => {
-          if (lockedStats[s] !== undefined) {
+          if (bounds[s][0] === bounds[s][1]) {
+            // Exact locks are frozen and passed down identically
             boundsP2[s] = bounds[s];
             lockedSumP2 += bounds[s][0];
           } else {
+            // Unlocked or Range constraints get zoomed in, but strictly clamped by the master bounds!
             boundsP2[s] =[
-              Math.max(0, bestP1[s] - step1),
-              Math.min(STAT_CAPS[s], bestP1[s] + step1)
+              Math.max(bounds[s][0], bestP1[s] - step1),
+              Math.min(bounds[s][1], bestP1[s] + step1)
             ];
           }
         });
@@ -1040,12 +1073,12 @@ export default function Simulations() {
         const boundsP3 = {};
         const p3Radius = profData.p3_radius || Math.min(2, step2);
         optActiveStats.forEach(s => {
-          if (lockedStats[s] !== undefined) {
+          if (bounds[s][0] === bounds[s][1]) {
             boundsP3[s] = bounds[s];
           } else {
             boundsP3[s] =[
-              Math.max(0, bestP2[s] - p3Radius),
-              Math.min(STAT_CAPS[s], bestP2[s] + p3Radius)
+              Math.max(bounds[s][0], bestP2[s] - p3Radius),
+              Math.min(bounds[s][1], bestP2[s] + p3Radius)
             ];
           }
         });
