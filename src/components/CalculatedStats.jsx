@@ -246,19 +246,23 @@ export default function CalculatedStats() {
                       let effStr = "";
                       if (val !== 0) {
                         // Differentiate between Flat bonuses and Percentage multipliers exactly like Streamlit
-                    if ([ 'rare2', 'leg3', 'div3', 'leg4' ].includes(c)) {
-                      effStr = `(+${val.toFixed(1)} Flat)`;
-                    } else if (['myth1', 'div2'].includes(c)) {
-                      effStr = `(+${(val * 100).toFixed(2)}% Chance)`;
-                    } else {
-                      effStr = `(+${(val * 100).toFixed(2)}% Multi)`;
-                    }
-                  }
+                        if ([ 'rare2', 'leg3', 'div3', 'leg4' ].includes(c)) {
+                          effStr = `(+${val.toFixed(1)} Flat)`;
+                        } else if ([ 'myth1', 'div2' ].includes(c)) {
+                          effStr = `(+${(val * 100).toFixed(2)}% Chance)`;
+                        } else {
+                          effStr = `(+${(val * 100).toFixed(2)}% Multi)`;
+                        }
+                      } else {
+                        effStr = "(Infernal not yet obtained)";
+                      }
                       
                       return (
                         <div key={c} className="text-sm mb-1 capitalize">
                           <strong>{c}:</strong> <code className="bg-black/10 dark:bg-white/10 text-st-text px-1 rounded">Tier {tier}</code> 
-                          {effStr && <span className="text-xs text-st-text-light ml-1">{effStr}</span>}
+                          <span className={`text-xs ml-1 ${val !== 0 ? 'text-st-text-light' : 'text-st-text-light italic opacity-60'}`}>
+                            {effStr}
+                          </span>
                         </div>
                       );
                     })}
