@@ -1,5 +1,5 @@
 // src/components/BlockCompendium.jsx
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useRef } from 'react';
 import useStore from '../store';
 import { UI_BLOCK_TABLE_IMG_WIDTH } from '../ui_config';
 import { AgGridReact } from 'ag-grid-react';
@@ -11,7 +11,8 @@ ModuleRegistry.registerModules([ AllCommunityModule ]);
 
 export default function BlockCompendium() {
   const { current_max_floor, compendium_target_floor, setCompendiumTargetFloor, calculated_stats, theme } = useStore();
-  const [showModified, setShowModified] = useState(false);
+  const[showModified, setShowModified] = useState(false);
+  const gridRef = useRef(null);
 
   const blocks = calculated_stats?.blocks_data ||[];
   const targetFloor = compendium_target_floor || current_max_floor;
@@ -37,12 +38,14 @@ export default function BlockCompendium() {
     },
     { field: "name", headerName: "Block", minWidth: 120, pinned: "left" },
     { 
+      colId: "col_hp",
       headerName: "HP", 
       valueGetter: p => showModified ? p.data.mod_hp : p.data.base_hp,
       valueFormatter: p => fmt(p.value, 0),
       filter: 'agNumberColumnFilter'
     },
     { 
+      colId: "col_armor",
       headerName: "Armor", 
       valueGetter: p => showModified ? p.data.mod_eff_armor : p.data.base_armor,
       valueFormatter: p => fmt(p.value, 0),
@@ -59,12 +62,14 @@ export default function BlockCompendium() {
       }
     },
     { 
+      colId: "col_xp",
       headerName: "XP Yield", 
       valueGetter: p => showModified ? p.data.mod_xp : p.data.base_xp,
       valueFormatter: p => fmt(p.value, 2),
       filter: 'agNumberColumnFilter'
     },
     { 
+      colId: "col_frag",
       headerName: "Frag Yield", 
       valueGetter: p => showModified ? p.data.mod_frag : p.data.base_frag,
       valueFormatter: p => fmt(p.value, 3),
@@ -105,6 +110,12 @@ export default function BlockCompendium() {
             />
           </div>
         )}
+        <button 
+          onClick={() => gridRef.current?.api.setFilterModel(null)}
+          className="ml-auto px-4 py-2 bg-st-secondary border border-st-border text-st-text font-bold rounded hover:border-st-orange transition-colors text-sm whitespace-nowrap"
+        >
+          🔄 Reset Filters
+        </button>
       </div>
 
       <div 
@@ -136,6 +147,7 @@ export default function BlockCompendium() {
           <div className="flex items-center justify-center h-full text-st-text-light">Loading block data from Engine...</div>
         ) : (
           <AgGridReact
+            ref={gridRef}
             theme="legacy"
             rowData={blocks}
             defaultColDef={defaultColDef}

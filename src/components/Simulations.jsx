@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useRef } from 'react';
 import useStore from '../store';
 import { EngineWorkerPool, getOptimalStepProfile, runOptimizationPhase, topUpBuild } from '../utils/optimizer';
 import PlotWrapper from 'react-plotly.js';
@@ -35,6 +35,8 @@ const ORE_MIN_FLOORS = {
 
 export default function Simulations() {
   const store = useStore();
+  const sandboxGridRef = useRef(null);
+  const synthGridRef = useRef(null);
   const chartFontColor = store.theme === 'dark' ? '#A3A8B8' : '#7D808D';
   const chartGridColor = store.theme === 'dark' ? 'rgba(250,250,250,0.1)' : 'rgba(49,51,63,0.1)';
   const activeSubTab = store.simActiveSubTab;
@@ -3035,8 +3037,18 @@ export default function Simulations() {
               {/* Meta-Build History Log */}
               {store.synth_history && store.synth_history.length > 0 && (
                 <div className="space-y-4">
-                  <h3 className="text-xl font-bold">📚 Meta-Build History Log</h3>
-                  <p className="text-sm text-st-text-light mb-4">A permanent record of your optimized Meta-Builds.</p>
+                  <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
+                    <div>
+                      <h3 className="text-xl font-bold">📚 Meta-Build History Log</h3>
+                      <p className="text-sm text-st-text-light">A permanent record of your optimized Meta-Builds.</p>
+                    </div>
+                    <button 
+                      onClick={() => synthGridRef.current?.api.setFilterModel(null)}
+                      className="px-4 py-2 bg-st-secondary border border-st-border text-st-text font-bold rounded hover:border-st-orange transition-colors text-sm whitespace-nowrap"
+                    >
+                      🔄 Reset Filters
+                    </button>
+                  </div>
                   
                   <div 
                     className={`border border-st-border rounded bg-st-bg h-[400px] w-full outline-none ${store.theme === 'dark' ? 'ag-theme-quartz-dark' : 'ag-theme-quartz'}`}
@@ -3048,6 +3060,7 @@ export default function Simulations() {
                     }}
                   >
                     <AgGridReact
+                      ref={synthGridRef}
                       theme="legacy"
                       rowData={store.synth_history}
                       defaultColDef={sandboxDefaultColDef}
@@ -3527,15 +3540,23 @@ export default function Simulations() {
                     <div><strong>Avg Hits:</strong> Number of hits to destroy the block based on EDPS (Average Damage over time).</div>
                     <div><strong>Max Hits:</strong> Number of hits to destroy the block based purely on Regular (Non-Crit) damage.</div>
                   </div>
-                  <label className="flex items-center justify-center w-full md:w-auto space-x-2 cursor-pointer bg-st-secondary px-3 py-2 border border-st-border rounded hover:border-st-orange transition-colors text-sm">
-                    <input 
-                      type="checkbox" 
-                      checked={sandboxShowCrits}
-                      onChange={() => setSandboxShowCrits(!sandboxShowCrits)}
-                      className="accent-st-orange w-4 h-4"
-                    />
-                    <span className="font-bold">🔍 Show Detailed Crits</span>
-                  </label>
+                  <div className="flex gap-2 w-full md:w-auto">
+                    <label className="flex flex-1 items-center justify-center space-x-2 cursor-pointer bg-st-secondary px-3 py-2 border border-st-border rounded hover:border-st-orange transition-colors text-sm">
+                      <input 
+                        type="checkbox" 
+                        checked={sandboxShowCrits}
+                        onChange={() => setSandboxShowCrits(!sandboxShowCrits)}
+                        className="accent-st-orange w-4 h-4"
+                      />
+                      <span className="font-bold">🔍 Show Detailed Crits</span>
+                    </label>
+                    <button 
+                      onClick={() => sandboxGridRef.current?.api.setFilterModel(null)}
+                      className="px-3 py-2 bg-st-secondary border border-st-border text-st-text font-bold rounded hover:border-st-orange transition-colors text-sm whitespace-nowrap"
+                    >
+                      🔄 Reset Filters
+                    </button>
+                  </div>
                 </div>
               </div>
 
@@ -3553,6 +3574,7 @@ export default function Simulations() {
                   <div className="flex items-center justify-center h-full text-st-text-light">Calculating sandbox math...</div>
                 ) : (
                   <AgGridReact
+                    ref={sandboxGridRef}
                     theme="legacy"
                     rowData={sandboxBlocks}
                     defaultColDef={sandboxDefaultColDef}
