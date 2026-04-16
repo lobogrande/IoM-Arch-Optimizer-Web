@@ -39,12 +39,14 @@ export default function BlockCompendium() {
     { 
       headerName: "HP", 
       valueGetter: p => showModified ? p.data.mod_hp : p.data.base_hp,
-      valueFormatter: p => fmt(p.value, 0)
+      valueFormatter: p => fmt(p.value, 0),
+      filter: 'agNumberColumnFilter'
     },
     { 
       headerName: "Armor", 
       valueGetter: p => showModified ? p.data.mod_eff_armor : p.data.base_armor,
       valueFormatter: p => fmt(p.value, 0),
+      filter: 'agNumberColumnFilter',
       cellRenderer: p => {
         if (showModified && p.data.mod_armor !== p.data.mod_eff_armor) {
           return (
@@ -59,12 +61,14 @@ export default function BlockCompendium() {
     { 
       headerName: "XP Yield", 
       valueGetter: p => showModified ? p.data.mod_xp : p.data.base_xp,
-      valueFormatter: p => fmt(p.value, 2)
+      valueFormatter: p => fmt(p.value, 2),
+      filter: 'agNumberColumnFilter'
     },
     { 
       headerName: "Frag Yield", 
       valueGetter: p => showModified ? p.data.mod_frag : p.data.base_frag,
-      valueFormatter: p => fmt(p.value, 3)
+      valueFormatter: p => fmt(p.value, 3),
+      filter: 'agNumberColumnFilter'
     },
     { field: "frag_name", headerName: "Frag Type", flex: 1, minWidth: 120 }
   ],[ showModified ]);
