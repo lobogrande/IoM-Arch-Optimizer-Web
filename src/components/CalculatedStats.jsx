@@ -257,9 +257,12 @@ export default function CalculatedStats() {
                         effStr = "(Infernal not yet obtained)";
                       }
                       
+                      const cardLevelNames =["Not Obtained", "Regular", "Gilded", "Poly", "Infernal"];
+                      const tierName = cardLevelNames[tier] || "Not Obtained";
+
                       return (
                         <div key={c} className="text-sm mb-1 capitalize">
-                          <strong>{c}:</strong> <code className="bg-black/10 dark:bg-white/10 text-st-text px-1 rounded">Tier {tier}</code> 
+                          <strong>{c}:</strong> <code className="bg-black/10 dark:bg-white/10 text-st-text px-1 rounded">{tierName}</code> 
                           <span className={`text-xs ml-1 ${val !== 0 ? 'text-st-text-light' : 'text-st-text-light italic opacity-60'}`}>
                             {effStr}
                           </span>
