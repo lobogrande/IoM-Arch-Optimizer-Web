@@ -220,7 +220,10 @@ class Player:
         # FIX: Hades Idol applies if Asc1 is unlocked, not Asc2
         hades_bonus = (self.hades_idol_level * 0.000045) if self.asc1_unlocked else 0.0
         arch_bonus = 1.0 + (0.04 * self.arch_infernal_cards) + (0.002 * self.total_infernal_cards)
-        return math.ceil((arch_bonus * (1.0 + hades_bonus) * 10000) - 1e-9) / 10000.0
+        
+        # Do NOT artificially round/ceil this to 4 decimal places! 
+        # The game applies the raw floating point product directly to the card bases.
+        return arch_bonus * (1.0 + hades_bonus)
 
     def inf(self, block_id):
         if block_id.endswith('4') and not self.asc2_unlocked: return 0.0
