@@ -464,10 +464,14 @@ export default function Simulations() {
       {
         headerName: "Date",
         valueGetter: (p) => p.data.Timestamp || (p.data._restore_state?.opt_results?.run_id) || 0,
-        valueFormatter: (p) => p.value ? new Date(p.value).toLocaleString([], { month: 'numeric', day: 'numeric', hour: 'numeric', minute: '2-digit' }) : '-',
-        minWidth: 120,
-        sortable: true,
-        filter: false
+        valueFormatter: (p) => p.value ? new Date(p.value).toLocaleString(undefined, { year: 'numeric', month: 'numeric', day: 'numeric', hour: 'numeric', minute: '2-digit' }) : '-',
+        filterValueGetter: (p) => {
+          const val = p.data.Timestamp || (p.data._restore_state?.opt_results?.run_id) || 0;
+          return val ? new Date(val).toLocaleString(undefined, { year: 'numeric', month: 'numeric', day: 'numeric', hour: 'numeric', minute: '2-digit' }) : '-';
+        },
+        filter: 'agTextColumnFilter',
+        minWidth: 150,
+        sortable: true
       },
       { 
         field: "Target", 
@@ -2959,7 +2963,7 @@ export default function Simulations() {
                             const isFloor = r.Target === 'highest_floor';
                             const score = isFloor ? r['Metric Score'] : ((r['Metric Score'] / 60.0) * 1000.0).toFixed(1);
                             const runTime = r.Timestamp || r._restore_state?.opt_results?.run_id || r._restore_state?.run_id;
-                            const timeStr = runTime ? new Date(runTime).toLocaleString(undefined, { month: 'numeric', day: 'numeric', hour: 'numeric', minute: '2-digit' }) : '-';
+                            const timeStr = runTime ? new Date(runTime).toLocaleString(undefined, { year: 'numeric', month: 'numeric', day: 'numeric', hour: 'numeric', minute: '2-digit' }) : '-';
                             
                             return (
                               <tr key={r._global_idx} className="border-b border-st-border/50 hover:bg-black/5 transition-colors group">
