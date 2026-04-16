@@ -1,16 +1,82 @@
 // src/components/BlockCompendium.jsx
-import { useState } from 'react';
+import { useState, useMemo, useRef } from 'react';
 import useStore from '../store';
 import { UI_BLOCK_TABLE_IMG_WIDTH } from '../ui_config';
+import { AgGridReact } from 'ag-grid-react';
+import { ModuleRegistry, AllCommunityModule } from 'ag-grid-community';
+import 'ag-grid-community/styles/ag-grid.css';
+import 'ag-grid-community/styles/ag-theme-quartz.css';
+
+ModuleRegistry.registerModules([ AllCommunityModule ]);
 
 export default function BlockCompendium() {
-  const { current_max_floor, compendium_target_floor, setCompendiumTargetFloor, calculated_stats } = useStore();
-  const [showModified, setShowModified] = useState(false);
+  const { current_max_floor, compendium_target_floor, setCompendiumTargetFloor, calculated_stats, theme } = useStore();
+  const[showModified, setShowModified] = useState(false);
+  const gridRef = useRef(null);
 
   const blocks = calculated_stats?.blocks_data ||[];
   const targetFloor = compendium_target_floor || current_max_floor;
 
   const fmt = (val, decimals = 0) => Number(val).toLocaleString(undefined, { minimumFractionDigits: decimals, maximumFractionDigits: decimals });
+
+  const defaultColDef = useMemo(() => ({ sortable: true, filter: true, resizable: true }), [ ]);
+
+  const colDefs = useMemo(() =>[
+    {
+      field: "id",
+      headerName: "Icon",
+      pinned: "left",
+      minWidth: 80,
+      maxWidth: 80,
+      sortable: false,
+      filter: false,
+      cellRenderer: (p) => (
+        <div className="flex justify-center items-center h-full">
+          <img src={`/assets/cards/cores/${p.value}.png`} alt={p.value} style={{ width: UI_BLOCK_TABLE_IMG_WIDTH, imageRendering: 'pixelated' }} onError={(e) => e.target.style.display = 'none'} />
+        </div>
+      )
+    },
+    { field: "name", headerName: "Block", minWidth: 120, pinned: "left" },
+    { 
+      colId: "col_hp",
+      headerName: "HP", 
+      valueGetter: p => showModified ? p.data.mod_hp : p.data.base_hp,
+      valueFormatter: p => fmt(p.value, 0),
+      filter: 'agNumberColumnFilter'
+    },
+    { 
+      colId: "col_armor",
+      headerName: "Armor", 
+      valueGetter: p => showModified ? p.data.mod_eff_armor : p.data.base_armor,
+      valueFormatter: p => fmt(p.value, 0),
+      filter: 'agNumberColumnFilter',
+      cellRenderer: p => {
+        if (showModified && p.data.mod_armor !== p.data.mod_eff_armor) {
+          return (
+            <span title={`Base Armor: ${fmt(p.data.mod_armor)}`} className="cursor-help border-b border-dotted border-gray-400">
+              {p.valueFormatted}
+            </span>
+          );
+        }
+        return p.valueFormatted;
+      }
+    },
+    { 
+      colId: "col_xp",
+      headerName: "XP Yield", 
+      valueGetter: p => showModified ? p.data.mod_xp : p.data.base_xp,
+      valueFormatter: p => fmt(p.value, 2),
+      filter: 'agNumberColumnFilter'
+    },
+    { 
+      colId: "col_frag",
+      headerName: "Frag Yield", 
+      valueGetter: p => showModified ? p.data.mod_frag : p.data.base_frag,
+      valueFormatter: p => fmt(p.value, 3),
+      filter: 'agNumberColumnFilter'
+    },
+    { field: "frag_name", headerName: "Frag Type", flex: 1, minWidth: 120 }
+  ],[ showModified ]);
 
   return (
     <div>
@@ -44,46 +110,50 @@ export default function BlockCompendium() {
             />
           </div>
         )}
+        <button 
+          onClick={() => gridRef.current?.api.setFilterModel(null)}
+          className="ml-auto px-4 py-2 bg-st-secondary border border-st-border text-st-text font-bold rounded hover:border-st-orange transition-colors text-sm whitespace-nowrap"
+        >
+          🔄 Reset Filters
+        </button>
       </div>
 
-      <div className="overflow-x-auto st-container p-0">
-        <table className="w-full text-left border-collapse">
-          <thead>
-            <tr className="bg-st-secondary text-sm border-b border-st-border">
-              <th className="p-3 font-bold">Icon</th>
-              <th className="p-3 font-bold">Block</th>
-              <th className="p-3 font-bold">HP</th>
-              <th className="p-3 font-bold">Armor</th>
-              <th className="p-3 font-bold">XP Yield</th>
-              <th className="p-3 font-bold">Frag Yield</th>
-              <th className="p-3 font-bold">Frag Type</th>
-            </tr>
-          </thead>
-          <tbody>
-            {blocks.map((b, idx) => (
-              <tr key={b.id} className={`border-b border-st-border hover:bg-gray-50/50 ${idx % 2 === 0 ? '' : 'bg-st-secondary/20'}`}>
-                <td className="p-3">
-                  <img src={`/assets/cards/cores/${b.id}.png`} alt={b.id} style={{ width: UI_BLOCK_TABLE_IMG_WIDTH, imageRendering: 'pixelated' }} onError={(e) => e.target.style.display = 'none'} />
-                </td>
-                <td className="p-3 font-bold">{b.name}</td>
-                <td className="p-3 font-mono text-sm">{showModified ? fmt(b.mod_hp) : fmt(b.base_hp)}</td>
-                <td className="p-3 font-mono text-sm">
-                  {showModified ? (
-                    <span title={`Base Armor: ${fmt(b.mod_armor)}`} className="cursor-help border-b border-dotted border-gray-400">
-                      {fmt(b.mod_eff_armor)}
-                    </span>
-                  ) : fmt(b.base_armor)}
-                </td>
-                <td className="p-3 font-mono text-sm">{showModified ? fmt(b.mod_xp, 2) : fmt(b.base_xp, 2)}</td>
-                <td className="p-3 font-mono text-sm">{showModified ? fmt(b.mod_frag, 3) : fmt(b.base_frag, 3)}</td>
-                <td className="p-3 text-sm">{b.frag_name}</td>
-              </tr>
-            ))}
-            {blocks.length === 0 && (
-              <tr><td colSpan="7" className="p-6 text-center text-st-text-light">Loading block data from Engine...</td></tr>
-            )}
-          </tbody>
-        </table>
+      <div 
+        className={`border border-st-border rounded bg-st-bg h-[700px] w-full outline-none ${theme === 'dark' ? 'ag-theme-quartz-dark' : 'ag-theme-quartz'}`}
+        tabIndex={-1}
+        onMouseEnter={(e) => {
+          if (!e.currentTarget.contains(document.activeElement)) {
+            e.currentTarget.focus();
+          }
+        }}
+      >
+        <style>{`
+          /* Force Headers to Center */
+          .ag-theme-quartz .ag-header-cell-label,
+          .ag-theme-quartz-dark .ag-header-cell-label {
+            justify-content: center !important;
+            color: ${theme === 'dark' ? '#FAFAFA' : '#31333F'} !important;
+          }
+          /* Force Cells to Center */
+          .ag-theme-quartz .ag-cell,
+          .ag-theme-quartz-dark .ag-cell {
+            display: flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            text-align: center !important;
+          }
+        `}</style>
+        {!blocks || blocks.length === 0 ? (
+          <div className="flex items-center justify-center h-full text-st-text-light">Loading block data from Engine...</div>
+        ) : (
+          <AgGridReact
+            ref={gridRef}
+            theme="legacy"
+            rowData={blocks}
+            defaultColDef={defaultColDef}
+            columnDefs={colDefs}
+          />
+        )}
       </div>
 
     </div>

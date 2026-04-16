@@ -114,10 +114,6 @@ class Player:
         """Emulates C# 32-bit floating point precision limits."""
         return struct.unpack('f', struct.pack('f', val))[0]
 
-    def _csharp_round(self, val):
-        """Emulates Unity's exact Mathf.Round(val * 100f) / 100f UI formatting."""
-        return round(self._f32(self._f32(val) * 100.0)) / 100.0
-
     def _excel_floor(self, val, decimals):
         mult = 10 ** decimals
         return math.floor((val + 1e-9) * mult) / mult
@@ -220,7 +216,10 @@ class Player:
         # FIX: Hades Idol applies if Asc1 is unlocked, not Asc2
         hades_bonus = (self.hades_idol_level * 0.000045) if self.asc1_unlocked else 0.0
         arch_bonus = 1.0 + (0.04 * self.arch_infernal_cards) + (0.002 * self.total_infernal_cards)
-        return math.ceil((arch_bonus * (1.0 + hades_bonus) * 10000) - 1e-9) / 10000.0
+        
+        # Do NOT artificially round/ceil this to 4 decimal places! 
+        # The game applies the raw floating point product directly to the card bases.
+        return arch_bonus * (1.0 + hades_bonus)
 
     def inf(self, block_id):
         if block_id.endswith('4') and not self.asc2_unlocked: return 0.0
@@ -300,14 +299,13 @@ class Player:
     
     @property
     def crit_dmg_mult(self): 
-        val = 1.5 * (1.0 + self.u('H13') + self.u('F30') + self.inf('com1') + self.inf('epic4') + (0.03 + self.u('H47')) * self.stat('Str'))
-        return self._csharp_round(val)
+        inner = 1.0 + self.u('H13') + self.u('F30') + self.inf('com1') + self.inf('epic4') + (0.03 + self.u('H47')) * self.stat('Str')
+        return self._excel_round(1.5 * self._f32(inner), 2)
         
     @property
     def enraged_crit_dmg_mult(self): 
-        enrage_crit_bonus = 1.0 + self.u('F18')
-        val = 1.5 * (1.0 + enrage_crit_bonus + self.u('H13') + self.u('F30') + self.inf('com1') + self.inf('epic4') + (0.03 + self.u('H47')) * self.stat('Str'))
-        return self._csharp_round(val)
+        inner = 1.0 + (1.0 + self.u('F18')) + self.u('H13') + self.u('F30') + self.inf('com1') + self.inf('epic4') + (0.03 + self.u('H47')) * self.stat('Str')
+        return self._excel_round(1.5 * self._f32(inner), 2)
         
     @property
     def super_crit_chance(self): return self.u('H20') + self.u('F37') + ((0.02 + 0.01 * self.u('F34')) * self.stat('Div')) + self.inf('epic2') + self.inf('com4')
@@ -315,8 +313,8 @@ class Player:
     @property
     def super_crit_dmg_mult(self): 
         if self.super_crit_chance <= 0: return 0.0
-        val = 2.0 * (1.0 + self.u('H30') + self.u('F53') + self.inf('com2'))
-        return self._csharp_round(val)
+        inner = 1.0 + self.u('H30') + self.u('F53') + self.inf('com2')
+        return self._excel_round(2.0 * self._f32(inner), 2)
         
     @property
     def ultra_crit_chance(self): return self.u('H37') + self.u('H49') + self.inf('com4')
@@ -324,8 +322,8 @@ class Player:
     @property
     def ultra_crit_dmg_mult(self): 
         if self.ultra_crit_chance <= 0: return 0.0
-        val = 3.0 * (1.0 + self.u('F40')) * (1.0 + self.inf('com3'))
-        return self._csharp_round(val)
+        inner = (1.0 + self.u('F40')) * (1.0 + self.inf('com3'))
+        return self._excel_round(3.0 * self._f32(inner), 2)
 
     @property
     def ability_insta_charge(self): return self.w('W11') + self.u('F39') + self.u('F50') + self.inf('myth4')

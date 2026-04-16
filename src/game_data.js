@@ -31,6 +31,37 @@ export const ASC2_LOCKED_UPGS =[19, 27, 34, 46, 52, 55];
 
 export const CARD_TYPES =['dirt', 'com', 'rare', 'epic', 'leg', 'myth', 'div'];
 
+export const INFERNAL_CARD_BONUSES = {
+  'dirt1': { text: "Loot Mod Gain", base: 0.1, dec: 4, isPct: true },
+  'dirt2': { text: "Exp Gain Mult", base: 0.12, dec: 4, isPct: true },
+  'dirt3': { text: "Frag Gain Mult", base: 0.08, dec: 4, isPct: true },
+  'dirt4': { text: "Gleaming Multi", base: 0.1, dec: 4, isPct: true },
+  'com1':  { text: "Crit Dmg", base: 0.06, dec: 4, isPct: true },
+  'com2':  { text: "sCrit Dmg", base: 0.07, dec: 4, isPct: true },
+  'com3':  { text: "uCrit Dmg", base: 0.08, dec: 4, isPct: true },
+  'com4':  { text: "All Crit Chances", base: 0.015, dec: 4, isPct: true },
+  'rare1': { text: "Auto-Tap Chance", base: 0.05, dec: 4, isPct: true },
+  'rare2': { text: "Flat Damage", base: 20.0, dec: 0, isPct: false },
+  'rare3': { text: "Armor Pen Multi", base: 0.4, dec: 4, isPct: true },
+  'rare4': { text: "Loot Mod Gain", base: 0.08, dec: 4, isPct: true },
+  'epic1': { text: "Gold Crosshair Multi", base: 0.3, dec: 4, isPct: true },
+  'epic2': { text: "sCrit Chance", base: 0.04, dec: 4, isPct: true },
+  'epic3': { text: "Max Sta Multi", base: 0.05, dec: 4, isPct: true },
+  'epic4': { text: "Crit Dmg", base: 0.1, dec: 4, isPct: true },
+  'leg1':  { text: "Frag Gain Mult", base: 0.04, dec: 4, isPct: true },
+  'leg2':  { text: "Gold Crosshair Chance", base: 0.05, dec: 4, isPct: true },
+  'leg3':  { text: "Flat Armor Pen", base: 40.0, dec: 0, isPct: false },
+  'leg4':  { text: "Flat Max Sta", base: 20.0, dec: 0, isPct: false },
+  'myth1': { text: "Gleaming Chance", base: 0.013, dec: 4, isPct: true },
+  'myth2': { text: "Loot Mod Chance", base: 0.008, dec: 4, isPct: true },
+  'myth3': { text: "Sta Mod Chance", base: 0.007, dec: 4, isPct: true },
+  'myth4': { text: "Ability Insta Charge", base: 0.01, dec: 4, isPct: true },
+  'div1':  { text: "Damage Multi", base: 0.1, dec: 4, isPct: true },
+  'div2':  { text: "Gleaming Chance", base: 0.0125, dec: 4, isPct: true },
+  'div3':  { text: "Sta Mod Gain", base: 1.126, dec: 0, isPct: false },
+  'div4':  { text: "All Mod Chances", base: 0.005, dec: 4, isPct: true }
+};
+
 export const EXTERNAL_UI_GROUPS =[
     {id: "hestia", name: "Hestia Idol", rows:[4], ui_type: "number", max: 3000, img: "4_hestia.png"},
     {id: "hades", name: "Hades Idol", rows:[21], ui_type: "number", max: 6666},

@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useRef } from 'react';
 import useStore from '../store';
 import { EngineWorkerPool, getOptimalStepProfile, runOptimizationPhase, topUpBuild } from '../utils/optimizer';
 import PlotWrapper from 'react-plotly.js';
@@ -35,6 +35,8 @@ const ORE_MIN_FLOORS = {
 
 export default function Simulations() {
   const store = useStore();
+  const sandboxGridRef = useRef(null);
+  const synthGridRef = useRef(null);
   const chartFontColor = store.theme === 'dark' ? '#A3A8B8' : '#7D808D';
   const chartGridColor = store.theme === 'dark' ? 'rgba(250,250,250,0.1)' : 'rgba(49,51,63,0.1)';
   const activeSubTab = store.simActiveSubTab;
@@ -368,24 +370,24 @@ export default function Simulations() {
         )
       },
       { field: "name", headerName: "Block", pinned: "left" },
-      { field: "mod_hp", headerName: "HP", valueFormatter: p => Math.floor(p.value).toLocaleString() },
-      { field: "mod_eff_armor", headerName: "Armor", valueFormatter: p => Math.floor(p.value).toLocaleString() },
-      { field: "edps", headerName: "EDPS", cellRenderer: createDiffRenderer("edps", false), cellStyle: { color: '#ffa229', fontWeight: 'bold' } },
-      { field: "enr_edps", headerName: "Enr EDPS", cellRenderer: createDiffRenderer("enr_edps", false), cellStyle: { color: '#f87171', fontWeight: 'bold' } },
-      { field: "reg_hit", headerName: "Reg Hit", cellRenderer: createDiffRenderer("reg_hit", false) },
-      { field: "avg_hits", headerName: "Avg Hits", cellRenderer: createDiffRenderer("avg_hits", true), cellStyle: { fontWeight: 'bold' } },
-      { field: "max_hits", headerName: "Max Hits", cellRenderer: createDiffRenderer("max_hits", true), cellStyle: { color: '#7D808D' } }
+      { field: "mod_hp", headerName: "HP", valueFormatter: p => Math.floor(p.value).toLocaleString(), filter: 'agNumberColumnFilter' },
+      { field: "mod_eff_armor", headerName: "Armor", valueFormatter: p => Math.floor(p.value).toLocaleString(), filter: 'agNumberColumnFilter' },
+      { field: "edps", headerName: "EDPS", cellRenderer: createDiffRenderer("edps", false), filter: 'agNumberColumnFilter', cellStyle: { color: '#ffa229', fontWeight: 'bold' } },
+      { field: "enr_edps", headerName: "Enr EDPS", cellRenderer: createDiffRenderer("enr_edps", false), filter: 'agNumberColumnFilter', cellStyle: { color: '#f87171', fontWeight: 'bold' } },
+      { field: "reg_hit", headerName: "Reg Hit", cellRenderer: createDiffRenderer("reg_hit", false), filter: 'agNumberColumnFilter' },
+      { field: "avg_hits", headerName: "Avg Hits", cellRenderer: createDiffRenderer("avg_hits", true), filter: 'agNumberColumnFilter', cellStyle: { fontWeight: 'bold' } },
+      { field: "max_hits", headerName: "Max Hits", cellRenderer: createDiffRenderer("max_hits", true), filter: 'agNumberColumnFilter', cellStyle: { color: '#7D808D' } }
     ];
 
     if (sandboxShowCrits) {
       cols.push(
-        { field: "crit", headerName: "Crit", cellRenderer: createDiffRenderer("crit", false), cellStyle: { backgroundColor: 'rgba(0,0,0,0.05)' } },
-        { field: "scrit", headerName: "sCrit", cellRenderer: createDiffRenderer("scrit", false), cellStyle: { backgroundColor: 'rgba(0,0,0,0.05)' } },
-        { field: "ucrit", headerName: "uCrit", cellRenderer: createDiffRenderer("ucrit", false), cellStyle: { backgroundColor: 'rgba(0,0,0,0.05)' } },
-        { field: "enr_hit", headerName: "Enr Hit", cellRenderer: createDiffRenderer("enr_hit", false), cellStyle: { color: '#fca5a5', backgroundColor: 'rgba(127,29,29,0.05)' } },
-        { field: "enr_crit", headerName: "Enr Crit", cellRenderer: createDiffRenderer("enr_crit", false), cellStyle: { color: '#fca5a5', backgroundColor: 'rgba(127,29,29,0.05)' } },
-        { field: "enr_scrit", headerName: "Enr sCrit", cellRenderer: createDiffRenderer("enr_scrit", false), cellStyle: { color: '#fca5a5', backgroundColor: 'rgba(127,29,29,0.05)' } },
-        { field: "enr_ucrit", headerName: "Enr uCrit", cellRenderer: createDiffRenderer("enr_ucrit", false), cellStyle: { color: '#fca5a5', backgroundColor: 'rgba(127,29,29,0.05)' } }
+        { field: "crit", headerName: "Crit", cellRenderer: createDiffRenderer("crit", false), filter: 'agNumberColumnFilter', cellStyle: { backgroundColor: 'rgba(0,0,0,0.05)' } },
+        { field: "scrit", headerName: "sCrit", cellRenderer: createDiffRenderer("scrit", false), filter: 'agNumberColumnFilter', cellStyle: { backgroundColor: 'rgba(0,0,0,0.05)' } },
+        { field: "ucrit", headerName: "uCrit", cellRenderer: createDiffRenderer("ucrit", false), filter: 'agNumberColumnFilter', cellStyle: { backgroundColor: 'rgba(0,0,0,0.05)' } },
+        { field: "enr_hit", headerName: "Enr Hit", cellRenderer: createDiffRenderer("enr_hit", false), filter: 'agNumberColumnFilter', cellStyle: { color: '#fca5a5', backgroundColor: 'rgba(127,29,29,0.05)' } },
+        { field: "enr_crit", headerName: "Enr Crit", cellRenderer: createDiffRenderer("enr_crit", false), filter: 'agNumberColumnFilter', cellStyle: { color: '#fca5a5', backgroundColor: 'rgba(127,29,29,0.05)' } },
+        { field: "enr_scrit", headerName: "Enr sCrit", cellRenderer: createDiffRenderer("enr_scrit", false), filter: 'agNumberColumnFilter', cellStyle: { color: '#fca5a5', backgroundColor: 'rgba(127,29,29,0.05)' } },
+        { field: "enr_ucrit", headerName: "Enr uCrit", cellRenderer: createDiffRenderer("enr_ucrit", false), filter: 'agNumberColumnFilter', cellStyle: { color: '#fca5a5', backgroundColor: 'rgba(127,29,29,0.05)' } }
       );
     }
     return cols;
@@ -459,6 +461,18 @@ export default function Simulations() {
         minWidth: 150,
         pinned: "left"
       },
+      {
+        headerName: "Date",
+        valueGetter: (p) => p.data.Timestamp || (p.data._restore_state?.opt_results?.run_id) || 0,
+        valueFormatter: (p) => p.value ? new Date(p.value).toLocaleString(undefined, { year: 'numeric', month: 'numeric', day: 'numeric', hour: 'numeric', minute: '2-digit' }) : '-',
+        filterValueGetter: (p) => {
+          const val = p.data.Timestamp || (p.data._restore_state?.opt_results?.run_id) || 0;
+          return val ? new Date(val).toLocaleString(undefined, { year: 'numeric', month: 'numeric', day: 'numeric', hour: 'numeric', minute: '2-digit' }) : '-';
+        },
+        filter: 'agTextColumnFilter',
+        minWidth: 150,
+        sortable: true
+      },
       { 
         field: "Target", 
         headerName: "Target", 
@@ -473,12 +487,14 @@ export default function Simulations() {
           const isFloor = p.data.Target === 'highest_floor';
           return isFloor ? p.value.toFixed(2) : ((p.value / 60.0) * 1000.0).toFixed(1);
         },
+        filter: 'agNumberColumnFilter',
         cellStyle: { color: '#ffa229', fontWeight: 'bold' }
       },
       {
         field: "Theoretical Peak",
         headerName: "Peak Flr",
         valueFormatter: p => p.value ? p.value : '-',
+        filter: 'agNumberColumnFilter',
         width: 100
       }
     ];
@@ -493,6 +509,7 @@ export default function Simulations() {
         field: s,
         headerName: s === 'Unassigned' ? 'Unspent' : s,
         width: 90,
+        filter: 'agNumberColumnFilter',
         cellStyle: s === 'Unassigned' ? { color: '#ffa229', fontWeight: 'bold' } : { }
       });
     });
@@ -539,13 +556,14 @@ export default function Simulations() {
 
   // --- REACTIVE AI CALIBRATION ---
   const bounds = {};
-  let lockedSum = 0;
+  let minSum = 0;
+  let maxSum = 0;
   optActiveStats.forEach(s => {
     const lock = lockedStats[s];
     if (lock !== undefined) {
       let bMin = 0, bMax = STAT_CAPS[s];
       if (typeof lock === 'number') {
-        bMin = lock; bMax = lock; // Legacy save backwards compatibility
+        bMin = lock; bMax = lock; 
       } else {
         if (lock.type === 'exact') { bMin = lock.val; bMax = lock.val; }
         else if (lock.type === 'min') { bMin = lock.val; bMax = STAT_CAPS[s]; }
@@ -553,18 +571,22 @@ export default function Simulations() {
         else if (lock.type === 'range') { bMin = lock.min; bMax = lock.max; }
       }
       bounds[s] =[ bMin, bMax ];
-      if (bMin === bMax) lockedSum += bMin; // Only EXACT locks count towards the modulo fixed sum!
     } else {
       bounds[s] =[ 0, STAT_CAPS[s] ];
     }
+    minSum += bounds[s][0];
+    maxSum += bounds[s][1];
   });
-  const isOverBudget = lockedSum > dynamicBudget;
+  
+  // A build is mathematically impossible if the required minimums exceed the budget,
+  // OR if the maximum possible caps are smaller than the budget (points would be stranded).
+  const isImpossible = minSum > dynamicBudget || maxSum < dynamicBudget;
 
   // Memoize the heavy AI Profile calculation so it doesn't freeze the browser thread!
   const profData = useMemo(() => {
-    if (isOverBudget) return null;
+    if (isImpossible) return null;
     return getOptimalStepProfile(optActiveStats, dynamicBudget, bounds, simsPerSec, timeLimit);
-  },[JSON.stringify(optActiveStats), dynamicBudget, JSON.stringify(bounds), simsPerSec, timeLimit, isOverBudget]);
+  },[JSON.stringify(optActiveStats), dynamicBudget, JSON.stringify(bounds), simsPerSec, timeLimit, isImpossible]);
   
   const step1 = profData ? profData.step_1 : 100;
 
@@ -954,8 +976,8 @@ export default function Simulations() {
         cards: store.cards
       };
 
-      if (isOverBudget) {
-        alert(`❌ Invalid Locks: You locked ${lockedSum} points, but budget is only ${dynamicBudget}.`);
+      if (isImpossible) {
+        alert(`❌ Invalid Constraints: Your locks require between ${minSum} and ${maxSum} points, but your budget is exactly ${dynamicBudget}.`);
         setIsOptimizing(false);
         return;
       }
@@ -1137,6 +1159,7 @@ export default function Simulations() {
           store.setOptResults(payload);
           store.addRunHistory({
               Include: false,
+              Timestamp: Date.now(),
               ProfileId: profileContext.id,
               ProfileName: profileContext.name,
               IsModified: profileContext.isModified,
@@ -2296,6 +2319,20 @@ export default function Simulations() {
 
             {/* Precision Gauge */}
             {(() => {
+              if (isImpossible || !profData) {
+                return (
+                  <div style={{ border: `1px solid #ff4b4b`, borderLeft: `5px solid #ff4b4b`, backgroundColor: "rgba(255, 75, 75, 0.1)" }} className="p-4 rounded mb-4">
+                    <div className="font-bold text-lg mb-1">🛑 Invalid Constraints</div>
+                    <div className="text-sm">
+                      Your constraints are mathematically impossible. 
+                      {minSum > dynamicBudget ? ` Your minimum requirements (${minSum}) exceed your total points budget (${dynamicBudget}).` : ''}
+                      {maxSum < dynamicBudget ? ` The maximum points you allow the AI to spend (${maxSum}) is less than your total budget (${dynamicBudget}). You must enable "Unspent Points" or raise your max limits.` : ''}
+                      {minSum <= dynamicBudget && maxSum >= dynamicBudget && !profData ? ' The combination of exact locks creates a modulo trap where the budget cannot be cleanly spent.' : ''}
+                    </div>
+                  </div>
+                );
+              }
+
               let gColor, gBg, gIcon, gTitle, gDesc;
               if (step1 >= 15) {
                 gColor = "#ff4b4b"; gBg = "rgba(255, 75, 75, 0.1)"; gIcon = "🔴";
@@ -2728,6 +2765,7 @@ export default function Simulations() {
             };
 
             const synthEntry = {
+                Timestamp: Date.now(),
                 ProfileId: profileContext.id,
                 ProfileName: profileContext.name,
                 IsModified: profileContext.isModified,
@@ -2909,6 +2947,7 @@ export default function Simulations() {
                               />
                             </th>
                             <th className="p-3">Profile</th>
+                            <th className="p-3">Date</th>
                             <th className="p-3">Target</th>
                             <th className="p-3">Score / Yield</th>
                             <th className="p-3">Avg Floor</th>
@@ -2923,6 +2962,8 @@ export default function Simulations() {
                           ) : visibleHistory.map((r) => {
                             const isFloor = r.Target === 'highest_floor';
                             const score = isFloor ? r['Metric Score'] : ((r['Metric Score'] / 60.0) * 1000.0).toFixed(1);
+                            const runTime = r.Timestamp || r._restore_state?.opt_results?.run_id || r._restore_state?.run_id;
+                            const timeStr = runTime ? new Date(runTime).toLocaleString(undefined, { year: 'numeric', month: 'numeric', day: 'numeric', hour: 'numeric', minute: '2-digit' }) : '-';
                             
                             return (
                               <tr key={r._global_idx} className="border-b border-st-border/50 hover:bg-black/5 transition-colors group">
@@ -2935,6 +2976,7 @@ export default function Simulations() {
                                   />
                                 </td>
                                 <td className="p-3 font-bold text-xs truncate max-w-[100px]" title={getProfileDisplayName(r)}>{getProfileDisplayName(r)}</td>
+                                <td className="p-3 text-xs text-st-text-light whitespace-nowrap">{timeStr}</td>
                                 <td className="p-3 font-mono text-xs">{r.Target.replace('_per_min', '')}</td>
                                 <td className="p-3 font-bold text-st-orange">{score}</td>
                                 <td className="p-3">{r['Avg Floor'].toFixed(1)}</td>
@@ -3013,8 +3055,18 @@ export default function Simulations() {
               {/* Meta-Build History Log */}
               {store.synth_history && store.synth_history.length > 0 && (
                 <div className="space-y-4">
-                  <h3 className="text-xl font-bold">📚 Meta-Build History Log</h3>
-                  <p className="text-sm text-st-text-light mb-4">A permanent record of your optimized Meta-Builds.</p>
+                  <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
+                    <div>
+                      <h3 className="text-xl font-bold">📚 Meta-Build History Log</h3>
+                      <p className="text-sm text-st-text-light">A permanent record of your optimized Meta-Builds.</p>
+                    </div>
+                    <button 
+                      onClick={() => synthGridRef.current?.api.setFilterModel(null)}
+                      className="px-4 py-2 bg-st-secondary border border-st-border text-st-text font-bold rounded hover:border-st-orange transition-colors text-sm whitespace-nowrap"
+                    >
+                      🔄 Reset Filters
+                    </button>
+                  </div>
                   
                   <div 
                     className={`border border-st-border rounded bg-st-bg h-[400px] w-full outline-none ${store.theme === 'dark' ? 'ag-theme-quartz-dark' : 'ag-theme-quartz'}`}
@@ -3026,6 +3078,7 @@ export default function Simulations() {
                     }}
                   >
                     <AgGridReact
+                      ref={synthGridRef}
                       theme="legacy"
                       rowData={store.synth_history}
                       defaultColDef={sandboxDefaultColDef}
@@ -3505,15 +3558,23 @@ export default function Simulations() {
                     <div><strong>Avg Hits:</strong> Number of hits to destroy the block based on EDPS (Average Damage over time).</div>
                     <div><strong>Max Hits:</strong> Number of hits to destroy the block based purely on Regular (Non-Crit) damage.</div>
                   </div>
-                  <label className="flex items-center justify-center w-full md:w-auto space-x-2 cursor-pointer bg-st-secondary px-3 py-2 border border-st-border rounded hover:border-st-orange transition-colors text-sm">
-                    <input 
-                      type="checkbox" 
-                      checked={sandboxShowCrits}
-                      onChange={() => setSandboxShowCrits(!sandboxShowCrits)}
-                      className="accent-st-orange w-4 h-4"
-                    />
-                    <span className="font-bold">🔍 Show Detailed Crits</span>
-                  </label>
+                  <div className="flex gap-2 w-full md:w-auto">
+                    <label className="flex flex-1 items-center justify-center space-x-2 cursor-pointer bg-st-secondary px-3 py-2 border border-st-border rounded hover:border-st-orange transition-colors text-sm">
+                      <input 
+                        type="checkbox" 
+                        checked={sandboxShowCrits}
+                        onChange={() => setSandboxShowCrits(!sandboxShowCrits)}
+                        className="accent-st-orange w-4 h-4"
+                      />
+                      <span className="font-bold">🔍 Show Detailed Crits</span>
+                    </label>
+                    <button 
+                      onClick={() => sandboxGridRef.current?.api.setFilterModel(null)}
+                      className="px-3 py-2 bg-st-secondary border border-st-border text-st-text font-bold rounded hover:border-st-orange transition-colors text-sm whitespace-nowrap"
+                    >
+                      🔄 Reset Filters
+                    </button>
+                  </div>
                 </div>
               </div>
 
@@ -3531,6 +3592,7 @@ export default function Simulations() {
                   <div className="flex items-center justify-center h-full text-st-text-light">Calculating sandbox math...</div>
                 ) : (
                   <AgGridReact
+                    ref={sandboxGridRef}
                     theme="legacy"
                     rowData={sandboxBlocks}
                     defaultColDef={sandboxDefaultColDef}

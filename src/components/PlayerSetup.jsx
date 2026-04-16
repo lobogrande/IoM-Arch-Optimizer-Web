@@ -7,7 +7,7 @@ import {
   UI_EXT_CARD_CBLOCK_X_OFFSET, UI_EXT_CARD_CBLOCK_Y_OFFSET,
   UI_CARD_CBLOCK_SCALE
 } from '../ui_config';
-import { INTERNAL_UPGRADE_CAPS, UPGRADE_NAMES, ASC1_LOCKED_UPGS, ASC2_LOCKED_UPGS, CARD_TYPES, EXTERNAL_UI_GROUPS, UPGRADE_LEVEL_REQS } from '../game_data';
+import { INTERNAL_UPGRADE_CAPS, UPGRADE_NAMES, ASC1_LOCKED_UPGS, ASC2_LOCKED_UPGS, CARD_TYPES, INFERNAL_CARD_BONUSES, EXTERNAL_UI_GROUPS, UPGRADE_LEVEL_REQS } from '../game_data';
 
 export default function PlayerSetup() {
   const { asc1_unlocked, asc2_unlocked, arch_level, current_max_floor, base_stats, upgrade_levels, external_levels, cards, arch_ability_infernal_bonus, total_infernal_cards, geoduck_unlocked, calculated_stats, setSetting, setBaseStat, setUpgradeLevel, setCardLevel, setExternalGroup, loadStateFromJson, setSandboxStat, hideMaxed, setHideMaxed, activeSubTab, setActiveSubTab, upgradeView, setUpgradeView, profiles, activeProfileId, createProfile, loadProfile, saveToProfile, renameProfile, deleteProfile, resetState } = useStore();
@@ -660,31 +660,65 @@ export default function PlayerSetup() {
 
                   const user_tier = cards[card_id] ?? 0;
                   const max_card_level = asc1_unlocked ? 4 : 3;
+                  const infData = INFERNAL_CARD_BONUSES[card_id];
+                  const infMult = calculated_stats?.infernal_multiplier || 1.0;
 
                   return (
-                    <div key={card_id} id={`setup-card-${card_id}`} className={`st-container p-2 flex flex-col items-center ${is_locked ? 'opacity-40' : ''}`}>
-                      <div className="font-bold text-xs mb-2 capitalize">{card_id}</div>
-                      
-                      <div className="relative mb-3 flex items-center justify-center" style={{ width: UI_BLOCK_CARD_WIDTH * 0.6, height: UI_BLOCK_CARD_WIDTH * 0.8 }}>
-                        {user_tier > 0 && !is_locked ? (
-                          <>
-                            <img src={`/assets/cards/backgrounds/${user_tier}.png`} className="absolute inset-0 w-full h-full object-contain" style={{ imageRendering: 'pixelated' }} />
-                            <img src={`/assets/cards/cores/${card_id}.png`} className="absolute inset-0 w-full h-full object-contain drop-shadow-md" style={{ imageRendering: 'pixelated', transform: `translate(${UI_BLOCK_CARD_X_OFFSET}px, ${UI_BLOCK_CARD_Y_OFFSET}px) scale(${UI_CARD_CBLOCK_SCALE})` }} />
-                          </>
-                        ) : (
-                          <div className="text-xs text-st-text-light mt-4">(Locked)</div>
-                        )}
-                      </div>
+                    <div key={card_id} id={`setup-card-${card_id}`} className={`st-container p-2 flex flex-col items-center justify-between h-full ${is_locked ? 'opacity-40' : ''}`}>
+                      <div className="flex flex-col items-center w-full">
+                        <div className="font-bold text-xs mb-2 capitalize">{card_id}</div>
+                        
+                        <div className="relative mb-3 flex items-center justify-center" style={{ width: UI_BLOCK_CARD_WIDTH * 0.6, height: UI_BLOCK_CARD_WIDTH * 0.8 }}>
+                          {user_tier > 0 && !is_locked ? (
+                            <>
+                              <img src={`/assets/cards/backgrounds/${user_tier}.png`} className="absolute inset-0 w-full h-full object-contain" style={{ imageRendering: 'pixelated' }} />
+                              <img src={`/assets/cards/cores/${card_id}.png`} className="absolute inset-0 w-full h-full object-contain drop-shadow-md" style={{ imageRendering: 'pixelated', transform: `translate(${UI_BLOCK_CARD_X_OFFSET}px, ${UI_BLOCK_CARD_Y_OFFSET}px) scale(${UI_CARD_CBLOCK_SCALE})` }} />
+                            </>
+                          ) : (
+                            <div className="text-xs text-st-text-light mt-4">(Locked)</div>
+                          )}
+                        </div>
 
-                      <input 
-                        type="number"
-                        className="st-input p-1 text-sm"
-                        value={is_locked ? 0 : user_tier}
-                        onFocus={(e) => e.target.select()}
-                        onChange={(e) => setCardLevel(card_id, e.target.value === '' ? '' : parseInt(e.target.value))}
-                        onBlur={(e) => setCardLevel(card_id, Math.min(max_card_level, Math.max(0, parseInt(e.target.value) || 0)))}
-                        disabled={is_locked}
-                      />
+                        <input 
+                          type="number"
+                          className="st-input p-1 text-sm w-full"
+                          value={is_locked ? 0 : user_tier}
+                          onFocus={(e) => e.target.select()}
+                          onChange={(e) => setCardLevel(card_id, e.target.value === '' ? '' : parseInt(e.target.value))}
+                          onBlur={(e) => setCardLevel(card_id, Math.min(max_card_level, Math.max(0, parseInt(e.target.value) || 0)))}
+                          disabled={is_locked}
+                        />
+                      </div>
+                      
+                      {infData && (
+                        <div className="h-10 mt-3 flex flex-col items-center justify-center w-full text-center border-t border-st-border/50 pt-2">
+                          {user_tier >= 3 && !is_locked ? (() => {
+                            const rawVal = infData.base * infMult;
+                            const decMult = Math.pow(10, infData.dec);
+                            const rounded = Math.floor((rawVal + 1e-9) * decMult + 0.5) / decMult;
+                            
+                            let displayVal = "";
+                            if (infData.isPct) {
+                                // Number() naturally drops trailing zeroes off the toFixed string
+                                displayVal = `+${Number((rounded * 100).toFixed(2))}%`;
+                            } else {
+                                displayVal = `+${rounded}`;
+                            }
+
+                            return (
+                              <>
+                                <span className="text-[10px] text-st-orange font-bold uppercase whitespace-nowrap">🔥 {displayVal}</span>
+                                <span className="text-[9px] text-st-text-light leading-tight mt-0.5">{infData.text}</span>
+                              </>
+                            );
+                          })() : (
+                            <div className="opacity-30 select-none flex flex-col items-center">
+                              <span className="text-[10px] font-bold">🔒 Infernal</span>
+                              <span className="text-[9px]">Locked</span>
+                            </div>
+                          )}
+                        </div>
+                      )}
                     </div>
                   );
                 });
