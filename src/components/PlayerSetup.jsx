@@ -677,11 +677,11 @@ export default function PlayerSetup() {
                           onChange={(e) => setCardLevel(card_id, parseInt(e.target.value) || 0)}
                           disabled={is_locked}
                         >
-                          <option value={0}>None (0)</option>
-                          <option value={1}>Regular (1)</option>
-                          <option value={2}>Gilded (2)</option>
-                          {max_card_level >= 3 && <option value={3}>Poly (3)</option>}
-                          {max_card_level >= 4 && <option value={4}>Infernal (4)</option>}
+                          <option value={0}>None</option>
+                          <option value={1}>Regular</option>
+                          <option value={2}>Gilded</option>
+                          {max_card_level >= 3 && <option value={3}>Poly</option>}
+                          {max_card_level >= 4 && <option value={4}>Infernal</option>}
                         </select>
                       </div>
                       
