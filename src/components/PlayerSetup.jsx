@@ -48,10 +48,12 @@ export default function PlayerSetup() {
       check('External Upgrades', g.name, d.external_levels[id] || 0, external_levels[id] || 0);
     });
 
-    CARD_TYPES.forEach(ot => {
-      [ 1, 2, 3, 4 ].forEach(tier => {
+    const tierNames =[ 'None', 'Regular', 'Gilded', 'Poly', 'Infernal' ];
+    CARD_TYPES.forEach(ot => {[ 1, 2, 3, 4 ].forEach(tier => {
         const cid = `${ot}${tier}`;
-        check('Block Cards', cid.toUpperCase(), d.cards[cid] || 0, cards[cid] || 0);
+        const oldName = tierNames[d.cards[cid] || 0] || (d.cards[cid] || 0);
+        const newName = tierNames[cards[cid] || 0] || (cards[cid] || 0);
+        check('Block Cards', cid.toUpperCase(), oldName, newName);
       });
     });
 
