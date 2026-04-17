@@ -10,7 +10,7 @@ import {
 import { INTERNAL_UPGRADE_CAPS, UPGRADE_NAMES, ASC1_LOCKED_UPGS, ASC2_LOCKED_UPGS, CARD_TYPES, INFERNAL_CARD_BONUSES, EXTERNAL_UI_GROUPS, UPGRADE_LEVEL_REQS } from '../game_data';
 
 export default function PlayerSetup() {
-  const { asc1_unlocked, asc2_unlocked, arch_level, current_max_floor, base_stats, upgrade_levels, external_levels, cards, arch_ability_infernal_bonus, total_infernal_cards, geoduck_unlocked, calculated_stats, setSetting, setBaseStat, setUpgradeLevel, setCardLevel, setExternalGroup, loadStateFromJson, setSandboxStat, hideMaxed, setHideMaxed, activeSubTab, setActiveSubTab, upgradeView, setUpgradeView, profiles, activeProfileId, createProfile, loadProfile, saveToProfile, renameProfile, deleteProfile, resetState } = useStore();
+  const { asc1_unlocked, asc2_unlocked, arch_level, current_max_floor, base_stats, upgrade_levels, external_levels, cards, arch_ability_infernal_bonus, total_infernal_cards, geoduck_unlocked, calculated_stats, setSetting, setBaseStat, setUpgradeLevel, setCardLevel, setExternalGroup, loadStateFromJson, setSandboxStat, hideMaxed, setHideMaxed, activeSubTab, setActiveSubTab, profiles, activeProfileId, createProfile, loadProfile, saveToProfile, renameProfile, deleteProfile, resetState } = useStore();
   const [isDragging, setIsDragging] = useState(false);
 
   // Deep equality check: Compares the active workspace to the saved profile snapshot
@@ -372,9 +372,9 @@ export default function PlayerSetup() {
       {/* RIGHT COLUMN: Setup Data Sub-Tabs */}
       <div className="w-full md:w-3/4">
         
-        <div className="flex border-b border-st-border mb-4">
-          {['📊 Base Stats', '⬆️ Upgrades', '🎴 Block Cards', '🗿 Arch Idols'].map((tab, idx) => {
-            const tabId =['stats', 'upgrades', 'cards', 'idols'][idx];
+        <div className="flex flex-wrap border-b border-st-border mb-4">
+          {[ '📊 Base Stats', '⬆️ Int. Upgrades', '🌟 Ext. Upgrades', '🎴 Block Cards', '🗿 Arch Idols' ].map((tab, idx) => {
+            const tabId =[ 'stats', 'upgrades_int', 'upgrades_ext', 'cards', 'idols' ][idx];
             const isActive = activeSubTab === tabId;
             return (
               <button key={tabId} onClick={() => setActiveSubTab(tabId)}
@@ -448,39 +448,29 @@ export default function PlayerSetup() {
           </div>
         )}
 
-        {/* --- TAB: UPGRADES --- */}
-        {activeSubTab === 'upgrades' && (
+        {/* --- TAB: INTERNAL UPGRADES --- */}
+        {activeSubTab === 'upgrades_int' && (
           <div>
             <div className="flex flex-col gap-4 mb-4">
-              
-              <div className="flex bg-st-secondary rounded-lg p-1 w-fit border border-st-border">
-                <button onClick={() => setUpgradeView('internal')} className={`px-4 py-1 text-sm font-bold rounded-md transition-colors ${upgradeView === 'internal' ? 'bg-st-bg text-st-text shadow-sm' : 'text-st-text-light hover:text-st-text'}`}>Internal</button>
-                <button onClick={() => setUpgradeView('external')} className={`px-4 py-1 text-sm font-bold rounded-md transition-colors ${upgradeView === 'external' ? 'bg-st-bg text-st-text shadow-sm' : 'text-st-text-light hover:text-st-text'}`}>External</button>
+              <div className="flex items-center gap-3">
+                <button 
+                  onClick={() => setHideMaxed(!hideMaxed)}
+                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors duration-200 focus:outline-none ${hideMaxed ? 'bg-st-orange' : 'bg-gray-300'}`}
+                >
+                  <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform duration-200 shadow-sm ${hideMaxed ? 'translate-x-6' : 'translate-x-1'}`} />
+                </button>
+                <span 
+                  className="text-sm font-medium cursor-pointer select-none" 
+                  onClick={() => setHideMaxed(!hideMaxed)}
+                >
+                  👀 Hide Maxed Upgrades
+                </span>
               </div>
-              
-              {upgradeView === 'internal' && (
-                <div className="flex items-center gap-3">
-                  <button 
-                    onClick={() => setHideMaxed(!hideMaxed)}
-                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors duration-200 focus:outline-none ${hideMaxed ? 'bg-st-orange' : 'bg-gray-300'}`}
-                  >
-                    <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform duration-200 shadow-sm ${hideMaxed ? 'translate-x-6' : 'translate-x-1'}`} />
-                  </button>
-                  <span 
-                    className="text-sm font-medium cursor-pointer select-none" 
-                    onClick={() => setHideMaxed(!hideMaxed)}
-                  >
-                    👀 Hide Maxed Upgrades
-                  </span>
-                </div>
-              )}
-              
             </div>
             <hr className="border-st-border mb-6" />
 
-            {upgradeView === 'internal' && (
-              <div className="w-full md:w-1/2 lg:w-1/3 mx-auto flex flex-col gap-4">
-                {Object.entries(INTERNAL_UPGRADE_CAPS).map(([upg_id, max_lvl]) => {
+            <div className="w-full md:w-1/2 lg:w-1/3 mx-auto flex flex-col gap-4">
+              {Object.entries(INTERNAL_UPGRADE_CAPS).map(([upg_id, max_lvl]) => {
                   const id = parseInt(upg_id);
                   if (!asc1_unlocked && ASC1_LOCKED_UPGS.includes(id)) return null;
                   if (!asc2_unlocked && ASC2_LOCKED_UPGS.includes(id)) return null;
@@ -527,11 +517,14 @@ export default function PlayerSetup() {
                   );
                 })}
               </div>
-            )}
+          </div>
+        )}
 
-            {upgradeView === 'external' && (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {EXTERNAL_UI_GROUPS.map((group) => {
+        {/* --- TAB: EXTERNAL UPGRADES --- */}
+        {activeSubTab === 'upgrades_ext' && (
+          <div>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {EXTERNAL_UI_GROUPS.map((group) => {
                   if (group.id === 'hestia' || group.id === 'hades') return null; 
                   const current_val = external_levels[group.rows[0]] ?? 0;
                   
@@ -612,8 +605,7 @@ export default function PlayerSetup() {
                     </div>
                   );
                 })}
-              </div>
-            )}
+            </div>
           </div>
         )}
 
@@ -679,15 +671,18 @@ export default function PlayerSetup() {
                           )}
                         </div>
 
-                        <input 
-                          type="number"
-                          className="st-input p-1 text-sm w-full"
+                        <select 
+                          className="st-input p-1 text-sm w-full cursor-pointer disabled:opacity-50"
                           value={is_locked ? 0 : user_tier}
-                          onFocus={(e) => e.target.select()}
-                          onChange={(e) => setCardLevel(card_id, e.target.value === '' ? '' : parseInt(e.target.value))}
-                          onBlur={(e) => setCardLevel(card_id, Math.min(max_card_level, Math.max(0, parseInt(e.target.value) || 0)))}
+                          onChange={(e) => setCardLevel(card_id, parseInt(e.target.value) || 0)}
                           disabled={is_locked}
-                        />
+                        >
+                          <option value={0}>None (0)</option>
+                          <option value={1}>Regular (1)</option>
+                          <option value={2}>Gilded (2)</option>
+                          {max_card_level >= 3 && <option value={3}>Poly (3)</option>}
+                          {max_card_level >= 4 && <option value={4}>Infernal (4)</option>}
+                        </select>
                       </div>
                       
                       {infData && (
