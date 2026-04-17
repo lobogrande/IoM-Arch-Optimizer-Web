@@ -10,8 +10,55 @@ import {
 import { INTERNAL_UPGRADE_CAPS, UPGRADE_NAMES, ASC1_LOCKED_UPGS, ASC2_LOCKED_UPGS, CARD_TYPES, INFERNAL_CARD_BONUSES, EXTERNAL_UI_GROUPS, UPGRADE_LEVEL_REQS } from '../game_data';
 
 export default function PlayerSetup() {
-  const { asc1_unlocked, asc2_unlocked, arch_level, current_max_floor, base_stats, upgrade_levels, external_levels, cards, arch_ability_infernal_bonus, total_infernal_cards, geoduck_unlocked, calculated_stats, setSetting, setBaseStat, setUpgradeLevel, setCardLevel, setExternalGroup, loadStateFromJson, setSandboxStat, hideMaxed, setHideMaxed, activeSubTab, setActiveSubTab, upgradeView, setUpgradeView, profiles, activeProfileId, createProfile, loadProfile, saveToProfile, renameProfile, deleteProfile, resetState } = useStore();
-  const [isDragging, setIsDragging] = useState(false);
+  const { asc1_unlocked, asc2_unlocked, arch_level, current_max_floor, base_stats, upgrade_levels, external_levels, cards, arch_ability_infernal_bonus, total_infernal_cards, geoduck_unlocked, calculated_stats, setSetting, setBaseStat, setUpgradeLevel, setCardLevel, setExternalGroup, loadStateFromJson, setSandboxStat, hideMaxed, setHideMaxed, activeSubTab, setActiveSubTab, profiles, activeProfileId, createProfile, loadProfile, saveToProfile, renameProfile, deleteProfile, resetState } = useStore();
+  const[isDragging, setIsDragging] = useState(false);
+  const [showDiffModal, setShowDiffModal] = useState(false);
+
+  const diffs = useMemo(() => {
+    if (!showDiffModal || !activeProfileId) return [ ];
+    const active = profiles.find(p => p.id === activeProfileId);
+    if (!active) return [ ];
+    const d = active.data;
+    const res = [ ];
+
+    const check = (cat, label, oldV, newV) => {
+      if (oldV !== newV) res.push({ cat, label, oldV: oldV ?? '-', newV: newV ?? '-' });
+    };
+
+    check('Global Settings', 'Ascension 1 Unlocked', d.asc1_unlocked, asc1_unlocked);
+    check('Global Settings', 'Ascension 2 Unlocked', d.asc2_unlocked, asc2_unlocked);
+    check('Global Settings', 'Arch Level', d.arch_level, arch_level);
+    check('Global Settings', 'Max Floor', d.current_max_floor, current_max_floor);
+    check('Global Settings', 'Geoduck Unlocked', !!d.geoduck_unlocked, !!geoduck_unlocked);
+    check('Global Settings', 'Infernal Arch Bonus %', parseFloat(d.arch_ability_infernal_bonus || 0), parseFloat(arch_ability_infernal_bonus || 0));
+    check('Global Settings', 'Total Infernal Cards', d.total_infernal_cards || 0, total_infernal_cards || 0);
+
+    [ 'Str', 'Agi', 'Per', 'Int', 'Luck', 'Div', 'Corr' ].forEach(s => {
+      check('Base Stats', s, d.base_stats[s] || 0, base_stats[s] || 0);
+    });
+
+    Object.keys(INTERNAL_UPGRADE_CAPS).forEach(idStr => {
+      const id = parseInt(idStr);
+      const name = UPGRADE_NAMES[id] || `Upg ${id}`;
+      check('Internal Upgrades', name, d.upgrade_levels[id] || 0, upgrade_levels[id] || 0);
+    });
+
+    EXTERNAL_UI_GROUPS.forEach(g => {
+      const id = g.rows[0];
+      check('External Upgrades', g.name, d.external_levels[id] || 0, external_levels[id] || 0);
+    });
+
+    const tierNames =[ 'None', 'Regular', 'Gilded', 'Poly', 'Infernal' ];
+    CARD_TYPES.forEach(ot => {[ 1, 2, 3, 4 ].forEach(tier => {
+        const cid = `${ot}${tier}`;
+        const oldName = tierNames[d.cards[cid] || 0] || (d.cards[cid] || 0);
+        const newName = tierNames[cards[cid] || 0] || (cards[cid] || 0);
+        check('Block Cards', cid.toUpperCase(), oldName, newName);
+      });
+    });
+
+    return res;
+  },[ showDiffModal, activeProfileId, profiles, asc1_unlocked, asc2_unlocked, arch_level, current_max_floor, geoduck_unlocked, arch_ability_infernal_bonus, total_infernal_cards, base_stats, upgrade_levels, external_levels, cards ]);
 
   // Deep equality check: Compares the active workspace to the saved profile snapshot
   const hasUnsavedChanges = useMemo(() => {
@@ -212,6 +259,14 @@ export default function PlayerSetup() {
               <option value="" disabled>{profiles.length === 0 ? "No profiles saved" : "Select a profile..."}</option>
               {profiles.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
             </select>
+            {hasUnsavedChanges && (
+              <button 
+                onClick={() => setShowDiffModal(true)} 
+                className="w-full mt-2 py-1.5 bg-st-orange/20 border border-st-orange text-st-orange text-xs font-bold rounded hover:bg-st-orange hover:text-[#2b2b2b] transition-colors shadow-sm animate-fade-in flex justify-center items-center gap-1"
+              >
+                <span>🔍</span> View Unsaved Changes
+              </button>
+            )}
           </div>
 
           <div className="grid grid-cols-2 gap-2 mb-2">
@@ -372,9 +427,9 @@ export default function PlayerSetup() {
       {/* RIGHT COLUMN: Setup Data Sub-Tabs */}
       <div className="w-full md:w-3/4">
         
-        <div className="flex border-b border-st-border mb-4">
-          {['📊 Base Stats', '⬆️ Upgrades', '🎴 Block Cards', '🗿 Arch Idols'].map((tab, idx) => {
-            const tabId =['stats', 'upgrades', 'cards', 'idols'][idx];
+        <div className="flex flex-wrap border-b border-st-border mb-4">
+          {[ '📊 Base Stats', '⬆️ Int. Upgrades', '🌟 Ext. Upgrades', '🎴 Block Cards', '🗿 Arch Idols' ].map((tab, idx) => {
+            const tabId =[ 'stats', 'upgrades_int', 'upgrades_ext', 'cards', 'idols' ][idx];
             const isActive = activeSubTab === tabId;
             return (
               <button key={tabId} onClick={() => setActiveSubTab(tabId)}
@@ -448,39 +503,29 @@ export default function PlayerSetup() {
           </div>
         )}
 
-        {/* --- TAB: UPGRADES --- */}
-        {activeSubTab === 'upgrades' && (
+        {/* --- TAB: INTERNAL UPGRADES --- */}
+        {activeSubTab === 'upgrades_int' && (
           <div>
             <div className="flex flex-col gap-4 mb-4">
-              
-              <div className="flex bg-st-secondary rounded-lg p-1 w-fit border border-st-border">
-                <button onClick={() => setUpgradeView('internal')} className={`px-4 py-1 text-sm font-bold rounded-md transition-colors ${upgradeView === 'internal' ? 'bg-st-bg text-st-text shadow-sm' : 'text-st-text-light hover:text-st-text'}`}>Internal</button>
-                <button onClick={() => setUpgradeView('external')} className={`px-4 py-1 text-sm font-bold rounded-md transition-colors ${upgradeView === 'external' ? 'bg-st-bg text-st-text shadow-sm' : 'text-st-text-light hover:text-st-text'}`}>External</button>
+              <div className="flex items-center gap-3">
+                <button 
+                  onClick={() => setHideMaxed(!hideMaxed)}
+                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors duration-200 focus:outline-none ${hideMaxed ? 'bg-st-orange' : 'bg-gray-300'}`}
+                >
+                  <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform duration-200 shadow-sm ${hideMaxed ? 'translate-x-6' : 'translate-x-1'}`} />
+                </button>
+                <span 
+                  className="text-sm font-medium cursor-pointer select-none" 
+                  onClick={() => setHideMaxed(!hideMaxed)}
+                >
+                  👀 Hide Maxed Upgrades
+                </span>
               </div>
-              
-              {upgradeView === 'internal' && (
-                <div className="flex items-center gap-3">
-                  <button 
-                    onClick={() => setHideMaxed(!hideMaxed)}
-                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors duration-200 focus:outline-none ${hideMaxed ? 'bg-st-orange' : 'bg-gray-300'}`}
-                  >
-                    <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform duration-200 shadow-sm ${hideMaxed ? 'translate-x-6' : 'translate-x-1'}`} />
-                  </button>
-                  <span 
-                    className="text-sm font-medium cursor-pointer select-none" 
-                    onClick={() => setHideMaxed(!hideMaxed)}
-                  >
-                    👀 Hide Maxed Upgrades
-                  </span>
-                </div>
-              )}
-              
             </div>
             <hr className="border-st-border mb-6" />
 
-            {upgradeView === 'internal' && (
-              <div className="w-full md:w-1/2 lg:w-1/3 mx-auto flex flex-col gap-4">
-                {Object.entries(INTERNAL_UPGRADE_CAPS).map(([upg_id, max_lvl]) => {
+            <div className="w-full md:w-1/2 lg:w-1/3 mx-auto flex flex-col gap-4">
+              {Object.entries(INTERNAL_UPGRADE_CAPS).map(([upg_id, max_lvl]) => {
                   const id = parseInt(upg_id);
                   if (!asc1_unlocked && ASC1_LOCKED_UPGS.includes(id)) return null;
                   if (!asc2_unlocked && ASC2_LOCKED_UPGS.includes(id)) return null;
@@ -527,11 +572,14 @@ export default function PlayerSetup() {
                   );
                 })}
               </div>
-            )}
+          </div>
+        )}
 
-            {upgradeView === 'external' && (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {EXTERNAL_UI_GROUPS.map((group) => {
+        {/* --- TAB: EXTERNAL UPGRADES --- */}
+        {activeSubTab === 'upgrades_ext' && (
+          <div>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {EXTERNAL_UI_GROUPS.map((group) => {
                   if (group.id === 'hestia' || group.id === 'hades') return null; 
                   const current_val = external_levels[group.rows[0]] ?? 0;
                   
@@ -612,8 +660,7 @@ export default function PlayerSetup() {
                     </div>
                   );
                 })}
-              </div>
-            )}
+            </div>
           </div>
         )}
 
@@ -679,15 +726,18 @@ export default function PlayerSetup() {
                           )}
                         </div>
 
-                        <input 
-                          type="number"
-                          className="st-input p-1 text-sm w-full"
+                        <select 
+                          className="st-input p-1 text-sm w-full cursor-pointer disabled:opacity-50"
                           value={is_locked ? 0 : user_tier}
-                          onFocus={(e) => e.target.select()}
-                          onChange={(e) => setCardLevel(card_id, e.target.value === '' ? '' : parseInt(e.target.value))}
-                          onBlur={(e) => setCardLevel(card_id, Math.min(max_card_level, Math.max(0, parseInt(e.target.value) || 0)))}
+                          onChange={(e) => setCardLevel(card_id, parseInt(e.target.value) || 0)}
                           disabled={is_locked}
-                        />
+                        >
+                          <option value={0}>None</option>
+                          <option value={1}>Regular</option>
+                          <option value={2}>Gilded</option>
+                          {max_card_level >= 3 && <option value={3}>Poly</option>}
+                          {max_card_level >= 4 && <option value={4}>Infernal</option>}
+                        </select>
                       </div>
                       
                       {infData && (
@@ -779,6 +829,60 @@ export default function PlayerSetup() {
         )}
 
       </div>
+
+      {showDiffModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-fade-in">
+          <div className="st-container w-full max-w-2xl max-h-[85vh] flex flex-col shadow-2xl overflow-hidden bg-st-bg">
+            <div className="flex justify-between items-center mb-4 border-b border-st-border pb-2 shrink-0">
+              <h3 className="text-xl font-bold flex items-center gap-2"><span>🔍</span> Unsaved Changes</h3>
+              <button onClick={() => setShowDiffModal(false)} className="text-st-text-light hover:text-red-500 font-bold text-2xl leading-none">&times;</button>
+            </div>
+            
+            <div className="overflow-y-auto flex-1 pr-2 space-y-6 min-h-[200px]">
+              {diffs.length === 0 ? (
+                <div className="text-st-text-light text-center py-8">No differences found!</div>
+              ) : (
+                Object.entries(
+                  diffs.reduce((acc, curr) => {
+                    if (!acc[curr.cat]) acc[curr.cat] = [ ];
+                    acc[curr.cat].push(curr);
+                    return acc;
+                  }, {})
+                ).map(([cat, items]) => (
+                  <div key={cat}>
+                    <h4 className="font-bold text-st-orange mb-2 border-b border-st-border/50 pb-1">{cat}</h4>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm">
+                      {items.map((item, idx) => (
+                        <div key={idx} className="flex justify-between items-center bg-st-secondary/50 p-2 rounded border border-st-border/50 shadow-sm hover:border-st-orange/50 transition-colors">
+                          <span className="font-medium truncate mr-2" title={item.label}>{item.label}</span>
+                          <div className="flex items-center gap-2 whitespace-nowrap font-mono text-xs">
+                            <span className="text-red-400 line-through truncate max-w-[60px]" title={String(item.oldV)}>{String(item.oldV)}</span>
+                            <span className="text-st-text-light">➔</span>
+                            <span className="text-green-400 font-bold truncate max-w-[60px]" title={String(item.newV)}>{String(item.newV)}</span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+            
+            <div className="mt-4 pt-4 border-t border-st-border flex gap-4 shrink-0">
+              <button onClick={() => setShowDiffModal(false)} className="flex-1 py-2 bg-st-secondary border border-st-border text-st-text font-bold rounded hover:border-st-orange transition-colors">Close</button>
+              <button 
+                onClick={() => {
+                  saveToProfile(activeProfileId);
+                  setShowDiffModal(false);
+                }} 
+                className="flex-1 py-2 bg-[#2b2b2b] border border-st-orange text-st-orange font-bold rounded hover:bg-st-orange hover:text-[#2b2b2b] transition-colors"
+              >
+                💾 Update Loadout
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

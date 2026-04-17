@@ -4,7 +4,7 @@
 // Adjust these numbers, hit Save, and watch your browser instantly update!
 // ==============================================================================
 
-export const APP_VERSION = "v1.6.1";
+export const APP_VERSION = "v1.6.2";
 
 // --- BASE STATS ---
 export const UI_STAT_IMG_WIDTH = 220;
