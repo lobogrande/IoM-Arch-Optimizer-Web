@@ -991,11 +991,11 @@ export default function Simulations() {
       const step2 = profData.step_2;
       const step3 = profData.step_3;
 
-      setOptProgressMsg(`Booting AI Cores...`);
+      setOptProgressMsg(`Booting Cores...`);
       const pool = new EngineWorkerPool();
       await pool.init(
         () => {}, 
-        (ready, total) => setOptProgressMsg(`Booting Engine Cores: ${ready}/${total}`)
+        (ready, total) => setOptProgressMsg(`Booting Cores: ${ready}/${total}`)
       );
 
       setOptProgressMsg(`Synchronizing Player State...`);
@@ -2550,9 +2550,9 @@ export default function Simulations() {
             const totalR2Sims = estR2Count * 450;
             const totalSims = totalR1Sims + totalR2Sims;
 
-            setSynthProgressMsg(`Booting Engine Cores for ${totalSims.toLocaleString()} sims...`);
+            setSynthProgressMsg(`Booting Cores for ${totalSims.toLocaleString()} sims...`);
             const pool = new EngineWorkerPool();
-            await pool.init(() => {}, (ready, total) => setSynthProgressMsg(`Booting Engine Cores: ${ready}/${total}`));
+            await pool.init(() => {}, (ready, total) => setSynthProgressMsg(`Booting Cores: ${ready}/${total}`));
             await pool.syncState(baseStateDict);
 
             const buildRes = new Map();
