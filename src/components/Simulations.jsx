@@ -2,7 +2,7 @@ import { useState, useMemo, useEffect, useRef } from 'react';
 import useStore from '../store';
 import { EngineWorkerPool, getOptimalStepProfile, runOptimizationPhase, topUpBuild } from '../utils/optimizer';
 import PlotWrapper from 'react-plotly.js';
-import { INTERNAL_UPGRADE_CAPS, UPGRADE_NAMES, ASC1_LOCKED_UPGS, ASC2_LOCKED_UPGS, UPGRADE_LEVEL_REQS, EXTERNAL_UI_GROUPS } from '../game_data';
+import { INTERNAL_UPGRADE_CAPS, UPGRADE_NAMES, ASC1_LOCKED_UPGS, ASC2_LOCKED_UPGS, UPGRADE_LEVEL_REQS, EXTERNAL_UI_GROUPS, calculateUpgradeCost, CURRENCY_TYPES } from '../game_data';
 import { UI_BLOCK_CARD_WIDTH, UI_BLOCK_CARD_X_OFFSET, UI_BLOCK_CARD_Y_OFFSET, UI_CARD_CBLOCK_SCALE } from '../ui_config';
 import { AgGridReact } from 'ag-grid-react';
 import { ModuleRegistry, AllCommunityModule } from 'ag-grid-community';
@@ -94,8 +94,9 @@ export default function Simulations() {
   
   const[isRoiLoading, setIsRoiLoading] = useState(false);
   const[roiProgressMsg, setRoiProgressMsg] = useState("");
+  const[roiUpgFilter, setRoiUpgFilter] = useState('All');
 
-  const [isBenchmarking, setIsBenchmarking] = useState(false);
+  const[isBenchmarking, setIsBenchmarking] = useState(false);
 
   const isAnyRunning = isOptimizing || isSynthesizing || isRoiLoading || isBenchmarking;
 
@@ -762,14 +763,19 @@ export default function Simulations() {
 
       if (promises.length > 0) {
         await Promise.all(promises);
+        const ascTier = store.asc2_unlocked ? 2 : (store.asc1_unlocked ? 1 : 0);
         const finalRes = Object.keys(upgResults).map(k => {
           const avg = upgResults[k].sum / upgResults[k].count;
           const gain = ((avg - baseVal) / 60.0) * 1000.0;
-          return { id: k, name: upgResults[k].name, gain: gain, action: upgResults[k].action };
+          const currentLvl = store.upgrade_levels[k] || 0;
+          const costData = calculateUpgradeCost(k, currentLvl + 1, ascTier);
+          return { id: k, name: upgResults[k].name, gain: gain, action: upgResults[k].action, cost: costData };
         })
         .filter(r => r.gain > 0.001)
         .sort((a, b) => b.gain - a.gain);
-        store.saveRoiToCurrentRun(context, 'roi_upgrades', finalRes.slice(0, 10));
+        
+        // Save ALL positive gain upgrades to the store so the UI filter can sort through them dynamically!
+        store.saveRoiToCurrentRun(context, 'roi_upgrades', finalRes);
       } else {
         alert("All internal upgrades are maxed out! No further upgrades can be tested.");
       }
@@ -1244,8 +1250,7 @@ export default function Simulations() {
           const current = store.upgrade_levels[id] || 0;
           store.setUpgradeLevel(id, current + 1);
           store.setActiveTab('setup');
-          store.setActiveSubTab('upgrades');
-          store.setUpgradeView('internal');
+          store.setActiveSubTab('upgrades_int');
           scrollToAndHighlight(`setup-upg-${id}`);
         };
 
@@ -1262,8 +1267,7 @@ export default function Simulations() {
           if (groupId === 'hestia' || groupId === 'hades') {
             store.setActiveSubTab('idols');
           } else {
-            store.setActiveSubTab('upgrades');
-            store.setUpgradeView('external');
+            store.setActiveSubTab('upgrades_ext');
           }
           
           scrollToAndHighlight(`setup-ext-${groupId}`);
@@ -1851,34 +1855,61 @@ export default function Simulations() {
                       🔍 Analyze Upgrades
                     </button>
                     
-                    {store.opt_results.roi_upgrades && (
-                      <div className="overflow-x-auto">
-                        <table className="w-full text-left border-collapse">
-                          <thead>
-                            <tr className="border-b border-st-border text-st-text-light text-sm">
-                              <th className="py-2 pr-4">Upgrade</th>
-                              <th className="py-2 pr-4">Action</th>
-                              <th className="py-2">Gain</th>
-                              <th className="py-2 w-20 text-right">Apply</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {store.opt_results.roi_upgrades.length === 0 ? (
-                              <tr><td colSpan="4" className="py-4 text-center text-st-text-light italic">No positive marginal gains found.</td></tr>
-                            ) : store.opt_results.roi_upgrades.map((r, i) => (
-                              <tr key={r.id} className="border-b border-st-border/50 hover:bg-black/5 transition-colors">
-                                <td className="py-2 pr-4 text-sm font-bold">{r.name}</td>
-                                <td className="py-2 pr-4 text-xs text-st-text-light">{r.action}</td>
-                                <td className="py-2 font-mono text-st-orange">{r.gain > 0 ? '+' : ''}{r.gain.toFixed(2)}</td>
-                                <td className="py-2 text-right">
-                                  <button onClick={() => handleApplyUpgrade(r.id)} className="px-3 py-1 bg-st-orange text-[#2b2b2b] font-bold text-xs rounded hover:bg-[#ffb045] transition-colors">Apply</button>
-                                </td>
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
-                      </div>
-                    )}
+                    {store.opt_results.roi_upgrades && (() => {
+                      const curMap = { gems: '💎 Gems', com: 'Common', rare: 'Rare', epic: 'Epic', leg: 'Legendary', myth: 'Mythic', div: 'Divine' };
+                      const formatCost = (cost) => {
+                        if (!cost) return '-';
+                        const amt = cost.amount;
+                        const amtStr = amt >= 1000000 ? (amt / 1000000).toFixed(2).replace(/\.00$/, '') + 'M' : (amt >= 10000 ? (amt / 1000).toFixed(1).replace(/\.0$/, '') + 'k' : amt.toLocaleString());
+                        return `${amtStr} ${curMap[cost.currency]?.split(' ')[0] || cost.currency}`;
+                      };
+                      
+                      const filteredUpgs = store.opt_results.roi_upgrades.filter(r => roiUpgFilter === 'All' || r.cost?.currency === roiUpgFilter).slice(0, 10);
+
+                      return (
+                        <>
+                          <div className="flex items-center gap-2 mb-3">
+                            <label className="text-sm font-bold text-st-text-light">Filter Currency:</label>
+                            <select 
+                              value={roiUpgFilter}
+                              onChange={(e) => setRoiUpgFilter(e.target.value)}
+                              className="bg-st-secondary border border-st-border rounded p-1 text-sm text-st-text focus:border-st-orange outline-none"
+                            >
+                              <option value="All">All</option>
+                              {CURRENCY_TYPES.map(c => <option key={c} value={c}>{curMap[c]}</option>)}
+                            </select>
+                          </div>
+                          <div className="overflow-x-auto">
+                            <table className="w-full text-left border-collapse">
+                              <thead>
+                                <tr className="border-b border-st-border text-st-text-light text-sm">
+                                  <th className="py-2 pr-4">Upgrade</th>
+                                  <th className="py-2 pr-4">Action</th>
+                                  <th className="py-2 pr-4">Cost</th>
+                                  <th className="py-2">Gain</th>
+                                  <th className="py-2 w-16 text-right">Apply</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {filteredUpgs.length === 0 ? (
+                                  <tr><td colSpan="5" className="py-4 text-center text-st-text-light italic">No upgrades match this filter.</td></tr>
+                                ) : filteredUpgs.map((r, i) => (
+                                  <tr key={r.id} className="border-b border-st-border/50 hover:bg-black/5 transition-colors">
+                                    <td className="py-2 pr-4 text-sm font-bold">{r.name}</td>
+                                    <td className="py-2 pr-4 text-xs text-st-text-light whitespace-nowrap">{r.action}</td>
+                                    <td className="py-2 pr-4 font-mono text-xs text-st-text-light whitespace-nowrap">{formatCost(r.cost)}</td>
+                                    <td className="py-2 font-mono text-st-orange">{r.gain > 0 ? '+' : ''}{r.gain.toFixed(2)}</td>
+                                    <td className="py-2 text-right">
+                                      <button onClick={() => handleApplyUpgrade(r.id)} className="px-3 py-1 bg-st-orange text-[#2b2b2b] font-bold text-xs rounded hover:bg-[#ffb045] transition-colors">Apply</button>
+                                    </td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                          </div>
+                        </>
+                      );
+                    })()}
                   </div>
 
                   {/* EXTERNAL ROI */}
