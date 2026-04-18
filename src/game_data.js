@@ -82,3 +82,95 @@ export const UPGRADE_LEVEL_REQS = {
   39: 32, 40: 33, 41: 34, 42: 36, 43: 38, 44: 40, 45: 42, 46: 45, 47: 50, 48: 55,
   49: 60, 50: 65, 51: 70, 52: 72, 53: 85, 54: 90, 55: 92
 };
+
+export const CURRENCY_TYPES =['gems', 'dirt', 'com', 'rare', 'epic', 'leg', 'myth', 'div'];
+
+export const UPGRADE_COST_DATA = {
+  3: { currency: 'gems', base:[300, 15000, 30000], mult: 1.05, cap:[1000, null, null] },
+  4: { currency: 'gems', base:[400, 20000, 40000], mult: 1.05, cap: [1000, null, null] },
+  5: { currency: 'gems', base:[500, 25000, 50000], mult: 1.05, cap: [1000, null, null] },
+  8: { type: 'custom', costs: [
+      { currency: 'com', amount:[100000, 500000, 1000000] },
+      { currency: 'rare', amount:[750000, 3750000, 7500000] },
+      { currency: 'epic', amount:[1500000, 7500000, 15000000] }
+  ]},
+  9:  { currency: 'com', base:[0.5, 2.5, 5], mult: 1.2 },
+  10: { currency: 'com', base:[0.75, 3.75, 7.5], mult: 1.2 },
+  11: { currency: 'com', base:[1, 5, 10], mult: 1.2 },
+  12: { currency: 'com', base:[null, 7.25, 14.5], mult: 2.0 },
+  13: { currency: 'com', base:[2, 10, 20], mult: 1.2 },
+  14: { currency: 'rare', base:[2, 10, 20], mult: 1.2 },
+  15: { currency: 'rare', base:[3, 15, 30], mult: 1.2 },
+  16: { currency: 'rare', base:[4.5, 22.5, 45], mult: 1.2 },
+  17: { currency: 'rare', base:[null, 37.5, 75], mult: 1.35 },
+  18: { currency: 'rare', base:[6, 30, 60], mult: 1.2 },
+  19: { currency: 'com', base:[null, null, 200], mult: 1.2 },
+  20: { currency: 'epic', base:[3.5, 17.5, 35], mult: 1.2 },
+  21: { currency: 'epic', base:[5, 25, 50], mult: 1.2 },
+  22: { currency: 'epic', base:[7.5, 37.5, 75], mult: 1.2 },
+  23: { currency: 'epic', base:[25, 125, 250], mult: 1.2 },
+  24: { currency: 'epic', base:[null, 175, 350], mult: 1.2 },
+  25: { currency: 'com', base:[100, 500, 1000], mult: 1.2 },
+  26: { currency: 'rare', base:[50, 250, 500], mult: 1.2 },
+  27: { currency: 'rare', base:[null, null, 1000], mult: 1.35 },
+  28: { currency: 'leg', base:[7, 35, 70], mult: 1.2 },
+  29: { currency: 'leg', base:[9, 45, 90], mult: 1.2 },
+  30: { currency: 'leg', base:[12, 60, 120], mult: 1.2 },
+  31: { currency: 'leg', base:[15, 75, 150], mult: 1.2 },
+  32: { currency: 'leg', base:[null, 225, 450], mult: 1.2 },
+  33: { currency: 'rare', base:[150, 750, 1500], mult: 1.2 },
+  34: { currency: 'epic', base:[null, null, 5000], mult: 1.2 },
+  35: { currency: 'epic', base:[125, 625, 1250], mult: 1.2 },
+  36: { currency: 'myth', base:[6, 30, 60], mult: 1.2 },
+  37: { currency: 'myth', base:[10, 50, 100], mult: 1.2 },
+  38: { currency: 'myth', base:[15, 75, 150], mult: 1.2 },
+  39: { currency: 'myth', base:[20, 100, 200], mult: 1.2 },
+  40: { currency: 'myth', base:[null, 175, 350], mult: 1.2 },
+  41: { currency: 'com', base:[10000, 50000, 100000], mult: 1.2 },
+  42: { currency: 'rare', base:[9000, 45000, 90000], mult: 1.2 },
+  43: { currency: 'epic', base:[8000, 40000, 80000], mult: 1.2 },
+  44: { currency: 'leg', base:[7000, 35000, 70000], mult: 1.2 },
+  45: { currency: 'myth', base:[5000, 25000, 50000], mult: 1.2 },
+  46: { currency: 'leg', base:[null, null, 2500], mult: 1.2 },
+  47: { currency: 'div', base:[null, 10, 20], mult: 1.2 },
+  48: { currency: 'div', base:[null, 7.5, 15], mult: 1.2 },
+  49: { currency: 'div', base:[null, 12.5, 25], mult: 1.2 },
+  50: { currency: 'div', base:[null, 25, 50], mult: 1.2 },
+  51: { currency: 'div', base:[null, 250, 500], mult: 1.2 },
+  52: { currency: 'myth', base:[null, null, 8000], mult: 1.2 },
+  53: { currency: 'leg', base:[null, 375, 750], mult: 1.2 },
+  54: { currency: 'myth', base:[null, 475, 950], mult: 1.2 },
+  55: { currency: 'div', base:[null, null, 7500], mult: 1.2 }
+};
+
+export const calculateUpgradeCost = (upgId, targetLevel, ascTier) => {
+  const data = UPGRADE_COST_DATA[upgId];
+  if (!data) return null;
+
+  if (data.type === 'custom') {
+    const step = data.costs[targetLevel - 1];
+    if (!step) return null;
+    return { currency: step.currency, amount: step.amount[ascTier] };
+  }
+
+  const base = data.base[ascTier];
+  if (base === undefined || base === null) return null;
+
+  let amount = base;
+  if (data.mult) {
+    amount = base * Math.pow(data.mult, targetLevel - 1);
+  }
+
+  if (data.cap && data.cap[ascTier] && amount > data.cap[ascTier]) {
+    amount = data.cap[ascTier];
+  }
+
+  if (data.currency === 'gems') {
+    amount = ascTier === 0 ? Math.floor(amount) : Math.round(amount);
+  } else {
+    // Fragments use exact 2-decimal rounding
+    amount = Math.round(amount * 100) / 100;
+  }
+
+  return { currency: data.currency, amount };
+};
