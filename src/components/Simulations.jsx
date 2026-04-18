@@ -1250,8 +1250,7 @@ export default function Simulations() {
           const current = store.upgrade_levels[id] || 0;
           store.setUpgradeLevel(id, current + 1);
           store.setActiveTab('setup');
-          store.setActiveSubTab('upgrades');
-          store.setUpgradeView('internal');
+          store.setActiveSubTab('upgrades_int');
           scrollToAndHighlight(`setup-upg-${id}`);
         };
 
@@ -1268,8 +1267,7 @@ export default function Simulations() {
           if (groupId === 'hestia' || groupId === 'hades') {
             store.setActiveSubTab('idols');
           } else {
-            store.setActiveSubTab('upgrades');
-            store.setUpgradeView('external');
+            store.setActiveSubTab('upgrades_ext');
           }
           
           scrollToAndHighlight(`setup-ext-${groupId}`);
@@ -1858,7 +1856,7 @@ export default function Simulations() {
                     </button>
                     
                     {store.opt_results.roi_upgrades && (() => {
-                      const curMap = { gems: '💎 Gems', dirt: 'Dirt', com: 'Common', rare: 'Rare', epic: 'Epic', leg: 'Legendary', myth: 'Mythic', div: 'Divine' };
+                      const curMap = { gems: '💎 Gems', com: 'Common', rare: 'Rare', epic: 'Epic', leg: 'Legendary', myth: 'Mythic', div: 'Divine' };
                       const formatCost = (cost) => {
                         if (!cost) return '-';
                         const amt = cost.amount;

@@ -83,7 +83,7 @@ export const UPGRADE_LEVEL_REQS = {
   49: 60, 50: 65, 51: 70, 52: 72, 53: 85, 54: 90, 55: 92
 };
 
-export const CURRENCY_TYPES =['gems', 'dirt', 'com', 'rare', 'epic', 'leg', 'myth', 'div'];
+export const CURRENCY_TYPES =['gems', 'com', 'rare', 'epic', 'leg', 'myth', 'div'];
 
 export const UPGRADE_COST_DATA = {
   3: { currency: 'gems', base:[300, 15000, 30000], mult: 1.05, cap:[1000, null, null] },
