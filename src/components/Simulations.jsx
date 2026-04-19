@@ -1629,9 +1629,10 @@ export default function Simulations() {
                         return { rt: rtStr, arch: arch1k };
                       };
 
+                      const isTier4 = selB.endsWith('4');
                       const drops =[
-                        { name: "Base Card", odds: 15000, bg: "1" },
-                        { name: "Poly Fragments", odds: 75000, bg: "2" },
+                        { name: "Base Card", odds: isTier4 ? 15000 : 1500, bg: "1" },
+                        { name: "Poly Fragments", odds: isTier4 ? 75000 : 7500, bg: "2" },
                         { name: "Infernal Fragments", odds: 200000, bg: "4" }
                       ];
 
