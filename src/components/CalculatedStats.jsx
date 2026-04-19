@@ -1,7 +1,7 @@
 // src/components/CalculatedStats.jsx
 import { useState } from 'react';
 import useStore from '../store';
-import { UPGRADE_NAMES, EXTERNAL_UI_GROUPS } from '../game_data';
+import { UPGRADE_NAMES, EXTERNAL_UI_GROUPS, INFERNAL_CARD_BONUSES } from '../game_data';
 
 export default function CalculatedStats() {
   const { asc1_unlocked, asc2_unlocked, current_max_floor, base_stats, upgrade_levels, external_levels, cards, calculated_stats, arch_ability_infernal_bonus, total_infernal_cards } = useStore();
@@ -51,6 +51,7 @@ export default function CalculatedStats() {
               <option value="Crit Chances & Multipliers">Crit Chances & Multipliers</option>
               <option value="EXP & Fragment Gain">EXP & Fragment Gain</option>
               <option value="Mod Chances & Multipliers">Mod Chances & Multipliers</option>
+              <option value="Crosshairs & Auto-Tap">Crosshairs & Auto-Tap</option>
               <option value="Abilities">Abilities (Instacharge / Cooldowns)</option>
               <option value="Ascension 2">Ascension 2 (Gleaming / Infernal)</option>
             </select>
@@ -60,12 +61,13 @@ export default function CalculatedStats() {
               const TROUBLESHOOT_MAP = {
                 "Max Stamina": { settings:[ "current_max_floor" ], stats: [ "Agi", "Corr" ], upgs:[ 3, 14, 23, 26, 28, 39, 54 ], exts:[ "Block Bonker Skill" ], infs: [ "epic3", "leg4" ] },
                 "Damage": { settings: [ "current_max_floor" ], stats:[ "Str", "Corr", "Div" ], upgs:[ 9, 15, 20, 25, 32, 34, 36, 47, 49, 51, 52 ], exts: [ "Block Bonker Skill" ], infs:[ "rare2", "div1" ] },
-                "Armor Pen": { settings: [], stats: [ "Per", "Int" ], upgs: [ 10, 17, 29, 33, 36 ], exts: [], infs: [ "leg3", "rare3" ] },
-                "Crit Chances & Multipliers": { settings: [], stats:[ "Luck", "Div" ], upgs:[ 13, 18, 20, 30, 37, 40, 47, 49, 53 ], exts: [], infs:[ "com1", "com2", "com3", "epic2", "com4", "epic4" ] },
-                "EXP & Fragment Gain": { settings: [], stats:[ "Int", "Per", "Div" ], upgs:[ 4, 11, 21, 28, 35, 42, 45, 51 ], exts:[ "Hestia Idol", "Axolotl Pet Quest Rank", "Geoduck Tribute", "Archaeology Bundle", "Ascension Bundle" ], infs:[ "dirt2", "dirt3", "leg1" ] },
-                "Mod Chances & Multipliers": { settings: [], stats:[ "Luck", "Div", "Corr" ], upgs:[ 5, 14, 16, 23, 24, 26, 33, 35, 38, 40, 43, 44, 48, 50, 52, 53, 54, 55 ], exts:[ "Ascension Bundle", "Block Bonker Skill" ], infs:[ "dirt1", "rare1", "epic1", "leg2", "myth2", "myth3", "div3", "rare4", "div4" ] },
-                "Abilities": { settings: [], stats: [ "Int", "Div" ], upgs:[ 18, 22, 29, 31, 32, 39, 50 ], exts: [ "Arch Ability Card", "Avada Keda- Skill" ], infs: [ "myth4" ] },
-                "Ascension 2": { settings:[ "total_infernal_cards" ], stats: [], upgs: [ 19, 46 ], exts:[ "Hades Idol" ], infs: [ "myth1", "div2", "dirt4" ] }
+                "Armor Pen": { settings: [], stats: [ "Per", "Int" ], upgs:[ 10, 17, 29, 33, 36 ], exts:[], infs: [ "leg3", "rare3" ] },
+                "Crit Chances & Multipliers": { settings: [], stats:[ "Luck", "Div", "Agi", "Str" ], upgs:[ 13, 18, 20, 30, 37, 40, 47, 49, 53 ], exts: [], infs:[ "com1", "com2", "com3", "epic2", "com4", "epic4" ] },
+                "EXP & Fragment Gain": { settings:[], stats:[ "Int", "Per" ], upgs:[ 4, 11, 21, 28, 35, 42, 45, 51 ], exts:[ "Hestia Idol", "Axolotl Pet Quest Rank", "Geoduck Tribute", "Archaeology Bundle", "Ascension Bundle" ], infs:[ "dirt2", "dirt3", "leg1" ] },
+                "Mod Chances & Multipliers": { settings: [], stats:[ "Luck", "Int", "Per", "Agi", "Corr" ], upgs:[ 5, 14, 16, 23, 24, 26, 33, 35, 38, 40, 43, 44, 50, 52, 53, 55 ], exts:[ "Ascension Bundle", "Block Bonker Skill" ], infs:[ "dirt1", "myth2", "myth3", "div3", "rare4", "div4" ] },
+                "Crosshairs & Auto-Tap": { settings: [], stats:[ "Luck", "Div" ], upgs:[ 48, 54 ], exts: [ "Ascension Bundle" ], infs:[ "rare1", "epic1", "leg2" ] },
+                "Abilities": { settings: [], stats:[], upgs:[ 18, 22, 29, 31, 32, 39, 50 ], exts:[ "Arch Ability Card", "Avada Keda- Skill" ], infs: [ "myth4" ] },
+                "Ascension 2": { settings:[ "total_infernal_cards" ], stats: [], upgs:[ 19, 46 ], exts:[ "Hades Idol" ], infs:[ "myth1", "div2", "dirt4" ] }
               };
               
               const data = TROUBLESHOOT_MAP[troubleshootStat];
@@ -80,9 +82,9 @@ export default function CalculatedStats() {
                   if (troubleshootStat === "Max Stamina") {
                     if (key === 'Agi') {
                       const f26 = (upgrade_levels[26] || 0) * 1.0;
-                      return `(+${val * (5 + f26)} Flat)`;
+                      return `(+${val * (5 + f26)} Flat Max Sta)`;
                     }
-                    if (key === 'Corr') return `(-${val * 3}% Multi)`;
+                    if (key === 'Corr') return `(-${val * 3}% Max Sta Multi)`;
                   }
                   if (troubleshootStat === "Damage") {
                     if (key === 'Str') {
@@ -101,27 +103,47 @@ export default function CalculatedStats() {
                     }
                   }
                   if (troubleshootStat === "Armor Pen") {
-                    if (key === 'Per') return `(+${val} Flat)`;
-                    if (key === 'Int') return `(+${val}% Multi)`;
+                    if (key === 'Per') {
+                      const h33 = (upgrade_levels[33] || 0) * 1.0;
+                      return `(+${val * (2 + h33)} Flat Armor Pen)`;
+                    }
+                    if (key === 'Int') return `(+${val * 3}% Armor Pen Multi)`;
                   }
                   if (troubleshootStat === "EXP & Fragment Gain") {
-                    if (key === 'Int') return `(+${val}% EXP)`;
-                    if (key === 'Per') return `(+${val}% Frag)`;
-                    if (key === 'Div') return `(+${val}% EXP)`;
+                    if (key === 'Int') {
+                      const f35 = (upgrade_levels[35] || 0) * 0.01;
+                      return `(+${(val * (5 + f35 * 100)).toFixed(1)}% EXP Gain)`;
+                    }
+                    if (key === 'Per') return `(+${val * 4}% Frag Gain)`;
                   }
                   if (troubleshootStat === "Crit Chances & Multipliers") {
-                    if (key === 'Luck') return `(+${val}% Crit)`;
-                    if (key === 'Div') return `(+${val}% Super)`;
-                  }
-                  if (troubleshootStat === "Mod Chances & Multipliers") {
-                    if (key === 'Luck') return `(+${(val * 0.2).toFixed(1)}% All)`;
-                    if (key === 'Corr') {
-                      const h52 = (upgrade_levels[52] || 0) * 0.0002;
-                      return `(+${((0.01 + h52) * val * 100).toFixed(1)}% Multis)`;
+                    if (key === 'Luck') return `(+${(val * 2).toFixed(1)}% Crit Chance)`;
+                    if (key === 'Div') {
+                      const f34 = (upgrade_levels[34] || 0) * 0.2;
+                      return `(+${(val * (2 + f34)).toFixed(1)}% sCrit Chance)`;
+                    }
+                    if (key === 'Agi') return `(+${val}% Crit Chance)`;
+                    if (key === 'Str') {
+                      const h47 = (upgrade_levels[47] || 0) * 0.01;
+                      return `(+${(val * (3 + h47 * 100)).toFixed(1)}% Crit & sCrit Dmg)`;
                     }
                   }
-                  if (troubleshootStat === "Abilities") {
-                    if (key === 'Int' || key === 'Div') return `(+${val}% Insta)`;
+                  if (troubleshootStat === "Mod Chances & Multipliers") {
+                    if (key === 'Luck') return `(+${(val * 0.2).toFixed(1)}% All Mod Chances)`;
+                    if (key === 'Int') return `(+${(val * 0.35).toFixed(2)}% Exp Mod Chance)`;
+                    if (key === 'Per') return `(+${(val * 0.35).toFixed(2)}% Loot Mod Chance)`;
+                    if (key === 'Agi') return `(+${(val * 0.3).toFixed(1)}% Speed Mod Chance)`;
+                    if (key === 'Corr') {
+                      const h52 = (upgrade_levels[52] || 0) * 0.0002;
+                      return `(+${((0.01 + h52) * val * 100).toFixed(1)}% All Mod Gains)`;
+                    }
+                  }
+                  if (troubleshootStat === "Crosshairs & Auto-Tap") {
+                    if (key === 'Luck') return `(+${(val * 0.5).toFixed(1)}% Gold Crosshair Chance)`;
+                    if (key === 'Div') {
+                      const f34 = (upgrade_levels[34] || 0) * 0.2;
+                      return `(+${(val * (2 + f34)).toFixed(1)}% Auto-Tap Chance)`;
+                    }
                   }
                 }
 
@@ -129,7 +151,7 @@ export default function CalculatedStats() {
                 if (type === 'upg') {
                   if (troubleshootStat === "Max Stamina") {
                     const mults = { 3: 5, 14: 5, 23: 5, 26: 10, 28: 20, 39: 20, 54: 50 };
-                    if (mults[key]) return `(+${val * mults[key]} Flat)`;
+                    if (mults[key]) return `(+${val * mults[key]} Flat Max Sta)`;
                   }
                   if (troubleshootStat === "Damage") {
                     const flat = { 9: 1, 15: 2, 20: 5, 25: 25, 32: 50, 49: 500 };
@@ -141,7 +163,7 @@ export default function CalculatedStats() {
                   }
                   if (troubleshootStat === "Armor Pen") {
                     const flat = { 10: 1, 17: 2, 29: 10, 33: 25, 36: 100 };
-                    if (flat[key]) return `(+${val * flat[key]} Flat)`;
+                    if (flat[key]) return `(+${val * flat[key]} Flat Armor Pen)`;
                   }
                   if (troubleshootStat === "EXP & Fragment Gain") {
                     const exp = { 4: 1, 11: 2, 21: 5, 28: 10, 35: 25, 45: 50, 51: 50 };
@@ -156,7 +178,27 @@ export default function CalculatedStats() {
                     if (flat[key]) return `(+${val * flat[key]}% / x)`;
                   }
                   if (troubleshootStat === "Mod Chances & Multipliers") {
-                    return `(+Scaling)`; // Generic fallback for mod chance clusters
+                    const modMap = {
+                      5: "Loot Mod Chance", 14: "Sta Mod Chance", 16: "Loot Mod Gain",
+                      23: "Sta Mod Gain", 24: "All Mod Chances", 26: "All Mod Chances",
+                      33: "All Mod Chances", 35: "Exp Mod Chance", 38: "Exp Mod Gain & Chance",
+                      40: "Sta Mod Chance", 43: "Sta Mod Gain", 44: "All Mod Chances",
+                      50: "Sta Mod Chance", 52: "All Mod Gains", 53: "Exp Mod Gain",
+                      55: "All Mod Gains"
+                    };
+                    if (modMap[key]) return `(+Buffs ${modMap[key]})`;
+                  }
+                  if (troubleshootStat === "Crosshairs & Auto-Tap") {
+                    if (key === 48) return `(+${val}% Gold Chance / +${val}% Auto-Tap)`;
+                    if (key === 54) return `(+${(val * 0.2).toFixed(1)}% Auto-Tap Chance)`;
+                  }
+                  if (troubleshootStat === "Abilities") {
+                    const abMap = {
+                      18: "-Enrage CD", 22: "-Flurry CD", 29: "-Ability CDs",
+                      31: "-Quake CD", 32: "-Enrage CD", 39: "+Instacharge Chance",
+                      50: "+Instacharge Chance"
+                    };
+                    if (abMap[key]) return `(${abMap[key]})`;
                   }
                   if (troubleshootStat === "Ascension 2") {
                     if (key === 19) return `(+${(val * 0.1).toFixed(2)}% Gleaming Chance)`;
@@ -245,13 +287,11 @@ export default function CalculatedStats() {
                       
                       let effStr = "";
                       if (val !== 0) {
-                        // Differentiate between Flat bonuses and Percentage multipliers exactly like Streamlit
+                        const cardText = INFERNAL_CARD_BONUSES[c]?.text || "";
                         if ([ 'rare2', 'leg3', 'div3', 'leg4' ].includes(c)) {
-                          effStr = `(+${val.toFixed(1)} Flat)`;
-                        } else if ([ 'myth1', 'div2' ].includes(c)) {
-                          effStr = `(+${(val * 100).toFixed(2)}% Chance)`;
+                          effStr = `(+${val.toFixed(1)} ${cardText})`;
                         } else {
-                          effStr = `(+${(val * 100).toFixed(2)}% Multi)`;
+                          effStr = `(+${(val * 100).toFixed(2)}% ${cardText})`;
                         }
                       } else {
                         effStr = "(Infernal not yet obtained)";
@@ -261,8 +301,8 @@ export default function CalculatedStats() {
                       const tierName = cardLevelNames[tier] || "Not Obtained";
 
                       return (
-                        <div key={c} className="text-sm mb-1 capitalize">
-                          <strong>{c}:</strong> <code className="bg-black/10 dark:bg-white/10 text-st-text px-1 rounded">{tierName}</code> 
+                        <div key={c} className="text-sm mb-1">
+                          <strong className="capitalize">{c}:</strong> <code className="bg-black/10 dark:bg-white/10 text-st-text px-1 rounded">{tierName}</code> 
                           <span className={`text-xs ml-1 ${val !== 0 ? 'text-st-text-light' : 'text-st-text-light italic opacity-60'}`}>
                             {effStr}
                           </span>
@@ -292,8 +332,8 @@ export default function CalculatedStats() {
           <div className="text-xs text-st-text-light italic mb-2">These are the exact numbers shown on your in-game UI screen.</div>
           
           <div><strong>Base Crit:</strong> {fmt(calculated_stats.crit_chance * 100, 2)}% Chance | {fmt(calculated_stats.crit_dmg_mult, 2)}x</div>
-          <div><strong>Super Crit:</strong> {fmt(calculated_stats.super_crit_chance * 100, 2)}% Chance | {fmt(calculated_stats.super_crit_dmg_mult, 2)}x</div>
-          <div><strong>Ultra Crit:</strong> {fmt(calculated_stats.ultra_crit_chance * 100, 2)}% Chance | {fmt(calculated_stats.ultra_crit_dmg_mult, 2)}x</div>
+          <div><strong>sCrit:</strong> {fmt(calculated_stats.super_crit_chance * 100, 2)}% Chance | {fmt(calculated_stats.super_crit_dmg_mult, 2)}x</div>
+          <div><strong>uCrit:</strong> {fmt(calculated_stats.ultra_crit_chance * 100, 2)}% Chance | {fmt(calculated_stats.ultra_crit_dmg_mult, 2)}x</div>
         </div>
 
         {/* Column 2: Economy & Modifiers */}

@@ -299,13 +299,15 @@ class Player:
     
     @property
     def crit_dmg_mult(self): 
-        inner = 1.0 + self.u('H13') + self.u('F30') + self.inf('com1') + self.inf('epic4') + (0.03 + self.u('H47')) * self.stat('Str')
-        return self._excel_round(1.5 * self._f32(inner), 2)
+        inner = 1.0 + self.u('H13') + self.u('F30') + (0.03 + self.u('H47')) * self.stat('Str')
+        val = 1.5 * self._f32(inner) * (1.0 + self.inf('com1')) * (1.0 + self.inf('epic4'))
+        return self._excel_round(val, 2)
         
     @property
     def enraged_crit_dmg_mult(self): 
-        inner = 1.0 + (1.0 + self.u('F18')) + self.u('H13') + self.u('F30') + self.inf('com1') + self.inf('epic4') + (0.03 + self.u('H47')) * self.stat('Str')
-        return self._excel_round(1.5 * self._f32(inner), 2)
+        inner = 1.0 + (1.0 + self.u('F18')) + self.u('H13') + self.u('F30') + (0.03 + self.u('H47')) * self.stat('Str')
+        val = 1.5 * self._f32(inner) * (1.0 + self.inf('com1')) * (1.0 + self.inf('epic4'))
+        return self._excel_round(val, 2)
         
     @property
     def super_crit_chance(self): return self.u('H20') + self.u('F37') + ((0.02 + 0.01 * self.u('F34')) * self.stat('Div')) + self.inf('epic2') + self.inf('com4')
@@ -313,8 +315,9 @@ class Player:
     @property
     def super_crit_dmg_mult(self): 
         if self.super_crit_chance <= 0: return 0.0
-        inner = 1.0 + self.u('H30') + self.u('F53') + self.inf('com2')
-        return self._excel_round(2.0 * self._f32(inner), 2)
+        inner = 1.0 + self.u('H30') + self.u('F53')
+        val = 2.0 * self._f32(inner) * (1.0 + self.inf('com2'))
+        return self._excel_round(val, 2)
         
     @property
     def ultra_crit_chance(self): return self.u('H37') + self.u('H49') + self.inf('com4')
@@ -332,7 +335,7 @@ class Player:
     @property
     def gold_crosshair_chance(self): return self.w('W19') + self.u('F48') + (0.005 * self.stat('Luck')) + self.inf('leg2')
     @property
-    def gold_crosshair_mult(self): return 3.0 + self.inf('epic1')
+    def gold_crosshair_mult(self): return 3.0 * (1.0 + self.inf('epic1'))
 
     @property
     def exp_gain_mult(self):
