@@ -540,7 +540,7 @@ export default function ForecasterTab() {
       <div className="flex flex-col gap-2">
         <h2 className="text-2xl font-bold">🎯 Progression Wall Breaker</h2>
         <p className="text-st-text-light">
-          Work backwards from your goal. Select a future target floor, and the Oracle will calculate the aggregate stamina required to survive the gauntlet leading up to it. Use the interactive shopping cart to test upgrades and mathematically bridge the gap!
+          Evaluate your build's ability to reach a new max floor. The Oracle calculates the cumulative stamina drain required to survive the push and provides your precise probability of success. Use the interactive shopping cart to stack hypothetical upgrades and see exactly what it takes to mathematically bridge the gap to your next milestone!
         </p>
       </div>
 
