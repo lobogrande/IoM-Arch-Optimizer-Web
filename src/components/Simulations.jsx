@@ -517,7 +517,6 @@ export default function Simulations() {
 
     cols.push({
         headerName: "Actions",
-        flex: 1,
         suppressAutoSize: true,
         minWidth: 140,
         sortable: false,
