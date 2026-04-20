@@ -248,7 +248,18 @@ class Player:
         bb_mult = 1.0 + (self.w('W13') * min(100, self.current_max_floor))
         
         val = (base_calc + stat_calc) * asc2_calc * bb_mult * (1.0 + self.inf('epic3'))
-        return self._excel_round(val, 0)
+        return self._excel_round(val, 0)@property
+    @property
+    def max_sta(self):
+        base_calc = 100 + self.u('F14') + self.u('F23') + self.u('H39') + self.u('F3') + self.inf('leg4')
+        stat_calc = self.stat('Agi') * (5 + self.u('F26'))
+        asc2_calc = (1 + self.u('H28') + self.u('F54')) * (1 - 0.03 * self.stat('Corr'))
+        
+        # PROPER BLOCK BONKER BINDING (W13)
+        bb_mult = 1.0 + (self.w('W13') * min(100, self.current_max_floor))
+        
+        val = (base_calc + stat_calc) * asc2_calc * bb_mult * (1.0 + self.inf('epic3'))
+        return float(int(val))
 
     @property
     def damage(self):
@@ -262,7 +273,7 @@ class Player:
         bb_mult = 1.0 + (self.w('W12') * min(100, self.current_max_floor))
         
         val = (base_calc + stat_calc1 + stat_calc2 + self.base_damage_const) * (mult1 + mult2) * bb_mult
-        return self._excel_round(val, 0)
+        return float(int(val))
 
     @property
     def enraged_damage(self):
@@ -278,7 +289,7 @@ class Player:
         bb_mult = 1.0 + (self.w('W12') * min(100, self.current_max_floor))
         
         val = (base_calc + stat_calc1 + stat_calc2 + self.base_damage_const) * (mult1 + mult2 + enrage_mult) * bb_mult
-        return self._excel_round(val, 0)
+        return float(int(val))
     
     @property
     def armor_pen(self):
@@ -289,7 +300,7 @@ class Player:
         upg_mult = 1.0 + (0.03 * self.stat('Int')) + self.u('F29')
         card_mult = 1.0 + self.inf('rare3')
         
-        return self._excel_round(base_ap * upg_mult * card_mult, 0)
+        return float(int(base_ap * upg_mult * card_mult))
 
     @property
     def atk_spd(self): return 1.0
@@ -354,15 +365,15 @@ class Player:
         return self._excel_round(val, 2)
 
     @property
-    def exp_mod_chance(self): return self.u('H38') + self.u('H4') + (0.002 * self.stat('Luck')) + (0.0035 * self.stat('Int')) + self.u('F24') + self.u('F44') + self.inf('div4')
+    def exp_mod_chance(self): return self.u('H38') + self.u('H4') + (0.002 * self.stat('Luck')) + ((0.003 + self.u('H35')) * self.stat('Int')) + self.u('F24') + self.u('F44') + self.inf('div4')
     @property
     def exp_mod_gain(self): return (3.0 + self.u('F38') + self.u('H53')) * (1.0 + self.u('F55') + self.stat('Corr') * (0.01 + self.u('H52')))
     @property
-    def loot_mod_chance(self): return self.u('H5') + self.u('F24') + self.u('F44') + self.w('W18') + (0.0035 * self.stat('Per')) + (0.002 * self.stat('Luck')) + self.inf('myth2') + self.inf('div4')
+    def loot_mod_chance(self): return self.u('H5') + self.u('F24') + self.u('F44') + self.w('W18') + ((0.003 + self.u('F33')) * self.stat('Per')) + (0.002 * self.stat('Luck')) + self.inf('myth2') + self.inf('div4')
     @property
     def loot_mod_gain(self): return (2.0 + self.u('F16') + self.u('F27')) * (1.0 + self.u('F55') + self.stat('Corr') * (0.01 + self.u('H52'))) * (1.0 + self.inf('dirt1') + self.inf('rare4'))
     @property
-    def speed_mod_chance(self): return self.u('F24') + self.u('F44') + (0.003 * self.stat('Agi')) + (0.002 * self.stat('Luck')) + self.inf('div4')
+    def speed_mod_chance(self): return self.u('F24') + self.u('F44') + ((0.002 + self.u('H26')) * self.stat('Agi')) + (0.002 * self.stat('Luck')) + self.inf('div4')
     @property
     def speed_mod_gain(self): 
         # PROPER BLOCK BONKER BINDING (W14)

@@ -354,7 +354,7 @@ export default function Simulations() {
       const colorClass = isGood ? '#4CAF50' : '#ff4b4b';
 
       return (
-        <div className="flex items-center justify-end w-full gap-1 h-full">
+        <div className="flex items-center justify-center w-full gap-1 h-full">
           <span>{formattedVal}</span>
           <span style={{ color: colorClass, fontSize: '0.75rem', fontWeight: 'bold' }}>({diffStr})</span>
         </div>
@@ -3114,8 +3114,19 @@ export default function Simulations() {
                       theme="legacy"
                       rowData={store.synth_history}
                       defaultColDef={sandboxDefaultColDef}
-                      autoSizeStrategy={sandboxAutoSizeStrategy}
                       columnDefs={synthHistoryColumns}
+                      onFirstDataRendered={(p) => { 
+                        try { 
+                          const colsToSize = p.api.getColumns().filter(c => !c.getColDef().suppressAutoSize).map(c => c.getColId());
+                          p.api.autoSizeColumns(colsToSize); 
+                        } catch(e){} 
+                      }}
+                      onRowDataUpdated={(p) => { 
+                        try { 
+                          const colsToSize = p.api.getColumns().filter(c => !c.getColDef().suppressAutoSize).map(c => c.getColId());
+                          p.api.autoSizeColumns(colsToSize); 
+                        } catch(e){} 
+                      }}
                     />
                   </div>
                 </div>

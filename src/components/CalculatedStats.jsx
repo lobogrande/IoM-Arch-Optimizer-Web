@@ -130,9 +130,18 @@ export default function CalculatedStats() {
                   }
                   if (troubleshootStat === "Mod Chances & Multipliers") {
                     if (key === 'Luck') return `(+${(val * 0.2).toFixed(1)}% All Mod Chances)`;
-                    if (key === 'Int') return `(+${(val * 0.35).toFixed(2)}% Exp Mod Chance)`;
-                    if (key === 'Per') return `(+${(val * 0.35).toFixed(2)}% Loot Mod Chance)`;
-                    if (key === 'Agi') return `(+${(val * 0.3).toFixed(1)}% Speed Mod Chance)`;
+                    if (key === 'Int') {
+                      const h35 = (upgrade_levels[35] || 0) * 0.0001;
+                      return `(+${(val * (0.30 + h35 * 100)).toFixed(2)}% Exp Mod Chance)`;
+                    }
+                    if (key === 'Per') {
+                      const f33 = (upgrade_levels[33] || 0) * 0.0001;
+                      return `(+${(val * (0.30 + f33 * 100)).toFixed(2)}% Loot Mod Chance)`;
+                    }
+                    if (key === 'Agi') {
+                      const h26 = (upgrade_levels[26] || 0) * 0.0002;
+                      return `(+${(val * (0.20 + h26 * 100)).toFixed(2)}% Speed Mod Chance)`;
+                    }
                     if (key === 'Corr') {
                       const h52 = (upgrade_levels[52] || 0) * 0.0002;
                       return `(+${((0.01 + h52) * val * 100).toFixed(1)}% All Mod Gains)`;
@@ -180,8 +189,11 @@ export default function CalculatedStats() {
                   if (troubleshootStat === "Mod Chances & Multipliers") {
                     const modMap = {
                       5: "Loot Mod Chance", 14: "Sta Mod Chance", 16: "Loot Mod Gain",
-                      23: "Sta Mod Gain", 24: "All Mod Chances", 26: "All Mod Chances",
-                      33: "All Mod Chances", 35: "Exp Mod Chance", 38: "Exp Mod Gain & Chance",
+                      23: "Sta Mod Gain", 24: "All Mod Chances", 
+                      26: "Speed Mod Chance per Agi Point",
+                      33: "Loot Mod Chance per Per Point", 
+                      35: "Exp Mod Chance per Int Point", 
+                      38: "Exp Mod Gain & Chance",
                       40: "Sta Mod Chance", 43: "Sta Mod Gain", 44: "All Mod Chances",
                       50: "Sta Mod Chance", 52: "All Mod Gains", 53: "Exp Mod Gain",
                       55: "All Mod Gains"
