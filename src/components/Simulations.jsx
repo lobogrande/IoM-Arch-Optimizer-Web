@@ -6,6 +6,7 @@ import OptimizerTab from './simulations/OptimizerTab';
 import SynthesisTab from './simulations/SynthesisTab';
 import DuelTab from './simulations/DuelTab';
 import SandboxTab from './simulations/SandboxTab';
+import ForecasterTab from './simulations/ForecasterTab';
 
 export default function Simulations() {
   const store = useStore();
@@ -134,7 +135,8 @@ export default function Simulations() {
           { id: 'optimizer', label: '🚀 Optimizer' },
           { id: 'synth', label: '🧬 Build Synthesis & History' },
           { id: 'duel', label: '⚔️ Build Duel' },
-          { id: 'sandbox', label: '🧪 Hit Calculator (Sandbox)' }
+          { id: 'sandbox', label: '🧪 Hit Calculator (Sandbox)' },
+          { id: 'forecaster', label: '🎯 Milestone Forecaster' }
         ].map((tab) => (
           <button
             key={tab.id}
@@ -188,6 +190,7 @@ export default function Simulations() {
       {activeSubTab === 'synth' && <SynthesisTab />}
       {activeSubTab === 'duel' && <DuelTab />}
       {activeSubTab === 'sandbox' && <SandboxTab />}
+      {activeSubTab === 'forecaster' && <ForecasterTab />}
 
     </div>
   );
