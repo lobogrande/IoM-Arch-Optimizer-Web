@@ -7,8 +7,12 @@ async function initCalcEngine() {
     pyodide = await loadPyodide();
     pyodide.FS.mkdir("core");
 
+    // Extract version from worker URL if provided, otherwise fallback to an aggressive dev cache-buster
+    const urlParams = new URLSearchParams(self.location.search);
+    const APP_VERSION = urlParams.get('v') || Date.now();
+
     async function fetchAndWrite(filepath) {
-        const response = await fetch('/' + filepath);
+        const response = await fetch('/' + filepath + '?v=' + APP_VERSION);
         const text = await response.text();
         pyodide.FS.writeFile(filepath, text);
     }
