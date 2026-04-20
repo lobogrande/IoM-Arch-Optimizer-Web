@@ -892,32 +892,6 @@ export default function ForecasterTab() {
                 </div>
               </div>
 
-              {/* STAMINA TABLE */}
-              <div className="border border-st-border rounded bg-st-bg overflow-hidden flex flex-col">
-                <div className="bg-st-secondary p-2 border-b border-st-border font-bold text-center text-blue-400">
-                  ⚡ Top Stamina Boosts
-                </div>
-                <div className="text-[10px] text-center py-1 bg-black/20 text-st-text-light border-b border-st-border">Ranks by pure global Max Stamina increases</div>
-                <div className="p-2 overflow-y-auto max-h-[400px]">
-                  {results.topSta.length === 0 ? <div className="text-center text-sm p-4 text-st-text-light">No available upgrades boost Stamina.</div> : results.topSta.map((item, idx) => (
-                    <div key={idx} className="mb-3 pb-3 border-b border-st-border/50 last:border-0 last:mb-0">
-                      <div className="font-bold text-sm leading-tight">
-                        {item.name} 
-                        <span className="text-xs text-st-text-light font-normal ml-1">({item.action})</span>
-                        {item.desc && <div className="text-[11px] text-gray-400 mt-0.5">{item.desc}</div>}
-                      </div>
-                      <div className="flex justify-between mt-2 items-center">
-                        <span className="text-[10px] text-st-text-light px-1 py-0.5 bg-black/10 rounded">{item.costStr}</span>
-                        <div className="flex items-center gap-2">
-                          <span className="font-mono text-blue-400 text-sm font-bold">+{Math.ceil(item.d_sta).toLocaleString()}</span>
-                          <button onClick={() => addToCart(item)} className="px-2 py-1 bg-green-600 hover:bg-green-500 text-white font-bold text-xs rounded transition-colors">+ Cart</button>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
               <div className="border border-st-border rounded bg-st-bg overflow-hidden flex flex-col">
                 <div className="bg-st-secondary p-2 border-b border-st-border font-bold text-center text-st-orange">
                   🔥 Top Raw EDPS Boosts
@@ -972,6 +946,32 @@ export default function ForecasterTab() {
                               </div>
                             )}
                           </div>
+                          <button onClick={() => addToCart(item)} className="px-2 py-1 bg-green-600 hover:bg-green-500 text-white font-bold text-xs rounded transition-colors">+ Cart</button>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* STAMINA TABLE */}
+              <div className="border border-st-border rounded bg-st-bg overflow-hidden flex flex-col">
+                <div className="bg-st-secondary p-2 border-b border-st-border font-bold text-center text-blue-400">
+                  ⚡ Top Stamina Boosts
+                </div>
+                <div className="text-[10px] text-center py-1 bg-black/20 text-st-text-light border-b border-st-border">Ranks by pure global Max Stamina increases</div>
+                <div className="p-2 overflow-y-auto max-h-[400px]">
+                  {results.topSta.length === 0 ? <div className="text-center text-sm p-4 text-st-text-light">No available upgrades boost Stamina.</div> : results.topSta.map((item, idx) => (
+                    <div key={idx} className="mb-3 pb-3 border-b border-st-border/50 last:border-0 last:mb-0">
+                      <div className="font-bold text-sm leading-tight">
+                        {item.name} 
+                        <span className="text-xs text-st-text-light font-normal ml-1">({item.action})</span>
+                        {item.desc && <div className="text-[11px] text-gray-400 mt-0.5">{item.desc}</div>}
+                      </div>
+                      <div className="flex justify-between mt-2 items-center">
+                        <span className="text-[10px] text-st-text-light px-1 py-0.5 bg-black/10 rounded">{item.costStr}</span>
+                        <div className="flex items-center gap-2">
+                          <span className="font-mono text-blue-400 text-sm font-bold">+{Math.ceil(item.d_sta).toLocaleString()}</span>
                           <button onClick={() => addToCart(item)} className="px-2 py-1 bg-green-600 hover:bg-green-500 text-white font-bold text-xs rounded transition-colors">+ Cart</button>
                         </div>
                       </div>
