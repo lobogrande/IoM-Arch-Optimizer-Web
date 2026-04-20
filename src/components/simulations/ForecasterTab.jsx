@@ -549,7 +549,7 @@ export default function ForecasterTab() {
           <span className="text-lg">ℹ️</span> How to use the Forecaster:
         </h4>
         <ol className="list-decimal pl-5 space-y-1 text-blue-200/80">
-          <li><strong>Optimize First:</strong> Ensure you have already generated and applied a "Max Floor Push" build on your Synthesis tab.</li>
+          <li><strong>Optimize First:</strong> Ensure you have generated a "Max Floor Push" build (via the Synthesis tab) and that it is actively loaded in your <strong>Player Setup</strong>. The Forecaster uses your global player profile as its mathematical baseline.</li>
           <li><strong>Set Your Goal:</strong> Enter your target floor and Arch Seconds budget below. (The Forecaster will automatically identify the hardest block on that floor).</li>
           <li><strong>Draft Upgrades:</strong> Keep the simulation set to <strong>100 Runs</strong> while adding items to your cart so the engine updates instantly.</li>
           <li><strong>Verify Probability:</strong> Once your cart looks ready, switch to <strong>500 or 1000 Runs</strong> for a highly accurate Monte Carlo probability check before spending your resources.</li>
