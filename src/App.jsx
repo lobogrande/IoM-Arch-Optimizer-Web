@@ -34,7 +34,7 @@ function App() {
 
   // Initialize the Calculation Worker
   useEffect(() => {
-    calcWorkerRef.current = new Worker('/calc_worker.js');
+    calcWorkerRef.current = new Worker(`/calc_worker.js?v=${APP_VERSION}`);
     
     calcWorkerRef.current.onmessage = (e) => {
       if (e.data.type === 'CALC_RESULT') {
