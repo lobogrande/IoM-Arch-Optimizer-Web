@@ -132,15 +132,15 @@ export default function CalculatedStats() {
                     if (key === 'Luck') return `(+${(val * 0.2).toFixed(1)}% All Mod Chances)`;
                     if (key === 'Int') {
                       const h35 = (upgrade_levels[35] || 0) * 0.0001;
-                      return `(+${(val * (0.35 + h35 * 100)).toFixed(2)}% Exp Mod Chance)`;
+                      return `(+${(val * (0.30 + h35 * 100)).toFixed(2)}% Exp Mod Chance)`;
                     }
                     if (key === 'Per') {
                       const f33 = (upgrade_levels[33] || 0) * 0.0001;
-                      return `(+${(val * (0.35 + f33 * 100)).toFixed(2)}% Loot Mod Chance)`;
+                      return `(+${(val * (0.30 + f33 * 100)).toFixed(2)}% Loot Mod Chance)`;
                     }
                     if (key === 'Agi') {
                       const h26 = (upgrade_levels[26] || 0) * 0.0002;
-                      return `(+${(val * (0.30 + h26 * 100)).toFixed(2)}% Speed Mod Chance)`;
+                      return `(+${(val * (0.20 + h26 * 100)).toFixed(2)}% Speed Mod Chance)`;
                     }
                     if (key === 'Corr') {
                       const h52 = (upgrade_levels[52] || 0) * 0.0002;
