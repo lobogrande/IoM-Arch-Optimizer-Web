@@ -777,6 +777,7 @@ export default function ForecasterTab() {
           </div>
         ) : null}
       </div>
+        </div>
       )}
 
       {forecasterMode === 'pivot' && (
