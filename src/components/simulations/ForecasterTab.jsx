@@ -951,9 +951,9 @@ export default function ForecasterTab() {
                           <div className="bg-black/20 p-3 rounded border border-st-border mb-4">
                             <div className="flex justify-between items-center mb-1">
                               <span className="font-bold text-sm">Yield / 1k Arch Secs:</span>
-                              <div className="text-right flex flex-col items-end relative">
+                              <div className="text-right flex items-center gap-2">
                                 <span className={`font-mono text-xl font-bold ${isPivotViable ? 'text-green-400' : ''}`}>{pivArchYield.toFixed(1)}</span>
-                                {diffArch > 0 && <span className="text-[10px] text-green-400 font-bold bg-green-900/30 px-1 rounded absolute top-full mt-0.5">+{diffArch.toFixed(1)}</span>}
+                                {diffArch > 0 && <span className="text-[10px] text-green-400 font-bold bg-green-900/30 px-1.5 py-0.5 rounded mt-0.5">+{diffArch.toFixed(1)}</span>}
                               </div>
                             </div>
                             <div className="flex justify-between items-center text-xs text-st-text-light mt-1">
