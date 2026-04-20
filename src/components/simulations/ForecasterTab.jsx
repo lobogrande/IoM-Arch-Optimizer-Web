@@ -891,17 +891,22 @@ export default function ForecasterTab() {
                   const pct = sqYield > 0 ? (diff / sqYield) * 100 : 0;
                   const isPivotViable = pct > 2.0;
 
+                  const scaleScore = (v) => (v / 60.0) * 1000.0;
+                  const sqArchYield = scaleScore(sqYield);
+                  const pivArchYield = scaleScore(pivYield);
+                  const diffArch = pivArchYield - sqArchYield;
+
                   return (
                     <>
                       {isPivotViable ? (
                         <div className="bg-green-900/20 border-l-4 border-green-500 p-4 rounded mb-6">
                           <h5 className="font-bold text-green-400 text-lg mb-1">🚨 PIVOT RECOMMENDED!</h5>
-                          <p className="text-sm text-green-200">Your hypothetical upgrades allow you to efficiently push to a deeper tier. Respeccing your stats to the Meta Pivot build yields a <strong>+{pct.toFixed(1)}% increase</strong> in fragments compared to just staying the course!</p>
+                          <p className="text-sm text-green-200">Your hypothetical upgrades unlock a mathematically superior farming setup. Respeccing your stats to the Meta Pivot build yields a <strong>+{pct.toFixed(1)}% increase</strong> in fragments compared to just staying the course!</p>
                         </div>
                       ) : (
                         <div className="bg-yellow-900/20 border-l-4 border-yellow-500 p-4 rounded mb-6">
                           <h5 className="font-bold text-yellow-400 text-lg mb-1">🟢 STAY THE COURSE</h5>
-                          <p className="text-sm text-yellow-200">The AI could not find a deeper stat plateau that definitively beats your current strategy. Your new upgrades make your current floor much faster, but you don't quite have the power to pivot yet.</p>
+                          <p className="text-sm text-yellow-200">The AI could not find a stat respec that definitively beats your current setup. Your current strategy remains the mathematically optimal way to farm this resource with your given upgrades.</p>
                         </div>
                       )}
 
@@ -911,10 +916,18 @@ export default function ForecasterTab() {
                             <h5 className="font-bold text-gray-400">Strategy A: Status Quo</h5>
                             <p className="text-xs text-st-text-light">Current Stats + Cart Upgrades</p>
                           </div>
-                          <div className="flex justify-between items-center bg-black/20 p-3 rounded border border-st-border mb-4">
-                            <span className="font-bold text-sm">Yield / Min:</span>
-                            <span className="font-mono text-xl font-bold">{sqYield.toFixed(2)}</span>
+                          
+                          <div className="bg-black/20 p-3 rounded border border-st-border mb-4">
+                            <div className="flex justify-between items-center mb-1">
+                              <span className="font-bold text-sm">Yield / 1k Arch Secs:</span>
+                              <span className="font-mono text-xl font-bold">{sqArchYield.toFixed(1)}</span>
+                            </div>
+                            <div className="flex justify-between items-center text-xs text-st-text-light">
+                              <span>Real-Time (per min):</span>
+                              <span className="font-mono">{sqYield.toFixed(2)}</span>
+                            </div>
                           </div>
+
                           <div className="flex justify-between items-center px-2 py-1 mb-4 border-b border-st-border/50 text-sm">
                             <span className="text-st-text-light">Avg Floor Reached:</span>
                             <span className="font-mono">{pivotResults.statusQuo.floor.toFixed(1)}</span>
@@ -934,13 +947,21 @@ export default function ForecasterTab() {
                             <h5 className={`font-bold ${isPivotViable ? 'text-purple-400' : 'text-gray-400'}`}>Strategy B: Meta Pivot</h5>
                             <p className="text-xs text-st-text-light">AI Optimized Stats + Cart Upgrades</p>
                           </div>
-                          <div className="flex justify-between items-center bg-black/20 p-3 rounded border border-st-border mb-4">
-                            <span className="font-bold text-sm">Yield / Min:</span>
-                            <div className="text-right flex flex-col items-end">
-                              <span className={`font-mono text-xl font-bold ${isPivotViable ? 'text-green-400' : ''}`}>{pivYield.toFixed(2)}</span>
-                              {diff > 0 && <span className="text-[10px] text-green-400 font-bold bg-green-900/30 px-1 rounded absolute mt-7">+{diff.toFixed(2)}</span>}
+                          
+                          <div className="bg-black/20 p-3 rounded border border-st-border mb-4">
+                            <div className="flex justify-between items-center mb-1">
+                              <span className="font-bold text-sm">Yield / 1k Arch Secs:</span>
+                              <div className="text-right flex flex-col items-end relative">
+                                <span className={`font-mono text-xl font-bold ${isPivotViable ? 'text-green-400' : ''}`}>{pivArchYield.toFixed(1)}</span>
+                                {diffArch > 0 && <span className="text-[10px] text-green-400 font-bold bg-green-900/30 px-1 rounded absolute top-full mt-0.5">+{diffArch.toFixed(1)}</span>}
+                              </div>
+                            </div>
+                            <div className="flex justify-between items-center text-xs text-st-text-light mt-1">
+                              <span>Real-Time (per min):</span>
+                              <span className="font-mono">{pivYield.toFixed(2)}</span>
                             </div>
                           </div>
+
                           <div className="flex justify-between items-center px-2 py-1 mb-4 border-b border-st-border/50 text-sm">
                             <span className="text-st-text-light">Avg Floor Reached:</span>
                             <span className={`font-mono ${pivotResults.pivot.floor > pivotResults.statusQuo.floor ? 'text-green-400' : ''}`}>{pivotResults.pivot.floor.toFixed(1)}</span>
