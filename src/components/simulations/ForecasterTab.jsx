@@ -1,7 +1,7 @@
 // src/components/simulations/ForecasterTab.jsx
 import { useState, useEffect, useRef } from 'react';
 import useStore from '../../store';
-import { EngineWorkerPool } from '../../utils/optimizer';
+import { EngineWorkerPool, runOptimizationPhase, topUpBuild } from '../../utils/optimizer';
 import { INTERNAL_UPGRADE_CAPS, UPGRADE_NAMES, ASC1_LOCKED_UPGS, ASC2_LOCKED_UPGS, UPGRADE_LEVEL_REQS, EXTERNAL_UI_GROUPS, calculateUpgradeCost, CURRENCY_TYPES, INFERNAL_CARD_BONUSES } from '../../game_data';
 
 const ORE_MIN_FLOORS = {
@@ -25,6 +25,20 @@ export default function ForecasterTab() {
   const setSimPrecision = (v) => store.setSimsState('forecaster_simPrecision', v);
 
   const cartItems = store.forecaster_cartItems || [ ];
+
+  const [forecasterMode, setForecasterMode] = useState('wall');
+  const pivotTargetFrag = store.forecaster_pivotTargetFrag || 6;
+  const setPivotTargetFrag = (v) => store.setSimsState('forecaster_pivotTargetFrag', v);
+  
+  const hasPivotAnalyzed = store.forecaster_hasPivotAnalyzed || false;
+  const setHasPivotAnalyzed = (v) => store.setSimsState('forecaster_hasPivotAnalyzed', v);
+  
+  const pivotResults = store.forecaster_pivotResults || null;
+  const setPivotResults = (v) => store.setSimsState('forecaster_pivotResults', v);
+  
+  const[isPivotAnalyzing, setIsPivotAnalyzing] = useState(false);
+  const [pivotMsg, setPivotMsg] = useState("");
+  const [pivotPct, setPivotPct] = useState(0);
   const setCartItems = (v) => store.setSimsState('forecaster_cartItems', v);
 
   const [draftQty, setDraftQty] = useState({ index: null, value: '' });
@@ -535,17 +549,162 @@ export default function ForecasterTab() {
     alert("✅ Cart items applied directly to your Global Player Build!");
   };
 
+  const handleAnalyzePivot = async () => {
+    setIsPivotAnalyzing(true);
+    cancelRef.current = false;
+    setPivotPct(0);
+    setPivotMsg(`Evaluating Status Quo (${simPrecision} runs)...`);
+
+    try {
+      const effState = getEffectiveState();
+      const targetMetric = `frag_${pivotTargetFrag}_per_min`;
+
+      poolRef.current = new EngineWorkerPool();
+      await poolRef.current.init();
+      if (cancelRef.current) return;
+
+      const baseStateDict = {
+        asc1_unlocked: store.asc1_unlocked,
+        asc2_unlocked: store.asc2_unlocked,
+        arch_level: store.arch_level,
+        current_max_floor: store.current_max_floor,
+        arch_ability_infernal_bonus: parseFloat(store.arch_ability_infernal_bonus) / 100.0,
+        total_infernal_cards: store.total_infernal_cards,
+        base_stats: effState.base_stats,
+        upgrade_levels: effState.upgrade_levels,
+        external_levels: effState.external_levels,
+        cards: effState.cards
+      };
+
+      await poolRef.current.syncState(baseStateDict);
+
+      // 1. Status Quo (Run sims on current stats)
+      let sqSum = 0;
+      let sqFloors = 0;
+      let poolCompleted = 0;
+      const promises = [ ];
+      for (let i = 0; i < simPrecision; i++) {
+        promises.push(poolRef.current.runTask(effState.base_stats).then(res => {
+           if (res.aborted) return;
+           sqSum += (res[targetMetric] || 0);
+           sqFloors += (res.highest_floor || 0);
+           poolCompleted++;
+           if (poolCompleted % Math.max(1, Math.floor(simPrecision / 10)) === 0) {
+             setPivotPct((poolCompleted / simPrecision) * 30); 
+           }
+        }));
+      }
+      await Promise.all(promises);
+      if (cancelRef.current) return;
+      const sqYield = sqSum / simPrecision;
+      const sqAvgFloor = sqFloors / simPrecision;
+
+      // 2. Pivot (Optimize)
+      setPivotMsg("AI Auto-Pivoting (Optimizing new baseline)...");
+      setPivotPct(30);
+
+      const capInc = parseInt(effState.upgrade_levels[45] || 0) * 5;
+      const dynamicBudget = parseInt(store.arch_level) + parseInt(effState.upgrade_levels[12] || 0);
+      
+      const STAT_CAPS = {
+        Str: 50 + capInc, Agi: 50 + capInc, Per: 25 + capInc, Int: 25 + capInc, Luck: 25 + capInc,
+        Div: store.asc1_unlocked ? (10 + capInc) : 0, 
+        Corr: store.asc2_unlocked ? (10 + capInc) : 0,
+        Unassigned: dynamicBudget
+      };
+      
+      const bounds = {};
+      activeStats.forEach(s => bounds[s] =[ 0, STAT_CAPS[s] ]);
+      
+      const onProgressCb = (phase, rnd, totRnd, comp, tot) => {
+          setPivotPct(30 + ((comp / tot) * 40));
+          setPivotMsg(`AI Auto-Pivoting - ${comp}/${tot}`);
+      };
+
+      // Fast search: jump by 3 points
+      const { bestDist: bestP1 } = await runOptimizationPhase(
+        "Pivot Fast Search", targetMetric, activeStats, dynamicBudget, 3, 25,
+        poolRef.current, {}, bounds, 60, Date.now(), onProgressCb, effState.base_stats
+      );
+      
+      if (cancelRef.current) return;
+      const bestFinal = topUpBuild(bestP1, activeStats, dynamicBudget, STAT_CAPS, bounds);
+
+      // 3. Evaluate Pivot
+      setPivotMsg(`Verifying Pivot (${simPrecision} runs)...`);
+      setPivotPct(70);
+      
+      let pivSum = 0;
+      let pivFloors = 0;
+      let pivCompleted = 0;
+      const pivPromises = [ ];
+      for (let i = 0; i < simPrecision; i++) {
+        pivPromises.push(poolRef.current.runTask(bestFinal).then(res => {
+           if (res.aborted) return;
+           pivSum += (res[targetMetric] || 0);
+           pivFloors += (res.highest_floor || 0);
+           pivCompleted++;
+           if (pivCompleted % Math.max(1, Math.floor(simPrecision / 10)) === 0) {
+             setPivotPct(70 + ((pivCompleted / simPrecision) * 30)); 
+           }
+        }));
+      }
+      await Promise.all(pivPromises);
+      if (cancelRef.current) return;
+      
+      const pivYield = pivSum / simPrecision;
+      const pivAvgFloor = pivFloors / simPrecision;
+
+      poolRef.current.terminate();
+      poolRef.current = null;
+
+      setPivotResults({
+         statusQuo: { yield: sqYield, floor: sqAvgFloor, stats: effState.base_stats },
+         pivot: { yield: pivYield, floor: pivAvgFloor, stats: bestFinal },
+         targetFrag: pivotTargetFrag
+      });
+      setHasPivotAnalyzed(true);
+    } catch (err) {
+      if (err.message === "CANCELLED") return;
+      console.error(err);
+      alert("Pivot Analysis failed: " + err.message);
+    } finally {
+      if (!cancelRef.current) setIsPivotAnalyzing(false);
+    }
+  };
+
   return (
     <div className="space-y-6 animate-fade-in">
       <div className="flex flex-col gap-2">
-        <h2 className="text-2xl font-bold">🎯 Progression Wall Breaker</h2>
+        <h2 className="text-2xl font-bold">🔮 The Future Forecaster</h2>
         <p className="text-st-text-light">
-          Evaluate your build's ability to reach a new max floor. The Oracle calculates the cumulative stamina drain required to survive the push and provides your precise probability of success. Use the interactive shopping cart to stack hypothetical upgrades and see exactly what it takes to mathematically bridge the gap to your next milestone!
+          Look into the future. Queue up a hypothetical package of upgrades in your Cart, and let the Oracle mathematically evaluate how those upgrades will impact your pushing and farming potential.
         </p>
       </div>
 
-      <div className="bg-blue-900/10 border border-blue-500/30 rounded p-4 text-sm text-blue-200 shadow-sm">
-        <h4 className="font-bold text-blue-400 mb-2 flex items-center gap-2">
+      <div className="flex overflow-x-auto border-b border-st-border mb-2 no-scrollbar">
+        {[
+          { id: 'wall', label: '🎯 Progression Wall Breaker' },
+          { id: 'pivot', label: '⚖️ Economy Pivot Forecaster' }
+        ].map((t) => (
+          <button
+            key={t.id}
+            onClick={() => setForecasterMode(t.id)}
+            className={`px-4 py-3 font-bold whitespace-nowrap transition-colors duration-200 border-b-2 ${
+              forecasterMode === t.id 
+                ? 'border-st-orange text-st-orange' 
+                : 'border-transparent text-st-text-light hover:text-st-orange hover:border-st-border'
+            }`}
+          >
+            {t.label}
+          </button>
+        ))}
+      </div>
+
+      {forecasterMode === 'wall' && (
+        <div className="space-y-6 animate-fade-in">
+          <div className="bg-blue-900/10 border border-blue-500/30 rounded p-4 text-sm text-blue-200 shadow-sm">
+            <h4 className="font-bold text-blue-400 mb-2 flex items-center gap-2">
           <span className="text-lg">ℹ️</span> How to use the Forecaster:
         </h4>
         <ol className="list-decimal pl-5 space-y-1 text-blue-200/80">
@@ -618,10 +777,172 @@ export default function ForecasterTab() {
           </div>
         ) : null}
       </div>
+      )}
 
-      {hasAnalyzed && results && (
-        <div className="animate-fade-in space-y-6">
+      {forecasterMode === 'pivot' && (
+        <div className="space-y-6 animate-fade-in">
+          <div className="bg-purple-900/10 border border-purple-500/30 rounded p-4 text-sm text-purple-200 shadow-sm">
+            <h4 className="font-bold text-purple-400 mb-2 flex items-center gap-2">
+              <span className="text-lg">ℹ️</span> How to use the Economy Pivot:
+            </h4>
+            <ol className="list-decimal pl-5 space-y-1 text-purple-200/80">
+              <li><strong>Queue Upgrades:</strong> Add hypothetical future upgrades to your <strong>Cart</strong> below (Use the Progression Wall Breaker to find upgrades if your cart is empty).</li>
+              <li><strong>Select Resource:</strong> Choose the fragment you ultimately want to farm.</li>
+              <li><strong>Analyze:</strong> The AI will race your <strong>Status Quo</strong> (your current build + the new raw power) against a <strong>Meta Pivot</strong> (a completely fresh optimization utilizing your new power to push deep) to definitively tell you if it's time to respec!</li>
+            </ol>
+          </div>
+
+          <div className="st-container border-l-4 border-l-purple-500">
+            <h4 className="font-bold mb-4">1. Define the Strategy Evaluation</h4>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-bold mb-1">Target Economy Resource</label>
+                <select 
+                  value={pivotTargetFrag} 
+                  onChange={(e) => setPivotTargetFrag(parseInt(e.target.value))}
+                  className="w-full bg-st-bg border border-st-border rounded p-2 text-st-text focus:border-st-orange focus:outline-none"
+                >
+                  <option value={1}>Common Fragments</option>
+                  <option value={2}>Rare Fragments</option>
+                  <option value={3}>Epic Fragments</option>
+                  <option value={4}>Legendary Fragments</option>
+                  <option value={5}>Mythic Fragments</option>
+                  {store.asc1_unlocked && <option value={6}>Divine Fragments</option>}
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-bold mb-1">Simulation Precision</label>
+                <select 
+                  value={simPrecision} 
+                  onChange={(e) => setSimPrecision(parseInt(e.target.value))}
+                  className="w-full bg-st-bg border border-st-border rounded p-2 text-st-text focus:border-st-orange focus:outline-none"
+                >
+                  <option value={100}>100 Runs (Fast / High Noise)</option>
+                  <option value={500}>500 Runs (Balanced)</option>
+                </select>
+                <div className="text-xs text-st-text-light mt-1">Both strategies are evaluated using this sample size.</div>
+              </div>
+            </div>
+
+            {!isPivotAnalyzing ? (
+              <button 
+                onClick={handleAnalyzePivot}
+                disabled={cartItems.length === 0}
+                className="w-full py-3 mt-6 bg-purple-600 text-white font-bold rounded-lg shadow hover:bg-purple-500 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {cartItems.length === 0 ? "🛒 Add items to Cart first!" : "⚖️ Analyze Strategy Shift"}
+              </button>
+            ) : (
+              <div className="w-full mt-6 p-4 border border-st-border rounded bg-st-bg">
+                <div className="flex justify-between text-sm font-bold mb-2 text-purple-400">
+                  <span>{pivotMsg}</span>
+                  <span>{Math.floor(pivotPct)}%</span>
+                </div>
+                <div className="w-full bg-[#1e1e1e] rounded-full h-3 overflow-hidden border border-st-border mb-3">
+                  <div className="bg-purple-600 h-3 transition-all duration-300" style={{ width: `${pivotPct}%` }}></div>
+                </div>
+                <button 
+                  onClick={handleCancel}
+                  className="w-full py-1 bg-[#2b2b2b] border border-red-900 text-red-400 font-bold text-xs rounded hover:bg-red-900 hover:text-white transition-colors"
+                >
+                  🛑 Cancel
+                </button>
+              </div>
+            )}
+          </div>
           
+          {hasPivotAnalyzed && pivotResults && (
+            <div className="animate-fade-in space-y-6">
+              <div className="st-container border-t-4 border-t-purple-500">
+                <h4 className="font-bold mb-4 text-xl">2. The Auto-Pivot Verdict</h4>
+                
+                {(() => {
+                  const sqYield = pivotResults.statusQuo.yield;
+                  const pivYield = pivotResults.pivot.yield;
+                  const diff = pivYield - sqYield;
+                  const pct = sqYield > 0 ? (diff / sqYield) * 100 : 0;
+                  const isPivotViable = pct > 2.0;
+
+                  return (
+                    <>
+                      {isPivotViable ? (
+                        <div className="bg-green-900/20 border-l-4 border-green-500 p-4 rounded mb-6">
+                          <h5 className="font-bold text-green-400 text-lg mb-1">🚨 PIVOT RECOMMENDED!</h5>
+                          <p className="text-sm text-green-200">Your hypothetical upgrades allow you to efficiently push to a deeper tier. Respeccing your stats to the Meta Pivot build yields a <strong>+{pct.toFixed(1)}% increase</strong> in fragments compared to just staying the course!</p>
+                        </div>
+                      ) : (
+                        <div className="bg-yellow-900/20 border-l-4 border-yellow-500 p-4 rounded mb-6">
+                          <h5 className="font-bold text-yellow-400 text-lg mb-1">🟢 STAY THE COURSE</h5>
+                          <p className="text-sm text-yellow-200">The AI could not find a deeper stat plateau that definitively beats your current strategy. Your new upgrades make your current floor much faster, but you don't quite have the power to pivot yet.</p>
+                        </div>
+                      )}
+
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div className="bg-st-bg border border-st-border rounded p-4">
+                          <div className="text-center mb-4">
+                            <h5 className="font-bold text-gray-400">Strategy A: Status Quo</h5>
+                            <p className="text-xs text-st-text-light">Current Stats + Cart Upgrades</p>
+                          </div>
+                          <div className="flex justify-between items-center bg-black/20 p-3 rounded border border-st-border mb-4">
+                            <span className="font-bold text-sm">Yield / Min:</span>
+                            <span className="font-mono text-xl font-bold">{sqYield.toFixed(2)}</span>
+                          </div>
+                          <div className="flex justify-between items-center px-2 py-1 mb-4 border-b border-st-border/50 text-sm">
+                            <span className="text-st-text-light">Avg Floor Reached:</span>
+                            <span className="font-mono">{pivotResults.statusQuo.floor.toFixed(1)}</span>
+                          </div>
+                          <div className="grid grid-cols-4 gap-2">
+                            {activeStats.map(s => (
+                              <div key={s} className="text-center bg-black/10 rounded p-1">
+                                <div className="text-[10px] text-st-text-light">{s}</div>
+                                <div className="font-mono text-sm text-white">{pivotResults.statusQuo.stats[s]}</div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+
+                        <div className={`bg-st-bg border rounded p-4 ${isPivotViable ? 'border-purple-500 shadow-[0_0_15px_rgba(168,85,247,0.15)]' : 'border-st-border'}`}>
+                          <div className="text-center mb-4">
+                            <h5 className={`font-bold ${isPivotViable ? 'text-purple-400' : 'text-gray-400'}`}>Strategy B: Meta Pivot</h5>
+                            <p className="text-xs text-st-text-light">AI Optimized Stats + Cart Upgrades</p>
+                          </div>
+                          <div className="flex justify-between items-center bg-black/20 p-3 rounded border border-st-border mb-4">
+                            <span className="font-bold text-sm">Yield / Min:</span>
+                            <div className="text-right flex flex-col items-end">
+                              <span className={`font-mono text-xl font-bold ${isPivotViable ? 'text-green-400' : ''}`}>{pivYield.toFixed(2)}</span>
+                              {diff > 0 && <span className="text-[10px] text-green-400 font-bold bg-green-900/30 px-1 rounded absolute mt-7">+{diff.toFixed(2)}</span>}
+                            </div>
+                          </div>
+                          <div className="flex justify-between items-center px-2 py-1 mb-4 border-b border-st-border/50 text-sm">
+                            <span className="text-st-text-light">Avg Floor Reached:</span>
+                            <span className={`font-mono ${pivotResults.pivot.floor > pivotResults.statusQuo.floor ? 'text-green-400' : ''}`}>{pivotResults.pivot.floor.toFixed(1)}</span>
+                          </div>
+                          <div className="grid grid-cols-4 gap-2">
+                            {activeStats.map(s => {
+                              const bStat = pivotResults.pivot.stats[s] || 0;
+                              const sStat = pivotResults.statusQuo.stats[s] || 0;
+                              const delta = bStat - sStat;
+                              return (
+                                <div key={s} className="text-center bg-black/10 rounded p-1 relative">
+                                  <div className="text-[10px] text-st-text-light">{s}</div>
+                                  <div className={`font-mono text-sm ${delta > 0 ? 'text-green-400' : delta < 0 ? 'text-red-400' : 'text-white'}`}>{bStat}</div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      </div>
+                    </>
+                  );
+                })()}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {(cartItems.length > 0 || (forecasterMode === 'wall' && hasAnalyzed && results)) && (
+        <div className="animate-fade-in space-y-6">
           <div className="st-container border-t-4 border-t-green-500 bg-green-500/5">
             <div className="flex justify-between items-center mb-4">
               <h4 className="font-bold text-xl text-green-500">🛒 Planned Upgrades Cart</h4>
@@ -635,7 +956,7 @@ export default function ForecasterTab() {
                 {cartItems.map((item, idx) => {
                   const ascTier = store.asc2_unlocked ? 2 : (store.asc1_unlocked ? 1 : 0);
                   const totalCostStr = getCartItemTotalCost(item, store, ascTier);
-                  const nextGain = results.fullList?.find(i => i.type === item.type && i.id === item.id);
+                  const nextGain = results?.fullList?.find(i => i.type === item.type && i.id === item.id);
                   const baseLvl = getDynamicBaseLvl(item);
                   
                   const lvlNames =[ "None", "Regular", "Gilded", "Poly", "Infernal" ];
@@ -726,6 +1047,11 @@ export default function ForecasterTab() {
               </button>
             </div>
           </div>
+        </div>
+      )}
+
+      {forecasterMode === 'wall' && hasAnalyzed && results && (
+        <div className="animate-fade-in space-y-6">
 
           <div className="st-container border-t-4 border-t-st-orange">
             <h4 className="font-bold mb-4 text-xl">2. The Mathematical Diagnosis</h4>
