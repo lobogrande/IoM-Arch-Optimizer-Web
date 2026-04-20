@@ -863,7 +863,7 @@ export default function ForecasterTab() {
             )}
             
             <h4 className="font-bold mb-2 text-xl">3. The Oracle's Shopping List</h4>
-            <p className="text-sm text-st-text-light mb-6">These items calculate the *immediate next level* based on your current Global Build + Cart Items. Add items to your cart to mathematically step forward in time.</p>
+            <p className="text-sm text-st-text-light mb-6">These lists show the calculated benefit of adding exactly one (+1) level to each available upgrade. The gains are evaluated dynamically against your current Global Player Setup combined with any items sitting in your Cart. Add items to your Cart to step forward in time and reveal your next best moves!</p>
             
             <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-4 gap-6">
               
