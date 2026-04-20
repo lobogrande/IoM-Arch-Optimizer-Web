@@ -21,7 +21,7 @@ export default function ForecasterTab() {
   const pushBudget = store.forecaster_pushBudget ?? 500;
   const setPushBudget = (v) => store.setSimsState('forecaster_pushBudget', v);
 
-  const simPrecision = store.forecaster_simPrecision ?? 500;
+  const simPrecision = store.forecaster_simPrecision ?? 100;
   const setSimPrecision = (v) => store.setSimsState('forecaster_simPrecision', v);
 
   const cartItems = store.forecaster_cartItems || [ ];
