@@ -517,6 +517,7 @@ export default function Simulations() {
 
     cols.push({
         headerName: "Actions",
+        flex: 1,
         suppressAutoSize: true,
         minWidth: 140,
         sortable: false,
@@ -3113,8 +3114,19 @@ export default function Simulations() {
                       theme="legacy"
                       rowData={store.synth_history}
                       defaultColDef={sandboxDefaultColDef}
-                      autoSizeStrategy={sandboxAutoSizeStrategy}
                       columnDefs={synthHistoryColumns}
+                      onFirstDataRendered={(p) => { 
+                        try { 
+                          const colsToSize = p.api.getColumns().filter(c => !c.getColDef().suppressAutoSize).map(c => c.getColId());
+                          p.api.autoSizeColumns(colsToSize); 
+                        } catch(e){} 
+                      }}
+                      onRowDataUpdated={(p) => { 
+                        try { 
+                          const colsToSize = p.api.getColumns().filter(c => !c.getColDef().suppressAutoSize).map(c => c.getColId());
+                          p.api.autoSizeColumns(colsToSize); 
+                        } catch(e){} 
+                      }}
                     />
                   </div>
                 </div>
