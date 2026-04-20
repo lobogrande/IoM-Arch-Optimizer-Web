@@ -18,9 +18,6 @@ export default function ForecasterTab() {
   const targetFloor = store.forecaster_targetFloor ?? (store.current_max_floor || 150);
   const setTargetFloor = (v) => store.setSimsState('forecaster_targetFloor', v);
 
-  const targetBlock = store.forecaster_targetBlock ?? 'div4';
-  const setTargetBlock = (v) => store.setSimsState('forecaster_targetBlock', v);
-
   const pushBudget = store.forecaster_pushBudget ?? 500;
   const setPushBudget = (v) => store.setSimsState('forecaster_pushBudget', v);
 
@@ -300,15 +297,32 @@ export default function ForecasterTab() {
       const baseResultState = await runCalc(basePayload);
       if (cancelRef.current) return;
 
-      const baseBlock = baseResultState.blocks_data.find(b => b.id === targetBlock);
+      // Dynamically determine the hardest block for the target floor
+      const availableBlockIds = Object.keys(ORE_MIN_FLOORS).filter(id => {
+        if (!store.asc1_unlocked && (id.startsWith('div') || id.endsWith('4'))) return false;
+        if (!store.asc2_unlocked && id.endsWith('4')) return false;
+        return targetFloor >= ORE_MIN_FLOORS[id];
+      });
+
+      let hardestBlockId = 'myth3'; // Fallback
+      let maxHits = -1;
+      baseResultState.blocks_data.forEach(b => {
+        if (availableBlockIds.includes(b.id) && b.avg_hits > maxHits) {
+          maxHits = b.avg_hits;
+          hardestBlockId = b.id;
+        }
+      });
+
+      const baseBlock = baseResultState.blocks_data.find(b => b.id === hardestBlockId);
       
       if (!baseBlock) {
-        alert("Target block not available on this floor or ascension level.");
+        alert("No valid blocks found for this floor. Check your ascension limits.");
         setIsAnalyzing(false);
         return;
       }
 
       const baseline = {
+        target_block: hardestBlockId,
         hp: baseBlock.mod_hp,
         edps: baseBlock.edps,
         armor: baseBlock.mod_armor,
@@ -328,7 +342,7 @@ export default function ForecasterTab() {
       const ascTier = store.asc2_unlocked ? 2 : (store.asc1_unlocked ? 1 : 0);
 
       const processDelta = (testState, type, id, name, action, costStr, desc) => {
-        const testBlock = testState.blocks_data.find(b => b.id === targetBlock);
+        const testBlock = testState.blocks_data.find(b => b.id === baseline.target_block);
         if (!testBlock) return;
 
         const d_edps = testBlock.edps - baseline.edps;
@@ -521,26 +535,30 @@ export default function ForecasterTab() {
     alert("✅ Cart items applied directly to your Global Player Build!");
   };
 
-  const getAvailableBlocks = () => {
-    const blocks = [ ];
-    Object.keys(ORE_MIN_FLOORS).forEach(id => {
-      if (!store.asc1_unlocked && (id.startsWith('div') || id.endsWith('4'))) return;
-      if (!store.asc2_unlocked && id.endsWith('4')) return;
-      if (targetFloor >= ORE_MIN_FLOORS[id]) blocks.push(id);
-    });
-    return blocks.sort();
-  };
-
   return (
     <div className="space-y-6 animate-fade-in">
-      <h2 className="text-2xl font-bold">🎯 Progression Wall Breaker</h2>
-      <p className="text-st-text-light">
-        Work backwards from your goal. Select a future target floor, and the Oracle will calculate the aggregate stamina required to survive the gauntlet leading up to it. Use the interactive shopping cart to test upgrades and mathematically bridge the gap!
-      </p>
+      <div className="flex flex-col gap-2">
+        <h2 className="text-2xl font-bold">🎯 Progression Wall Breaker</h2>
+        <p className="text-st-text-light">
+          Work backwards from your goal. Select a future target floor, and the Oracle will calculate the aggregate stamina required to survive the gauntlet leading up to it. Use the interactive shopping cart to test upgrades and mathematically bridge the gap!
+        </p>
+      </div>
+
+      <div className="bg-blue-900/10 border border-blue-500/30 rounded p-4 text-sm text-blue-200 shadow-sm">
+        <h4 className="font-bold text-blue-400 mb-2 flex items-center gap-2">
+          <span className="text-lg">ℹ️</span> How to use the Forecaster:
+        </h4>
+        <ol className="list-decimal pl-5 space-y-1 text-blue-200/80">
+          <li><strong>Optimize First:</strong> Ensure you have already generated and applied a "Max Floor Push" build on your Synthesis tab.</li>
+          <li><strong>Set Your Goal:</strong> Enter your target floor and Arch Seconds budget below. (The Forecaster will automatically identify the hardest block on that floor).</li>
+          <li><strong>Draft Upgrades:</strong> Keep the simulation set to <strong>100 Runs</strong> while adding items to your cart so the engine updates instantly.</li>
+          <li><strong>Verify Probability:</strong> Once your cart looks ready, switch to <strong>500 or 1000 Runs</strong> for a highly accurate Monte Carlo probability check before spending your resources.</li>
+        </ol>
+      </div>
 
       <div className="st-container border-l-4 border-l-blue-500">
         <h4 className="font-bold mb-4">1. Define the Goal</h4>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div>
             <label className="block text-sm font-bold mb-1">Target Floor</label>
             <input 
@@ -549,16 +567,6 @@ export default function ForecasterTab() {
               onChange={(e) => setTargetFloor(parseInt(e.target.value) || 1)}
               className="w-full bg-st-bg border border-st-border rounded p-2 text-st-text focus:border-st-orange focus:outline-none"
             />
-          </div>
-          <div>
-            <label className="block text-sm font-bold mb-1">Target Block</label>
-            <select 
-              value={targetBlock} 
-              onChange={(e) => setTargetBlock(e.target.value)}
-              className="w-full bg-st-bg border border-st-border rounded p-2 text-st-text focus:border-st-orange focus:outline-none capitalize"
-            >
-              {getAvailableBlocks().map(b => <option key={b} value={b}>{b}</option>)}
-            </select>
           </div>
           <div>
             <label className="block text-sm font-bold mb-1">Max Push Budget (k Arch Secs)</label>
@@ -795,7 +803,10 @@ export default function ForecasterTab() {
               </div>
 
               <div className="bg-st-bg border border-st-border rounded p-4">
-                <h5 className="font-bold text-st-text-light mb-2 border-b border-st-border pb-1 capitalize">Target: {targetBlock} Block Breakpoints</h5>
+                <h5 className="font-bold text-st-text-light mb-2 border-b border-st-border pb-1 capitalize flex items-center gap-2">
+                  Target: {results.baseline.target_block} Breakpoints
+                  <span className="text-[10px] bg-red-900/30 text-red-400 px-1 py-0.5 rounded normal-case font-normal border border-red-500/30 shadow-sm">Hardest Block</span>
+                </h5>
                 <div className="flex justify-between mb-1"><span>Current EDPS:</span> <span className="font-mono text-st-orange">{Math.floor(results.baseline.edps).toLocaleString()}</span></div>
                 <div className="flex justify-between mb-3 border-b border-st-border pb-2"><span>Avg Hits to Kill:</span> <span className="font-mono text-white font-bold">{results.baseline.avg_hits}</span></div>
                 
