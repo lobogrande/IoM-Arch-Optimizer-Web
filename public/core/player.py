@@ -248,7 +248,17 @@ class Player:
         bb_mult = 1.0 + (self.w('W13') * min(100, self.current_max_floor))
         
         val = (base_calc + stat_calc) * asc2_calc * bb_mult * (1.0 + self.inf('epic3'))
-        return self._excel_round(val, 0)
+        return self._excel_round(val, 0)@property
+    def max_sta(self):
+        base_calc = 100 + self.u('F14') + self.u('F23') + self.u('H39') + self.u('F3') + self.inf('leg4')
+        stat_calc = self.stat('Agi') * (5 + self.u('F26'))
+        asc2_calc = (1 + self.u('H28') + self.u('F54')) * (1 - 0.03 * self.stat('Corr'))
+        
+        # PROPER BLOCK BONKER BINDING (W13)
+        bb_mult = 1.0 + (self.w('W13') * min(100, self.current_max_floor))
+        
+        val = (base_calc + stat_calc) * asc2_calc * bb_mult * (1.0 + self.inf('epic3'))
+        return math.floor(val)
 
     @property
     def damage(self):
@@ -262,7 +272,7 @@ class Player:
         bb_mult = 1.0 + (self.w('W12') * min(100, self.current_max_floor))
         
         val = (base_calc + stat_calc1 + stat_calc2 + self.base_damage_const) * (mult1 + mult2) * bb_mult
-        return self._excel_round(val, 0)
+        return math.floor(val)
 
     @property
     def enraged_damage(self):
@@ -278,7 +288,7 @@ class Player:
         bb_mult = 1.0 + (self.w('W12') * min(100, self.current_max_floor))
         
         val = (base_calc + stat_calc1 + stat_calc2 + self.base_damage_const) * (mult1 + mult2 + enrage_mult) * bb_mult
-        return self._excel_round(val, 0)
+        return math.floor(val)
     
     @property
     def armor_pen(self):
@@ -289,7 +299,7 @@ class Player:
         upg_mult = 1.0 + (0.03 * self.stat('Int')) + self.u('F29')
         card_mult = 1.0 + self.inf('rare3')
         
-        return self._excel_round(base_ap * upg_mult * card_mult, 0)
+        return math.floor(base_ap * upg_mult * card_mult)
 
     @property
     def atk_spd(self): return 1.0
