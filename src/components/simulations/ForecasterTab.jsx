@@ -1,7 +1,7 @@
 // src/components/simulations/ForecasterTab.jsx
 import { useState, useEffect, useRef } from 'react';
 import useStore from '../../store';
-import { EngineWorkerPool, runOptimizationPhase, topUpBuild } from '../../utils/optimizer';
+import { EngineWorkerPool, runOptimizationPhase, topUpBuild, getOptimalStepProfile } from '../../utils/optimizer';
 import { INTERNAL_UPGRADE_CAPS, UPGRADE_NAMES, ASC1_LOCKED_UPGS, ASC2_LOCKED_UPGS, UPGRADE_LEVEL_REQS, EXTERNAL_UI_GROUPS, calculateUpgradeCost, CURRENCY_TYPES, INFERNAL_CARD_BONUSES } from '../../game_data';
 
 const ORE_MIN_FLOORS = {
@@ -614,21 +614,48 @@ export default function ForecasterTab() {
       };
       
       const bounds = {};
-      activeStats.forEach(s => bounds[s] =[ 0, STAT_CAPS[s] ]);
+      activeStats.forEach(s => bounds[s] = [ 0, STAT_CAPS[s] ]);
       
+      const simsPerSec = store.simsPerSec || 15;
+      // Fetch a safe step profile to prevent combinatorial explosion (Too many elements in Promise.all)
+      const profData = getOptimalStepProfile(activeStats, dynamicBudget, bounds, simsPerSec, 30);
+      const step1 = profData ? profData.step_1 : 15;
+      const p1Budget = dynamicBudget - (dynamicBudget % step1);
+
       const onProgressCb = (phase, rnd, totRnd, comp, tot) => {
           setPivotPct(30 + ((comp / tot) * 40));
-          setPivotMsg(`AI Auto-Pivoting - ${comp}/${tot}`);
+          setPivotMsg(`AI Auto-Pivoting - Phase: ${phase} (${comp}/${tot})`);
       };
 
-      // Fast search: jump by 3 points
-      const { bestDist: bestP1 } = await runOptimizationPhase(
-        "Pivot Fast Search", targetMetric, activeStats, dynamicBudget, 3, 25,
-        poolRef.current, {}, bounds, 60, Date.now(), onProgressCb, effState.base_stats
+      const globalStartTime = Date.now();
+
+      // Phase 1 (Coarse Search)
+      let { bestDist: bestP1 } = await runOptimizationPhase(
+        "Coarse", targetMetric, activeStats, p1Budget, step1, 15,
+        poolRef.current, {}, bounds, 30, globalStartTime, onProgressCb, effState.base_stats
       );
       
       if (cancelRef.current) return;
-      const bestFinal = topUpBuild(bestP1, activeStats, dynamicBudget, STAT_CAPS, bounds);
+
+      // Phase 2 (Fine Search)
+      const step2 = profData ? profData.step_2 : Math.max(1, Math.floor(step1 / 2));
+      const boundsP2 = {};
+      activeStats.forEach(s => {
+        boundsP2[s] =[
+          Math.max(bounds[s][0], bestP1[s] - step1),
+          Math.min(bounds[s][1], bestP1[s] + step1)
+        ];
+      });
+      const p2Budget = dynamicBudget - (dynamicBudget % step2);
+
+      let { bestDist: bestP2 } = await runOptimizationPhase(
+        "Fine", targetMetric, activeStats, p2Budget, step2, 25,
+        poolRef.current, {}, boundsP2, 30, globalStartTime, onProgressCb, bestP1
+      );
+
+      if (cancelRef.current) return;
+
+      const bestFinal = topUpBuild(bestP2 || bestP1, activeStats, dynamicBudget, STAT_CAPS, bounds);
 
       // 3. Evaluate Pivot
       setPivotMsg(`Verifying Pivot (${simPrecision} runs)...`);
