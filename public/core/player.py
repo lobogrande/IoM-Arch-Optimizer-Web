@@ -108,12 +108,8 @@ class Player:
         self._init_cards()
 
     # --------------------------------------------------------------------------
-    # EXCEL-COMPLIANT ROUNDING HELPERS
+    # ROUNDING HELPERS
     # --------------------------------------------------------------------------
-    def _f32(self, val):
-        """Emulates C# 32-bit floating point precision limits."""
-        return struct.unpack('f', struct.pack('f', val))[0]
-
     def _excel_floor(self, val, decimals):
         mult = 10 ** decimals
         return math.floor((val + 1e-9) * mult) / mult
@@ -259,7 +255,7 @@ class Player:
         bb_mult = 1.0 + (self.w('W13') * min(100, self.current_max_floor))
         
         val = (base_calc + stat_calc) * asc2_calc * bb_mult * (1.0 + self.inf('epic3'))
-        return float(int(val))
+        return float(round(val))
 
     @property
     def damage(self):
@@ -273,7 +269,7 @@ class Player:
         bb_mult = 1.0 + (self.w('W12') * min(100, self.current_max_floor))
         
         val = (base_calc + stat_calc1 + stat_calc2 + self.base_damage_const) * (mult1 + mult2) * bb_mult
-        return float(int(val))
+        return float(round(val))
 
     @property
     def enraged_damage(self):
@@ -289,7 +285,7 @@ class Player:
         bb_mult = 1.0 + (self.w('W12') * min(100, self.current_max_floor))
         
         val = (base_calc + stat_calc1 + stat_calc2 + self.base_damage_const) * (mult1 + mult2 + enrage_mult) * bb_mult
-        return float(int(val))
+        return float(round(val))
     
     @property
     def armor_pen(self):
@@ -300,7 +296,7 @@ class Player:
         upg_mult = 1.0 + (0.03 * self.stat('Int')) + self.u('F29')
         card_mult = 1.0 + self.inf('rare3')
         
-        return float(int(base_ap * upg_mult * card_mult))
+        return float(round(base_ap * upg_mult * card_mult))
 
     @property
     def atk_spd(self): return 1.0
@@ -311,13 +307,13 @@ class Player:
     @property
     def crit_dmg_mult(self): 
         inner = 1.0 + self.u('H13') + self.u('F30') + (0.03 + self.u('H47')) * self.stat('Str')
-        val = 1.5 * self._f32(inner) * (1.0 + self.inf('com1')) * (1.0 + self.inf('epic4'))
+        val = 1.5 * inner * (1.0 + self.inf('com1')) * (1.0 + self.inf('epic4'))
         return self._excel_round(val, 2)
         
     @property
     def enraged_crit_dmg_mult(self): 
-        inner = 1.0 + (1.0 + self.u('F18')) + self.u('H13') + self.u('F30') + (0.03 + self.u('H47')) * self.stat('Str')
-        val = 1.5 * self._f32(inner) * (1.0 + self.inf('com1')) * (1.0 + self.inf('epic4'))
+        inner = 1.0 + self.u('H13') + self.u('F30') + (0.03 + self.u('H47')) * self.stat('Str')
+        val = 1.5 * (inner * (1.0 + self.inf('com1')) * (1.0 + self.inf('epic4')) + (1.0 + self.u('F18')))
         return self._excel_round(val, 2)
         
     @property
@@ -327,7 +323,7 @@ class Player:
     def super_crit_dmg_mult(self): 
         if self.super_crit_chance <= 0: return 0.0
         inner = 1.0 + self.u('H30') + self.u('F53')
-        val = 2.0 * self._f32(inner) * (1.0 + self.inf('com2'))
+        val = 2.0 * inner * (1.0 + self.inf('com2'))
         return self._excel_round(val, 2)
         
     @property
@@ -337,7 +333,7 @@ class Player:
     def ultra_crit_dmg_mult(self): 
         if self.ultra_crit_chance <= 0: return 0.0
         inner = (1.0 + self.u('F40')) * (1.0 + self.inf('com3'))
-        return self._excel_round(3.0 * self._f32(inner), 2)
+        return self._excel_round(3.0 * inner, 2)
 
     @property
     def ability_insta_charge(self): return self.w('W11') + self.u('F39') + self.u('F50') + self.inf('myth4')
@@ -378,13 +374,13 @@ class Player:
     def speed_mod_gain(self): 
         # PROPER BLOCK BONKER BINDING (W14)
         base_val = (10.0 + (15.0 * self.w('W14'))) * (1.0 + self.u('F55') + self.stat('Corr') * (0.01 + self.u('H52')))
-        return self._excel_round(base_val, 0)
+        return float(round(base_val))
     @property
     def speed_mod_attack_rate(self): return 2.0
     @property
     def stamina_mod_chance(self): return self.u('H3') + self.u('H14') + self.u('F24') + self.u('F44') + self.u('H40') + self.u('H50') + (0.002 * self.stat('Luck')) + self.inf('myth3') + self.inf('div4')
     @property
-    def stamina_mod_gain(self): return self._excel_round((3.0 + self.u('F43') + self.u('H23')) * (1.0 + self.u('F55') + self.stat('Corr') * (0.01 + self.u('H52'))), 0) + self.inf('div3')
+    def stamina_mod_gain(self): return float(round((3.0 + self.u('F43') + self.u('H23')) * (1.0 + self.u('F55') + self.stat('Corr') * (0.01 + self.u('H52'))))) + self.inf('div3')
 
     @property
     def gleaming_floor_chance(self): return (self.u('F19') + self.inf('myth1') + self.inf('div2')) if self.asc2_unlocked else 0.0
@@ -396,7 +392,7 @@ class Player:
     @property
     def enrage_cooldown(self): 
         val = (60 + self.u('H18') + self.u('H29') + self.u('H32') + self.w('W10')) * (1 + self.w('W20'))
-        return self._excel_round(val, 0)
+        return float(round(val))
         
     @property
     def enrage_bonus_dmg(self): return 0.2 + self.u('F18')
@@ -408,7 +404,7 @@ class Player:
     @property
     def flurry_cooldown(self): 
         val = (115 + self.u('H22') + self.u('H29') + self.w('W10')) * (1 + self.w('W20'))
-        return self._excel_round(val, 0)
+        return float(round(val))
         
     @property
     def flurry_bonus_atk_spd(self): return 1.0
@@ -420,6 +416,6 @@ class Player:
     @property
     def quake_cooldown(self): 
         val = (175 + self.u('H29') + self.u('H31') + self.w('W10')) * (1 + self.w('W20'))
-        return self._excel_round(val, 0)
+        return float(round(val))
     @property
     def quake_dmg_to_all(self): return 0.2
