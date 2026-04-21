@@ -24,7 +24,10 @@ export default function ForecasterTab() {
   const simPrecision = store.forecaster_simPrecision ?? 100;
   const setSimPrecision = (v) => store.setSimsState('forecaster_simPrecision', v);
 
-  const cartItems = store.forecaster_cartItems || [ ];
+  const pivotRoiPrecision = store.forecaster_pivotRoiPrecision ?? 15;
+  const setPivotRoiPrecision = (v) => store.setSimsState('forecaster_pivotRoiPrecision', v);
+
+  const cartItems = store.forecaster_cartItems ||[ ];
 
   const isDevMode = import.meta.env.DEV || store.forecaster_devMode || false;
   const [forecasterMode, setForecasterMode] = useState('wall');
@@ -720,7 +723,7 @@ export default function ForecasterTab() {
       setPivotPct(85);
 
       const roiScans = [ ];
-      const simCount = 15;
+      const simCount = pivotRoiPrecision;
       let scansCompleted = 0;
 
       const queueRoi = (type, id, name, action, costStr, desc, payloadOverrides) => {
@@ -805,10 +808,10 @@ export default function ForecasterTab() {
         return { ...item, d_yield };
       }).filter(i => i.d_yield > 0.01).sort((a, b) => b.d_yield - a.d_yield);
 
-      const topStats = roiResults.filter(i => i.type === 'stat').slice(0, 10);
-      const topUpgs = roiResults.filter(i => i.type === 'upg').slice(0, 10);
-      const topExts = roiResults.filter(i => i.type === 'ext').slice(0, 10);
-      const topCards = roiResults.filter(i => i.type === 'card').slice(0, 10);
+      const topStats = roiResults.filter(i => i.type === 'stat');
+      const topUpgs = roiResults.filter(i => i.type === 'upg');
+      const topExts = roiResults.filter(i => i.type === 'ext');
+      const topCards = roiResults.filter(i => i.type === 'card');
 
       poolRef.current.terminate();
       poolRef.current = null;
@@ -963,7 +966,7 @@ export default function ForecasterTab() {
 
           <div className="st-container border-l-4 border-l-purple-500">
             <h4 className="font-bold mb-4">1. Define the Strategy Evaluation</h4>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
                 <label className="block text-sm font-bold mb-1">Target Economy Resource</label>
                 <select 
@@ -980,7 +983,7 @@ export default function ForecasterTab() {
                 </select>
               </div>
               <div>
-                <label className="block text-sm font-bold mb-1">Simulation Precision</label>
+                <label className="block text-sm font-bold mb-1">Strategy Precision</label>
                 <select 
                   value={simPrecision} 
                   onChange={(e) => setSimPrecision(parseInt(e.target.value))}
@@ -989,7 +992,21 @@ export default function ForecasterTab() {
                   <option value={100}>100 Runs (Fast / High Noise)</option>
                   <option value={500}>500 Runs (Balanced)</option>
                 </select>
-                <div className="text-xs text-st-text-light mt-1">Both strategies are evaluated using this sample size.</div>
+                <div className="text-xs text-st-text-light mt-1">Evaluates the base strategies.</div>
+              </div>
+              <div>
+                <label className="block text-sm font-bold mb-1">ROI Precision</label>
+                <select 
+                  value={pivotRoiPrecision} 
+                  onChange={(e) => setPivotRoiPrecision(parseInt(e.target.value))}
+                  className="w-full bg-st-bg border border-st-border rounded p-2 text-st-text focus:border-st-orange focus:outline-none"
+                >
+                  <option value={15}>15 Runs (Fast, High Variance)</option>
+                  <option value={30}>30 Runs (Balanced)</option>
+                  <option value={50}>50 Runs (Accurate, Slower)</option>
+                  <option value={100}>100 Runs (Max Precision)</option>
+                </select>
+                <div className="text-xs text-st-text-light mt-1">Evaluates individual shopping list items.</div>
               </div>
             </div>
 
@@ -1520,7 +1537,10 @@ export default function ForecasterTab() {
         <div className="animate-fade-in space-y-6 mt-6">
           <div className="st-container border-t-4 border-t-purple-500">
             <h4 className="font-bold mb-2 text-xl">3. The Oracle's Economy Shopping List</h4>
-            <p className="text-sm text-st-text-light mb-6">These lists show the calculated fragment yield gain of exactly one (+1) level to each available upgrade. The gains are evaluated dynamically against your fully re-optimized Pivot build. Add items to your Cart to increase the viability of the Strategy Shift!</p>
+            <p className="text-sm text-st-text-light mb-4">These lists show the calculated fragment yield gain of exactly one (+1) level to each available upgrade. The gains are evaluated dynamically against your fully re-optimized Pivot build. Add items to your Cart to increase the viability of the Strategy Shift!</p>
+            <div className="bg-yellow-900/40 border-l-4 border-yellow-500 p-3 rounded mb-6 text-sm">
+              ⚠️ <strong>Note:</strong> Items with similar mathematical gains might shuffle or fall off the list due to RNG variance. Increase <strong>ROI Precision</strong> in step 1 to stabilize the math!
+            </div>
             
             <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-4 gap-6">
               {[

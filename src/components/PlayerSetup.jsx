@@ -10,8 +10,8 @@ import {
 import { INTERNAL_UPGRADE_CAPS, UPGRADE_NAMES, ASC1_LOCKED_UPGS, ASC2_LOCKED_UPGS, CARD_TYPES, INFERNAL_CARD_BONUSES, EXTERNAL_UI_GROUPS, UPGRADE_LEVEL_REQS } from '../game_data';
 
 export default function PlayerSetup() {
-  const { asc1_unlocked, asc2_unlocked, arch_level, current_max_floor, base_stats, upgrade_levels, external_levels, cards, arch_ability_infernal_bonus, total_infernal_cards, geoduck_unlocked, calculated_stats, setSetting, setBaseStat, setUpgradeLevel, setCardLevel, setExternalGroup, loadStateFromJson, setSandboxStat, hideMaxed, setHideMaxed, activeSubTab, setActiveSubTab, profiles, activeProfileId, createProfile, loadProfile, saveToProfile, renameProfile, deleteProfile, resetState } = useStore();
-  const[isDragging, setIsDragging] = useState(false);
+  const { asc1_unlocked, asc2_unlocked, arch_level, current_max_floor, base_stats, upgrade_levels, external_levels, cards, arch_ability_infernal_bonus, total_infernal_cards, geoduck_unlocked, calculated_stats, setSetting, setBaseStat, setUpgradeLevel, setCardLevel, setExternalGroup, loadStateFromJson, setSandboxStat, hideMaxed, setHideMaxed, activeSubTab, setActiveSubTab, setActiveTab, setSimActiveSubTab, profiles, activeProfileId, createProfile, loadProfile, saveToProfile, renameProfile, deleteProfile, resetState } = useStore();
+  const [isDragging, setIsDragging] = useState(false);
   const [showDiffModal, setShowDiffModal] = useState(false);
 
   const diffs = useMemo(() => {
@@ -464,13 +464,13 @@ export default function PlayerSetup() {
 
             <div className="flex flex-col md:flex-row gap-2 mt-6">
               <button 
-                onClick={(e) => {['Str', 'Agi', 'Per', 'Int', 'Luck', 'Div', 'Corr'].forEach(s => {
+                onClick={() => {
+                  [ 'Str', 'Agi', 'Per', 'Int', 'Luck', 'Div', 'Corr' ].forEach(s => {
                     if (setSandboxStat) setSandboxStat(s, base_stats[s] || 0);
                   });
-                  const btn = e.target;
-                  const originalText = btn.innerText;
-                  btn.innerText = "✅ Sent to Sandbox!";
-                  setTimeout(() => { btn.innerText = originalText; }, 2000);
+                  setActiveTab('simulations');
+                  setSimActiveSubTab('sandbox');
+                  window.scrollTo({ top: 0, behavior: 'smooth' });
                 }}
                 className="flex-1 py-2 bg-[#2b2b2b] border border-st-orange text-st-orange font-bold rounded hover:bg-st-orange hover:text-[#2b2b2b] transition-colors"
               >
@@ -480,9 +480,11 @@ export default function PlayerSetup() {
               <div className="flex flex-1 gap-2">
                 <button 
                   onClick={() => {
-                    const statsToTransfer = {};['Str', 'Agi', 'Per', 'Int', 'Luck', 'Div', 'Corr'].forEach(s => statsToTransfer[s] = base_stats[s] || 0);
+                    const statsToTransfer = {};[ 'Str', 'Agi', 'Per', 'Int', 'Luck', 'Div', 'Corr' ].forEach(s => statsToTransfer[s] = base_stats[s] || 0);
                     setSetting('duelStatsA', statsToTransfer);
-                    alert("✅ Sent to Duel (Build A)");
+                    setActiveTab('simulations');
+                    setSimActiveSubTab('duel');
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
                   }}
                   className="flex-1 py-2 bg-[#2b2b2b] border border-st-orange text-st-orange font-bold rounded hover:bg-st-orange hover:text-[#2b2b2b] transition-colors"
                 >
@@ -490,9 +492,11 @@ export default function PlayerSetup() {
                 </button>
                 <button 
                   onClick={() => {
-                    const statsToTransfer = {};['Str', 'Agi', 'Per', 'Int', 'Luck', 'Div', 'Corr'].forEach(s => statsToTransfer[s] = base_stats[s] || 0);
+                    const statsToTransfer = {};[ 'Str', 'Agi', 'Per', 'Int', 'Luck', 'Div', 'Corr' ].forEach(s => statsToTransfer[s] = base_stats[s] || 0);
                     setSetting('duelStatsB', statsToTransfer);
-                    alert("✅ Sent to Duel (Build B)");
+                    setActiveTab('simulations');
+                    setSimActiveSubTab('duel');
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
                   }}
                   className="flex-1 py-2 bg-[#2b2b2b] border border-st-orange text-st-orange font-bold rounded hover:bg-st-orange hover:text-[#2b2b2b] transition-colors"
                 >
