@@ -747,9 +747,11 @@ export default function PlayerSetup() {
                       {infData && (
                         <div className="h-10 mt-3 flex flex-col items-center justify-center w-full text-center border-t border-st-border/50 pt-2">
                           {user_tier >= 3 && !is_locked ? (() => {
-                            const rawVal = infData.base * infMult;
+                            // Override the legacy 1.126 reverse-engineering hack with the true 1.0 base
+                            const trueBase = (card_id === 'div3' && infData.base === 1.126) ? 1.0 : infData.base;
+                            const rawVal = trueBase * infMult;
                             const decMult = Math.pow(10, infData.dec);
-                            const rounded = Math.floor((rawVal + 1e-9) * decMult + 0.5) / decMult;
+                            const rounded = Math.floor(rawVal * decMult + 0.5) / decMult;
                             
                             let displayVal = "";
                             if (infData.isPct) {
