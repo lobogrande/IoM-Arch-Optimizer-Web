@@ -41,8 +41,10 @@ export class EngineWorkerPool {
     // Spawns Pyodide workers and waits for them to compile the Python environment
     init(onReady, onProgress) {
         return new Promise((resolve) => {
+            // Pass version into the worker to explicitly cache-bust Python stat engine payloads
+            const APP_VERSION = "1.6.7"; 
             for (let i = 0; i < this.size; i++) {
-                const w = new Worker('/engine_worker.js');
+                const w = new Worker(`/engine_worker.js?v=${APP_VERSION}`);
                 w.onmessage = (e) => {
                     if (e.data.type === 'READY') {
                         this.readyCount++;

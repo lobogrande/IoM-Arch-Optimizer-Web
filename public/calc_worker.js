@@ -6,9 +6,14 @@ let pyodide;
 async function initCalcEngine() {
     pyodide = await loadPyodide();
     pyodide.FS.mkdir("core");
+    pyodide.FS.mkdir("engine"); // <--- FIX: We must create the engine directory!
+
+    // Extract version from worker URL if provided, otherwise fallback to an aggressive dev cache-buster
+    const urlParams = new URLSearchParams(self.location.search);
+    const APP_VERSION = urlParams.get('v') || Date.now();
 
     async function fetchAndWrite(filepath) {
-        const response = await fetch('/' + filepath);
+        const response = await fetch('/' + filepath + '?v=' + APP_VERSION);
         const text = await response.text();
         pyodide.FS.writeFile(filepath, text);
     }
@@ -16,6 +21,9 @@ async function initCalcEngine() {
     await fetchAndWrite("project_config.py");
     await fetchAndWrite("core/player.py");
     await fetchAndWrite("core/block.py");
+    await fetchAndWrite("core/skills.py");
+    await fetchAndWrite("engine/floor_map.py");
+    await fetchAndWrite("engine/combat_loop.py");
 
     // Pre-compile the Python function that maps our JS data into the Player object
     await pyodide.runPythonAsync(`
@@ -54,6 +62,7 @@ def calculate_all_stats(js_data):
         p.set_upgrade_level(int(k), v)
         
     target_floor = int(data.get('compendium_target_floor', p.current_max_floor))
+    do_full_sim = data.get('do_full_sim', False)
     
     from core.block import Block
     import project_config as cfg
@@ -137,8 +146,72 @@ def calculate_all_stats(js_data):
     inf_keys =[ "rare2", "div1", "leg3", "rare3", "epic3", "com1", "com2", "com3", "epic2", "dirt2", "dirt3", "leg1", "dirt1", "rare1", "epic1", "leg2", "myth2", "myth3", "div3", "dirt4", "myth1", "div2", "com4", "rare4", "epic4", "leg4", "myth4", "div4" ]
     inf_bonuses = {k: p.inf(k) for k in inf_keys}
 
+    push_start_floor = int(data.get('push_start_floor', target_floor))
+    avg_max_floor = 0.0
+    floor_distribution =[]
+    avg_run_time = 0.0
+
+    if do_full_sim:
+        from engine.combat_loop import CombatSimulator
+        import copy
+        import random
+        import js
+        random.seed()
+        tot_flr = 0
+        tot_time = 0.0
+        sim_count = int(data.get('sim_count', 500)) # Dynamically injected from UI!
+        for _ in range(sim_count):
+            p_clone = copy.deepcopy(p)
+            sim = CombatSimulator(p_clone)
+            res = sim.run_simulation()
+            tot_flr += res.highest_floor
+            tot_time += res.total_time
+            floor_distribution.append(res.highest_floor)
+            
+            # Report progress natively to the JS UI!
+            if hasattr(js, 'js_progress_callback') and _ % max(1, int(sim_count / 20)) == 0:
+                js.js_progress_callback((_ / sim_count) * 100)
+            
+        avg_max_floor = tot_flr / sim_count
+        avg_run_time = tot_time / sim_count
+        # Set the start of the gauntlet to the virtual build's true expected max floor!
+        push_start_floor = max(1, int(avg_max_floor))
+
+    # --- CUMULATIVE PUSH GAUNTLET ESTIMATOR ---
+    from engine.floor_map import FloorGenerator
+    fg = FloorGenerator()
+    
+    sim_copies_per_floor = 10
+    total_hits = 0.0
+    total_regen = 0.0
+    
+    start_f = min(push_start_floor, target_floor)
+    end_f = max(push_start_floor, target_floor)
+    
+    for f_lvl in range(start_f, end_f + 1):
+        for _ in range(sim_copies_per_floor):
+            flr = fg.generate_floor(f_lvl, p)
+            for b in flr.grid:
+                if b is not None:
+                    b_eff_armor = max(0, b.armor - p.armor_pen)
+                    b_reg_hit = max(1.0, p.damage - b_eff_armor)
+                    b_edps = b_reg_hit * avg_mult
+                    
+                    hits = b.hp / b_edps if b_edps > 0 else 99999
+                    total_hits += hits
+                    total_regen += b.modifiers.get('stamina_gain', 0.0)
+
+    push_est_hits = total_hits / sim_copies_per_floor
+    push_est_regen = total_regen / sim_copies_per_floor
+
     # Extract all calculated @property values
     return {
+        "avg_max_floor": avg_max_floor,
+        "floor_distribution": floor_distribution,
+        "avg_run_time": avg_run_time,
+        "push_start_floor": push_start_floor,
+        "push_est_hits": push_est_hits,
+        "push_est_regen": push_est_regen,
         "blocks_data": blocks_data,
         "inf_bonuses": inf_bonuses,
         "max_sta": p.max_sta,
@@ -184,6 +257,11 @@ def calculate_all_stats(js_data):
 
     postMessage({ type: 'READY' });
 }
+
+// Expose a native callback for Pyodide to report progress back to React!
+self.js_progress_callback = (pct) => {
+    postMessage({ type: 'PROGRESS', payload: pct });
+};
 
 // Save the initialization to a Promise so the message listener can wait for it!
 const initPromise = initCalcEngine().catch(err => postMessage({ type: 'ERROR', payload: err.message }));

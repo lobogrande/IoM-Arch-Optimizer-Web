@@ -58,6 +58,7 @@ export default function Welcome({ setActiveTab }) {
               <span className="transition group-open:rotate-180 text-st-orange">▼</span>
             </summary>
             <div className="mt-4 pt-4 border-t border-st-border text-st-text-light space-y-3 text-sm">
+              <p><strong>💾 Auto-Save:</strong> Your player setup, custom profiles, and simulation history are automatically saved to your browser! You can safely close this tab or reboot your device and pick right back up exactly where you left off.</p>
               <p><strong>The "Suicide Farming" Paradox:</strong> Buying survival stats (Agility/Stamina) when farming early-game blocks pushes you to deeper floors where blocks have exponentially more HP, mathematically lowering your kills/min!</p>
               <p><strong>Stat Plateaus:</strong> Because blocks only take whole hits, 50 Strength and 54 Strength might both result in a '3-hit kill'. Use the <strong>Sandbox Tab</strong> to find these exact breakpoints.</p>
               <p><strong>Use Stat Locks:</strong> When running the Optimizer, locking obvious stats (like setting Agility to 0 for early farming) makes the AI run exponentially faster and more accurately!</p>

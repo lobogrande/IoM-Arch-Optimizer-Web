@@ -32,9 +32,48 @@ function App() {
     }
   },[store.theme]);
 
+  // ----------------------------------------------------
+  // ROUTING: Bidirectional Hash Deep-Linking
+  // ----------------------------------------------------
+  useEffect(() => {
+    // 1. Sync Store ➔ URL Hash (when user clicks tabs)
+    let hash = `#/${activeTab}`;
+    if (activeTab === 'setup' && store.activeSubTab) hash += `/${store.activeSubTab}`;
+    if (activeTab === 'simulations' && store.simActiveSubTab) hash += `/${store.simActiveSubTab}`;
+    
+    if (window.location.hash !== hash) {
+      window.history.replaceState(null, '', hash);
+    }
+  },[ activeTab, store.activeSubTab, store.simActiveSubTab ]);
+
+  useEffect(() => {
+    // 2. Sync URL Hash ➔ Store (On initial load & browser Back/Forward)
+    const handleHashChange = () => {
+      const hash = window.location.hash.replace('#/', '');
+      if (!hash) return; // Fallback to Zustand persisted state if no hash
+      
+      const parts = hash.split('/');
+      const tab = parts[0];
+      const sub = parts[1];
+
+      const validTabs = TABS.map(t => t.id);
+      if (validTabs.includes(tab)) {
+        // We use useStore.getState() to avoid React batching dependency loops
+        const st = useStore.getState();
+        if (st.activeTab !== tab) st.setActiveTab(tab);
+        if (tab === 'setup' && sub && st.activeSubTab !== sub) st.setActiveSubTab(sub);
+        if (tab === 'simulations' && sub && st.simActiveSubTab !== sub) st.setSimActiveSubTab(sub);
+      }
+    };
+
+    handleHashChange(); // Fire on mount to catch deep links
+    window.addEventListener('hashchange', handleHashChange);
+    return () => window.removeEventListener('hashchange', handleHashChange);
+  }, [ ]);
+
   // Initialize the Calculation Worker
   useEffect(() => {
-    calcWorkerRef.current = new Worker('/calc_worker.js');
+    calcWorkerRef.current = new Worker(`/calc_worker.js?v=${APP_VERSION}`);
     
     calcWorkerRef.current.onmessage = (e) => {
       if (e.data.type === 'CALC_RESULT') {
@@ -130,9 +169,6 @@ function App() {
               key={tab.id}
               onClick={() => {
                 setActiveTab(tab.id);
-                if (tab.id === 'simulations') {
-                  store.setSimActiveSubTab('optimizer');
-                }
               }}
               className={`px-4 py-2 font-medium whitespace-nowrap transition-colors duration-200 border-b-2 ${
                 isActive 
