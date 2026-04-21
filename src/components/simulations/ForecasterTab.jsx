@@ -993,9 +993,12 @@ export default function ForecasterTab() {
                 {(() => {
                   const sqYield = pivotResults.statusQuo.yield;
                   const pivYield = pivotResults.pivot.yield;
+                  
+                  const statsChanged = !activeStats.every(s => (pivotResults.statusQuo.stats[s] || 0) === (pivotResults.pivot.stats[s] || 0));
+
                   const diff = pivYield - sqYield;
                   const pct = sqYield > 0 ? (diff / sqYield) * 100 : 0;
-                  const isPivotViable = pct > 2.0;
+                  const isPivotViable = statsChanged && pct > 2.0;
 
                   const scaleScore = (v) => (v / 60.0) * 1000.0;
                   const sqArchYield = scaleScore(sqYield);
@@ -1012,7 +1015,11 @@ export default function ForecasterTab() {
                       ) : (
                         <div className="bg-yellow-900/20 border-l-4 border-yellow-500 p-4 rounded mb-6">
                           <h5 className="font-bold text-yellow-400 text-lg mb-1">🟢 STAY THE COURSE</h5>
-                          <p className="text-sm text-yellow-200">The AI could not find a stat respec that definitively beats your current setup. Your current strategy remains the mathematically optimal way to farm this resource with your given upgrades.</p>
+                          {!statsChanged ? (
+                            <p className="text-sm text-yellow-200">The AI verified that your current stat distribution remains the absolute best way to farm this resource! <em>(Any slight difference in the yields below is purely due to expected RNG variance across the Monte Carlo batches).</em></p>
+                          ) : (
+                            <p className="text-sm text-yellow-200">The AI found a different stat distribution, but the projected gain is too small to definitively beat RNG noise. Your current strategy remains the mathematically optimal choice.</p>
+                          )}
                         </div>
                       )}
 
@@ -1059,7 +1066,7 @@ export default function ForecasterTab() {
                               <span className="font-bold text-sm">Yield / 1k Arch Secs:</span>
                               <div className="text-right flex items-center gap-2">
                                 <span className={`font-mono text-xl font-bold ${isPivotViable ? 'text-green-400' : ''}`}>{pivArchYield.toFixed(1)}</span>
-                                {diffArch > 0 && <span className="text-[10px] text-green-400 font-bold bg-green-900/30 px-1.5 py-0.5 rounded mt-0.5">+{diffArch.toFixed(1)}</span>}
+                                {(statsChanged && diffArch > 0) && <span className="text-[10px] text-green-400 font-bold bg-green-900/30 px-1.5 py-0.5 rounded mt-0.5">+{diffArch.toFixed(1)}</span>}
                               </div>
                             </div>
                             <div className="flex justify-between items-center text-xs text-st-text-light mt-1">
