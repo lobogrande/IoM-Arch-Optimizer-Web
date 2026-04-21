@@ -34,9 +34,10 @@ export default function ResultsDashboard({ context }) {
   const[tarXp, setTarXp] = useState(0);
   const[cardSelBlock, setCardSelBlock] = useState('');
   
-  const [isRoiLoading, setIsRoiLoading] = useState(false);
+  const[isRoiLoading, setIsRoiLoading] = useState(false);
   const [roiProgressMsg, setRoiProgressMsg] = useState("");
-  const[roiUpgFilter, setRoiUpgFilter] = useState('All');
+  const [roiUpgFilter, setRoiUpgFilter] = useState('All');
+  const[roiPrecision, setRoiPrecision] = useState(15);
 
   // Derive bounds locally for this component
   const capInc = parseInt(store.upgrade_levels[45] || 0) * 5; 
@@ -130,7 +131,7 @@ export default function ResultsDashboard({ context }) {
 
   const handleAnalyzeStats = async (contextType) => {
     setIsRoiLoading(true);
-    setRoiProgressMsg("Testing marginal stat values (15 sims each)...");
+    setRoiProgressMsg(`Testing marginal stat values (${roiPrecision} sims each)...`);
     
     try {
       const pool = new EngineWorkerPool();
@@ -160,7 +161,7 @@ export default function ResultsDashboard({ context }) {
         const maxCap = STAT_CAPS[stat] || 99;
         if (bestFinal[stat] < maxCap) {
           statResults[stat] = { sum: 0, count: 0 };
-          for (let i = 0; i < 15; i++) {
+          for (let i = 0; i < roiPrecision; i++) {
             const testStats = { ...bestFinal,[stat]: bestFinal[stat] + 1 };
             const p = pool.runTask(testStats).then(res => {
               statResults[stat].sum += (res[targetMetric] || 0);
@@ -194,7 +195,7 @@ export default function ResultsDashboard({ context }) {
 
   const handleAnalyzeUpgrades = async (contextType) => {
     setIsRoiLoading(true);
-    setRoiProgressMsg("Testing marginal upgrade values (This may take a minute)...");
+    setRoiProgressMsg(`Testing marginal upgrade values (${roiPrecision} sims each. This may take a minute)...`);
     
     try {
       const pool = new EngineWorkerPool();
@@ -245,7 +246,7 @@ export default function ResultsDashboard({ context }) {
         const upgName = upgData ? (Array.isArray(upgData) ? upgData[0] : upgData) : `Upg ${upgId}`;
         upgResults[upgId] = { sum: 0, count: 0, name: upgName, action: `Lvl ${currentLvl} ➔ ${currentLvl + 1}` };
 
-        for (let i = 0; i < 15; i++) {
+        for (let i = 0; i < roiPrecision; i++) {
           const p = pool.runTask(bestFinal, {[upgId]: currentLvl + 1 }).then(res => {
             upgResults[upgId].sum += (res[targetMetric] || 0);
             upgResults[upgId].count++;
@@ -281,7 +282,7 @@ export default function ResultsDashboard({ context }) {
 
   const handleAnalyzeExternal = async (contextType) => {
     setIsRoiLoading(true);
-    setRoiProgressMsg("Testing marginal external values (This may take a minute)...");
+    setRoiProgressMsg(`Testing marginal external values (${roiPrecision} sims each. This may take a minute)...`);
     
     try {
       const pool = new EngineWorkerPool();
@@ -342,7 +343,7 @@ export default function ResultsDashboard({ context }) {
 
         extResults[group.id] = { sum: 0, count: 0, name: group.name, action: actionText };
 
-        for (let i = 0; i < 15; i++) {
+        for (let i = 0; i < roiPrecision; i++) {
           const p = pool.runTask(bestFinal, undefined, testExt).then(res => {
             extResults[group.id].sum += (res[targetMetric] || 0);
             extResults[group.id].count++;
@@ -360,7 +361,7 @@ export default function ResultsDashboard({ context }) {
         })
         .filter(r => r.gain > 0.001)
         .sort((a, b) => b.gain - a.gain);
-        store.saveRoiToCurrentRun(contextType, 'roi_externals', finalRes.slice(0, 10));
+        store.saveRoiToCurrentRun(contextType, 'roi_externals', finalRes);
       } else {
         alert("All eligible external upgrades are maxed out!");
       }
@@ -374,7 +375,7 @@ export default function ResultsDashboard({ context }) {
 
   const handleAnalyzeCards = async (contextType) => {
     setIsRoiLoading(true);
-    setRoiProgressMsg("Testing marginal block card values (This may take a minute)...");
+    setRoiProgressMsg(`Testing marginal block card values (${roiPrecision} sims each. This may take a minute)...`);
     
     try {
       const pool = new EngineWorkerPool();
@@ -417,7 +418,7 @@ export default function ResultsDashboard({ context }) {
 
         cardResults[cardId] = { sum: 0, count: 0, name: cardId, action: targetLvlName };
 
-        for (let i = 0; i < 15; i++) {
+        for (let i = 0; i < roiPrecision; i++) {
           const p = pool.runTask(bestFinal, undefined, undefined, { [cardId]: currentLvl + 1 }).then(res => {
             cardResults[cardId].sum += (res[targetMetric] || 0);
             cardResults[cardId].count++;
@@ -435,7 +436,7 @@ export default function ResultsDashboard({ context }) {
         })
         .filter(r => r.gain > 0.001)
         .sort((a, b) => b.gain - a.gain);
-        store.saveRoiToCurrentRun(contextType, 'roi_cards', finalRes.slice(0, 10));
+        store.saveRoiToCurrentRun(contextType, 'roi_cards', finalRes);
       } else {
         alert("All eligible block cards are maxed out!");
       }
@@ -953,6 +954,26 @@ export default function ResultsDashboard({ context }) {
                 ⚠️ <strong>Note:</strong> This engine ranks <strong>raw output gain</strong>, not cost efficiency. You must weigh the AI's top recommendations against your actual in-game fragment costs!
               </div>
 
+              <div className="flex flex-col md:flex-row items-start md:items-center justify-between bg-[#1e1e1e] border border-st-border p-3 rounded mb-6 gap-4">
+                <div>
+                  <label className="text-sm font-bold block mb-1">🎯 ROI Precision (Simulations per item)</label>
+                  <select 
+                    value={roiPrecision}
+                    onChange={(e) => setRoiPrecision(parseInt(e.target.value))}
+                    disabled={isRoiLoading}
+                    className="bg-st-secondary border border-st-border rounded p-1 text-sm text-st-text focus:border-st-orange outline-none disabled:opacity-50"
+                  >
+                    <option value={15}>15 Runs (Fast, High Variance)</option>
+                    <option value={30}>30 Runs (Balanced)</option>
+                    <option value={50}>50 Runs (Accurate, Slower)</option>
+                    <option value={100}>100 Runs (Max Precision, Very Slow)</option>
+                  </select>
+                </div>
+                <div className="text-xs text-st-text-light max-w-md italic">
+                  Note: A lower number of runs causes RNG variance. Upgrades with similar mathematical gains might shuffle places or fall off the list upon recalculating. Increase precision to stabilize the math!
+                </div>
+              </div>
+
               {isRoiLoading && (
                 <div className="flex flex-col items-center justify-center p-6 border border-st-border rounded bg-st-bg mb-6">
                   <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-st-orange mb-4"></div>
@@ -1027,7 +1048,7 @@ export default function ResultsDashboard({ context }) {
                       return `${amtStr} ${curMap[cost.currency]?.split(' ')[0] || cost.currency}`;
                     };
                     
-                    const filteredUpgs = store.opt_results.roi_upgrades.filter(r => roiUpgFilter === 'All' || r.cost?.currency === roiUpgFilter).slice(0, 10);
+                    const filteredUpgs = store.opt_results.roi_upgrades.filter(r => roiUpgFilter === 'All' || r.cost?.currency === roiUpgFilter);
 
                     return (
                       <>
