@@ -136,7 +136,7 @@ export default function Simulations() {
           { id: 'synth', label: '🧬 Build Synthesis & History' },
           { id: 'duel', label: '⚔️ Build Duel' },
           { id: 'sandbox', label: '🧪 Hit Calculator (Sandbox)' },
-          { id: 'forecaster', label: '🎯 Milestone Forecaster' }
+          { id: 'forecaster', label: '🎯 Milestone Forecaster[Beta]' }
         ].map((tab) => (
           <button
             key={tab.id}
