@@ -113,8 +113,10 @@ export default function ForecasterTab() {
   }, [ ]);
 
   useEffect(() => {
-    if (hasAnalyzed) {
+    if (forecasterMode === 'wall' && hasAnalyzed) {
       handleAnalyzeWall();
+    } else if (forecasterMode === 'pivot' && hasPivotAnalyzed) {
+      handleAnalyzePivot();
     }
   }, [ cartItems ]);
 
@@ -517,6 +519,7 @@ export default function ForecasterTab() {
   };
 
   const addToCart = (item) => {
+    if (isAnalyzing || isPivotAnalyzing) return;
     const existingIdx = cartItems.findIndex(i => i.type === item.type && i.id === item.id);
     if (existingIdx > -1) {
       const newCart = [...cartItems];
@@ -1185,7 +1188,7 @@ export default function ForecasterTab() {
                           <span className="font-bold text-st-orange text-sm px-2 whitespace-nowrap">+{item.qty} Lvl</span>
                         ) : (
                           <div className="flex items-center bg-st-secondary border border-st-border rounded overflow-hidden">
-                            <button onClick={() => setExactCartQty(idx, item.qty - 1)} className="px-2 py-1 hover:bg-black/10 font-bold text-st-text-light hover:text-st-orange transition-colors">-</button>
+                            <button onClick={() => setExactCartQty(idx, item.qty - 1)} disabled={isAnalyzing || isPivotAnalyzing} className="px-2 py-1 hover:bg-black/10 font-bold text-st-text-light hover:text-st-orange transition-colors disabled:opacity-50">-</button>
                             <input 
                               type="number"
                               min="1"
@@ -1201,15 +1204,17 @@ export default function ForecasterTab() {
                                 }
                               }}
                               onKeyDown={(e) => { if(e.key === 'Enter') e.target.blur(); }}
-                              className="w-16 h-8 p-1 text-center font-mono bg-transparent border-none outline-none"
+                              disabled={isAnalyzing || isPivotAnalyzing}
+                              className="w-16 h-8 p-1 text-center font-mono bg-transparent border-none outline-none disabled:opacity-50"
                               style={{ appearance: 'textfield', MozAppearance: 'textfield' }}
                             />
-                            <button onClick={() => setExactCartQty(idx, item.qty + 1)} className="px-2 py-1 hover:bg-black/10 font-bold text-st-text-light hover:text-st-orange transition-colors">+</button>
+                            <button onClick={() => setExactCartQty(idx, item.qty + 1)} disabled={isAnalyzing || isPivotAnalyzing} className="px-2 py-1 hover:bg-black/10 font-bold text-st-text-light hover:text-st-orange transition-colors disabled:opacity-50">+</button>
                           </div>
                         )}
                         <button
                           onClick={() => removeFromCart(idx)}
-                          className="px-2 py-1 bg-[#2b2b2b] border border-red-900 text-red-400 font-bold text-xs rounded hover:bg-red-900 hover:text-white transition-colors"
+                          disabled={isAnalyzing || isPivotAnalyzing}
+                          className="px-2 py-1 bg-[#2b2b2b] border border-red-900 text-red-400 font-bold text-xs rounded hover:bg-red-900 hover:text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                           Del
                         </button>
@@ -1223,14 +1228,14 @@ export default function ForecasterTab() {
             <div className="flex gap-4">
               <button 
                 onClick={applyCartToGlobal}
-                disabled={cartItems.length === 0}
+                disabled={cartItems.length === 0 || isAnalyzing || isPivotAnalyzing}
                 className="flex-1 py-2 bg-green-600 text-white font-bold rounded shadow hover:bg-green-500 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 ✅ Apply Cart to Global Build
               </button>
               <button 
                 onClick={() => setCartItems([ ])}
-                disabled={cartItems.length === 0}
+                disabled={cartItems.length === 0 || isAnalyzing || isPivotAnalyzing}
                 className="py-2 px-6 bg-st-secondary border border-st-border text-st-text font-bold rounded hover:border-red-500 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 Clear
@@ -1530,7 +1535,7 @@ export default function ForecasterTab() {
                           <span className="text-[10px] text-st-text-light px-1 py-0.5 bg-black/10 rounded">{item.costStr}</span>
                           <div className="flex items-center gap-2">
                             <span className="font-mono text-green-400 text-sm font-bold">+{item.d_yield.toFixed(1)} Yield</span>
-                            <button onClick={() => addToCart(item)} className="px-2 py-1 bg-green-600 hover:bg-green-500 text-white font-bold text-xs rounded transition-colors">+ Cart</button>
+                            <button onClick={() => addToCart(item)} disabled={isPivotAnalyzing} className="px-2 py-1 bg-green-600 hover:bg-green-500 text-white font-bold text-xs rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed">+ Cart</button>
                           </div>
                         </div>
                       </div>
