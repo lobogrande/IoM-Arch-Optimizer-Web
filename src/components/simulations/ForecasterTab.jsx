@@ -682,13 +682,110 @@ export default function ForecasterTab() {
       const pivYield = pivSum / simPrecision;
       const pivAvgFloor = pivFloors / simPrecision;
 
+      // 4. Marginal ROI Scan for Shopping List
+      setPivotMsg("Scanning Upgrades (Finding Best Yield Boosts)...");
+      setPivotPct(85);
+
+      const roiScans = [ ];
+      const simCount = 15;
+      let scansCompleted = 0;
+
+      const queueRoi = (type, id, name, action, costStr, desc, payloadOverrides) => {
+        const itemObj = { type, id, name, action, costStr, desc, sum: 0 };
+        roiScans.push(itemObj);
+        for (let i = 0; i < simCount; i++) {
+          pivPromises.push(poolRef.current.runTask(
+            payloadOverrides.stats || bestFinal, 
+            payloadOverrides.upgs, 
+            payloadOverrides.exts, 
+            payloadOverrides.cards
+          ).then(res => {
+            if (res.aborted) return;
+            itemObj.sum += (res[targetMetric] || 0);
+            scansCompleted++;
+            if (scansCompleted % 50 === 0) setPivotPct(85 + ((scansCompleted / (roiScans.length * simCount)) * 15));
+          }));
+        }
+      };
+
+      const ascTier = store.asc2_unlocked ? 2 : (store.asc1_unlocked ? 1 : 0);
+
+      activeStats.forEach(stat => {
+        const currentVal = bestFinal[stat] || 0;
+        if (currentVal < STAT_CAPS[stat]) {
+          queueRoi('stat', stat, `Base Stat: ${stat}`, `Lvl ${currentVal} ➔ ${currentVal + 1}`, getCostLabel('stat'), getItemDescription('stat', stat, currentVal + 1), { stats: { ...bestFinal, [stat]: currentVal + 1 } });
+        }
+      });
+
+      const pureExpUpgs = [ 4, 11, 38 ];
+      Object.keys(INTERNAL_UPGRADE_CAPS || {}).forEach(upgIdStr => {
+        const upgId = parseInt(upgIdStr);
+        const currentLvl = effState.upgrade_levels[upgId] || 0;
+        const maxLvl = INTERNAL_UPGRADE_CAPS[upgId] || 99;
+        if (!store.asc1_unlocked && ASC1_LOCKED_UPGS.includes(upgId)) return;
+        if (!store.asc2_unlocked && ASC2_LOCKED_UPGS.includes(upgId)) return;
+        if (store.current_max_floor < (UPGRADE_LEVEL_REQS[upgId] || 0)) return;
+        if (currentLvl >= maxLvl) return;
+        if (pureExpUpgs.includes(upgId)) return; 
+
+        const upgData = UPGRADE_NAMES && UPGRADE_NAMES[upgId];
+        const upgName = upgData ? (Array.isArray(upgData) ? upgData[0] : upgData) : `Upg ${upgId}`;
+        queueRoi('upg', upgId, `Upgrade: ${upgName}`, `Lvl ${currentLvl} ➔ ${currentLvl + 1}`, getCostLabel('upg', upgId, currentLvl, ascTier), getItemDescription('upg', upgId, currentLvl + 1), { upgs: {[upgId]: currentLvl + 1 } });
+      });
+
+      EXTERNAL_UI_GROUPS.forEach(group => {
+        const currentVal = effState.external_levels[group.rows[0]] || 0;
+        let maxVal = group.max !== undefined ? group.max : ((group.ui_type === 'skill' || group.ui_type === 'bundle') ? 1 : 9999);
+        if (group.id === 'geoduck') maxVal = store.asc2_unlocked ? 300 : 200;
+        if (group.id === 'geoduck' && !store.geoduck_unlocked) return;
+        if (group.id === 'hestia' && !store.asc1_unlocked) return;
+        if (group.id === 'hades' && !store.asc1_unlocked) return;
+        if (group.id === 'asc_bundle' && !store.asc1_unlocked) return;
+        if (group.id === 'arch_card' && !store.asc1_unlocked) return;
+        if (currentVal >= maxVal) return;
+
+        let actionText = group.ui_type === 'pet' && currentVal === -1 ? "Obtain Pet" : `Lvl ${currentVal} ➔ ${currentVal + 1}`;
+        const testExt = {};
+        group.rows.forEach(r => testExt[r] = currentVal + 1);
+        queueRoi('ext', group.id, `External: ${group.name}`, actionText, getCostLabel('ext', group.id), getItemDescription('ext', group.id, currentVal + 1), { exts: testExt });
+      });
+
+      Object.keys(ORE_MIN_FLOORS).forEach(cardId => {
+        if (!store.asc1_unlocked && (cardId.startsWith('div') || cardId.endsWith('4'))) return;
+        if (!store.asc2_unlocked && cardId.endsWith('4')) return;
+        if (store.current_max_floor < ORE_MIN_FLOORS[cardId]) return;
+
+        const currentLvl = effState.cards[cardId] || 0;
+        const maxLvl = store.asc1_unlocked ? 4 : 3;
+        if (currentLvl >= maxLvl) return;
+
+        const lvlNames = [ "Not Obtained", "Regular", "Gilded", "Poly", "Infernal" ];
+        queueRoi('card', cardId, `Card: ${cardId.toUpperCase()}`, `${lvlNames[currentLvl]} ➔ ${lvlNames[currentLvl + 1]}`, getCostLabel('card'), getItemDescription('card', cardId, currentLvl + 1), { cards: { [cardId]: currentLvl + 1 } });
+      });
+
+      await Promise.all(pivPromises);
+      if (cancelRef.current) return;
+
+      const roiResults = roiScans.map(item => {
+        const avg = item.sum / simCount;
+        const d_yield = ((avg - pivYield) / 60.0) * 1000.0;
+        return { ...item, d_yield };
+      }).filter(i => i.d_yield > 0.01).sort((a, b) => b.d_yield - a.d_yield);
+
+      const topStats = roiResults.filter(i => i.type === 'stat').slice(0, 10);
+      const topUpgs = roiResults.filter(i => i.type === 'upg').slice(0, 10);
+      const topExts = roiResults.filter(i => i.type === 'ext').slice(0, 10);
+      const topCards = roiResults.filter(i => i.type === 'card').slice(0, 10);
+
       poolRef.current.terminate();
       poolRef.current = null;
 
       setPivotResults({
          statusQuo: { yield: sqYield, floor: sqAvgFloor, stats: effState.base_stats },
          pivot: { yield: pivYield, floor: pivAvgFloor, stats: bestFinal },
-         targetFrag: pivotTargetFrag
+         targetFrag: pivotTargetFrag,
+         topStats, topUpgs, topExts, topCards,
+         fullList: roiResults
       });
       setHasPivotAnalyzed(true);
     } catch (err) {
@@ -814,9 +911,10 @@ export default function ForecasterTab() {
               <span className="text-lg">ℹ️</span> How to use the Economy Pivot:
             </h4>
             <ol className="list-decimal pl-5 space-y-1 text-purple-200/80">
-              <li><strong>Queue Upgrades:</strong> Add hypothetical future upgrades to your <strong>Cart</strong> below (Use the Progression Wall Breaker to find upgrades if your cart is empty).</li>
-              <li><strong>Select Resource:</strong> Choose the fragment you ultimately want to farm.</li>
-              <li><strong>Analyze:</strong> The AI will race your <strong>Status Quo</strong> (your current build + the new raw power) against a <strong>Meta Pivot</strong> (a completely fresh optimization utilizing your new power to push deep) to definitively tell you if it's time to respec!</li>
+              <li><strong>Load Farming Build:</strong> Ensure your <strong>Player Setup</strong> currently has your <em>best</em> active farming build loaded for your target resource.</li>
+              <li><strong>Select Target & Analyze:</strong> Choose your target resource below and click Analyze. The AI will evaluate your current build's baseline yield.</li>
+              <li><strong>Queue Upgrades:</strong> Scroll down to the Oracle's Shopping List to see exactly which upgrades will boost your yield the most. Add them to your <strong>Cart</strong>!</li>
+              <li><strong>Analyze Pivot:</strong> Re-run the analysis. The AI will race your <strong>Status Quo</strong> (current stats + Cart) against a <strong>Meta Pivot</strong> (AI re-optimized stats + Cart) to definitively tell you if your new items make a stat respec profitable!</li>
             </ol>
           </div>
 
@@ -990,7 +1088,7 @@ export default function ForecasterTab() {
         </div>
       )}
 
-      {(cartItems.length > 0 || (forecasterMode === 'wall' && hasAnalyzed && results)) && (
+      {(cartItems.length > 0 || (forecasterMode === 'wall' && hasAnalyzed && results) || (forecasterMode === 'pivot' && hasPivotAnalyzed && pivotResults)) && (
         <div className="animate-fade-in space-y-6">
           <div className="st-container border-t-4 border-t-green-500 bg-green-500/5">
             <div className="flex justify-between items-center mb-4">
@@ -1005,7 +1103,8 @@ export default function ForecasterTab() {
                 {cartItems.map((item, idx) => {
                   const ascTier = store.asc2_unlocked ? 2 : (store.asc1_unlocked ? 1 : 0);
                   const totalCostStr = getCartItemTotalCost(item, store, ascTier);
-                  const nextGain = results?.fullList?.find(i => i.type === item.type && i.id === item.id);
+                  const activeResults = forecasterMode === 'wall' ? results : pivotResults;
+                  const nextGain = activeResults?.fullList?.find(i => i.type === item.type && i.id === item.id);
                   const baseLvl = getDynamicBaseLvl(item);
                   
                   const lvlNames =[ "None", "Regular", "Gilded", "Poly", "Infernal" ];
@@ -1023,10 +1122,16 @@ export default function ForecasterTab() {
                         {nextGain ? (
                           <div className="text-[10px] mt-1 text-st-text-light bg-black/10 inline-block px-1 rounded">
                             Next +1 Lvl Gain: 
-                            {nextGain.d_edps > 0.1 && <span className="text-st-orange ml-1">+{Math.ceil(nextGain.d_edps).toLocaleString()} EDPS</span>}
-                            {nextGain.d_pen > 0 && <span className="text-gray-300 ml-1">+{Math.ceil(nextGain.d_pen).toLocaleString()} Pen</span>}
-                            {nextGain.d_sta > 0 && <span className="text-blue-400 ml-1">+{Math.ceil(nextGain.d_sta).toLocaleString()} Sta</span>}
-                            {nextGain.d_net_sta > 0.1 && <span className="text-red-400 ml-1 font-bold">(-{Math.ceil(nextGain.d_net_sta).toLocaleString()} Swings)</span>}
+                            {forecasterMode === 'wall' ? (
+                              <>
+                                {nextGain.d_edps > 0.1 && <span className="text-st-orange ml-1">+{Math.ceil(nextGain.d_edps).toLocaleString()} EDPS</span>}
+                                {nextGain.d_pen > 0 && <span className="text-gray-300 ml-1">+{Math.ceil(nextGain.d_pen).toLocaleString()} Pen</span>}
+                                {nextGain.d_sta > 0 && <span className="text-blue-400 ml-1">+{Math.ceil(nextGain.d_sta).toLocaleString()} Sta</span>}
+                                {nextGain.d_net_sta > 0.1 && <span className="text-red-400 ml-1 font-bold">(-{Math.ceil(nextGain.d_net_sta).toLocaleString()} Swings)</span>}
+                              </>
+                            ) : (
+                              <span className="text-green-400 ml-1">+{nextGain.d_yield.toFixed(1)} Yield / 1k Secs</span>
+                            )}
                           </div>
                         ) : (
                           <div className="text-[10px] mt-1 text-st-text-light bg-black/10 inline-block px-1 rounded opacity-75">
@@ -1354,7 +1459,49 @@ export default function ForecasterTab() {
                   ))}
                 </div>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
 
+      {forecasterMode === 'pivot' && hasPivotAnalyzed && pivotResults && (
+        <div className="animate-fade-in space-y-6 mt-6">
+          <div className="st-container border-t-4 border-t-purple-500">
+            <h4 className="font-bold mb-2 text-xl">3. The Oracle's Economy Shopping List</h4>
+            <p className="text-sm text-st-text-light mb-6">These lists show the calculated fragment yield gain of exactly one (+1) level to each available upgrade. The gains are evaluated dynamically against your fully re-optimized Pivot build. Add items to your Cart to increase the viability of the Strategy Shift!</p>
+            
+            <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-4 gap-6">
+              {[
+                { title: "Top Internal Upgrades", desc: "Ranks by immediate raw yield output", color: "text-st-orange", list: pivotResults.topUpgs },
+                { title: "Top External / Idols", desc: "Ranks by immediate raw yield output", color: "text-purple-400", list: pivotResults.topExts },
+                { title: "Top Base Stats", desc: "Ranks by immediate raw yield output", color: "text-blue-400", list: pivotResults.topStats },
+                { title: "Top Block Cards", desc: "Ranks by immediate raw yield output", color: "text-green-400", list: pivotResults.topCards }
+              ].map((col, cIdx) => (
+                <div key={cIdx} className="border border-st-border rounded bg-st-bg overflow-hidden flex flex-col">
+                  <div className={`bg-st-secondary p-2 border-b border-st-border font-bold text-center ${col.color}`}>
+                    {col.title}
+                  </div>
+                  <div className="text-[10px] text-center py-1 bg-black/20 text-st-text-light border-b border-st-border">{col.desc}</div>
+                  <div className="p-2 overflow-y-auto max-h-[400px]">
+                    {col.list.length === 0 ? <div className="text-center text-sm p-4 text-st-text-light">No positive gains found.</div> : col.list.map((item, idx) => (
+                      <div key={idx} className="mb-3 pb-3 border-b border-st-border/50 last:border-0 last:mb-0">
+                        <div className="font-bold text-sm leading-tight">
+                          {item.name} 
+                          <span className="text-xs text-st-text-light font-normal ml-1">({item.action})</span>
+                          {item.desc && <div className="text-[11px] text-gray-400 mt-0.5">{item.desc}</div>}
+                        </div>
+                        <div className="flex justify-between mt-2 items-center">
+                          <span className="text-[10px] text-st-text-light px-1 py-0.5 bg-black/10 rounded">{item.costStr}</span>
+                          <div className="flex items-center gap-2">
+                            <span className="font-mono text-green-400 text-sm font-bold">+{item.d_yield.toFixed(1)} Yield</span>
+                            <button onClick={() => addToCart(item)} className="px-2 py-1 bg-green-600 hover:bg-green-500 text-white font-bold text-xs rounded transition-colors">+ Cart</button>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
         </div>
