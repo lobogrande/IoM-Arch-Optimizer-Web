@@ -1173,7 +1173,7 @@ export default function ForecasterTab() {
                                 }
                               }}
                               onKeyDown={(e) => { if(e.key === 'Enter') e.target.blur(); }}
-                              className="w-12 h-8 p-1 text-center font-mono bg-transparent border-none outline-none"
+                              className="w-16 h-8 p-1 text-center font-mono bg-transparent border-none outline-none"
                               style={{ appearance: 'textfield', MozAppearance: 'textfield' }}
                             />
                             <button onClick={() => setExactCartQty(idx, item.qty + 1)} className="px-2 py-1 hover:bg-black/10 font-bold text-st-text-light hover:text-st-orange transition-colors">+</button>
