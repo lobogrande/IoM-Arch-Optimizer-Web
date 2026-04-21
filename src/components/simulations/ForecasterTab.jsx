@@ -95,10 +95,13 @@ export default function ForecasterTab() {
   if (store.asc1_unlocked) activeStats.push('Div');
   if (store.asc2_unlocked) activeStats.push('Corr');
 
+  const effUpg45 = (store.upgrade_levels[45] || 0) + (cartItems.find(i => i.type === 'upg' && i.id === 45)?.qty || 0);
+  const capInc = effUpg45 * 5;
+
   const MAX_STAT_CAPS = {
-    Str: 55, Agi: 55, Per: 30, Int: 30, Luck: 30,
-    Div: store.asc1_unlocked ? 15 : 0, 
-    Corr: store.asc2_unlocked ? 15 : 0,
+    Str: 50 + capInc, Agi: 50 + capInc, Per: 25 + capInc, Int: 25 + capInc, Luck: 25 + capInc,
+    Div: store.asc1_unlocked ? 10 + capInc : 0, 
+    Corr: store.asc2_unlocked ? 10 + capInc : 0,
     Unassigned: 9999
   };
 
@@ -493,6 +496,24 @@ export default function ForecasterTab() {
        return store.external_levels[g?.rows[0]] || 0;
     }
     return 0;
+  };
+
+  const isItemMaxed = (item) => {
+    const baseLvl = getDynamicBaseLvl(item);
+    const cartItem = cartItems.find(i => i.type === item.type && i.id === item.id);
+    const cartQty = cartItem ? cartItem.qty : 0;
+    const currentLvl = baseLvl + cartQty;
+    
+    let maxAllowed = 9999;
+    if (item.type === 'stat') maxAllowed = MAX_STAT_CAPS[item.id] || 9999;
+    if (item.type === 'upg') maxAllowed = INTERNAL_UPGRADE_CAPS[item.id] || 99;
+    if (item.type === 'card') maxAllowed = store.asc1_unlocked ? 4 : 3;
+    if (item.type === 'ext') { 
+       const g = EXTERNAL_UI_GROUPS.find(x => x.id === item.id);
+       maxAllowed = g?.max !== undefined ? g.max : 9999;
+       if (item.id === 'geoduck') maxAllowed = store.asc2_unlocked ? 300 : 200;
+    }
+    return currentLvl >= maxAllowed;
   };
 
   const addToCart = (item) => {
@@ -1368,7 +1389,7 @@ export default function ForecasterTab() {
                 </div>
                 <div className="text-[10px] text-center py-1 bg-black/20 text-st-text-light border-b border-st-border">Ranks Damage/Pen by how much Stamina it saves pushing to {targetFloor}</div>
                 <div className="p-2 overflow-y-auto max-h-[400px]">
-                  {results.topNetSta.length === 0 ? <div className="text-center text-sm p-4 text-st-text-light">No available upgrades reduce hits.</div> : results.topNetSta.map((item, idx) => (
+                  {results.topNetSta.filter(i => !isItemMaxed(i)).length === 0 ? <div className="text-center text-sm p-4 text-st-text-light">No available upgrades reduce hits.</div> : results.topNetSta.filter(i => !isItemMaxed(i)).map((item, idx) => (
                     <div key={idx} className="mb-3 pb-3 border-b border-st-border/50 last:border-0 last:mb-0">
                       <div className="font-bold text-sm leading-tight">
                         {item.name} 
@@ -1393,7 +1414,7 @@ export default function ForecasterTab() {
                 </div>
                 <div className="text-[10px] text-center py-1 bg-black/20 text-st-text-light border-b border-st-border">Ranks by pure Damage/Crit scaling output</div>
                 <div className="p-2 overflow-y-auto max-h-[400px]">
-                  {results.topEDPS.length === 0 ? <div className="text-center text-sm p-4 text-st-text-light">No available upgrades boost EDPS.</div> : results.topEDPS.map((item, idx) => (
+                  {results.topEDPS.filter(i => !isItemMaxed(i)).length === 0 ? <div className="text-center text-sm p-4 text-st-text-light">No available upgrades boost EDPS.</div> : results.topEDPS.filter(i => !isItemMaxed(i)).map((item, idx) => (
                     <div key={idx} className="mb-3 pb-3 border-b border-st-border/50 last:border-0 last:mb-0">
                       <div className="font-bold text-sm leading-tight">
                         {item.name} 
@@ -1420,9 +1441,9 @@ export default function ForecasterTab() {
                 <div className="p-2 overflow-y-auto max-h-[400px]">
                   {results.baseline.armor_pen >= results.baseline.armor ? (
                      <div className="text-center text-sm p-4 text-green-400 font-bold">Armor Pen cap achieved for this block! No more needed.</div>
-                  ) : results.topPen.length === 0 ? (
+                  ) : results.topPen.filter(i => !isItemMaxed(i)).length === 0 ? (
                      <div className="text-center text-sm p-4 text-st-text-light">No available upgrades boost Armor Pen.</div> 
-                  ) : results.topPen.map((item, idx) => (
+                  ) : results.topPen.filter(i => !isItemMaxed(i)).map((item, idx) => (
                     <div key={idx} className="mb-3 pb-3 border-b border-st-border/50 last:border-0 last:mb-0">
                       <div className="font-bold text-sm leading-tight">
                         {item.name} 
@@ -1456,7 +1477,7 @@ export default function ForecasterTab() {
                 </div>
                 <div className="text-[10px] text-center py-1 bg-black/20 text-st-text-light border-b border-st-border">Ranks by pure global Max Stamina increases</div>
                 <div className="p-2 overflow-y-auto max-h-[400px]">
-                  {results.topSta.length === 0 ? <div className="text-center text-sm p-4 text-st-text-light">No available upgrades boost Stamina.</div> : results.topSta.map((item, idx) => (
+                  {results.topSta.filter(i => !isItemMaxed(i)).length === 0 ? <div className="text-center text-sm p-4 text-st-text-light">No available upgrades boost Stamina.</div> : results.topSta.filter(i => !isItemMaxed(i)).map((item, idx) => (
                     <div key={idx} className="mb-3 pb-3 border-b border-st-border/50 last:border-0 last:mb-0">
                       <div className="font-bold text-sm leading-tight">
                         {item.name} 
@@ -1498,7 +1519,7 @@ export default function ForecasterTab() {
                   </div>
                   <div className="text-[10px] text-center py-1 bg-black/20 text-st-text-light border-b border-st-border">{col.desc}</div>
                   <div className="p-2 overflow-y-auto max-h-[400px]">
-                    {col.list.length === 0 ? <div className="text-center text-sm p-4 text-st-text-light">No positive gains found.</div> : col.list.map((item, idx) => (
+                    {col.list.filter(i => !isItemMaxed(i)).length === 0 ? <div className="text-center text-sm p-4 text-st-text-light">No positive gains found.</div> : col.list.filter(i => !isItemMaxed(i)).map((item, idx) => (
                       <div key={idx} className="mb-3 pb-3 border-b border-st-border/50 last:border-0 last:mb-0">
                         <div className="font-bold text-sm leading-tight">
                           {item.name} 
