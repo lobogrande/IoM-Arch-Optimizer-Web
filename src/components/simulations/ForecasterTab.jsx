@@ -33,7 +33,15 @@ export default function ForecasterTab() {
   const hasPivotAnalyzed = store.forecaster_hasPivotAnalyzed || false;
   const setHasPivotAnalyzed = (v) => store.setSimsState('forecaster_hasPivotAnalyzed', v);
   
-  const pivotResults = store.forecaster_pivotResults || null;
+  const rawPivotResults = store.forecaster_pivotResults || null;
+  const pivotResults = rawPivotResults ? {
+    ...rawPivotResults,
+    topStats: rawPivotResults.topStats || [ ],
+    topUpgs: rawPivotResults.topUpgs || [ ],
+    topExts: rawPivotResults.topExts || [ ],
+    topCards: rawPivotResults.topCards || [ ],
+    fullList: rawPivotResults.fullList || [ ]
+  } : null;
   const setPivotResults = (v) => store.setSimsState('forecaster_pivotResults', v);
   
   const[isPivotAnalyzing, setIsPivotAnalyzing] = useState(false);
