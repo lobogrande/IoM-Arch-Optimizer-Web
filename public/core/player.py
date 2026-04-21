@@ -110,10 +110,19 @@ class Player:
     # --------------------------------------------------------------------------
     # ROUNDING HELPERS
     # --------------------------------------------------------------------------
+    def _f32(self, val):
+        """Emulates C# 32-bit floating point precision limits used in GameMaker."""
+        return struct.unpack('f', struct.pack('f', val))[0]
+
+    def _excel_floor(self, val, decimals):
+        return round(val, decimals)
+
     def _excel_round(self, val, decimals):
-        """Strict Round Half Up (GameMaker standard). Bypasses Python's Bankers Rounding."""
-        mult = 10 ** decimals
-        return math.floor(val * mult + 0.5) / mult
+        return round(val, decimals)
+        
+    def _gm_round(self, val):
+        """GameMaker strictly uses Round Half Up for combat integers."""
+        return float(math.floor(val + 0.5))
 
     # --------------------------------------------------------------------------
     # ENGINE VALUE SETTERS
@@ -246,54 +255,52 @@ class Player:
     def max_sta(self):
         base_calc = 100 + self.u('F14') + self.u('F23') + self.u('H39') + self.u('F3') + self.inf('leg4')
         stat_calc = self.stat('Agi') * (5 + self.u('F26'))
-        asc2_calc = (1 + self.u('H28') + self.u('F54')) * (1 - 0.03 * self.stat('Corr'))
+        asc2_calc = self._f32(1 + self.u('H28') + self.u('F54')) * self._f32(1 - 0.03 * self.stat('Corr'))
         
-        # PROPER BLOCK BONKER BINDING (W13)
         bb_mult = 1.0 + (self.w('W13') * min(100, self.current_max_floor))
         
-        val = (base_calc + stat_calc) * asc2_calc * bb_mult * (1.0 + self.inf('epic3'))
-        return float(int(val))
+        val = (base_calc + stat_calc) * self._f32(asc2_calc) * self._f32(bb_mult) * self._f32(1.0 + self.inf('epic3'))
+        return self._gm_round(val)
 
     @property
     def damage(self):
         base_calc = self.u('F9') + self.u('F15') + self.u('F20') + self.u('F32') + self.u('F49') + self.inf('rare2')
         stat_calc1 = self.stat('Str') * (1 + self.u('F25'))
         stat_calc2 = self.stat('Div') * (2 + self.u('F34'))
-        mult1 = round(1 + self.u('F51') + self.u('F36') + (self.stat('Str') * (0.01 + self.u('F47') + self.u('H25'))) + self.inf('div1'), 4)
-        mult2 = round((0.06 + self.u('F52')) * self.stat('Corr'), 4)
+        mult1 = 1 + self.u('F51') + self.u('F36') + (self.stat('Str') * (0.01 + self.u('F47') + self.u('H25'))) + self.inf('div1')
+        mult2 = (0.06 + self.u('F52')) * self.stat('Corr')
         
-        # PROPER BLOCK BONKER BINDING (W12)
         bb_mult = 1.0 + (self.w('W12') * min(100, self.current_max_floor))
         
-        val = (base_calc + stat_calc1 + stat_calc2 + self.base_damage_const) * (mult1 + mult2) * bb_mult
-        return float(round(val))
+        val = (base_calc + stat_calc1 + stat_calc2 + self.base_damage_const) * self._f32(self._f32(mult1) + self._f32(mult2)) * self._f32(bb_mult)
+        return self._gm_round(val)
 
     @property
     def enraged_damage(self):
-        """Calculates Damage with Enrage treated as an ADDITIVE multiplier to the main pool."""
         base_calc = self.u('F9') + self.u('F15') + self.u('F20') + self.u('F32') + self.u('F49') + self.inf('rare2')
         stat_calc1 = self.stat('Str') * (1 + self.u('F25'))
         stat_calc2 = self.stat('Div') * (2 + self.u('F34'))
-        mult1 = round(1 + self.u('F51') + self.u('F36') + (self.stat('Str') * (0.01 + self.u('F47') + self.u('H25'))) + self.inf('div1'), 4)
-        mult2 = round((0.06 + self.u('F52')) * self.stat('Corr'), 4)
-        enrage_mult = round(0.2 + self.u('F18'), 4)
+        mult1 = 1 + self.u('F51') + self.u('F36') + (self.stat('Str') * (0.01 + self.u('F47') + self.u('H25'))) + self.inf('div1')
+        mult2 = (0.06 + self.u('F52')) * self.stat('Corr')
+        enrage_mult = 0.2 + self.u('F18')
         
-        # PROPER BLOCK BONKER BINDING (W12)
         bb_mult = 1.0 + (self.w('W12') * min(100, self.current_max_floor))
         
-        val = (base_calc + stat_calc1 + stat_calc2 + self.base_damage_const) * (mult1 + mult2 + enrage_mult) * bb_mult
-        return float(round(val))
+        total_mult = self._f32(self._f32(self._f32(mult1) + self._f32(mult2)) + self._f32(enrage_mult))
+        val = (base_calc + stat_calc1 + stat_calc2 + self.base_damage_const) * total_mult * self._f32(bb_mult)
+        return self._gm_round(val)
     
     @property
     def armor_pen(self):
         stat_calc = self.stat('Per') * (2 + self.u('H33'))
         base_ap = self.u('F10') + self.u('F17') + self.u('H36') + stat_calc + self.inf('leg3')
         
-        # Percentage buffs from different menus apply multiplicatively
         upg_mult = 1.0 + (0.03 * self.stat('Int')) + self.u('F29')
         card_mult = 1.0 + self.inf('rare3')
         
-        return float(round(base_ap * upg_mult * card_mult))
+        # GameMaker processes intermediate integer rounding between upgrade and card multiplicative stages
+        intermediate_ap = self._gm_round(base_ap * self._f32(upg_mult))
+        return self._gm_round(intermediate_ap * self._f32(card_mult))
 
     @property
     def atk_spd(self): return 1.0
@@ -369,15 +376,14 @@ class Player:
     def speed_mod_chance(self): return self.u('F24') + self.u('F44') + ((0.002 + self.u('H26')) * self.stat('Agi')) + (0.002 * self.stat('Luck')) + self.inf('div4')
     @property
     def speed_mod_gain(self): 
-        # PROPER BLOCK BONKER BINDING (W14)
-        base_val = (10.0 + (15.0 * self.w('W14'))) * (1.0 + self.u('F55') + self.stat('Corr') * (0.01 + self.u('H52')))
-        return float(math.floor(base_val + 0.5))
+        base_val = (10.0 + (15.0 * self.w('W14'))) * self._f32(1.0 + self._f32(self.u('F55')) + self._f32(self.stat('Corr') * (0.01 + self.u('H52'))))
+        return self._gm_round(base_val)
     @property
     def speed_mod_attack_rate(self): return 2.0
     @property
     def stamina_mod_chance(self): return self.u('H3') + self.u('H14') + self.u('F24') + self.u('F44') + self.u('H40') + self.u('H50') + (0.002 * self.stat('Luck')) + self.inf('myth3') + self.inf('div4')
     @property
-    def stamina_mod_gain(self): return float(math.floor((3.0 + self.u('F43') + self.u('H23')) * (1.0 + self.u('F55') + self.stat('Corr') * (0.01 + self.u('H52'))) + 0.5)) + self.inf('div3')
+    def stamina_mod_gain(self): return self._gm_round((3.0 + self.u('F43') + self.u('H23')) * self._f32(1.0 + self._f32(self.u('F55')) + self._f32(self.stat('Corr') * (0.01 + self.u('H52'))))) + self.inf('div3')
 
     @property
     def gleaming_floor_chance(self): return (self.u('F19') + self.inf('myth1') + self.inf('div2')) if self.asc2_unlocked else 0.0
@@ -388,8 +394,8 @@ class Player:
     def enrage_charges(self): return 5 + self.w('W9')
     @property
     def enrage_cooldown(self): 
-        val = (60 + self.u('H18') + self.u('H29') + self.u('H32') + self.w('W10')) * (1 + self.w('W20'))
-        return float(math.floor(val + 0.5))
+        val = (60 + self.u('H18') + self.u('H29') + self.u('H32') + self.w('W10')) * self._f32(1 + self.w('W20'))
+        return self._gm_round(val)
         
     @property
     def enrage_bonus_dmg(self): return 0.2 + self.u('F18')
@@ -400,8 +406,8 @@ class Player:
     def flurry_duration(self): return 5 + self.w('W9')
     @property
     def flurry_cooldown(self): 
-        val = (115 + self.u('H22') + self.u('H29') + self.w('W10')) * (1 + self.w('W20'))
-        return float(math.floor(val + 0.5))
+        val = (115 + self.u('H22') + self.u('H29') + self.w('W10')) * self._f32(1 + self.w('W20'))
+        return self._gm_round(val)
         
     @property
     def flurry_bonus_atk_spd(self): return 1.0
@@ -412,7 +418,7 @@ class Player:
     def quake_attacks(self): return 5 + self.u('F31') + self.w('W9')
     @property
     def quake_cooldown(self): 
-        val = (175 + self.u('H29') + self.u('H31') + self.w('W10')) * (1 + self.w('W20'))
-        return float(math.floor(val + 0.5))
+        val = (175 + self.u('H29') + self.u('H31') + self.w('W10')) * self._f32(1 + self.w('W20'))
+        return self._gm_round(val)
     @property
     def quake_dmg_to_all(self): return 0.2
