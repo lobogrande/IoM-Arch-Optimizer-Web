@@ -26,6 +26,7 @@ export default function ForecasterTab() {
 
   const cartItems = store.forecaster_cartItems || [ ];
 
+  const isDevMode = import.meta.env.DEV || store.forecaster_devMode || false;
   const [forecasterMode, setForecasterMode] = useState('wall');
   const pivotTargetFrag = store.forecaster_pivotTargetFrag || 6;
   const setPivotTargetFrag = (v) => store.setSimsState('forecaster_pivotTargetFrag', v);
@@ -113,9 +114,9 @@ export default function ForecasterTab() {
   }, [ ]);
 
   useEffect(() => {
-    if (forecasterMode === 'wall' && hasAnalyzed) {
+    if ((!isDevMode || forecasterMode === 'wall') && hasAnalyzed) {
       handleAnalyzeWall();
-    } else if (forecasterMode === 'pivot' && hasPivotAnalyzed) {
+    } else if (isDevMode && forecasterMode === 'pivot' && hasPivotAnalyzed) {
       handleAnalyzePivot();
     }
   }, [ cartItems ]);
@@ -832,32 +833,42 @@ export default function ForecasterTab() {
   return (
     <div className="space-y-6 animate-fade-in">
       <div className="flex flex-col gap-2">
-        <h2 className="text-2xl font-bold">🔮 The Future Forecaster</h2>
+        <h2 
+          className="text-2xl font-bold cursor-default" 
+          onDoubleClick={() => store.setSimsState('forecaster_devMode', !isDevMode)}
+          title="Double click to toggle Dev Mode"
+        >
+          {isDevMode ? "🔮 The Future Forecaster (Dev Mode)" : "🎯 Progression Wall Breaker"}
+        </h2>
         <p className="text-st-text-light">
-          Look into the future. Queue up a hypothetical package of upgrades in your Cart, and let the Oracle mathematically evaluate how those upgrades will impact your pushing and farming potential.
+          {isDevMode 
+            ? "Look into the future. Queue up a hypothetical package of upgrades in your Cart, and let the Oracle mathematically evaluate how those upgrades will impact your pushing and farming potential."
+            : "Evaluate your build's ability to reach a new max floor. The Oracle calculates the cumulative stamina drain required to survive the push and provides your precise probability of success. Use the interactive shopping cart to stack hypothetical upgrades and see exactly what it takes to mathematically bridge the gap to your next milestone!"}
         </p>
       </div>
 
-      <div className="flex overflow-x-auto border-b border-st-border mb-2 no-scrollbar">
-        {[
-          { id: 'wall', label: '🎯 Progression Wall Breaker' },
-          { id: 'pivot', label: '⚖️ Economy Pivot Forecaster' }
-        ].map((t) => (
-          <button
-            key={t.id}
-            onClick={() => setForecasterMode(t.id)}
-            className={`px-4 py-3 font-bold whitespace-nowrap transition-colors duration-200 border-b-2 ${
-              forecasterMode === t.id 
-                ? 'border-st-orange text-st-orange' 
-                : 'border-transparent text-st-text-light hover:text-st-orange hover:border-st-border'
-            }`}
-          >
-            {t.label}
-          </button>
-        ))}
-      </div>
+      {isDevMode && (
+        <div className="flex overflow-x-auto border-b border-st-border mb-2 no-scrollbar">
+          {[
+            { id: 'wall', label: '🎯 Progression Wall Breaker' },
+            { id: 'pivot', label: '⚖️ Economy Pivot Forecaster' }
+          ].map((t) => (
+            <button
+              key={t.id}
+              onClick={() => setForecasterMode(t.id)}
+              className={`px-4 py-3 font-bold whitespace-nowrap transition-colors duration-200 border-b-2 ${
+                forecasterMode === t.id 
+                  ? 'border-st-orange text-st-orange' 
+                  : 'border-transparent text-st-text-light hover:text-st-orange hover:border-st-border'
+              }`}
+            >
+              {t.label}
+            </button>
+          ))}
+        </div>
+      )}
 
-      {forecasterMode === 'wall' && (
+      {(!isDevMode || forecasterMode === 'wall') && (
         <div className="space-y-6 animate-fade-in">
           <div className="bg-blue-900/10 border border-blue-500/30 rounded p-4 text-sm text-blue-200 shadow-sm">
             <h4 className="font-bold text-blue-400 mb-2 flex items-center gap-2">
@@ -936,7 +947,7 @@ export default function ForecasterTab() {
         </div>
       )}
 
-      {forecasterMode === 'pivot' && (
+      {isDevMode && forecasterMode === 'pivot' && (
         <div className="space-y-6 animate-fade-in">
           <div className="bg-purple-900/10 border border-purple-500/30 rounded p-4 text-sm text-purple-200 shadow-sm">
             <h4 className="font-bold text-purple-400 mb-2 flex items-center gap-2">
@@ -1127,7 +1138,7 @@ export default function ForecasterTab() {
         </div>
       )}
 
-      {(cartItems.length > 0 || (forecasterMode === 'wall' && hasAnalyzed && results) || (forecasterMode === 'pivot' && hasPivotAnalyzed && pivotResults)) && (
+      {(cartItems.length > 0 || ((!isDevMode || forecasterMode === 'wall') && hasAnalyzed && results) || (isDevMode && forecasterMode === 'pivot' && hasPivotAnalyzed && pivotResults)) && (
         <div className="animate-fade-in space-y-6">
           <div className="st-container border-t-4 border-t-green-500 bg-green-500/5">
             <div className="flex justify-between items-center mb-4">
@@ -1142,7 +1153,7 @@ export default function ForecasterTab() {
                 {cartItems.map((item, idx) => {
                   const ascTier = store.asc2_unlocked ? 2 : (store.asc1_unlocked ? 1 : 0);
                   const totalCostStr = getCartItemTotalCost(item, store, ascTier);
-                  const activeResults = forecasterMode === 'wall' ? results : pivotResults;
+                  const activeResults = (!isDevMode || forecasterMode === 'wall') ? results : pivotResults;
                   const nextGain = activeResults?.fullList?.find(i => i.type === item.type && i.id === item.id);
                   const baseLvl = getDynamicBaseLvl(item);
                   
@@ -1161,7 +1172,7 @@ export default function ForecasterTab() {
                         {nextGain ? (
                           <div className="text-[10px] mt-1 text-st-text-light bg-black/10 inline-block px-1 rounded">
                             Next +1 Lvl Gain: 
-                            {forecasterMode === 'wall' ? (
+                            {(!isDevMode || forecasterMode === 'wall') ? (
                               <>
                                 {nextGain.d_edps > 0.1 && <span className="text-st-orange ml-1">+{Math.ceil(nextGain.d_edps).toLocaleString()} EDPS</span>}
                                 {nextGain.d_pen > 0 && <span className="text-gray-300 ml-1">+{Math.ceil(nextGain.d_pen).toLocaleString()} Pen</span>}
@@ -1245,7 +1256,7 @@ export default function ForecasterTab() {
         </div>
       )}
 
-      {forecasterMode === 'wall' && hasAnalyzed && results && (
+      {(!isDevMode || forecasterMode === 'wall') && hasAnalyzed && results && (
         <div className="animate-fade-in space-y-6">
 
           <div className="st-container border-t-4 border-t-st-orange">
@@ -1505,7 +1516,7 @@ export default function ForecasterTab() {
         </div>
       )}
 
-      {forecasterMode === 'pivot' && hasPivotAnalyzed && pivotResults && (
+      {isDevMode && forecasterMode === 'pivot' && hasPivotAnalyzed && pivotResults && (
         <div className="animate-fade-in space-y-6 mt-6">
           <div className="st-container border-t-4 border-t-purple-500">
             <h4 className="font-bold mb-2 text-xl">3. The Oracle's Economy Shopping List</h4>
