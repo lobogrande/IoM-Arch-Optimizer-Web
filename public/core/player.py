@@ -308,13 +308,13 @@ class Player:
     def crit_dmg_mult(self): 
         inner = 1.0 + self.u('H13') + self.u('F30') + (0.03 + self.u('H47')) * self.stat('Str')
         val = 1.5 * inner * (1.0 + self.inf('com1')) * (1.0 + self.inf('epic4'))
-        return self._excel_floor(val, 2)
+        return self._excel_round(val, 2)
         
     @property
     def enraged_crit_dmg_mult(self): 
         inner = 1.0 + (1.0 + self.u('F18')) + self.u('H13') + self.u('F30') + (0.03 + self.u('H47')) * self.stat('Str')
         val = 1.5 * inner * (1.0 + self.inf('com1')) * (1.0 + self.inf('epic4'))
-        return self._excel_floor(val, 2)
+        return self._excel_round(val, 2)
         
     @property
     def super_crit_chance(self): return self.u('H20') + self.u('F37') + ((0.02 + 0.01 * self.u('F34')) * self.stat('Div')) + self.inf('epic2') + self.inf('com4')
@@ -324,7 +324,7 @@ class Player:
         if self.super_crit_chance <= 0: return 0.0
         inner = 1.0 + self.u('H30') + self.u('F53')
         val = 2.0 * inner * (1.0 + self.inf('com2'))
-        return self._excel_floor(val, 2)
+        return self._excel_round(val, 2)
         
     @property
     def ultra_crit_chance(self): return self.u('H37') + self.u('H49') + self.inf('com4')
@@ -333,7 +333,7 @@ class Player:
     def ultra_crit_dmg_mult(self): 
         if self.ultra_crit_chance <= 0: return 0.0
         inner = (1.0 + self.u('F40')) * (1.0 + self.inf('com3'))
-        return self._excel_floor(3.0 * inner, 2)
+        return self._excel_round(3.0 * inner, 2)
 
     @property
     def ability_insta_charge(self): return self.w('W11') + self.u('F39') + self.u('F50') + self.inf('myth4')
@@ -349,7 +349,7 @@ class Player:
         stat_calc = self.stat('Int') * (0.05 + self.u('F35'))
         val = (1 + self.u('F4') + self.u('F11') + self.u('F21') + self.u('F28') + self.u('H51') + stat_calc)
         val *= max(1.0, self.u('F45')) * self.w('W16', default=1.0) * (1.0 + self.inf('dirt2'))
-        return self._excel_floor(val, 2)
+        return self._excel_round(val, 2)
 
     @property
     def frag_loot_gain_mult(self):
@@ -358,7 +358,7 @@ class Player:
         # The cap for W8 (Geoduck) is handled natively inside the self.w() method based on ascension
         val *= (1 + self.w('W4')) * (1 + self.w('W5')) * (1 + self.w('W8'))
         val *= self.u('F42') * self.w('W15', default=1.0) * (1.0 + self.inf('dirt3') + self.inf('leg1'))
-        return self._excel_floor(val, 2)
+        return self._excel_round(val, 2)
 
     @property
     def exp_mod_chance(self): return self.u('H38') + self.u('H4') + (0.002 * self.stat('Luck')) + ((0.003 + self.u('H35')) * self.stat('Int')) + self.u('F24') + self.u('F44') + self.inf('div4')
