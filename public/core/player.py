@@ -312,8 +312,8 @@ class Player:
         
     @property
     def enraged_crit_dmg_mult(self): 
-        inner = 1.0 + (1.0 + self.u('F18')) + self.u('H13') + self.u('F30') + (0.03 + self.u('H47')) * self.stat('Str')
-        val = 1.5 * inner * (1.0 + self.inf('com1')) * (1.0 + self.inf('epic4'))
+        inner = 1.0 + self.u('H13') + self.u('F30') + (0.03 + self.u('H47')) * self.stat('Str')
+        val = 1.5 * (inner * (1.0 + self.inf('com1')) * (1.0 + self.inf('epic4')) + (1.0 + self.u('F18')))
         return self._excel_round(val, 2)
         
     @property
