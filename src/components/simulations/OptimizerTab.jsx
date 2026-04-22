@@ -93,8 +93,8 @@ export default function OptimizerTab() {
   if (store.asc1_unlocked) activeStats.push('Div');
   if (store.asc2_unlocked) activeStats.push('Corr');
 
-  const optActiveStats = [ ...activeStats ];
-  if (optGoal === "Block Card Farming" && allowUnspent) {
+  const optActiveStats =[ ...activeStats ];
+  if (allowUnspent) {
     optActiveStats.push('Unassigned');
   }
 
@@ -420,6 +420,16 @@ export default function OptimizerTab() {
           >
             {OPT_GOALS.map(g => <option key={g} value={g}>{g}</option>)}
           </select>
+          
+          <label className="flex items-center space-x-2 mt-4 cursor-pointer text-st-text-light hover:text-st-orange transition-colors">
+            <input 
+              type="checkbox"
+              checked={allowUnspent}
+              onChange={(e) => setAllowUnspent(e.target.checked)}
+              className="accent-st-orange w-4 h-4"
+            />
+            <span className="text-sm font-bold">Allow Unspent Points (Crippled Build)</span>
+          </label>
         </div>
         
         <div>
@@ -455,15 +465,6 @@ export default function OptimizerTab() {
                 placeholder="e.g., com1, myth3"
                 className="w-full bg-st-bg border border-st-border rounded p-2 text-st-text focus:border-st-orange focus:outline-none"
               />
-              <label className="flex items-center space-x-2 mt-3 cursor-pointer text-st-text-light hover:text-st-orange transition-colors">
-                <input 
-                  type="checkbox"
-                  checked={allowUnspent}
-                  onChange={(e) => setAllowUnspent(e.target.checked)}
-                  className="accent-st-orange w-4 h-4"
-                />
-                <span className="text-sm font-bold">Allow Unspent Points (Crippled Build)</span>
-              </label>
             </>
           )}
         </div>
