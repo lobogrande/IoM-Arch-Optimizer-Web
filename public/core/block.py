@@ -37,12 +37,22 @@ class Block:
         hp_mult, exp_mult, loot_mult = player.get_card_bonuses(block_id)
 
         # 1. Determine Floor Scaling for HP and Armor
-        if player.asc2_unlocked and current_floor >= 150:
-            raw_hp, self.armor = base['hp150'], base['a150']
-        elif current_floor >= 100:
-            raw_hp, self.armor = base['hp100'], base['a100']
-        else:
-            raw_hp, self.armor = base['hp'], base['a']
+        raw_hp = base['hp']
+        self.armor = base['a']
+
+        # Apply true GameMaker sequential scaling rules
+        # NOTE: Implements exact GM bugs: Armor skipped at 150, double-trigger at 300!
+        # TODO: Dev acknowledged these bugs and will patch them in a future update. Revert these when the game updates!
+        if current_floor >= 100: raw_hp *= 2; self.armor *= 1.5
+        if current_floor >= 150: raw_hp *= 2
+        if current_floor >= 200: raw_hp *= 2; self.armor *= 1.5
+        if current_floor >= 250: raw_hp *= 2; self.armor *= 1.5
+        if current_floor >= 300: raw_hp *= 2; self.armor *= 1.5
+        if current_floor >= 300: raw_hp *= 2; self.armor *= 1.5 # TODO: Dev copy-pasted 300 twice! Remove this line next update.
+        if current_floor >= 350: raw_hp *= 2; self.armor *= 1.5
+        if current_floor >= 400: raw_hp *= 2; self.armor *= 1.5
+        if current_floor >= 450: raw_hp *= 2; self.armor *= 1.5
+        if current_floor >= 500: raw_hp *= 2; self.armor *= 1.5
 
         # Apply Card HP Reduction (Standard game rounding is usually nearest integer)
         self.hp = round(raw_hp * hp_mult)
@@ -88,9 +98,9 @@ if __name__ == "__main__":
     # Test Floor 50 (Base stats)
     block_f50 = Block('rare1', 50, p)
     print(f"--- RARE1 (Poly Card) @ Floor 50 ---")
-    print(f"HP: {ore_f50.hp} | Armor: {ore_f50.armor} | XP: {ore_f50.xp:.3f} | Loot: {ore_f50.frag_amt:.3f}")
+    print(f"HP: {block_f50.hp} | Armor: {block_f50.armor} | XP: {block_f50.xp:.3f} | Loot: {block_f50.frag_amt:.3f}")
 
     # Test Floor 101 (Scaled stats)
     block_f101 = Block('rare1', 101, p)
     print(f"\n--- RARE1 (Poly Card) @ Floor 101 ---")
-    print(f"HP: {ore_f101.hp} | Armor: {ore_f101.armor} | XP: {ore_f101.xp:.3f} | Loot: {ore_f101.frag_amt:.3f}")
+    print(f"HP: {block_f101.hp} | Armor: {block_f101.armor} | XP: {block_f101.xp:.3f} | Loot: {block_f101.frag_amt:.3f}")
