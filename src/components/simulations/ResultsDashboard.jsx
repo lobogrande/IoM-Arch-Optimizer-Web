@@ -3,20 +3,13 @@ import { useState } from 'react';
 import useStore from '../../store';
 import { EngineWorkerPool } from '../../utils/optimizer';
 import PlotWrapper from 'react-plotly.js';
-import { INTERNAL_UPGRADE_CAPS, UPGRADE_NAMES, ASC1_LOCKED_UPGS, ASC2_LOCKED_UPGS, UPGRADE_LEVEL_REQS, EXTERNAL_UI_GROUPS, calculateUpgradeCost, CURRENCY_TYPES } from '../../game_data';
+import { INTERNAL_UPGRADE_CAPS, UPGRADE_NAMES, ASC1_LOCKED_UPGS, ASC2_LOCKED_UPGS, UPGRADE_LEVEL_REQS, EXTERNAL_UI_GROUPS, calculateUpgradeCost, CURRENCY_TYPES, BLOCK_MIN_FLOORS } from '../../game_data';
 import { UI_BLOCK_CARD_WIDTH, UI_BLOCK_CARD_X_OFFSET, UI_BLOCK_CARD_Y_OFFSET, UI_CARD_CBLOCK_SCALE } from '../../ui_config';
 
 const Plot = PlotWrapper.default || PlotWrapper;
 
 const FRAG_NAMES = {
   0: "Dirt", 1: "Common", 2: "Rare", 3: "Epic", 4: "Legendary", 5: "Mythic", 6: "Divine"
-};
-
-const ORE_MIN_FLOORS = {
-  'dirt1': 1, 'com1': 1, 'rare1': 3, 'epic1': 6, 'leg1': 12, 'myth1': 20, 'div1': 50,
-  'dirt2': 12, 'com2': 18, 'rare2': 26, 'epic2': 30, 'leg2': 32, 'myth2': 36, 'div2': 75,
-  'dirt3': 24, 'com3': 30, 'rare3': 36, 'epic3': 42, 'leg3': 45, 'myth3': 50, 'div3': 100,
-  'dirt4': 81, 'com4': 96, 'rare4': 111, 'epic4': 126, 'leg4': 136, 'myth4': 141, 'div4': 150
 };
 
 export default function ResultsDashboard({ context }) {
@@ -401,10 +394,10 @@ export default function ResultsDashboard({ context }) {
 
       await pool.syncState(baseStateDict);
 
-      Object.keys(ORE_MIN_FLOORS).forEach(cardId => {
+      Object.keys(BLOCK_MIN_FLOORS).forEach(cardId => {
         if (!store.asc1_unlocked && (cardId.startsWith('div') || cardId.endsWith('4'))) return;
         if (!store.asc2_unlocked && cardId.endsWith('4')) return;
-        if (store.current_max_floor < ORE_MIN_FLOORS[cardId]) return;
+        if (store.current_max_floor < BLOCK_MIN_FLOORS[cardId]) return;
 
         const currentLvl = store.cards[cardId] || 0;
         const maxLvl = store.asc1_unlocked ? 4 : 3;

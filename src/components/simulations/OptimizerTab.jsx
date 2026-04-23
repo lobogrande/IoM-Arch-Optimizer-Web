@@ -3,6 +3,7 @@ import { useState, useMemo, useEffect } from 'react';
 import useStore from '../../store';
 import { EngineWorkerPool, getOptimalStepProfile, runOptimizationPhase, topUpBuild } from '../../utils/optimizer';
 import ResultsDashboard from './ResultsDashboard';
+import { BLOCK_MIN_FLOORS } from '../../game_data';
 
 const OPT_GOALS =[
   "Max Floor Push", 
@@ -13,13 +14,6 @@ const OPT_GOALS =[
 
 const FRAG_NAMES = {
   0: "Dirt", 1: "Common", 2: "Rare", 3: "Epic", 4: "Legendary", 5: "Mythic", 6: "Divine"
-};
-
-const ORE_MIN_FLOORS = {
-  'dirt1': 1, 'com1': 1, 'rare1': 3, 'epic1': 6, 'leg1': 12, 'myth1': 20, 'div1': 50,
-  'dirt2': 12, 'com2': 18, 'rare2': 26, 'epic2': 30, 'leg2': 32, 'myth2': 36, 'div2': 75,
-  'dirt3': 24, 'com3': 30, 'rare3': 36, 'epic3': 42, 'leg3': 45, 'myth3': 50, 'div3': 100,
-  'dirt4': 81, 'com4': 96, 'rare4': 111, 'epic4': 126, 'leg4': 136, 'myth4': 141, 'div4': 150
 };
 
 export default function OptimizerTab() {
@@ -42,10 +36,10 @@ export default function OptimizerTab() {
   const setAllowUnspent = (v) => store.setSimsState('allowUnspent', v);
 
   const availableBlocks = useMemo(() => {
-    return Object.keys(ORE_MIN_FLOORS).filter(cardId => {
+    return Object.keys(BLOCK_MIN_FLOORS).filter(cardId => {
       if (!store.asc1_unlocked && (cardId.startsWith('div') || cardId.endsWith('4'))) return false;
       if (!store.asc2_unlocked && cardId.endsWith('4')) return false;
-      if (store.current_max_floor < ORE_MIN_FLOORS[cardId]) return false;
+      if (store.current_max_floor < BLOCK_MIN_FLOORS[cardId]) return false;
       return true;
     });
   },[store.asc1_unlocked, store.asc2_unlocked, store.current_max_floor]);
@@ -490,7 +484,7 @@ export default function OptimizerTab() {
                   <option value="dirt1">Dirt1</option>
                 ) : (
                   availableBlocks.map(b => (
-                    <option key={b} value={b}>{b.charAt(0).toUpperCase() + b.slice(1)} (Min Floor {ORE_MIN_FLOORS[b]})</option>
+                    <option key={b} value={b}>{b.charAt(0).toUpperCase() + b.slice(1)} (Min Floor {BLOCK_MIN_FLOORS[b]})</option>
                   ))
                 )}
               </select>
