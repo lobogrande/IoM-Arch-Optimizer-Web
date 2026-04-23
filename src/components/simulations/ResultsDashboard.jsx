@@ -762,6 +762,14 @@ export default function ResultsDashboard({ context }) {
               displayBlocks.sort();
             }
 
+            let defaultBlock = displayBlocks[0];
+            if (runMetric.startsWith('block_')) {
+              const target = runMetric.replace('block_', '').replace('_per_min', '');
+              if (displayBlocks.includes(target)) defaultBlock = target;
+            }
+            
+            const activeBlock = cardSelBlock || defaultBlock;
+
             return (
             <div className="space-y-6">
               <h4 className="font-bold text-lg">🎴 Block Card Drop Estimates</h4>
@@ -772,7 +780,7 @@ export default function ResultsDashboard({ context }) {
                   <div className="flex flex-col md:flex-row items-center gap-4">
                     <label className="font-bold whitespace-nowrap">Select Block:</label>
                     <select 
-                      value={cardSelBlock || displayBlocks[0]} 
+                      value={activeBlock} 
                       onChange={(e) => setCardSelBlock(e.target.value)}
                       className="w-full md:w-auto bg-st-bg border border-st-border rounded p-2 text-st-text focus:border-st-orange focus:outline-none"
                     >
@@ -783,7 +791,7 @@ export default function ResultsDashboard({ context }) {
                   </div>
                   
                   {(() => {
-                    const selB = cardSelBlock || displayBlocks[0];
+                    const selB = activeBlock;
                     const valMins = avgMetrics[`block_${selB}_per_min`] || 0;
                     
                     const formatTime = (reqKills) => {

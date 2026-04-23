@@ -15,6 +15,13 @@ const FRAG_NAMES = {
   0: "Dirt", 1: "Common", 2: "Rare", 3: "Epic", 4: "Legendary", 5: "Mythic", 6: "Divine"
 };
 
+const ORE_MIN_FLOORS = {
+  'dirt1': 1, 'com1': 1, 'rare1': 3, 'epic1': 6, 'leg1': 12, 'myth1': 20, 'div1': 50,
+  'dirt2': 12, 'com2': 18, 'rare2': 26, 'epic2': 30, 'leg2': 32, 'myth2': 36, 'div2': 75,
+  'dirt3': 24, 'com3': 30, 'rare3': 36, 'epic3': 42, 'leg3': 45, 'myth3': 50, 'div3': 100,
+  'dirt4': 81, 'com4': 96, 'rare4': 111, 'epic4': 126, 'leg4': 136, 'myth4': 141, 'div4': 150
+};
+
 export default function OptimizerTab() {
   const store = useStore();
 
@@ -33,6 +40,21 @@ export default function OptimizerTab() {
   const setLockedStats = (v) => store.setSimsState('lockedStats', v);
   const setSimsPerSec = (v) => store.setSimsState('simsPerSec', v);
   const setAllowUnspent = (v) => store.setSimsState('allowUnspent', v);
+
+  const availableBlocks = useMemo(() => {
+    return Object.keys(ORE_MIN_FLOORS).filter(cardId => {
+      if (!store.asc1_unlocked && (cardId.startsWith('div') || cardId.endsWith('4'))) return false;
+      if (!store.asc2_unlocked && cardId.endsWith('4')) return false;
+      if (store.current_max_floor < ORE_MIN_FLOORS[cardId]) return false;
+      return true;
+    });
+  },[store.asc1_unlocked, store.asc2_unlocked, store.current_max_floor]);
+
+  useEffect(() => {
+    if (optGoal === "Block Card Farming" && availableBlocks.length > 0 && !availableBlocks.includes(targetBlock)) {
+      setTargetBlock(availableBlocks[availableBlocks.length - 1]);
+    }
+  },[optGoal, availableBlocks, targetBlock]);
 
   const[displayTime, setDisplayTime] = useState(store.timeLimit || 60);
 
@@ -459,14 +481,19 @@ export default function OptimizerTab() {
           {optGoal === "Block Card Farming" && (
             <>
               <label className="block text-sm font-bold mb-1">Target Block ID</label>
-              <input 
-                type="text" 
-                value={targetBlock} 
-                onChange={(e) => setTargetBlock(e.target.value.toLowerCase())}
-                onBlur={(e) => { if (e.target.value.trim() === '') setTargetBlock('myth3'); }}
-                placeholder="e.g., com1, myth3"
+              <select 
+                value={availableBlocks.includes(targetBlock) ? targetBlock : (availableBlocks[availableBlocks.length - 1] || "dirt1")} 
+                onChange={(e) => setTargetBlock(e.target.value)}
                 className="w-full bg-st-bg border border-st-border rounded p-2 text-st-text focus:border-st-orange focus:outline-none"
-              />
+              >
+                {availableBlocks.length === 0 ? (
+                  <option value="dirt1">Dirt1</option>
+                ) : (
+                  availableBlocks.map(b => (
+                    <option key={b} value={b}>{b.charAt(0).toUpperCase() + b.slice(1)} (Min Floor {ORE_MIN_FLOORS[b]})</option>
+                  ))
+                )}
+              </select>
             </>
           )}
         </div>
