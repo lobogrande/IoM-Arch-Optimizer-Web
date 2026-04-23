@@ -12,6 +12,20 @@ const FRAG_NAMES = {
   0: "Dirt", 1: "Common", 2: "Rare", 3: "Epic", 4: "Legendary", 5: "Mythic", 6: "Divine"
 };
 
+// Precalculated multipliers for Gamma/Erlang distribution (1 to 10 drops)
+const GAMMA_MULTS = {
+  1: { p50: 0.693, p90: 2.303, p99: 4.605 },
+  2: { p50: 1.678, p90: 3.890, p99: 6.638 },
+  3: { p50: 2.674, p90: 5.322, p99: 8.406 },
+  4: { p50: 3.672, p90: 6.681, p99: 10.045 },
+  5: { p50: 4.671, p90: 7.994, p99: 11.605 },
+  6: { p50: 5.670, p90: 9.275, p99: 13.108 },
+  7: { p50: 6.670, p90: 10.532, p99: 14.571 },
+  8: { p50: 7.669, p90: 11.771, p99: 15.998 },
+  9: { p50: 8.669, p90: 12.995, p99: 17.395 },
+  10: { p50: 9.669, p90: 14.206, p99: 18.783 }
+};
+
 export default function ResultsDashboard({ context }) {
   const store = useStore();
   
@@ -31,6 +45,9 @@ export default function ResultsDashboard({ context }) {
   const [roiProgressMsg, setRoiProgressMsg] = useState("");
   const [roiUpgFilter, setRoiUpgFilter] = useState('All');
   const[roiPrecision, setRoiPrecision] = useState(15);
+  
+  const[polyFrags, setPolyFrags] = useState(10);
+  const [infFrags, setInfFrags] = useState(10);
 
   // Derive bounds locally for this component
   const capInc = parseInt(store.upgrade_levels[45] || 0) * 5; 
@@ -797,9 +814,9 @@ export default function ResultsDashboard({ context }) {
 
                     const isTier4 = selB.endsWith('4');
                     const drops =[
-                      { name: "Base Card", odds: isTier4 ? 15000 : 1500, bg: "1" },
-                      { name: "Poly Fragments", odds: isTier4 ? 75000 : 7500, bg: "2" },
-                      { name: "Infernal Fragments", odds: 200000, bg: "4" }
+                      { name: "Base Card", odds: isTier4 ? 15000 : 1500, bg: "1", isFrag: false },
+                      { name: "Poly Fragments", odds: isTier4 ? 75000 : 7500, bg: "2", isFrag: true, count: polyFrags, setCount: setPolyFrags },
+                      { name: "Infernal Fragments", odds: 200000, bg: "4", isFrag: true, count: infFrags, setCount: setInfFrags }
                     ];
 
                     return (
@@ -807,9 +824,10 @@ export default function ResultsDashboard({ context }) {
                         <div className="text-st-text-light text-sm mb-6">Based on {valMins.toFixed(2)} <b>{selB}</b> kills/min</div>
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                           {drops.map((d, i) => {
-                            const rt50 = formatTime(0.693 * d.odds);
-                            const rt90 = formatTime(2.302 * d.odds);
-                            const rt99 = formatTime(4.605 * d.odds);
+                            const mults = d.isFrag ? GAMMA_MULTS[d.count] : GAMMA_MULTS[1];
+                            const rt50 = formatTime(mults.p50 * d.odds);
+                            const rt90 = formatTime(mults.p90 * d.odds);
+                            const rt99 = formatTime(mults.p99 * d.odds);
                             
                             return (
                               <div key={i} className="border border-st-border rounded bg-st-bg p-4 flex flex-col items-center text-center shadow-sm">
@@ -818,8 +836,23 @@ export default function ResultsDashboard({ context }) {
                                   <img src={`/assets/cards/cores/${selB}.png`} className="absolute inset-0 w-full h-full object-contain drop-shadow-md" style={{ imageRendering: 'pixelated', transform: `translate(${UI_BLOCK_CARD_X_OFFSET}px, ${UI_BLOCK_CARD_Y_OFFSET}px) scale(${UI_CARD_CBLOCK_SCALE})` }} onError={(e) => e.target.style.display = 'none'} />
                                 </div>
                                 <div className="font-bold mb-1">{d.name}</div>
-                                <div className="text-xs text-st-text-light mb-4">(1 in {d.odds.toLocaleString()})</div>
-                                <hr className="border-st-border mb-4"/>
+                                
+                                <div className="flex flex-col items-center gap-2 mb-3">
+                                  <div className="text-xs text-st-text-light">(1 in {d.odds.toLocaleString()}{d.isFrag ? " ea" : ""})</div>
+                                  {d.isFrag && (
+                                    <select 
+                                      value={d.count}
+                                      onChange={(e) => d.setCount(parseInt(e.target.value))}
+                                      className="bg-[#1e1e1e] border border-st-border rounded px-2 py-1 text-xs text-st-orange font-bold focus:border-st-orange outline-none cursor-pointer"
+                                    >
+                                      {[...Array(10)].map((_, i) => (
+                                        <option key={i+1} value={i+1}>Need {i+1} Frag{i > 0 ? 's' : ''}</option>
+                                      ))}
+                                    </select>
+                                  )}
+                                </div>
+                                <hr className="border-st-border mb-4 w-full"/>
+                                
                                 {valMins > 0 ? (
                                   <div className="space-y-3 text-sm">
                                     <div><strong>50% (Lucky):</strong><br/>~{rt50.rt} | ~{rt50.arch.toFixed(1)}k Arch Secs</div>
