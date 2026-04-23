@@ -839,23 +839,26 @@ export default function ResultsDashboard({ context }) {
                                 
                                 <div className="flex flex-col items-center gap-2 mb-3">
                                   <div className="text-xs text-st-text-light">(1 in {d.odds.toLocaleString()}{d.isFrag ? " ea" : ""})</div>
-                                  {d.isFrag && (
-                                    <div className="flex items-center gap-1 relative group">
-                                      <select 
-                                        value={d.count}
-                                        onChange={(e) => d.setCount(parseInt(e.target.value))}
-                                        className="bg-[#1e1e1e] border border-st-border rounded px-2 py-1 text-xs text-st-orange font-bold focus:border-st-orange outline-none cursor-pointer"
-                                      >
-                                        {[ ...Array(10) ].map((_, i) => (
-                                          <option key={i+1} value={i+1}>Need {i+1} Frag{i > 0 ? 's' : ''}</option>
-                                        ))}
-                                      </select>
-                                      <span className="text-st-text-light hover:text-st-orange cursor-help text-xs">ℹ️</span>
+                                  
+                                  <div className={`flex items-center gap-1 relative group ${d.isFrag ? '' : 'invisible pointer-events-none'}`}>
+                                    <select 
+                                      value={d.count || 1}
+                                      onChange={(e) => d.setCount && d.setCount(parseInt(e.target.value))}
+                                      className="bg-[#1e1e1e] border border-st-border rounded px-2 py-1 text-xs text-st-orange font-bold focus:border-st-orange outline-none cursor-pointer"
+                                      tabIndex={d.isFrag ? 0 : -1}
+                                    >
+                                      {[ ...Array(10) ].map((_, i) => (
+                                        <option key={i+1} value={i+1}>Need {i+1} Frag{i > 0 ? 's' : ''}</option>
+                                      ))}
+                                    </select>
+                                    <span className="text-st-text-light hover:text-st-orange cursor-help text-xs">ℹ️</span>
+                                    {d.isFrag && (
                                       <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-48 p-2 bg-st-bg text-st-text text-xs border border-st-border rounded shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50 text-left pointer-events-none">
                                         Calculated using the <strong>Gamma distribution</strong>. Hunting for multiple drops smooths out the RNG variance, meaning 10 drops requires significantly less time than 10x the cost of a single drop!
                                       </div>
-                                    </div>
-                                  )}
+                                    )}
+                                  </div>
+                                  
                                 </div>
                                 <hr className="border-st-border mb-4 w-full"/>
                                 
