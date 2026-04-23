@@ -1,5 +1,15 @@
 // src/game_data.js
 
+// ==============================================================================
+// BLOCK APPEARANCE RANGES (Mirrored from project_config.py ASC_ORE_RESTRICTIONS)
+// ==============================================================================
+export const BLOCK_MIN_FLOORS = {
+  'dirt1': 1, 'com1': 1, 'rare1': 3, 'epic1': 6, 'leg1': 12, 'myth1': 20, 'div1': 50,
+  'dirt2': 12, 'com2': 18, 'rare2': 26, 'epic2': 30, 'leg2': 32, 'myth2': 36, 'div2': 75,
+  'dirt3': 24, 'com3': 30, 'rare3': 36, 'epic3': 42, 'leg3': 45, 'myth3': 50, 'div3': 100,
+  'dirt4': 81, 'com4': 96, 'rare4': 111, 'epic4': 126, 'leg4': 136, 'myth4': 141, 'div4': 150
+};
+
 export const INTERNAL_UPGRADE_CAPS = {
   3: 50, 4: 25, 5: 25, 8: 3, 9: 25, 10: 25, 11: 25, 12: 5, 13: 25, 
   14: 20, 15: 20, 16: 10, 17: 15, 18: 15, 19: 30, 20: 25, 21: 20, 

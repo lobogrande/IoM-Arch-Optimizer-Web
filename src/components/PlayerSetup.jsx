@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import useStore from '../store';
 import { 
   UI_STAT_IMG_WIDTH, UI_BLOCK_CARD_WIDTH, 
@@ -21,31 +21,29 @@ export default function PlayerSetup() {
     const d = active.data;
     const res = [ ];
 
-    const check = (cat, label, oldV, newV) => {
-      if (oldV !== newV) res.push({ cat, label, oldV: oldV ?? '-', newV: newV ?? '-' });
+    const check = (cat, label, oldV, newV, undoFn) => {
+      if (oldV !== newV) res.push({ cat, label, oldV: oldV ?? '-', newV: newV ?? '-', undoFn });
     };
 
-    check('Global Settings', 'Ascension 1 Unlocked', d.asc1_unlocked, asc1_unlocked);
-    check('Global Settings', 'Ascension 2 Unlocked', d.asc2_unlocked, asc2_unlocked);
-    check('Global Settings', 'Arch Level', d.arch_level, arch_level);
-    check('Global Settings', 'Max Floor', d.current_max_floor, current_max_floor);
-    check('Global Settings', 'Geoduck Unlocked', !!d.geoduck_unlocked, !!geoduck_unlocked);
-    check('Global Settings', 'Infernal Arch Bonus %', parseFloat(d.arch_ability_infernal_bonus || 0), parseFloat(arch_ability_infernal_bonus || 0));
-    check('Global Settings', 'Total Infernal Cards', d.total_infernal_cards || 0, total_infernal_cards || 0);
-
-    [ 'Str', 'Agi', 'Per', 'Int', 'Luck', 'Div', 'Corr' ].forEach(s => {
-      check('Base Stats', s, d.base_stats[s] || 0, base_stats[s] || 0);
+    check('Global Settings', 'Ascension 1 Unlocked', d.asc1_unlocked, asc1_unlocked, () => setSetting('asc1_unlocked', !!d.asc1_unlocked));
+    check('Global Settings', 'Ascension 2 Unlocked', d.asc2_unlocked, asc2_unlocked, () => setSetting('asc2_unlocked', !!d.asc2_unlocked));
+    check('Global Settings', 'Arch Level', d.arch_level, arch_level, () => setSetting('arch_level', d.arch_level || 1));
+    check('Global Settings', 'Max Floor', d.current_max_floor, current_max_floor, () => setSetting('current_max_floor', d.current_max_floor || 1));
+    check('Global Settings', 'Geoduck Unlocked', !!d.geoduck_unlocked, !!geoduck_unlocked, () => setSetting('geoduck_unlocked', !!d.geoduck_unlocked));
+    check('Global Settings', 'Infernal Arch Bonus %', parseFloat(d.arch_ability_infernal_bonus || 0), parseFloat(arch_ability_infernal_bonus || 0), () => setSetting('arch_ability_infernal_bonus', d.arch_ability_infernal_bonus || 0));
+    check('Global Settings', 'Total Infernal Cards', d.total_infernal_cards || 0, total_infernal_cards || 0, () => setSetting('total_infernal_cards', d.total_infernal_cards || 0));[ 'Str', 'Agi', 'Per', 'Int', 'Luck', 'Div', 'Corr' ].forEach(s => {
+      check('Base Stats', s, d.base_stats[s] || 0, base_stats[s] || 0, () => setBaseStat(s, d.base_stats[s] || 0));
     });
 
     Object.keys(INTERNAL_UPGRADE_CAPS).forEach(idStr => {
       const id = parseInt(idStr);
       const name = UPGRADE_NAMES[id] || `Upg ${id}`;
-      check('Internal Upgrades', name, d.upgrade_levels[id] || 0, upgrade_levels[id] || 0);
+      check('Internal Upgrades', name, d.upgrade_levels[id] || 0, upgrade_levels[id] || 0, () => setUpgradeLevel(id, d.upgrade_levels[id] || 0));
     });
 
     EXTERNAL_UI_GROUPS.forEach(g => {
       const id = g.rows[0];
-      check('External Upgrades', g.name, d.external_levels[id] || 0, external_levels[id] || 0);
+      check('External Upgrades', g.name, d.external_levels[id] || 0, external_levels[id] || 0, () => setExternalGroup(g.rows, d.external_levels[id] || 0));
     });
 
     const tierNames =[ 'None', 'Regular', 'Gilded', 'Poly', 'Infernal' ];
@@ -53,7 +51,7 @@ export default function PlayerSetup() {
         const cid = `${ot}${tier}`;
         const oldName = tierNames[d.cards[cid] || 0] || (d.cards[cid] || 0);
         const newName = tierNames[cards[cid] || 0] || (cards[cid] || 0);
-        check('Block Cards', cid.toUpperCase(), oldName, newName);
+        check('Block Cards', cid.toUpperCase(), oldName, newName, () => setCardLevel(cid, d.cards[cid] || 0));
       });
     });
 
@@ -86,6 +84,12 @@ export default function PlayerSetup() {
     
     return false;
   },[ activeProfileId, profiles, asc1_unlocked, asc2_unlocked, arch_level, current_max_floor, geoduck_unlocked, arch_ability_infernal_bonus, total_infernal_cards, base_stats, upgrade_levels, external_levels, cards ]);
+
+  useEffect(() => {
+    if (showDiffModal && !hasUnsavedChanges) {
+      setShowDiffModal(false);
+    }
+  },[showDiffModal, hasUnsavedChanges]);
 
   // Add Arch Level and Internal Upgrade #12 (Stat Points) to get total budget
   const total_allowed = (parseInt(arch_level) || 1) + (upgrade_levels[12] || 0); 
@@ -841,7 +845,19 @@ export default function PlayerSetup() {
           <div className="st-container w-full max-w-2xl max-h-[85vh] flex flex-col shadow-2xl overflow-hidden bg-st-bg">
             <div className="flex justify-between items-center mb-4 border-b border-st-border pb-2 shrink-0">
               <h3 className="text-xl font-bold flex items-center gap-2"><span>🔍</span> Unsaved Changes</h3>
-              <button onClick={() => setShowDiffModal(false)} className="text-st-text-light hover:text-red-500 font-bold text-2xl leading-none">&times;</button>
+              <div className="flex items-center gap-4">
+                <button 
+                  onClick={() => {
+                    loadProfile(activeProfileId);
+                    setShowDiffModal(false);
+                  }} 
+                  className="text-sm text-red-400 hover:text-red-300 font-bold flex items-center gap-1 transition-colors"
+                  title="Discard all unsaved changes"
+                >
+                  <span className="text-base">↩️</span> Undo All
+                </button>
+                <button onClick={() => setShowDiffModal(false)} className="text-st-text-light hover:text-red-500 font-bold text-2xl leading-none">&times;</button>
+              </div>
             </div>
             
             <div className="overflow-y-auto flex-1 pr-2 space-y-6 min-h-[200px]">
@@ -859,12 +875,21 @@ export default function PlayerSetup() {
                     <h4 className="font-bold text-st-orange mb-2 border-b border-st-border/50 pb-1">{cat}</h4>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm">
                       {items.map((item, idx) => (
-                        <div key={idx} className="flex justify-between items-center bg-st-secondary/50 p-2 rounded border border-st-border/50 shadow-sm hover:border-st-orange/50 transition-colors">
+                        <div key={idx} className="flex justify-between items-center bg-st-secondary/50 p-2 rounded border border-st-border/50 shadow-sm hover:border-st-orange/50 transition-colors group">
                           <span className="font-medium truncate mr-2" title={item.label}>{item.label}</span>
-                          <div className="flex items-center gap-2 whitespace-nowrap font-mono text-xs">
-                            <span className="text-red-400 line-through truncate max-w-[60px]" title={String(item.oldV)}>{String(item.oldV)}</span>
-                            <span className="text-st-text-light">➔</span>
-                            <span className="text-green-400 font-bold truncate max-w-[60px]" title={String(item.newV)}>{String(item.newV)}</span>
+                          <div className="flex items-center gap-3">
+                            <div className="flex items-center gap-2 whitespace-nowrap font-mono text-xs">
+                              <span className="text-red-400 line-through truncate max-w-[60px]" title={String(item.oldV)}>{String(item.oldV)}</span>
+                              <span className="text-st-text-light">➔</span>
+                              <span className="text-green-400 font-bold truncate max-w-[60px]" title={String(item.newV)}>{String(item.newV)}</span>
+                            </div>
+                            <button 
+                              onClick={item.undoFn} 
+                              className="text-st-text-light hover:text-red-400 transition-opacity opacity-50 hover:opacity-100 p-0.5" 
+                              title="Revert to saved value"
+                            >
+                              ↩️
+                            </button>
                           </div>
                         </div>
                       ))}
