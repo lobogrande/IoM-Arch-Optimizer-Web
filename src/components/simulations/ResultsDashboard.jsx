@@ -815,7 +815,7 @@ export default function ResultsDashboard({ context }) {
                     const isTier4 = selB.endsWith('4');
                     const drops =[
                       { name: "Base Card", odds: isTier4 ? 15000 : 1500, bg: "1", isFrag: false },
-                      { name: "Poly Fragments", odds: isTier4 ? 75000 : 7500, bg: "2", isFrag: true, count: polyFrags, setCount: setPolyFrags },
+                      { name: "Poly Fragments", odds: isTier4 ? 75000 : 7500, bg: "3", isFrag: true, count: polyFrags, setCount: setPolyFrags },
                       { name: "Infernal Fragments", odds: 200000, bg: "4", isFrag: true, count: infFrags, setCount: setInfFrags }
                     ];
 
