@@ -207,7 +207,7 @@ export default function CalculatedStats() {
                   if (troubleshootStat === "Abilities") {
                     const abMap = {
                       18: "-Enrage CD", 22: "-Flurry CD", 29: "-Ability CDs",
-                      31: "-Quake CD", 32: "-Enrage CD", 39: "+Instacharge Chance",
+                      31: "-Quake CD", 32: "-Enrage CD (Bug: Affects All 3)", 39: "+Instacharge Chance",
                       50: "+Instacharge Chance"
                     };
                     if (abMap[key]) return `(${abMap[key]})`;

@@ -403,7 +403,8 @@ class Player:
     def flurry_duration(self): return 5 + self.w('W9')
     @property
     def flurry_cooldown(self): 
-        val = (115 + self.u('H22') + self.u('H29') + self.w('W10')) * (1 + self.w('W20'))
+        # GAME BUG (v0.6.2+): Upgrade 32 (H32) is only supposed to apply to Enrage, but currently applies to Flurry too.
+        val = (120 + self.u('H22') + self.u('H29') + self.u('H32') + self.w('W10')) * (1 + self.w('W20'))
         return self._gm_int(val, drift=1)
         
     @property
@@ -415,7 +416,8 @@ class Player:
     def quake_attacks(self): return 5 + self.u('F31') + self.w('W9')
     @property
     def quake_cooldown(self): 
-        val = (175 + self.u('H29') + self.u('H31') + self.w('W10')) * (1 + self.w('W20'))
+        # GAME BUG (v0.6.2+): Upgrade 32 (H32) is only supposed to apply to Enrage, but currently applies to Quake too.
+        val = (180 + self.u('H29') + self.u('H31') + self.u('H32') + self.w('W10')) * (1 + self.w('W20'))
         return self._gm_int(val, drift=1)
     @property
     def quake_dmg_to_all(self): return 0.2
