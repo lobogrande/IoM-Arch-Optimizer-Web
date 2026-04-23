@@ -93,8 +93,8 @@ export default function OptimizerTab() {
   if (store.asc1_unlocked) activeStats.push('Div');
   if (store.asc2_unlocked) activeStats.push('Corr');
 
-  const optActiveStats = [ ...activeStats ];
-  if (optGoal === "Block Card Farming" && allowUnspent) {
+  const optActiveStats =[ ...activeStats ];
+  if (allowUnspent && optGoal !== "Max Floor Push") {
     optActiveStats.push('Unassigned');
   }
 
@@ -420,6 +420,18 @@ export default function OptimizerTab() {
           >
             {OPT_GOALS.map(g => <option key={g} value={g}>{g}</option>)}
           </select>
+          
+          {optGoal !== "Max Floor Push" && (
+            <label className="flex items-center space-x-2 mt-4 cursor-pointer text-st-text-light hover:text-st-orange transition-colors">
+              <input 
+                type="checkbox"
+                checked={allowUnspent}
+                onChange={(e) => setAllowUnspent(e.target.checked)}
+                className="accent-st-orange w-4 h-4"
+              />
+              <span className="text-sm font-bold">Allow Unspent Points (Crippled Build)</span>
+            </label>
+          )}
         </div>
         
         <div>
@@ -455,15 +467,6 @@ export default function OptimizerTab() {
                 placeholder="e.g., com1, myth3"
                 className="w-full bg-st-bg border border-st-border rounded p-2 text-st-text focus:border-st-orange focus:outline-none"
               />
-              <label className="flex items-center space-x-2 mt-3 cursor-pointer text-st-text-light hover:text-st-orange transition-colors">
-                <input 
-                  type="checkbox"
-                  checked={allowUnspent}
-                  onChange={(e) => setAllowUnspent(e.target.checked)}
-                  className="accent-st-orange w-4 h-4"
-                />
-                <span className="text-sm font-bold">Allow Unspent Points (Crippled Build)</span>
-              </label>
             </>
           )}
         </div>
@@ -477,9 +480,9 @@ export default function OptimizerTab() {
         )}
       </div>
       
-      {optGoal === "Block Card Farming" && allowUnspent && (
+      {allowUnspent && optGoal !== "Max Floor Push" && (
         <div className="bg-red-900/20 border-l-4 border-red-500 p-3 rounded text-sm text-red-500 mt-4">
-          ⚠️ <strong>Dimensionality Warning:</strong> You have activated the "Unspent Points" bucket! The AI must now search an 8th mathematical dimension. This increases the total possible combinations exponentially. To prevent timeouts or garbage low-precision data, you <strong>MUST</strong> lock at least 1 or 2 stats (like Strength or Agility) to 0 in the constraints below!
+          ⚠️ <strong>Dimensionality Warning:</strong> You have activated the "Unspent Points" bucket! The AI must now search an extra mathematical dimension. This increases the total possible combinations exponentially. To prevent timeouts or garbage low-precision data, you <strong>MUST</strong> lock at least 1 or 2 stats (like Strength or Agility) to 0 in the constraints below!
         </div>
       )}
 
