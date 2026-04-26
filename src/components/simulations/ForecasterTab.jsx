@@ -70,13 +70,14 @@ export default function ForecasterTab() {
   } : null;
   const setResults = (v) => store.setSimsState('forecaster_results', v);
 
-  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const[isAnalyzing, setIsAnalyzing] = useState(false);
   const[analysisMsg, setAnalysisMsg] = useState("");
   const[progressPct, setProgressPct] = useState(0);
 
   const activeRejectRef = useRef(null);
   const cancelRef = useRef(false);
   const poolRef = useRef(null);
+  const diagnosisRef = useRef(null);
 
   const handleCancel = () => {
     cancelRef.current = true;
@@ -545,8 +546,12 @@ export default function ForecasterTab() {
          maxAllowed = g?.max !== undefined ? g.max : 9999;
          if (item.id === 'geoduck') maxAllowed = store.asc2_unlocked ? 300 : 200;
       }
-      setCartItems([...cartItems, { ...item, qty: 1, maxAllowed }]);
+      setCartItems([ ...cartItems, { ...item, qty: 1, maxAllowed } ]);
     }
+    
+    setTimeout(() => {
+      diagnosisRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 50);
   };
 
   const setExactCartQty = (index, qty) => {
@@ -582,7 +587,7 @@ export default function ForecasterTab() {
       }
     });
     setCartItems([ ]);
-    alert("✅ Cart items applied directly to your Global Player Build!");
+    alert("✅ Cart items applied directly to your Global Player Build!\n\nNext Steps:\n1. Rerun the 'Optimizer' to redistribute your Base Stats around these upgrades.\n2. Perform a 'Synthesis' to show the meta-build and the max floor progression distribution.");
   };
 
   const handleAnalyzePivot = async () => {
@@ -880,8 +885,9 @@ export default function ForecasterTab() {
         <ol className="list-decimal pl-5 space-y-1 text-blue-200/80">
           <li><strong>Optimize First:</strong> Ensure you have generated a "Max Floor Push" build (via the Synthesis tab) and that it is actively loaded in your <strong>Player Setup</strong>. The Forecaster uses your global player profile as its mathematical baseline.</li>
           <li><strong>Set Your Goal:</strong> Enter your target floor and Arch Seconds budget below. (The Forecaster will automatically identify the hardest block on that floor).</li>
-          <li><strong>Draft Upgrades:</strong> Keep the simulation set to <strong>100 Runs</strong> while adding items to your cart so the engine updates instantly.</li>
-          <li><strong>Verify Probability:</strong> Once your cart looks ready, switch to <strong>500 or 1000 Runs</strong> for a highly accurate Monte Carlo probability check before spending your resources.</li>
+          <li><strong>The Shopping Spree:</strong> Scroll down to the "Oracle's Shopping List". This ranks every possible upgrade in the game by how much it mathematically helps you push. Click <strong>"+ Cart"</strong> on items to simulate buying them in-game.</li>
+          <li><strong>Verify Probability:</strong> Once your cart brings your push probability up to an acceptable level for your budget, increase the simulation precision to 500+ runs to lock in the true probability by removing RNG noise.</li>
+          <li><strong>Apply & Re-Optimize:</strong> Click "Apply Cart" to send these simulated items back to your global setup, then head to the <strong>Optimizer & Synthesis tabs</strong> to finalize your stat distribution!</li>
         </ol>
       </div>
 
@@ -918,7 +924,7 @@ export default function ForecasterTab() {
               <option value={500}>500 Runs (Balanced)</option>
               <option value={1000}>1,000 Runs (Deep Verification)</option>
             </select>
-            <div className="text-xs text-st-text-light mt-1">Higher runs completely flatten right-tail RNG noise.</div>
+            <div className="text-xs text-st-text-light mt-1">Higher runs increase accuracy by removing RNG noise.</div>
           </div>
         </div>
         
@@ -1186,30 +1192,41 @@ export default function ForecasterTab() {
                           <span className="text-st-orange text-xs font-bold ml-2 bg-st-orange/10 px-1 rounded">Lvl {displayBase} ➔ {displayNew}</span>
                           <span className="text-st-text-light text-xs ml-2">Total: {totalCostStr}</span>
                         </div>
-                        {nextGain ? (
-                          <div className="text-[10px] mt-1 text-st-text-light bg-black/10 inline-block px-1 rounded">
-                            Next +1 Lvl Gain: 
-                            {(!isDevMode || forecasterMode === 'wall') ? (
-                              <>
-                                {nextGain.d_edps > 0.1 && <span className="text-st-orange ml-1">+{Math.ceil(nextGain.d_edps).toLocaleString()} EDPS</span>}
-                                {nextGain.d_pen > 0 && <span className="text-gray-300 ml-1">+{Math.ceil(nextGain.d_pen).toLocaleString()} Pen</span>}
-                                {nextGain.d_sta > 0 && <span className="text-blue-400 ml-1">+{Math.ceil(nextGain.d_sta).toLocaleString()} Sta</span>}
-                                {nextGain.d_net_sta > 0.1 && <span className="text-red-400 ml-1 font-bold">(-{Math.ceil(nextGain.d_net_sta).toLocaleString()} Swings)</span>}
-                              </>
-                            ) : (
-                              <span className="text-green-400 ml-1">+{nextGain.d_yield.toFixed(1)} Yield / 1k Secs</span>
-                            )}
-                          </div>
-                        ) : (
-                          <div className="text-[10px] mt-1 text-st-text-light bg-black/10 inline-block px-1 rounded opacity-75">
-                            Next +1 Lvl Gain: 
-                            {item.qty >= (item.maxAllowed - baseLvl) ? (
-                              <span className="text-red-400 ml-1 font-bold">Max Level Reached</span>
-                            ) : (
-                              <span className="text-st-text-light ml-1">Unmeasurable (&lt;0.1)</span>
-                            )}
-                          </div>
-                        )}
+                        <div className="flex flex-col items-start gap-1 mt-1">
+                          {(!isDevMode || forecasterMode === 'wall') && (item.d_edps > 0 || item.d_pen > 0 || item.d_sta > 0 || item.d_net_sta > 0) && (
+                            <div className="text-[10px] text-st-text-light bg-[#1e1e1e] inline-block px-1.5 py-0.5 rounded border border-st-border/50">
+                              Estimated Cart Gain:
+                              {item.d_edps > 0.1 && <span className="text-st-orange ml-1">+{Math.ceil(item.d_edps * item.qty).toLocaleString()} EDPS</span>}
+                              {item.d_pen > 0 && <span className="text-gray-300 ml-1">+{Math.ceil(item.d_pen * item.qty).toLocaleString()} Pen</span>}
+                              {item.d_sta > 0 && <span className="text-blue-400 ml-1">+{Math.ceil(item.d_sta * item.qty).toLocaleString()} Sta</span>}
+                              {item.d_net_sta > 0.1 && <span className="text-red-400 ml-1 font-bold">(-{Math.ceil(item.d_net_sta * item.qty).toLocaleString()} Swings)</span>}
+                            </div>
+                          )}
+                          {nextGain ? (
+                            <div className="text-[10px] text-st-text-light bg-black/10 inline-block px-1 rounded">
+                              Next +1 Lvl Gain: 
+                              {(!isDevMode || forecasterMode === 'wall') ? (
+                                <>
+                                  {nextGain.d_edps > 0.1 && <span className="text-st-orange ml-1">+{Math.ceil(nextGain.d_edps).toLocaleString()} EDPS</span>}
+                                  {nextGain.d_pen > 0 && <span className="text-gray-300 ml-1">+{Math.ceil(nextGain.d_pen).toLocaleString()} Pen</span>}
+                                  {nextGain.d_sta > 0 && <span className="text-blue-400 ml-1">+{Math.ceil(nextGain.d_sta).toLocaleString()} Sta</span>}
+                                  {nextGain.d_net_sta > 0.1 && <span className="text-red-400 ml-1 font-bold">(-{Math.ceil(nextGain.d_net_sta).toLocaleString()} Swings)</span>}
+                                </>
+                              ) : (
+                                <span className="text-green-400 ml-1">+{nextGain.d_yield.toFixed(1)} Yield / 1k Secs</span>
+                              )}
+                            </div>
+                          ) : (
+                            <div className="text-[10px] text-st-text-light bg-black/10 inline-block px-1 rounded opacity-75">
+                              Next +1 Lvl Gain: 
+                              {item.qty >= (item.maxAllowed - baseLvl) ? (
+                                <span className="text-red-400 ml-1 font-bold">Max Level Reached</span>
+                              ) : (
+                                <span className="text-st-text-light ml-1">Unmeasurable (&lt;0.1)</span>
+                              )}
+                            </div>
+                          )}
+                        </div>
                       </div>
                       <div className="flex items-center gap-2">
                         {item.type === 'card' || (item.maxAllowed - baseLvl) <= 1 ? (
@@ -1253,7 +1270,7 @@ export default function ForecasterTab() {
               </div>
             )}
 
-            <div className="flex gap-4">
+            <div className="flex gap-4 mb-2">
               <button 
                 onClick={applyCartToGlobal}
                 disabled={cartItems.length === 0 || isAnalyzing || isPivotAnalyzing}
@@ -1269,6 +1286,11 @@ export default function ForecasterTab() {
                 Clear
               </button>
             </div>
+            {cartItems.length > 0 && (
+              <div className="text-xs text-st-text-light text-center">
+                Cart Applied? Return to the <strong>Optimizer</strong> and <strong>Synthesis</strong> tabs to realize these new gains!
+              </div>
+            )}
           </div>
         </div>
       )}
@@ -1276,7 +1298,7 @@ export default function ForecasterTab() {
       {(!isDevMode || forecasterMode === 'wall') && hasAnalyzed && results && (
         <div className="animate-fade-in space-y-6">
 
-          <div className="st-container border-t-4 border-t-st-orange">
+          <div ref={diagnosisRef} className="st-container border-t-4 border-t-st-orange scroll-mt-6">
             <h4 className="font-bold mb-4 text-xl">2. The Mathematical Diagnosis</h4>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               
@@ -1337,6 +1359,21 @@ export default function ForecasterTab() {
                       ) : (
                         <div className="text-center font-bold text-yellow-400 bg-yellow-500/10 p-3 rounded border border-yellow-500/30 mt-2">Status: Over Budget ⚠️</div>
                       )}
+                      
+                      {(!isWithinBudget || estCost === Infinity) && (() => {
+                        const b = results.baseline;
+                        const effArmor = Math.max(0, b.armor - b.armor_pen);
+                        let hint = "💡 Hint: Add items from the shopping lists below to your Cart to evaluate how they mathematically bridge the gap.";
+                        
+                        if (effArmor > 0 && b.armor_pen < b.armor) {
+                          hint = "💡 Hint: The target block has high armor mitigating your damage. Focus on the 'Top Armor Pen Boosts' list below.";
+                        } else if (b.avg_hits > 15) {
+                          hint = "💡 Hint: Your raw damage is too low, requiring too many hits per block. Focus on the 'Top Raw EDPS Boosts' list below.";
+                        } else if (b.net_sta > 0) {
+                          hint = "💡 Hint: You are bleeding Stamina before reaching the target. Focus on 'Top Block Swings Saved' or 'Top Stamina Boosts'.";
+                        }
+                        return <div className="text-xs text-st-text-light bg-black/20 border border-st-border p-2 rounded mt-2">{hint}</div>;
+                      })()}
                     </>
                   );
                 })()}
@@ -1418,7 +1455,7 @@ export default function ForecasterTab() {
               
               <div className="border border-st-border rounded bg-st-bg overflow-hidden flex flex-col">
                 <div className="bg-st-secondary p-2 border-b border-st-border font-bold text-center text-red-400">
-                  ⚔️ Top Gauntlet Swings Saved
+                  ⚔️ Top Block Swings Saved
                 </div>
                 <div className="text-[10px] text-center py-1 bg-black/20 text-st-text-light border-b border-st-border">Ranks Damage/Pen by how much Stamina it saves pushing to {targetFloor}</div>
                 <div className="p-2 overflow-y-auto max-h-[400px]">
