@@ -358,7 +358,7 @@ class Player:
         val = (1 + self.u('F5') + self.u('H21') + stat_calc)
         # The cap for W8 (Geoduck) is handled natively inside the self.w() method based on ascension
         val *= (1 + self.w('W4')) * (1 + self.w('W5')) * (1 + self.w('W8'))
-        val *= self.u('F42') * self.w('W15', default=1.0) * (1.0 + self.inf('dirt3') + self.inf('leg1'))
+        val *= self.u('F42') * self.w('W15', default=1.0) * (1.0 + self.inf('dirt3')) * (1.0 + self.inf('leg1'))
         return self._gm_mult(val, 2)
 
     @property
