@@ -1311,10 +1311,20 @@ export default function ForecasterTab() {
                   const runs = dist.length;
                   const successes = dist.filter(f => f >= targetFloor).length;
                   const prob = runs > 0 ? successes / runs : 0;
-                  const estRuns = prob > 0 ? 1 / prob : Infinity;
                   const avgTime = results.baseline.avg_run_time || 0;
-                  const estCost = prob > 0 ? (estRuns * avgTime) / 1000 : Infinity;
-                  const isWithinBudget = estCost <= pushBudget;
+                  
+                  let runs50 = Infinity, cost50 = Infinity;
+                  let runs90 = Infinity, cost90 = Infinity;
+
+                  if (prob >= 1) {
+                    runs50 = 1; runs90 = 1;
+                  } else if (prob > 0) {
+                    runs50 = Math.ceil(Math.log(1 - 0.50) / Math.log(1 - prob));
+                    runs90 = Math.ceil(Math.log(1 - 0.90) / Math.log(1 - prob));
+                  }
+
+                  if (runs50 !== Infinity) cost50 = (runs50 * avgTime) / 1000.0;
+                  if (runs90 !== Infinity) cost90 = (runs90 * avgTime) / 1000.0;
                   
                   return (
                     <>
@@ -1333,34 +1343,40 @@ export default function ForecasterTab() {
                       </div>
                       
                       <div className="flex flex-col gap-2 mb-3">
-                        <div className="flex justify-between text-sm">
-                          <span className="text-st-text-light">Expected Runs Needed:</span>
-                          <span className="font-mono font-bold">{estRuns === Infinity ? 'Impossible' : Math.ceil(estRuns)}</span>
+                        <div className="flex justify-between items-center text-sm border-b border-st-border/50 pb-2">
+                          <span className="text-st-text-light">50% Chance <span className="text-xs">(Coin Flip)</span>:</span>
+                          <div className="text-right">
+                            <span className="font-mono font-bold">{runs50 === Infinity ? 'Impossible' : `${runs50} runs`}</span>
+                            {runs50 !== Infinity && <span className="text-st-text-light text-xs font-mono ml-2">(~{cost50.toFixed(1)}k Secs)</span>}
+                          </div>
                         </div>
-                        <div className="flex justify-between text-sm items-start">
-                          <span className="text-st-text-light">Expected Arch Secs Cost:</span>
-                          <div className="text-right flex flex-col items-end">
-                            <span className={`font-mono font-bold ${estCost === Infinity ? 'text-red-400' : isWithinBudget ? 'text-green-400' : 'text-orange-400'}`}>
-                              {estCost === Infinity ? '∞' : `${estCost.toFixed(1)}k`} / {pushBudget}k
+                        <div className="flex justify-between items-start text-sm">
+                          <span className="text-st-text-light">90% Chance <span className="text-xs">(Safe Budget)</span>:</span>
+                          <div className="text-right">
+                            <span className={`font-mono font-bold ${runs90 === Infinity ? 'text-red-400' : (cost90 <= pushBudget ? 'text-green-400' : 'text-orange-400')}`}>
+                              {runs90 === Infinity ? 'Impossible' : `${runs90} runs`}
                             </span>
-                            {estCost !== Infinity && (
-                              <span className="text-[10px] text-st-text-light font-mono mt-0.5 bg-black/10 px-1 rounded">
-                                (~{Math.ceil(estRuns)} runs × ~{(avgTime / 1000).toFixed(1)}k sec)
-                              </span>
+                            {runs90 !== Infinity && (
+                              <div className="text-xs mt-0.5">
+                                <span className={`font-mono ${cost90 <= pushBudget ? 'text-green-400' : 'text-orange-400'}`}>~{cost90.toFixed(1)}k</span>
+                                <span className="text-st-text-light font-mono"> / {pushBudget}k Secs</span>
+                              </div>
                             )}
                           </div>
                         </div>
                       </div>
 
-                      {estCost === Infinity ? (
+                      {runs90 === Infinity ? (
                         <div className="text-center font-bold text-red-400 bg-red-500/10 p-3 rounded border border-red-500/30 mt-2">Status: Mathematical Wall 🛑</div>
-                      ) : isWithinBudget ? (
+                      ) : cost90 <= pushBudget ? (
                         <div className="text-center font-bold text-green-400 bg-green-500/10 p-3 rounded border border-green-500/30 mt-2">Status: Push Approved ✅</div>
+                      ) : cost50 <= pushBudget ? (
+                        <div className="text-center font-bold text-yellow-400 bg-yellow-500/10 p-3 rounded border border-yellow-500/30 mt-2">Status: Coin Flip (High Risk) ⚠️</div>
                       ) : (
-                        <div className="text-center font-bold text-yellow-400 bg-yellow-500/10 p-3 rounded border border-yellow-500/30 mt-2">Status: Over Budget ⚠️</div>
+                        <div className="text-center font-bold text-red-400 bg-red-500/10 p-3 rounded border border-red-500/30 mt-2">Status: Over Budget ❌</div>
                       )}
                       
-                      {(!isWithinBudget || estCost === Infinity) && (() => {
+                      {(cost90 > pushBudget || runs90 === Infinity) && (() => {
                         const b = results.baseline;
                         let hint = "💡 Hint: Add items from the shopping lists below to your Cart to evaluate how they mathematically bridge the gap.";
                         
