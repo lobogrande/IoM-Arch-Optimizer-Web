@@ -933,25 +933,31 @@ export default function ResultsDashboard({ context }) {
 
           {dataTab === 'wall' && (
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <div className="w-full h-[350px] border border-st-border rounded bg-st-bg p-2">
-                <Plot
-                  data={[{
-                    x: Object.keys(store.opt_results.chart_hist),
-                    y: Object.values(store.opt_results.chart_hist),
-                    type: 'bar',
-                    marker: { color: '#ff4b4b' },
-                    text: Object.values(store.opt_results.chart_hist),
-                    textposition: 'outside'
-                  }]}
-                  layout={{
-                    font: { color: store.theme === 'dark' ? '#FAFAFA' : '#31333F' },
-                    title: 'Death Distribution (Progression Wall)',
-                    paper_bgcolor: 'rgba(0,0,0,0)', plot_bgcolor: 'rgba(0,0,0,0)',
-                    margin: { t: 40, b: 40, l: 40, r: 20 },
-                    xaxis: { type: 'category', title: 'Floor', color: chartFontColor, gridcolor: chartGridColor }, yaxis: { title: 'Deaths', color: chartFontColor, gridcolor: chartGridColor }
-                  }}
-                  useResizeHandler={true} style={{ width: '100%', height: '100%' }} config={{ displayModeBar: false }}
-                />
+              <div className="w-full border border-st-border rounded bg-st-bg p-4 flex flex-col">
+                <div className="mb-2">
+                  <h4 className="font-bold text-lg">📊 Simulation Outcome Distribution</h4>
+                  <p className="text-xs text-st-text-light">Histogram of floors reached across all simulated runs.</p>
+                </div>
+                <div className="w-full h-[300px]">
+                  <Plot
+                    data={[{
+                      x: Object.keys(store.opt_results.chart_hist),
+                      y: Object.values(store.opt_results.chart_hist),
+                      type: 'bar',
+                      marker: { color: '#ff4b4b' },
+                      text: Object.values(store.opt_results.chart_hist),
+                      textposition: 'outside'
+                    }]}
+                    layout={{
+                      font: { color: store.theme === 'dark' ? '#FAFAFA' : '#31333F' },
+                      paper_bgcolor: 'rgba(0,0,0,0)', plot_bgcolor: 'rgba(0,0,0,0)',
+                      margin: { t: 10, b: 50, l: 60, r: 20 },
+                      xaxis: { type: 'category', title: { text: 'Floor Reached', standoff: 15 }, color: chartFontColor, gridcolor: chartGridColor }, 
+                      yaxis: { title: { text: 'Number of Runs', standoff: 15 }, color: chartFontColor, gridcolor: chartGridColor }
+                    }}
+                    useResizeHandler={true} style={{ width: '100%', height: '100%' }} config={{ displayModeBar: false }}
+                  />
+                </div>
               </div>
               {(store.opt_results.final_summary_out.stamina_trace || store.opt_results.final_summary_out.stamina_trace_median) && (() => {
                 const out = store.opt_results.final_summary_out;
@@ -979,21 +985,26 @@ export default function ResultsDashboard({ context }) {
                 }
 
                 return (
-                  <div className="w-full h-[350px] border border-st-border rounded bg-st-bg p-2">
-                    <Plot
-                      data={traces}
-                      layout={{
-                        font: { color: store.theme === 'dark' ? '#FAFAFA' : '#31333F' },
-                        title: 'Stamina Depletion Traces',
-                        paper_bgcolor: 'rgba(0,0,0,0)', plot_bgcolor: 'rgba(0,0,0,0)',
-                        margin: { t: 40, b: 40, l: 40, r: 20 },
-                        showlegend: traces.length > 1,
-                        legend: { orientation: 'h', y: -0.2, x: 0.5, xanchor: 'center' },
-                        xaxis: { title: 'Floor Level', color: chartFontColor, gridcolor: chartGridColor }, 
-                        yaxis: { title: 'Stamina Remaining', color: chartFontColor, gridcolor: chartGridColor }
-                      }}
-                      useResizeHandler={true} style={{ width: '100%', height: '100%' }} config={{ displayModeBar: false }}
-                    />
+                  <div className="w-full border border-st-border rounded bg-st-bg p-4 flex flex-col mt-6">
+                    <div className="mb-2">
+                      <h4 className="font-bold text-lg">📉 Stamina Depletion Traces</h4>
+                      <p className="text-xs text-st-text-light">Remaining stamina at each floor checkpoint.</p>
+                    </div>
+                    <div className="w-full h-[300px]">
+                      <Plot
+                        data={traces}
+                        layout={{
+                          font: { color: store.theme === 'dark' ? '#FAFAFA' : '#31333F' },
+                          paper_bgcolor: 'rgba(0,0,0,0)', plot_bgcolor: 'rgba(0,0,0,0)',
+                          margin: { t: 10, b: 70, l: 60, r: 20 },
+                          showlegend: traces.length > 1,
+                          legend: { orientation: 'h', y: -0.35, x: 0.5, xanchor: 'center' },
+                          xaxis: { title: { text: 'Floor Level', standoff: 15 }, color: chartFontColor, gridcolor: chartGridColor }, 
+                          yaxis: { title: { text: 'Stamina Remaining', standoff: 15 }, color: chartFontColor, gridcolor: chartGridColor }
+                        }}
+                        useResizeHandler={true} style={{ width: '100%', height: '100%' }} config={{ displayModeBar: false }}
+                      />
+                    </div>
                   </div>
                 );
               })()}
