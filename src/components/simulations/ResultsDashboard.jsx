@@ -933,7 +933,7 @@ export default function ResultsDashboard({ context }) {
 
           {dataTab === 'wall' && (
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <div className="w-full border border-st-border rounded bg-st-bg p-4 flex flex-col">
+              <div className="w-full h-full border border-st-border rounded bg-st-bg p-4 flex flex-col">
                 <div className="mb-2">
                   <h4 className="font-bold text-lg">📊 Simulation Outcome Distribution</h4>
                   <p className="text-xs text-st-text-light">Histogram of floors reached across all simulated runs.</p>
@@ -985,7 +985,7 @@ export default function ResultsDashboard({ context }) {
                 }
 
                 return (
-                  <div className="w-full border border-st-border rounded bg-st-bg p-4 flex flex-col mt-6">
+                  <div className="w-full h-full border border-st-border rounded bg-st-bg p-4 flex flex-col">
                     <div className="mb-2">
                       <h4 className="font-bold text-lg">📉 Stamina Depletion Traces</h4>
                       <p className="text-xs text-st-text-light">Remaining stamina at each floor checkpoint.</p>
