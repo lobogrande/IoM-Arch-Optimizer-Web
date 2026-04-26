@@ -301,6 +301,52 @@ export default function PlayerSetup() {
               💾 Update Loadout
             </button>
           </div>
+
+          <div className="mb-2">
+            <select
+              className="w-full st-input font-bold text-xs disabled:opacity-50 disabled:cursor-not-allowed"
+              value=""
+              disabled={profiles.filter(p => p.id !== activeProfileId).length === 0}
+              onChange={(e) => {
+                const targetId = e.target.value;
+                if (!targetId) return;
+                const targetProfile = profiles.find(p => p.id === targetId);
+                if (!targetProfile) return;
+                
+                if (window.confirm(`Overwrite ${targetProfile.name}'s upgrades, cards, and settings with my current active setup? (Base stats will be preserved)`)) {
+                  const updatedProfiles = profiles.map(p => {
+                    if (p.id === targetId) {
+                      return {
+                        ...p,
+                        data: {
+                          ...p.data,
+                          asc1_unlocked: asc1_unlocked,
+                          asc2_unlocked: asc2_unlocked,
+                          arch_level: arch_level,
+                          current_max_floor: current_max_floor,
+                          geoduck_unlocked: geoduck_unlocked,
+                          arch_ability_infernal_bonus: arch_ability_infernal_bonus,
+                          total_infernal_cards: total_infernal_cards,
+                          upgrade_levels: { ...upgrade_levels },
+                          external_levels: { ...external_levels },
+                          cards: { ...cards }
+                        }
+                      };
+                    }
+                    return p;
+                  });
+                  setSetting('profiles', updatedProfiles);
+                  alert(`Successfully synced to ${targetProfile.name}!`);
+                }
+                e.target.value = "";
+              }}
+            >
+              <option value="">🔄 Sync Upgrades To...</option>
+              {profiles.filter(p => p.id !== activeProfileId).map(p => (
+                <option key={p.id} value={p.id}>{p.name}</option>
+              ))}
+            </select>
+          </div>
           
           <div className="grid grid-cols-2 gap-2">
             <button 
@@ -334,14 +380,34 @@ export default function PlayerSetup() {
           
           <label className="flex items-center gap-2 mb-2 cursor-pointer">
             <input type="checkbox" checked={asc1_unlocked} onChange={(e) => {
-              setSetting('asc1_unlocked', e.target.checked);
-              if (!e.target.checked) setSetting('asc2_unlocked', false);
+              const isAscending = e.target.checked;
+              setSetting('asc1_unlocked', isAscending);
+              if (!isAscending) setSetting('asc2_unlocked', false);
+              
+              if (isAscending) {
+                if (window.confirm("Simulate an Ascension? This will reset all Internal Upgrades to 0 to prevent phantom math pollution.")) {
+                  Object.keys(INTERNAL_UPGRADE_CAPS).forEach(idStr => {
+                    setUpgradeLevel(parseInt(idStr), 0);
+                  });
+                }
+              }
             }} className="w-4 h-4 accent-st-orange" />
             <span>Ascension 1 Unlocked</span>
           </label>
 
           <label className="flex items-center gap-2 mb-4 cursor-pointer text-st-text">
-            <input type="checkbox" disabled={!asc1_unlocked} checked={asc2_unlocked} onChange={(e) => setSetting('asc2_unlocked', e.target.checked)} className="w-4 h-4 accent-st-orange" />
+            <input type="checkbox" disabled={!asc1_unlocked} checked={asc2_unlocked} onChange={(e) => {
+              const isAscending = e.target.checked;
+              setSetting('asc2_unlocked', isAscending);
+              
+              if (isAscending) {
+                if (window.confirm("Simulate an Ascension? This will reset all Internal Upgrades to 0 to prevent phantom math pollution.")) {
+                  Object.keys(INTERNAL_UPGRADE_CAPS).forEach(idStr => {
+                    setUpgradeLevel(parseInt(idStr), 0);
+                  });
+                }
+              }
+            }} className="w-4 h-4 accent-st-orange" />
             <span className={!asc1_unlocked ? "opacity-50" : ""}>Ascension 2 Unlocked</span>
           </label>
 

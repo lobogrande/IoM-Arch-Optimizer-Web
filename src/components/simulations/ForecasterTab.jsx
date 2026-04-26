@@ -1,8 +1,11 @@
 // src/components/simulations/ForecasterTab.jsx
 import { useState, useEffect, useRef } from 'react';
 import useStore from '../../store';
+import PlotWrapper from 'react-plotly.js';
 import { EngineWorkerPool, runOptimizationPhase, topUpBuild, getOptimalStepProfile } from '../../utils/optimizer';
 import { INTERNAL_UPGRADE_CAPS, UPGRADE_NAMES, ASC1_LOCKED_UPGS, ASC2_LOCKED_UPGS, UPGRADE_LEVEL_REQS, EXTERNAL_UI_GROUPS, calculateUpgradeCost, CURRENCY_TYPES, INFERNAL_CARD_BONUSES } from '../../game_data';
+
+const Plot = PlotWrapper.default || PlotWrapper;
 
 const ORE_MIN_FLOORS = {
   'dirt1': 1, 'com1': 1, 'rare1': 3, 'epic1': 6, 'leg1': 12, 'myth1': 20, 'div1': 50,
@@ -15,8 +18,12 @@ export default function ForecasterTab() {
   const store = useStore();
   const workerRef = useRef(null);
 
+  const chartFontColor = store.theme === 'dark' ? '#A3A8B8' : '#7D808D';
+  const chartGridColor = store.theme === 'dark' ? 'rgba(250,250,250,0.1)' : 'rgba(49,51,63,0.1)';
+
   const targetFloor = store.forecaster_targetFloor ?? (store.current_max_floor || 150);
   const setTargetFloor = (v) => store.setSimsState('forecaster_targetFloor', v);
+  const[localTargetFloor, setLocalTargetFloor] = useState(targetFloor);
 
   const pushBudget = store.forecaster_pushBudget ?? 500;
   const setPushBudget = (v) => store.setSimsState('forecaster_pushBudget', v);
@@ -28,6 +35,10 @@ export default function ForecasterTab() {
   const setPivotRoiPrecision = (v) => store.setSimsState('forecaster_pivotRoiPrecision', v);
 
   const cartItems = store.forecaster_cartItems ||[ ];
+
+  useEffect(() => {
+    setLocalTargetFloor(targetFloor);
+  }, [targetFloor]);
 
   const isDevMode = import.meta.env.DEV || store.forecaster_devMode || false;
   const [forecasterMode, setForecasterMode] = useState('wall');
@@ -70,13 +81,14 @@ export default function ForecasterTab() {
   } : null;
   const setResults = (v) => store.setSimsState('forecaster_results', v);
 
-  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const[isAnalyzing, setIsAnalyzing] = useState(false);
   const[analysisMsg, setAnalysisMsg] = useState("");
   const[progressPct, setProgressPct] = useState(0);
 
   const activeRejectRef = useRef(null);
   const cancelRef = useRef(false);
   const poolRef = useRef(null);
+  const diagnosisRef = useRef(null);
 
   const handleCancel = () => {
     cancelRef.current = true;
@@ -116,13 +128,31 @@ export default function ForecasterTab() {
     };
   }, [ ]);
 
-  useEffect(() => {
-    if ((!isDevMode || forecasterMode === 'wall') && hasAnalyzed) {
-      handleAnalyzeWall();
-    } else if (isDevMode && forecasterMode === 'pivot' && hasPivotAnalyzed) {
-      handleAnalyzePivot();
-    }
-  }, [ cartItems ]);
+  const simCacheRef = useRef({ cartItems, simPrecision, targetFloor });
+
+          useEffect(() => {
+            const prev = simCacheRef.current;
+            const cartChanged = JSON.stringify(prev.cartItems) !== JSON.stringify(cartItems);
+            const precisionChanged = prev.simPrecision !== simPrecision;
+            const targetFloorChanged = prev.targetFloor !== targetFloor;
+            
+            simCacheRef.current = { cartItems, simPrecision, targetFloor };
+
+            // If nothing structural changed (e.g. just a component re-render), abort.
+            if (!cartChanged && !precisionChanged && !targetFloorChanged) return;
+
+            if ((!isDevMode || forecasterMode === 'wall') && hasAnalyzed) {
+              if (cartChanged || precisionChanged) {
+                handleAnalyzeWall(false); // Full recalculation needed
+              } else if (targetFloorChanged) {
+                handleAnalyzeWall(true); // Skip Monte Carlo, fast-track gauntlet math
+              }
+            } else if (isDevMode && forecasterMode === 'pivot' && hasPivotAnalyzed) {
+              if (cartChanged || precisionChanged) {
+                handleAnalyzePivot();
+              }
+            }
+          },[ cartItems, simPrecision, targetFloor, isDevMode, forecasterMode, hasAnalyzed, hasPivotAnalyzed ]);
 
   const runCalc = (payload) => {
     return new Promise((resolve, reject) => {
@@ -245,66 +275,76 @@ export default function ForecasterTab() {
     return eff;
   };
 
-  const handleAnalyzeWall = async () => {
+  const handleAnalyzeWall = async (skipMonteCarlo = false) => {
     setIsAnalyzing(true);
     cancelRef.current = false;
     setProgressPct(0);
-    setAnalysisMsg(`Simulating Base Run (${simPrecision} iterations)...`);
+    setAnalysisMsg(skipMonteCarlo ? "Fast-Tracking Gauntlet Math..." : `Simulating Base Run (${simPrecision} iterations)...`);
 
     try {
       const effState = getEffectiveState();
       
-      // ========================================================
-      // 1. FAST PARALLEL MONTE CARLO (EngineWorkerPool)
-      // ========================================================
-      poolRef.current = new EngineWorkerPool();
-      await poolRef.current.init();
-      if (cancelRef.current) return;
-      
-      const baseStateDict = {
-        asc1_unlocked: store.asc1_unlocked,
-        asc2_unlocked: store.asc2_unlocked,
-        arch_level: store.arch_level,
-        current_max_floor: store.current_max_floor,
-        arch_ability_infernal_bonus: parseFloat(store.arch_ability_infernal_bonus) / 100.0,
-        total_infernal_cards: store.total_infernal_cards,
-        base_stats: effState.base_stats, 
-        upgrade_levels: effState.upgrade_levels,
-        external_levels: effState.external_levels,
-        cards: effState.cards
-      };
-      
-      await poolRef.current.syncState(baseStateDict);
-      
-      let tot_flr = 0;
-      let tot_time = 0;
-      const floor_distribution = [ ];
-      let poolCompleted = 0;
-      
-      const promises = [ ];
-      for (let i = 0; i < simPrecision; i++) {
-        promises.push(poolRef.current.runTask(effState.base_stats).then(res => {
-          if (res.aborted) return;
-          tot_flr += res.highest_floor;
-          tot_time += res.total_time;
-          floor_distribution.push(res.highest_floor);
-          poolCompleted++;
-          
-          // Progress bar smoothly ticks up to 50%
-          if (poolCompleted % Math.max(1, Math.floor(simPrecision / 20)) === 0) {
-             setProgressPct((poolCompleted / simPrecision) * 50); 
-          }
-        }));
+      let avg_max_floor_calc = 0;
+      let avg_run_time_calc = 0;
+      let floor_distribution = [ ];
+
+      if (skipMonteCarlo && results?.baseline?.floor_distribution) {
+        avg_max_floor_calc = results.baseline.avg_max_floor;
+        avg_run_time_calc = results.baseline.avg_run_time;
+        floor_distribution = results.baseline.floor_distribution;
+        setProgressPct(50);
+      } else {
+        // ========================================================
+        // 1. FAST PARALLEL MONTE CARLO (EngineWorkerPool)
+        // ========================================================
+        poolRef.current = new EngineWorkerPool();
+        await poolRef.current.init();
+        if (cancelRef.current) return;
+        
+        const baseStateDict = {
+          asc1_unlocked: store.asc1_unlocked,
+          asc2_unlocked: store.asc2_unlocked,
+          arch_level: store.arch_level,
+          current_max_floor: store.current_max_floor,
+          arch_ability_infernal_bonus: parseFloat(store.arch_ability_infernal_bonus) / 100.0,
+          total_infernal_cards: store.total_infernal_cards,
+          base_stats: effState.base_stats, 
+          upgrade_levels: effState.upgrade_levels,
+          external_levels: effState.external_levels,
+          cards: effState.cards
+        };
+        
+        await poolRef.current.syncState(baseStateDict);
+        
+        let tot_flr = 0;
+        let tot_time = 0;
+        let poolCompleted = 0;
+        
+        const promises = [ ];
+        for (let i = 0; i < simPrecision; i++) {
+          promises.push(poolRef.current.runTask(effState.base_stats).then(res => {
+            if (res.aborted) return;
+            tot_flr += res.highest_floor;
+            tot_time += res.total_time;
+            floor_distribution.push(res.highest_floor);
+            poolCompleted++;
+            
+            // Progress bar smoothly ticks up to 50%
+            if (poolCompleted % Math.max(1, Math.floor(simPrecision / 20)) === 0) {
+               setProgressPct((poolCompleted / simPrecision) * 50); 
+            }
+          }));
+        }
+        
+        await Promise.all(promises);
+        poolRef.current.terminate();
+        poolRef.current = null;
+        
+        if (cancelRef.current) return;
+        
+        avg_max_floor_calc = tot_flr / simPrecision;
+        avg_run_time_calc = tot_time / simPrecision;
       }
-      
-      await Promise.all(promises);
-      poolRef.current.terminate();
-      poolRef.current = null;
-      
-      if (cancelRef.current) return;
-      
-      const avg_max_floor_calc = tot_flr / simPrecision;
-      const avg_run_time_calc = tot_time / simPrecision;
 
       // ========================================================
       // 2. DETERMINISTIC GAUNTLET CALCULATIONS (calc_worker)
@@ -545,8 +585,12 @@ export default function ForecasterTab() {
          maxAllowed = g?.max !== undefined ? g.max : 9999;
          if (item.id === 'geoduck') maxAllowed = store.asc2_unlocked ? 300 : 200;
       }
-      setCartItems([...cartItems, { ...item, qty: 1, maxAllowed }]);
+      setCartItems([ ...cartItems, { ...item, qty: 1, maxAllowed } ]);
     }
+    
+    setTimeout(() => {
+      diagnosisRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 50);
   };
 
   const setExactCartQty = (index, qty) => {
@@ -582,7 +626,7 @@ export default function ForecasterTab() {
       }
     });
     setCartItems([ ]);
-    alert("✅ Cart items applied directly to your Global Player Build!");
+    alert("✅ Cart items applied directly to your Global Player Build!\n\nNext Steps:\n1. Rerun the 'Optimizer' to redistribute your Base Stats around these upgrades.\n2. Perform a 'Synthesis' to show the meta-build and the max floor progression distribution.");
   };
 
   const handleAnalyzePivot = async () => {
@@ -880,8 +924,9 @@ export default function ForecasterTab() {
         <ol className="list-decimal pl-5 space-y-1 text-blue-200/80">
           <li><strong>Optimize First:</strong> Ensure you have generated a "Max Floor Push" build (via the Synthesis tab) and that it is actively loaded in your <strong>Player Setup</strong>. The Forecaster uses your global player profile as its mathematical baseline.</li>
           <li><strong>Set Your Goal:</strong> Enter your target floor and Arch Seconds budget below. (The Forecaster will automatically identify the hardest block on that floor).</li>
-          <li><strong>Draft Upgrades:</strong> Keep the simulation set to <strong>100 Runs</strong> while adding items to your cart so the engine updates instantly.</li>
-          <li><strong>Verify Probability:</strong> Once your cart looks ready, switch to <strong>500 or 1000 Runs</strong> for a highly accurate Monte Carlo probability check before spending your resources.</li>
+          <li><strong>The Shopping Spree:</strong> Scroll down to the "Oracle's Shopping List". This ranks every possible upgrade in the game by how much it mathematically helps you push. Click <strong>"+ Cart"</strong> on items to simulate buying them in-game.</li>
+          <li><strong>Verify Probability:</strong> Once your cart brings your push probability up to an acceptable level for your budget, increase the simulation precision to 500+ runs to lock in the true probability by removing RNG noise.</li>
+          <li><strong>Apply & Re-Optimize:</strong> Click "Apply Cart" to send these simulated items back to your global setup, then head to the <strong>Optimizer & Synthesis tabs</strong> to finalize your stat distribution!</li>
         </ol>
       </div>
 
@@ -892,8 +937,14 @@ export default function ForecasterTab() {
             <label className="block text-sm font-bold mb-1">Target Floor</label>
             <input 
               type="number" 
-              value={targetFloor} 
-              onChange={(e) => setTargetFloor(parseInt(e.target.value) || 1)}
+              value={localTargetFloor} 
+              onChange={(e) => setLocalTargetFloor(e.target.value)}
+              onBlur={(e) => {
+                const val = parseInt(e.target.value) || 1;
+                setLocalTargetFloor(val);
+                if (val !== targetFloor) setTargetFloor(val);
+              }}
+              onKeyDown={(e) => { if (e.key === 'Enter') e.target.blur(); }}
               className="w-full bg-st-bg border border-st-border rounded p-2 text-st-text focus:border-st-orange focus:outline-none"
             />
           </div>
@@ -918,7 +969,7 @@ export default function ForecasterTab() {
               <option value={500}>500 Runs (Balanced)</option>
               <option value={1000}>1,000 Runs (Deep Verification)</option>
             </select>
-            <div className="text-xs text-st-text-light mt-1">Higher runs completely flatten right-tail RNG noise.</div>
+            <div className="text-xs text-st-text-light mt-1">Higher runs increase accuracy by removing RNG noise.</div>
           </div>
         </div>
         
@@ -1186,30 +1237,41 @@ export default function ForecasterTab() {
                           <span className="text-st-orange text-xs font-bold ml-2 bg-st-orange/10 px-1 rounded">Lvl {displayBase} ➔ {displayNew}</span>
                           <span className="text-st-text-light text-xs ml-2">Total: {totalCostStr}</span>
                         </div>
-                        {nextGain ? (
-                          <div className="text-[10px] mt-1 text-st-text-light bg-black/10 inline-block px-1 rounded">
-                            Next +1 Lvl Gain: 
-                            {(!isDevMode || forecasterMode === 'wall') ? (
-                              <>
-                                {nextGain.d_edps > 0.1 && <span className="text-st-orange ml-1">+{Math.ceil(nextGain.d_edps).toLocaleString()} EDPS</span>}
-                                {nextGain.d_pen > 0 && <span className="text-gray-300 ml-1">+{Math.ceil(nextGain.d_pen).toLocaleString()} Pen</span>}
-                                {nextGain.d_sta > 0 && <span className="text-blue-400 ml-1">+{Math.ceil(nextGain.d_sta).toLocaleString()} Sta</span>}
-                                {nextGain.d_net_sta > 0.1 && <span className="text-red-400 ml-1 font-bold">(-{Math.ceil(nextGain.d_net_sta).toLocaleString()} Swings)</span>}
-                              </>
-                            ) : (
-                              <span className="text-green-400 ml-1">+{nextGain.d_yield.toFixed(1)} Yield / 1k Secs</span>
-                            )}
-                          </div>
-                        ) : (
-                          <div className="text-[10px] mt-1 text-st-text-light bg-black/10 inline-block px-1 rounded opacity-75">
-                            Next +1 Lvl Gain: 
-                            {item.qty >= (item.maxAllowed - baseLvl) ? (
-                              <span className="text-red-400 ml-1 font-bold">Max Level Reached</span>
-                            ) : (
-                              <span className="text-st-text-light ml-1">Unmeasurable (&lt;0.1)</span>
-                            )}
-                          </div>
-                        )}
+                        <div className="flex flex-col items-start gap-1 mt-1">
+                          {(!isDevMode || forecasterMode === 'wall') && (item.d_edps > 0 || item.d_pen > 0 || item.d_sta > 0 || item.d_net_sta > 0) && (
+                            <div className="text-[10px] text-st-text-light bg-[#1e1e1e] inline-block px-1.5 py-0.5 rounded border border-st-border/50">
+                              Estimated Cart Gain:
+                              {item.d_edps > 0.1 && <span className="text-st-orange ml-1">+{Math.ceil(item.d_edps * item.qty).toLocaleString()} EDPS</span>}
+                              {item.d_pen > 0 && <span className="text-gray-300 ml-1">+{Math.ceil(item.d_pen * item.qty).toLocaleString()} Pen</span>}
+                              {item.d_sta > 0 && <span className="text-blue-400 ml-1">+{Math.ceil(item.d_sta * item.qty).toLocaleString()} Sta</span>}
+                              {item.d_net_sta > 0.1 && <span className="text-red-400 ml-1 font-bold">(-{Math.ceil(item.d_net_sta * item.qty).toLocaleString()} Swings)</span>}
+                            </div>
+                          )}
+                          {nextGain ? (
+                            <div className="text-[10px] text-st-text-light bg-black/10 inline-block px-1 rounded">
+                              Next +1 Lvl Gain: 
+                              {(!isDevMode || forecasterMode === 'wall') ? (
+                                <>
+                                  {nextGain.d_edps > 0.1 && <span className="text-st-orange ml-1">+{Math.ceil(nextGain.d_edps).toLocaleString()} EDPS</span>}
+                                  {nextGain.d_pen > 0 && <span className="text-gray-300 ml-1">+{Math.ceil(nextGain.d_pen).toLocaleString()} Pen</span>}
+                                  {nextGain.d_sta > 0 && <span className="text-blue-400 ml-1">+{Math.ceil(nextGain.d_sta).toLocaleString()} Sta</span>}
+                                  {nextGain.d_net_sta > 0.1 && <span className="text-red-400 ml-1 font-bold">(-{Math.ceil(nextGain.d_net_sta).toLocaleString()} Swings)</span>}
+                                </>
+                              ) : (
+                                <span className="text-green-400 ml-1">+{nextGain.d_yield.toFixed(1)} Yield / 1k Secs</span>
+                              )}
+                            </div>
+                          ) : (
+                            <div className="text-[10px] text-st-text-light bg-black/10 inline-block px-1 rounded opacity-75">
+                              Next +1 Lvl Gain: 
+                              {item.qty >= (item.maxAllowed - baseLvl) ? (
+                                <span className="text-red-400 ml-1 font-bold">Max Level Reached</span>
+                              ) : (
+                                <span className="text-st-text-light ml-1">Unmeasurable (&lt;0.1)</span>
+                              )}
+                            </div>
+                          )}
+                        </div>
                       </div>
                       <div className="flex items-center gap-2">
                         {item.type === 'card' || (item.maxAllowed - baseLvl) <= 1 ? (
@@ -1253,7 +1315,7 @@ export default function ForecasterTab() {
               </div>
             )}
 
-            <div className="flex gap-4">
+            <div className="flex gap-4 mb-2">
               <button 
                 onClick={applyCartToGlobal}
                 disabled={cartItems.length === 0 || isAnalyzing || isPivotAnalyzing}
@@ -1269,6 +1331,11 @@ export default function ForecasterTab() {
                 Clear
               </button>
             </div>
+            {cartItems.length > 0 && (
+              <div className="text-xs text-st-text-light text-center">
+                Cart Applied? Return to the <strong>Optimizer</strong> and <strong>Synthesis</strong> tabs to realize these new gains!
+              </div>
+            )}
           </div>
         </div>
       )}
@@ -1276,7 +1343,7 @@ export default function ForecasterTab() {
       {(!isDevMode || forecasterMode === 'wall') && hasAnalyzed && results && (
         <div className="animate-fade-in space-y-6">
 
-          <div className="st-container border-t-4 border-t-st-orange">
+          <div ref={diagnosisRef} className="st-container border-t-4 border-t-st-orange scroll-mt-6">
             <h4 className="font-bold mb-4 text-xl">2. The Mathematical Diagnosis</h4>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               
@@ -1289,10 +1356,20 @@ export default function ForecasterTab() {
                   const runs = dist.length;
                   const successes = dist.filter(f => f >= targetFloor).length;
                   const prob = runs > 0 ? successes / runs : 0;
-                  const estRuns = prob > 0 ? 1 / prob : Infinity;
                   const avgTime = results.baseline.avg_run_time || 0;
-                  const estCost = prob > 0 ? (estRuns * avgTime) / 1000 : Infinity;
-                  const isWithinBudget = estCost <= pushBudget;
+                  
+                  let runs50 = Infinity, cost50 = Infinity;
+                  let runs90 = Infinity, cost90 = Infinity;
+
+                  if (prob >= 1) {
+                    runs50 = 1; runs90 = 1;
+                  } else if (prob > 0) {
+                    runs50 = Math.ceil(Math.log(1 - 0.50) / Math.log(1 - prob));
+                    runs90 = Math.ceil(Math.log(1 - 0.90) / Math.log(1 - prob));
+                  }
+
+                  if (runs50 !== Infinity) cost50 = (runs50 * avgTime) / 1000.0;
+                  if (runs90 !== Infinity) cost90 = (runs90 * avgTime) / 1000.0;
                   
                   return (
                     <>
@@ -1311,32 +1388,52 @@ export default function ForecasterTab() {
                       </div>
                       
                       <div className="flex flex-col gap-2 mb-3">
-                        <div className="flex justify-between text-sm">
-                          <span className="text-st-text-light">Expected Runs Needed:</span>
-                          <span className="font-mono font-bold">{estRuns === Infinity ? 'Impossible' : Math.ceil(estRuns)}</span>
+                        <div className="flex justify-between items-center text-sm border-b border-st-border/50 pb-2">
+                          <span className="text-st-text-light">50% Chance <span className="text-xs">(Coin Flip)</span>:</span>
+                          <div className="text-right">
+                            <span className="font-mono font-bold">{runs50 === Infinity ? 'Impossible' : `${runs50} runs`}</span>
+                            {runs50 !== Infinity && <span className="text-st-text-light text-xs font-mono ml-2">(~{cost50.toFixed(1)}k Secs)</span>}
+                          </div>
                         </div>
-                        <div className="flex justify-between text-sm items-start">
-                          <span className="text-st-text-light">Expected Arch Secs Cost:</span>
-                          <div className="text-right flex flex-col items-end">
-                            <span className={`font-mono font-bold ${estCost === Infinity ? 'text-red-400' : isWithinBudget ? 'text-green-400' : 'text-orange-400'}`}>
-                              {estCost === Infinity ? '∞' : `${estCost.toFixed(1)}k`} / {pushBudget}k
+                        <div className="flex justify-between items-start text-sm">
+                          <span className="text-st-text-light">90% Chance <span className="text-xs">(Safe Budget)</span>:</span>
+                          <div className="text-right">
+                            <span className={`font-mono font-bold ${runs90 === Infinity ? 'text-red-400' : (cost90 <= pushBudget ? 'text-green-400' : 'text-orange-400')}`}>
+                              {runs90 === Infinity ? 'Impossible' : `${runs90} runs`}
                             </span>
-                            {estCost !== Infinity && (
-                              <span className="text-[10px] text-st-text-light font-mono mt-0.5 bg-black/10 px-1 rounded">
-                                (~{Math.ceil(estRuns)} runs × ~{(avgTime / 1000).toFixed(1)}k sec)
-                              </span>
+                            {runs90 !== Infinity && (
+                              <div className="text-xs mt-0.5">
+                                <span className={`font-mono ${cost90 <= pushBudget ? 'text-green-400' : 'text-orange-400'}`}>~{cost90.toFixed(1)}k</span>
+                                <span className="text-st-text-light font-mono"> / {pushBudget}k Secs</span>
+                              </div>
                             )}
                           </div>
                         </div>
                       </div>
 
-                      {estCost === Infinity ? (
+                      {runs90 === Infinity ? (
                         <div className="text-center font-bold text-red-400 bg-red-500/10 p-3 rounded border border-red-500/30 mt-2">Status: Mathematical Wall 🛑</div>
-                      ) : isWithinBudget ? (
+                      ) : cost90 <= pushBudget ? (
                         <div className="text-center font-bold text-green-400 bg-green-500/10 p-3 rounded border border-green-500/30 mt-2">Status: Push Approved ✅</div>
+                      ) : cost50 <= pushBudget ? (
+                        <div className="text-center font-bold text-yellow-400 bg-yellow-500/10 p-3 rounded border border-yellow-500/30 mt-2">Status: Coin Flip (High Risk) ⚠️</div>
                       ) : (
-                        <div className="text-center font-bold text-yellow-400 bg-yellow-500/10 p-3 rounded border border-yellow-500/30 mt-2">Status: Over Budget ⚠️</div>
+                        <div className="text-center font-bold text-red-400 bg-red-500/10 p-3 rounded border border-red-500/30 mt-2">Status: Over Budget ❌</div>
                       )}
+                      
+                      {(cost90 > pushBudget || runs90 === Infinity) && (() => {
+                        const b = results.baseline;
+                        let hint = "💡 Hint: Add items from the shopping lists below to your Cart to evaluate how they mathematically bridge the gap.";
+                        
+                        if (b.net_sta > b.max_sta * 2.0) {
+                          hint = "💡 Hint: You are taking far too many hits. Don't bother buying Stamina; you must kill blocks faster! Focus heavily on the 'Top Block Swings Saved' list.";
+                        } else if (b.net_sta > b.max_sta) {
+                          hint = "💡 Hint: You are running out of stamina, but you are close! Check 'Top Block Swings Saved' to take fewer hits, or grab 'Top Stamina Boosts' to survive the final stretch.";
+                        } else {
+                          hint = "💡 Hint: Your average stats are close, but RNG variance is likely ending your runs early. Grab a few items from any list below to secure consistency.";
+                        }
+                        return <div className="text-xs text-st-text-light bg-black/20 border border-st-border p-2 rounded mt-2">{hint}</div>;
+                      })()}
                     </>
                   );
                 })()}
@@ -1393,6 +1490,44 @@ export default function ForecasterTab() {
               </div>
 
             </div>
+
+            {results.baseline.floor_distribution && results.baseline.floor_distribution.length > 0 && (() => {
+              const histData = {};
+              results.baseline.floor_distribution.forEach(f => {
+                histData[f] = (histData[f] || 0) + 1;
+              });
+              const xVals = Object.keys(histData).map(Number).sort((a,b) => a-b);
+              const yVals = xVals.map(x => histData[x]);
+              
+              return (
+                <div className="mt-6 w-full border border-st-border rounded bg-st-bg p-4 flex flex-col">
+                  <div className="mb-2">
+                    <h4 className="font-bold text-lg">📊 Simulation Outcome Distribution</h4>
+                    <p className="text-xs text-st-text-light">Histogram of floors reached across all {results.baseline.floor_distribution.length} simulated runs.</p>
+                  </div>
+                  <div className="w-full h-[300px]">
+                    <Plot
+                      data={[{
+                        x: xVals,
+                        y: yVals,
+                        type: 'bar',
+                        marker: { color: '#ff4b4b' },
+                        text: yVals,
+                        textposition: 'outside'
+                      }]}
+                      layout={{
+                        font: { color: store.theme === 'dark' ? '#FAFAFA' : '#31333F' },
+                        paper_bgcolor: 'rgba(0,0,0,0)', plot_bgcolor: 'rgba(0,0,0,0)',
+                        margin: { t: 10, b: 50, l: 60, r: 20 },
+                        xaxis: { type: 'category', title: { text: 'Floor Reached', standoff: 15 }, color: chartFontColor, gridcolor: chartGridColor }, 
+                        yaxis: { title: { text: 'Number of Runs', standoff: 15 }, color: chartFontColor, gridcolor: chartGridColor }
+                      }}
+                      useResizeHandler={true} style={{ width: '100%', height: '100%' }} config={{ displayModeBar: false }}
+                    />
+                  </div>
+                </div>
+              );
+            })()}
           </div>
 
           <div className="st-container relative">
@@ -1418,7 +1553,7 @@ export default function ForecasterTab() {
               
               <div className="border border-st-border rounded bg-st-bg overflow-hidden flex flex-col">
                 <div className="bg-st-secondary p-2 border-b border-st-border font-bold text-center text-red-400">
-                  ⚔️ Top Gauntlet Swings Saved
+                  ⚔️ Top Block Swings Saved
                 </div>
                 <div className="text-[10px] text-center py-1 bg-black/20 text-st-text-light border-b border-st-border">Ranks Damage/Pen by how much Stamina it saves pushing to {targetFloor}</div>
                 <div className="p-2 overflow-y-auto max-h-[400px]">
