@@ -17,6 +17,7 @@ export default function ForecasterTab() {
 
   const targetFloor = store.forecaster_targetFloor ?? (store.current_max_floor || 150);
   const setTargetFloor = (v) => store.setSimsState('forecaster_targetFloor', v);
+  const[localTargetFloor, setLocalTargetFloor] = useState(targetFloor);
 
   const pushBudget = store.forecaster_pushBudget ?? 500;
   const setPushBudget = (v) => store.setSimsState('forecaster_pushBudget', v);
@@ -28,6 +29,10 @@ export default function ForecasterTab() {
   const setPivotRoiPrecision = (v) => store.setSimsState('forecaster_pivotRoiPrecision', v);
 
   const cartItems = store.forecaster_cartItems ||[ ];
+
+  useEffect(() => {
+    setLocalTargetFloor(targetFloor);
+  }, [targetFloor]);
 
   const isDevMode = import.meta.env.DEV || store.forecaster_devMode || false;
   const [forecasterMode, setForecasterMode] = useState('wall');
@@ -123,7 +128,7 @@ export default function ForecasterTab() {
     } else if (isDevMode && forecasterMode === 'pivot' && hasPivotAnalyzed) {
       handleAnalyzePivot();
     }
-  }, [ cartItems, simPrecision ]);
+  }, [ cartItems, simPrecision, targetFloor ]);
 
   const runCalc = (payload) => {
     return new Promise((resolve, reject) => {
@@ -898,8 +903,14 @@ export default function ForecasterTab() {
             <label className="block text-sm font-bold mb-1">Target Floor</label>
             <input 
               type="number" 
-              value={targetFloor} 
-              onChange={(e) => setTargetFloor(parseInt(e.target.value) || 1)}
+              value={localTargetFloor} 
+              onChange={(e) => setLocalTargetFloor(e.target.value)}
+              onBlur={(e) => {
+                const val = parseInt(e.target.value) || 1;
+                setLocalTargetFloor(val);
+                if (val !== targetFloor) setTargetFloor(val);
+              }}
+              onKeyDown={(e) => { if (e.key === 'Enter') e.target.blur(); }}
               className="w-full bg-st-bg border border-st-border rounded p-2 text-st-text focus:border-st-orange focus:outline-none"
             />
           </div>
