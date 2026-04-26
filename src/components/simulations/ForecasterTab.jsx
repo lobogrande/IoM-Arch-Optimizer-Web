@@ -1,8 +1,11 @@
 // src/components/simulations/ForecasterTab.jsx
 import { useState, useEffect, useRef } from 'react';
 import useStore from '../../store';
+import PlotWrapper from 'react-plotly.js';
 import { EngineWorkerPool, runOptimizationPhase, topUpBuild, getOptimalStepProfile } from '../../utils/optimizer';
 import { INTERNAL_UPGRADE_CAPS, UPGRADE_NAMES, ASC1_LOCKED_UPGS, ASC2_LOCKED_UPGS, UPGRADE_LEVEL_REQS, EXTERNAL_UI_GROUPS, calculateUpgradeCost, CURRENCY_TYPES, INFERNAL_CARD_BONUSES } from '../../game_data';
+
+const Plot = PlotWrapper.default || PlotWrapper;
 
 const ORE_MIN_FLOORS = {
   'dirt1': 1, 'com1': 1, 'rare1': 3, 'epic1': 6, 'leg1': 12, 'myth1': 20, 'div1': 50,
@@ -14,6 +17,9 @@ const ORE_MIN_FLOORS = {
 export default function ForecasterTab() {
   const store = useStore();
   const workerRef = useRef(null);
+
+  const chartFontColor = store.theme === 'dark' ? '#A3A8B8' : '#7D808D';
+  const chartGridColor = store.theme === 'dark' ? 'rgba(250,250,250,0.1)' : 'rgba(49,51,63,0.1)';
 
   const targetFloor = store.forecaster_targetFloor ?? (store.current_max_floor || 150);
   const setTargetFloor = (v) => store.setSimsState('forecaster_targetFloor', v);
@@ -1456,6 +1462,39 @@ export default function ForecasterTab() {
               </div>
 
             </div>
+
+            {results.baseline.floor_distribution && results.baseline.floor_distribution.length > 0 && (() => {
+              const histData = {};
+              results.baseline.floor_distribution.forEach(f => {
+                histData[f] = (histData[f] || 0) + 1;
+              });
+              const xVals = Object.keys(histData).map(Number).sort((a,b) => a-b);
+              const yVals = xVals.map(x => histData[x]);
+              
+              return (
+                <div className="mt-6 w-full h-[300px] border border-st-border rounded bg-st-bg p-2">
+                  <Plot
+                    data={[{
+                      x: xVals,
+                      y: yVals,
+                      type: 'bar',
+                      marker: { color: '#ff4b4b' },
+                      text: yVals,
+                      textposition: 'outside'
+                    }]}
+                    layout={{
+                      font: { color: store.theme === 'dark' ? '#FAFAFA' : '#31333F' },
+                      title: 'Simulation Outcome Distribution',
+                      paper_bgcolor: 'rgba(0,0,0,0)', plot_bgcolor: 'rgba(0,0,0,0)',
+                      margin: { t: 40, b: 40, l: 40, r: 20 },
+                      xaxis: { type: 'category', title: 'Floor Reached', color: chartFontColor, gridcolor: chartGridColor }, 
+                      yaxis: { title: 'Runs', color: chartFontColor, gridcolor: chartGridColor }
+                    }}
+                    useResizeHandler={true} style={{ width: '100%', height: '100%' }} config={{ displayModeBar: false }}
+                  />
+                </div>
+              );
+            })()}
           </div>
 
           <div className="st-container relative">
