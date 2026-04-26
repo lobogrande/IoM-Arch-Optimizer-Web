@@ -1362,15 +1362,14 @@ export default function ForecasterTab() {
                       
                       {(!isWithinBudget || estCost === Infinity) && (() => {
                         const b = results.baseline;
-                        const effArmor = Math.max(0, b.armor - b.armor_pen);
                         let hint = "💡 Hint: Add items from the shopping lists below to your Cart to evaluate how they mathematically bridge the gap.";
                         
-                        if (effArmor > 0 && b.armor_pen < b.armor) {
-                          hint = "💡 Hint: The target block has high armor mitigating your damage. Focus on the 'Top Armor Pen Boosts' list below.";
-                        } else if (b.net_sta > b.max_sta * 1.5) {
-                          hint = "💡 Hint: You are bleeding far more stamina than you can survive. Focus on 'Top Block Swings Saved' or 'Top Raw EDPS' to kill blocks in fewer hits.";
+                        if (b.net_sta > b.max_sta * 2.0) {
+                          hint = "💡 Hint: You are taking far too many hits. Don't bother buying Stamina; you must kill blocks faster! Focus heavily on the 'Top Block Swings Saved' list.";
                         } else if (b.net_sta > b.max_sta) {
-                          hint = "💡 Hint: You are very close to surviving! A mix of 'Top Stamina Boosts' or 'Top Block Swings Saved' will get you over the line.";
+                          hint = "💡 Hint: You are running out of stamina, but you are close! Check 'Top Block Swings Saved' to take fewer hits, or grab 'Top Stamina Boosts' to survive the final stretch.";
+                        } else {
+                          hint = "💡 Hint: Your average stats are close, but RNG variance is likely ending your runs early. Grab a few items from any list below to secure consistency.";
                         }
                         return <div className="text-xs text-st-text-light bg-black/20 border border-st-border p-2 rounded mt-2">{hint}</div>;
                       })()}
