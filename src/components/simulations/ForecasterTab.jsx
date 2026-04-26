@@ -1367,10 +1367,10 @@ export default function ForecasterTab() {
                         
                         if (effArmor > 0 && b.armor_pen < b.armor) {
                           hint = "💡 Hint: The target block has high armor mitigating your damage. Focus on the 'Top Armor Pen Boosts' list below.";
-                        } else if (b.avg_hits > 15) {
-                          hint = "💡 Hint: Your raw damage is too low, requiring too many hits per block. Focus on the 'Top Raw EDPS Boosts' list below.";
-                        } else if (b.net_sta > 0) {
-                          hint = "💡 Hint: You are bleeding Stamina before reaching the target. Focus on 'Top Block Swings Saved' or 'Top Stamina Boosts'.";
+                        } else if (b.net_sta > b.max_sta * 1.5) {
+                          hint = "💡 Hint: You are bleeding far more stamina than you can survive. Focus on 'Top Block Swings Saved' or 'Top Raw EDPS' to kill blocks in fewer hits.";
+                        } else if (b.net_sta > b.max_sta) {
+                          hint = "💡 Hint: You are very close to surviving! A mix of 'Top Stamina Boosts' or 'Top Block Swings Saved' will get you over the line.";
                         }
                         return <div className="text-xs text-st-text-light bg-black/20 border border-st-border p-2 rounded mt-2">{hint}</div>;
                       })()}
