@@ -129,12 +129,28 @@ export default function ForecasterTab() {
   }, [ ]);
 
   useEffect(() => {
+    const prev = prevSimState.current;
+    const cartChanged = JSON.stringify(prev.cartItems) !== JSON.stringify(cartItems);
+    const precisionChanged = prev.simPrecision !== simPrecision;
+    const targetFloorChanged = prev.targetFloor !== targetFloor;
+    
+    prevSimState.current = { cartItems, simPrecision, targetFloor };
+
+    // If nothing structural changed (e.g. just a component re-render), abort.
+    if (!cartChanged && !precisionChanged && !targetFloorChanged) return;
+
     if ((!isDevMode || forecasterMode === 'wall') && hasAnalyzed) {
-      handleAnalyzeWall();
+      if (cartChanged || precisionChanged) {
+        handleAnalyzeWall(false); // Full recalculation needed
+      } else if (targetFloorChanged) {
+        handleAnalyzeWall(true); // Skip Monte Carlo, fast-track gauntlet math
+      }
     } else if (isDevMode && forecasterMode === 'pivot' && hasPivotAnalyzed) {
-      handleAnalyzePivot();
+      if (cartChanged || precisionChanged) {
+        handleAnalyzePivot();
+      }
     }
-  }, [ cartItems, simPrecision, targetFloor ]);
+  },[ cartItems, simPrecision, targetFloor, isDevMode, forecasterMode, hasAnalyzed, hasPivotAnalyzed ]);
 
   const runCalc = (payload) => {
     return new Promise((resolve, reject) => {
@@ -257,66 +273,76 @@ export default function ForecasterTab() {
     return eff;
   };
 
-  const handleAnalyzeWall = async () => {
+  const handleAnalyzeWall = async (skipMonteCarlo = false) => {
     setIsAnalyzing(true);
     cancelRef.current = false;
     setProgressPct(0);
-    setAnalysisMsg(`Simulating Base Run (${simPrecision} iterations)...`);
+    setAnalysisMsg(skipMonteCarlo ? "Fast-Tracking Gauntlet Math..." : `Simulating Base Run (${simPrecision} iterations)...`);
 
     try {
       const effState = getEffectiveState();
       
-      // ========================================================
-      // 1. FAST PARALLEL MONTE CARLO (EngineWorkerPool)
-      // ========================================================
-      poolRef.current = new EngineWorkerPool();
-      await poolRef.current.init();
-      if (cancelRef.current) return;
-      
-      const baseStateDict = {
-        asc1_unlocked: store.asc1_unlocked,
-        asc2_unlocked: store.asc2_unlocked,
-        arch_level: store.arch_level,
-        current_max_floor: store.current_max_floor,
-        arch_ability_infernal_bonus: parseFloat(store.arch_ability_infernal_bonus) / 100.0,
-        total_infernal_cards: store.total_infernal_cards,
-        base_stats: effState.base_stats, 
-        upgrade_levels: effState.upgrade_levels,
-        external_levels: effState.external_levels,
-        cards: effState.cards
-      };
-      
-      await poolRef.current.syncState(baseStateDict);
-      
-      let tot_flr = 0;
-      let tot_time = 0;
-      const floor_distribution = [ ];
-      let poolCompleted = 0;
-      
-      const promises = [ ];
-      for (let i = 0; i < simPrecision; i++) {
-        promises.push(poolRef.current.runTask(effState.base_stats).then(res => {
-          if (res.aborted) return;
-          tot_flr += res.highest_floor;
-          tot_time += res.total_time;
-          floor_distribution.push(res.highest_floor);
-          poolCompleted++;
-          
-          // Progress bar smoothly ticks up to 50%
-          if (poolCompleted % Math.max(1, Math.floor(simPrecision / 20)) === 0) {
-             setProgressPct((poolCompleted / simPrecision) * 50); 
-          }
-        }));
+      let avg_max_floor_calc = 0;
+      let avg_run_time_calc = 0;
+      let floor_distribution = [ ];
+
+      if (skipMonteCarlo && results?.baseline?.floor_distribution) {
+        avg_max_floor_calc = results.baseline.avg_max_floor;
+        avg_run_time_calc = results.baseline.avg_run_time;
+        floor_distribution = results.baseline.floor_distribution;
+        setProgressPct(50);
+      } else {
+        // ========================================================
+        // 1. FAST PARALLEL MONTE CARLO (EngineWorkerPool)
+        // ========================================================
+        poolRef.current = new EngineWorkerPool();
+        await poolRef.current.init();
+        if (cancelRef.current) return;
+        
+        const baseStateDict = {
+          asc1_unlocked: store.asc1_unlocked,
+          asc2_unlocked: store.asc2_unlocked,
+          arch_level: store.arch_level,
+          current_max_floor: store.current_max_floor,
+          arch_ability_infernal_bonus: parseFloat(store.arch_ability_infernal_bonus) / 100.0,
+          total_infernal_cards: store.total_infernal_cards,
+          base_stats: effState.base_stats, 
+          upgrade_levels: effState.upgrade_levels,
+          external_levels: effState.external_levels,
+          cards: effState.cards
+        };
+        
+        await poolRef.current.syncState(baseStateDict);
+        
+        let tot_flr = 0;
+        let tot_time = 0;
+        let poolCompleted = 0;
+        
+        const promises = [ ];
+        for (let i = 0; i < simPrecision; i++) {
+          promises.push(poolRef.current.runTask(effState.base_stats).then(res => {
+            if (res.aborted) return;
+            tot_flr += res.highest_floor;
+            tot_time += res.total_time;
+            floor_distribution.push(res.highest_floor);
+            poolCompleted++;
+            
+            // Progress bar smoothly ticks up to 50%
+            if (poolCompleted % Math.max(1, Math.floor(simPrecision / 20)) === 0) {
+               setProgressPct((poolCompleted / simPrecision) * 50); 
+            }
+          }));
+        }
+        
+        await Promise.all(promises);
+        poolRef.current.terminate();
+        poolRef.current = null;
+        
+        if (cancelRef.current) return;
+        
+        avg_max_floor_calc = tot_flr / simPrecision;
+        avg_run_time_calc = tot_time / simPrecision;
       }
-      
-      await Promise.all(promises);
-      poolRef.current.terminate();
-      poolRef.current = null;
-      
-      if (cancelRef.current) return;
-      
-      const avg_max_floor_calc = tot_flr / simPrecision;
-      const avg_run_time_calc = tot_time / simPrecision;
 
       // ========================================================
       // 2. DETERMINISTIC GAUNTLET CALCULATIONS (calc_worker)
