@@ -579,8 +579,16 @@ export default function ResultsDashboard({ context }) {
               <div className="lg:col-span-2 space-y-6">
                 {isFloorTarget ? (
                   <div className="space-y-4">
-                    <h4 className="font-bold text-lg border-b border-st-border pb-2">🏆 Right-Tail Push Potential</h4>
-                    <p className="text-xs text-st-text-light">Floor progression relies on compounding RNG (critical hits and mod chains). Here is the expected cost to ride the right-tail of the bell curve based on your simulated runs.</p>
+                    <h4 className="font-bold text-lg border-b border-st-border pb-2 flex items-center gap-2">
+                      🏆 Right-Tail Push Potential
+                      <div className="group relative cursor-help text-st-text-light hover:text-st-orange font-normal">
+                        <span className="text-sm px-1.5 rounded bg-black/20 border border-st-border">?</span>
+                        <div className="absolute bottom-full left-0 md:-left-8 mb-2 w-72 p-2 bg-st-bg text-st-text text-xs border border-st-border rounded shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50 text-left pointer-events-none">
+                          Because pushing relies heavily on RNG, reaching deep floors is never guaranteed. Use these cumulative probability budgets to determine if you should push now, or save up for a safer attempt.
+                        </div>
+                      </div>
+                    </h4>
+                    <p className="text-xs text-st-text-light">Floor progression relies on compounding RNG (critical hits and mod chains). Below are the required runs and Arch Seconds needed to achieve a 50% (coin flip) or 90% (highly safe) chance of reaching a specific milestone.</p>
                     
                     {(() => {
                       const floors = finalSum.floors || [ ];
@@ -595,7 +603,6 @@ export default function ResultsDashboard({ context }) {
                         
                         const count = sorted.filter(f => f >= targetFloor).length;
                         const prob = count / tot;
-                        const runsNeeded = prob > 0 ? 1.0 / prob : 0;
                         
                         const maxSta = (finalSum.avg_metrics && finalSum.avg_metrics.in_game_time) 
                           ? finalSum.avg_metrics.in_game_time 
@@ -603,18 +610,29 @@ export default function ResultsDashboard({ context }) {
                             ? finalSum.stamina_trace.stamina[0] 
                             : 0);
                         
-                        const cost = (runsNeeded * maxSta) / 1000.0;
-                        return { floor: targetFloor, prob, runs: Math.ceil(runsNeeded), cost };
+                        let runs50 = Infinity, cost50 = Infinity;
+                        let runs90 = Infinity, cost90 = Infinity;
+
+                        if (prob >= 1) {
+                          runs50 = 1; runs90 = 1;
+                        } else if (prob > 0) {
+                          runs50 = Math.ceil(Math.log(1 - 0.50) / Math.log(1 - prob));
+                          runs90 = Math.ceil(Math.log(1 - 0.90) / Math.log(1 - prob));
+                        }
+
+                        if (runs50 !== Infinity) cost50 = (runs50 * maxSta) / 1000.0;
+                        if (runs90 !== Infinity) cost90 = (runs90 * maxSta) / 1000.0;
+                        
+                        return { floor: targetFloor, prob, runs50, cost50, runs90, cost90 };
                       };
 
                       const tiers =[
                         { label: "Average (Top 50%)", data: getStats(0.50), color: "text-st-text" },
                         { label: "Lucky (Top 10%)", data: getStats(0.10), color: "text-blue-400" },
-                        { label: "Miracle (Top 1%)", data: getStats(0.01), color: "text-purple-400" },
-                        { label: "Absolute Peak", data: getStats(0.00), color: "text-st-orange" }
+                        { label: "Miracle (Top 1%)", data: getStats(0.01), color: "text-purple-400" }
                       ];
 
-                      const uniqueTiers = [ ];
+                      const uniqueTiers =[ ];
                       const seenFloors = new Set();
                       tiers.forEach(t => {
                         if (!seenFloors.has(t.data.floor)) {
@@ -630,7 +648,8 @@ export default function ResultsDashboard({ context }) {
                               <tr className="border-b border-st-border text-st-text-light">
                                 <th className="py-2 pr-2">Probability</th>
                                 <th className="py-2 pr-2">Floor</th>
-                                <th className="py-2">Avg Cost</th>
+                                <th className="py-2 pr-2">50% Chance <span className="text-xs font-normal">(Coin Flip)</span></th>
+                                <th className="py-2">90% Chance <span className="text-xs font-normal">(Safe Budget)</span></th>
                               </tr>
                             </thead>
                             <tbody>
@@ -638,8 +657,11 @@ export default function ResultsDashboard({ context }) {
                                 <tr key={i} className="border-b border-st-border/50 hover:bg-black/5">
                                   <td className="py-2 pr-2 font-bold">{t.label}</td>
                                   <td className={`py-2 pr-2 font-mono font-bold ${t.color}`}>Flr {t.data.floor}</td>
-                                  <td className="py-2 text-st-text-light">
-                                    ~{t.data.cost.toFixed(1)}k Arch Secs <span className="text-xs">({t.data.runs} runs)</span>
+                                  <td className="py-2 pr-2 text-st-text-light whitespace-nowrap">
+                                    {t.data.runs50 === Infinity ? "N/A" : <>{t.data.runs50} run{t.data.runs50 !== 1 ? 's' : ''} <br className="md:hidden"/><span className="text-xs">(~{t.data.cost50.toFixed(1)}k Secs)</span></>}
+                                  </td>
+                                  <td className="py-2 text-st-text-light whitespace-nowrap">
+                                    {t.data.runs90 === Infinity ? "N/A" : <>{t.data.runs90} run{t.data.runs90 !== 1 ? 's' : ''} <br className="md:hidden"/><span className="text-xs">(~{t.data.cost90.toFixed(1)}k Secs)</span></>}
                                   </td>
                                 </tr>
                               ))}
