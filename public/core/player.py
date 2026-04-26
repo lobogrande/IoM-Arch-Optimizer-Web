@@ -358,7 +358,7 @@ class Player:
         val = (1 + self.u('F5') + self.u('H21') + stat_calc)
         # The cap for W8 (Geoduck) is handled natively inside the self.w() method based on ascension
         val *= (1 + self.w('W4')) * (1 + self.w('W5')) * (1 + self.w('W8'))
-        val *= self.u('F42') * self.w('W15', default=1.0) * (1.0 + self.inf('dirt3') + self.inf('leg1'))
+        val *= self.u('F42') * self.w('W15', default=1.0) * (1.0 + self.inf('dirt3')) * (1.0 + self.inf('leg1'))
         return self._gm_mult(val, 2)
 
     @property
@@ -368,7 +368,7 @@ class Player:
     @property
     def loot_mod_chance(self): return self.u('H5') + self.u('F24') + self.u('F44') + self.w('W18') + ((0.003 + self.u('F33')) * self.stat('Per')) + (0.002 * self.stat('Luck')) + self.inf('myth2') + self.inf('div4')
     @property
-    def loot_mod_gain(self): return (2.0 + self.u('F16') + self.u('F27')) * (1.0 + self.u('F55') + self.stat('Corr') * (0.01 + self.u('H52'))) * (1.0 + self.inf('dirt1') + self.inf('rare4'))
+    def loot_mod_gain(self): return (2.0 + self.u('F16') + self.u('F27')) * (1.0 + self.u('F55') + self.stat('Corr') * (0.01 + self.u('H52'))) * (1.0 + self.inf('dirt1')) * (1.0 + self.inf('rare4'))
     @property
     def speed_mod_chance(self): return self.u('F24') + self.u('F44') + ((0.002 + self.u('H26')) * self.stat('Agi')) + (0.002 * self.stat('Luck')) + self.inf('div4')
     @property
