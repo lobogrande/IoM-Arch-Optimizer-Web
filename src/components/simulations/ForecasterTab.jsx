@@ -128,29 +128,31 @@ export default function ForecasterTab() {
     };
   }, [ ]);
 
-  useEffect(() => {
-    const prev = prevSimState.current;
-    const cartChanged = JSON.stringify(prev.cartItems) !== JSON.stringify(cartItems);
-    const precisionChanged = prev.simPrecision !== simPrecision;
-    const targetFloorChanged = prev.targetFloor !== targetFloor;
-    
-    prevSimState.current = { cartItems, simPrecision, targetFloor };
+  const simCacheRef = useRef({ cartItems, simPrecision, targetFloor });
 
-    // If nothing structural changed (e.g. just a component re-render), abort.
-    if (!cartChanged && !precisionChanged && !targetFloorChanged) return;
+          useEffect(() => {
+            const prev = simCacheRef.current;
+            const cartChanged = JSON.stringify(prev.cartItems) !== JSON.stringify(cartItems);
+            const precisionChanged = prev.simPrecision !== simPrecision;
+            const targetFloorChanged = prev.targetFloor !== targetFloor;
+            
+            simCacheRef.current = { cartItems, simPrecision, targetFloor };
 
-    if ((!isDevMode || forecasterMode === 'wall') && hasAnalyzed) {
-      if (cartChanged || precisionChanged) {
-        handleAnalyzeWall(false); // Full recalculation needed
-      } else if (targetFloorChanged) {
-        handleAnalyzeWall(true); // Skip Monte Carlo, fast-track gauntlet math
-      }
-    } else if (isDevMode && forecasterMode === 'pivot' && hasPivotAnalyzed) {
-      if (cartChanged || precisionChanged) {
-        handleAnalyzePivot();
-      }
-    }
-  },[ cartItems, simPrecision, targetFloor, isDevMode, forecasterMode, hasAnalyzed, hasPivotAnalyzed ]);
+            // If nothing structural changed (e.g. just a component re-render), abort.
+            if (!cartChanged && !precisionChanged && !targetFloorChanged) return;
+
+            if ((!isDevMode || forecasterMode === 'wall') && hasAnalyzed) {
+              if (cartChanged || precisionChanged) {
+                handleAnalyzeWall(false); // Full recalculation needed
+              } else if (targetFloorChanged) {
+                handleAnalyzeWall(true); // Skip Monte Carlo, fast-track gauntlet math
+              }
+            } else if (isDevMode && forecasterMode === 'pivot' && hasPivotAnalyzed) {
+              if (cartChanged || precisionChanged) {
+                handleAnalyzePivot();
+              }
+            }
+          },[ cartItems, simPrecision, targetFloor, isDevMode, forecasterMode, hasAnalyzed, hasPivotAnalyzed ]);
 
   const runCalc = (payload) => {
     return new Promise((resolve, reject) => {
