@@ -123,7 +123,7 @@ export default function ForecasterTab() {
     } else if (isDevMode && forecasterMode === 'pivot' && hasPivotAnalyzed) {
       handleAnalyzePivot();
     }
-  }, [ cartItems ]);
+  }, [ cartItems, simPrecision ]);
 
   const runCalc = (payload) => {
     return new Promise((resolve, reject) => {
