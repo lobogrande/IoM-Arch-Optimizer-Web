@@ -98,7 +98,7 @@ export default function ForecasterTab() {
     }
     if (workerRef.current) {
       workerRef.current.terminate();
-      workerRef.current = new Worker('/calc_worker.js?v=' + Date.now());
+      workerRef.current = new Worker('/calc_worker.js');
     }
     if (poolRef.current) {
       poolRef.current.clearQueue();
@@ -122,7 +122,7 @@ export default function ForecasterTab() {
   };
 
   useEffect(() => {
-    workerRef.current = new Worker('/calc_worker.js?v=' + Date.now());
+    workerRef.current = new Worker('/calc_worker.js');
     return () => {
       if (workerRef.current) workerRef.current.terminate();
     };
