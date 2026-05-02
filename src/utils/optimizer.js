@@ -238,18 +238,31 @@ export function getOptimalStepProfile(statsList, budget, bounds, simsPerSecond, 
         const remP1 = (budget - minSum) % step1;
         const p1Budget = budget - remP1;
 
-        // --- PREVENT ASC2 DIMENSIONALITY EXPLOSION ---
-        // If the player has 7 free variables, the Phase 2 box must be physically tighter 
-        // to prevent combinations from exploding past 150+ seconds baseline.
-        const divisor = numFree >= 6 ? 1.2 : 1.5;
-
+        // --- PREVENT MULTI-DIMENSIONAL EXPLOSION ---
+        // As free variables (numFree) increase (especially via Allow Unspent / Asc2), 
+        // the combinatorial space expands exponentially. We must dynamically tighten 
+        // the Phase 2 step ratio and Phase 3 radii to ensure baseline ETAs remain solvable.
         let step2;
-        if (step1 <= 15) step2 = Math.max(2, Math.floor(step1 / 3));
-        else if (step1 <= 30) step2 = Math.max(2, Math.floor(step1 / 2.5));
-        else if (step1 <= 50) step2 = Math.max(2, Math.floor(step1 / 2));
-        else step2 = Math.max(2, Math.floor(step1 / divisor));
+        if (numFree >= 7) {
+            // Extreme: Asc2 + Allow Unspent (8 variables)
+            step2 = Math.max(2, Math.ceil(step1 / 1.5));
+        } else if (numFree === 6) {
+            // High: Asc1 + Allow Unspent OR Asc2 (7 variables)
+            step2 = Math.max(2, Math.ceil(step1 / 2.0));
+        } else {
+            // Standard: Base 5 stats
+            if (step1 <= 15) step2 = Math.max(2, Math.floor(step1 / 3));
+            else if (step1 <= 30) step2 = Math.max(2, Math.floor(step1 / 2.5));
+            else if (step1 <= 50) step2 = Math.max(2, Math.floor(step1 / 2));
+            else step2 = Math.max(2, Math.floor(step1 / 1.5));
+        }
             
-        const p3Configs = [[2, 1], [1, 1], [2, 2], [1, 2] ];
+        let p3Configs = [[2, 1],[1, 1], [2, 2], [1, 2]];
+        if (numFree >= 7) {
+            p3Configs = [[1, 2], [1, 1]]; // Ultra-tight P3 radius for 8-dimensional space
+        } else if (numFree === 6) {
+            p3Configs = [[1, 1], [2, 2], [1, 2]]; // Tight P3 radius for 7-dimensional space
+        }
         
         for (const [p3Radius, step3] of p3Configs) {
             // Use the memory-safe counter function!
