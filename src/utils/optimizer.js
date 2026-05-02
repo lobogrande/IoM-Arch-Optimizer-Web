@@ -33,6 +33,7 @@ export class EngineWorkerPool {
         this.workers = [ ];
         this.idleWorkers = [ ];
         this.taskQueue = [ ];
+        this.queueIndex = 0;
         this.callbacks = new Map();
         this.taskIdSeq = 0;
         this.readyCount = 0;
@@ -90,10 +91,19 @@ export class EngineWorkerPool {
     }
 
     pump() {
-        if (this.idleWorkers.length === 0 || this.taskQueue.length === 0) return;
-        const w = this.idleWorkers.pop();
-        const task = this.taskQueue.shift();
-        w.postMessage(task.msg);
+        // Instantly saturate all idle cores
+        while (this.idleWorkers.length > 0 && this.queueIndex < this.taskQueue.length) {
+            const w = this.idleWorkers.pop();
+            const task = this.taskQueue[this.queueIndex++];
+            w.postMessage(task.msg);
+        }
+
+        // Memory Leak Protection: Clean up the array periodically 
+        // to prevent OOM errors, but without triggering O(N^2) shifts on every pop
+        if (this.queueIndex > 10000 && this.queueIndex > this.taskQueue.length / 2) {
+            this.taskQueue = this.taskQueue.slice(this.queueIndex);
+            this.queueIndex = 0;
+        }
     }
 
     // Returns a promise that resolves when the worker finishes the Python simulation
@@ -111,7 +121,8 @@ export class EngineWorkerPool {
 
     clearQueue() {
         // Instantly resolves all pending promises with an abort flag so Promise.all() unblocks!
-        for (const task of this.taskQueue) {
+        for (let i = this.queueIndex; i < this.taskQueue.length; i++) {
+            const task = this.taskQueue[i];
             const cb = this.callbacks.get(task.msg.taskId);
             if (cb) {
                 this.callbacks.delete(task.msg.taskId);
@@ -119,6 +130,7 @@ export class EngineWorkerPool {
             }
         }
         this.taskQueue = [ ];
+        this.queueIndex = 0;
     }
 
     terminate() {
@@ -126,6 +138,7 @@ export class EngineWorkerPool {
         this.workers = [ ];
         this.idleWorkers = [ ];
         this.taskQueue = [ ];
+        this.queueIndex = 0;
         this.callbacks.clear();
     }
 }
