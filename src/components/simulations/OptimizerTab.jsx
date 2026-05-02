@@ -114,30 +114,38 @@ export default function OptimizerTab() {
     optActiveStats.push('Unassigned');
   }
 
-  const bounds = {};
-  let minSum = 0;
-  let maxSum = 0;
-  optActiveStats.forEach(s => {
-    const lock = lockedStats[s];
-    if (lock !== undefined) {
-      let bMin = 0, bMax = STAT_CAPS[s];
-      if (typeof lock === 'number') {
-        bMin = lock; bMax = lock; 
+  const { bounds, minSum, maxSum, isImpossible } = useMemo(() => {
+    const b = {};
+    let curMin = 0;
+    let curMax = 0;
+    
+    optActiveStats.forEach(s => {
+      const lock = lockedStats[s];
+      if (lock !== undefined) {
+        let bMin = 0, bMax = STAT_CAPS[s];
+        if (typeof lock === 'number') {
+          bMin = lock; bMax = lock; 
+        } else {
+          if (lock.type === 'exact') { bMin = lock.val; bMax = lock.val; }
+          else if (lock.type === 'min') { bMin = lock.val; bMax = STAT_CAPS[s]; }
+          else if (lock.type === 'max') { bMin = 0; bMax = lock.val; }
+          else if (lock.type === 'range') { bMin = lock.min; bMax = lock.max; }
+        }
+        b[s] = [ Math.max(0, bMin), Math.min(bMax, STAT_CAPS[s]) ];
       } else {
-        if (lock.type === 'exact') { bMin = lock.val; bMax = lock.val; }
-        else if (lock.type === 'min') { bMin = lock.val; bMax = STAT_CAPS[s]; }
-        else if (lock.type === 'max') { bMin = 0; bMax = lock.val; }
-        else if (lock.type === 'range') { bMin = lock.min; bMax = lock.max; }
+        b[s] =[ 0, STAT_CAPS[s] ];
       }
-      bounds[s] = [ bMin, bMax ];
-    } else {
-      bounds[s] =[ 0, STAT_CAPS[s] ];
-    }
-    minSum += bounds[s][0];
-    maxSum += bounds[s][1];
-  });
-  
-  const isImpossible = minSum > dynamicBudget || maxSum < dynamicBudget;
+      curMin += b[s][0];
+      curMax += b[s][1];
+    });
+    
+    return {
+      bounds: b,
+      minSum: curMin,
+      maxSum: curMax,
+      isImpossible: curMin > dynamicBudget || curMax < dynamicBudget
+    };
+  },[ JSON.stringify(optActiveStats), JSON.stringify(lockedStats), JSON.stringify(STAT_CAPS), dynamicBudget ]);
 
   const profData = useMemo(() => {
     if (isImpossible) return null;
