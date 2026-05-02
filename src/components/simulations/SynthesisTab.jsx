@@ -239,13 +239,25 @@ export default function SynthesisTab() {
           statKeys.push('Unassigned');
       }
 
-      // Normalization: Ensure all runs have a defined value for every statKey to prevent NaN crashes
+      // 1. Find the Maximum Budget among all selected runs
+      let targetBudget = 0;
+      checkedRuns.forEach(r => {
+          let runBudget = activeStats.reduce((acc, s) => acc + (r[s] || 0), 0);
+          if (r.Unassigned !== undefined) runBudget += r.Unassigned;
+          if (runBudget > targetBudget) targetBudget = runBudget;
+      });
+
+      // 2. Normalization: Ensure all runs have a defined value for every statKey to prevent NaN crashes.
+      // If we have mixed budgets and Unassigned is active, scale the lower budget runs up via Unassigned.
       const sanitizedRuns = checkedRuns.map(r => {
           const clean = { ...r };
-          activeStats.forEach(s => clean[s] = clean[s] || 0);
-          if (hasUnassigned && clean.Unassigned === undefined) {
-              const spent = activeStats.reduce((acc, s) => acc + clean[s], 0);
-              clean.Unassigned = Math.max(0, dynamicBudget - spent);
+          let spent = 0;
+          activeStats.forEach(s => { 
+              clean[s] = clean[s] || 0; 
+              spent += clean[s]; 
+          });
+          if (hasUnassigned) {
+              clean.Unassigned = Math.max(0, targetBudget - spent);
           }
           return clean;
       });
@@ -269,7 +281,7 @@ export default function SynthesisTab() {
           sumAvg += avg;
       });
       
-      const expectedSum = dynamicBudget; // Use current live budget to prevent historical budget drift!
+      const expectedSum = targetBudget; // Enforce max historical budget of selected runs
       const diff = expectedSum - sumAvg;
       if (diff !== 0) {
           let maxStat = statKeys[0];
