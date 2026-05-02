@@ -233,14 +233,27 @@ export default function SynthesisTab() {
           cards: store.cards
       };
 
-      const statKeys = [...activeStats];
-      if (checkedRuns.some(r => r.Unassigned !== undefined)) {
+      const statKeys =[ ...activeStats ];
+      const hasUnassigned = checkedRuns.some(r => r.Unassigned !== undefined);
+      if (hasUnassigned) {
           statKeys.push('Unassigned');
       }
-      const candidatesMap = new Map();
-      const originalBIds =[];
 
-      checkedRuns.forEach(r => {
+      // Normalization: Ensure all runs have a defined value for every statKey to prevent NaN crashes
+      const sanitizedRuns = checkedRuns.map(r => {
+          const clean = { ...r };
+          activeStats.forEach(s => clean[s] = clean[s] || 0);
+          if (hasUnassigned && clean.Unassigned === undefined) {
+              const spent = activeStats.reduce((acc, s) => acc + clean[s], 0);
+              clean.Unassigned = Math.max(0, dynamicBudget - spent);
+          }
+          return clean;
+      });
+
+      const candidatesMap = new Map();
+      const originalBIds = [ ];
+
+      sanitizedRuns.forEach(r => {
           const dist = {};
           statKeys.forEach(s => dist[s] = r[s]);
           const bId = JSON.stringify(dist);
@@ -251,11 +264,12 @@ export default function SynthesisTab() {
       const avgDist = {};
       let sumAvg = 0;
       statKeys.forEach(s => {
-          const avg = Math.round(checkedRuns.reduce((acc, r) => acc + r[s], 0) / checkedRuns.length);
+          const avg = Math.round(sanitizedRuns.reduce((acc, r) => acc + r[s], 0) / sanitizedRuns.length);
           avgDist[s] = avg;
           sumAvg += avg;
       });
-      const expectedSum = statKeys.reduce((acc, s) => acc + checkedRuns[0][s], 0);
+      
+      const expectedSum = dynamicBudget; // Use current live budget to prevent historical budget drift!
       const diff = expectedSum - sumAvg;
       if (diff !== 0) {
           let maxStat = statKeys[0];
@@ -447,7 +461,7 @@ export default function SynthesisTab() {
           stamina_trace: bestData.traces[medianFloor] || null
       };
 
-      const sameTargetRuns = checkedRuns.map(r => {
+      const sameTargetRuns = sanitizedRuns.map(r => {
           const bId = JSON.stringify(statKeys.reduce((acc, s) => { acc[s] = r[s]; return acc; }, {}));
           if (runTargetMetric === "highest_floor") return getCeilingScore(buildRes.get(bId).floors, 5);
           else return buildRes.get(bId).sum_t / 500.0;
