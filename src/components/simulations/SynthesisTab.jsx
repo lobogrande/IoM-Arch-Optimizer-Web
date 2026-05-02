@@ -428,7 +428,7 @@ export default function SynthesisTab() {
       const synthElapsed = (Date.now() - synthStartTime) / 1000;
       if (synthElapsed > 0) setSimsPerSec(Math.max(1, Math.floor(totalSims / synthElapsed)));
 
-      let finalSortedIds = [...r2Ids];
+      let finalSortedIds = [...currentPoolIds];
       if (runTargetMetric === "highest_floor") {
           finalSortedIds.sort((a, b) => getCeilingScore(buildRes.get(b).floors, 5) - getCeilingScore(buildRes.get(a).floors, 5));
       } else {
@@ -444,7 +444,7 @@ export default function SynthesisTab() {
       const avgMetrics = {};
       for(const [mk, mv] of Object.entries(bestData.metricsSum)) avgMetrics[mk] = mv / 500.0;
 
-      const allSynthScores = r2Ids.map(bId => {
+      const allSynthScores = currentPoolIds.map(bId => {
           if (runTargetMetric === "highest_floor") return getCeilingScore(buildRes.get(bId).floors, 5);
           else return buildRes.get(bId).sum_t / 500.0;
       }).sort((a, b) => b - a);
