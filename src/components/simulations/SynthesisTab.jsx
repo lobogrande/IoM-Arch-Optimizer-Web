@@ -276,25 +276,24 @@ export default function SynthesisTab() {
          return[0, STAT_CAPS[s]];
       };
 
-      const baseDists = Array.from(candidatesMap.values());
-      baseDists.forEach(baseDist => {
-          const isAvg = JSON.stringify(baseDist) === avgBId;
-          const radii = isAvg ? [1, 2] : [1];
-          radii.forEach(radius => {
-              statKeys.forEach(sFrom => {
-                  const boundsFrom = getBounds(sFrom);
-                  if (baseDist[sFrom] - radius >= boundsFrom[0] && boundsFrom[0] !== boundsFrom[1]) {
-                      statKeys.forEach(sTo => {
-                          const boundsTo = getBounds(sTo);
-                          if (sFrom !== sTo && baseDist[sTo] + radius <= boundsTo[1] && boundsTo[0] !== boundsTo[1]) {
-                              const neighbor = { ...baseDist };
-                              neighbor[sFrom] -= radius;
-                              neighbor[sTo] += radius;
-                              candidatesMap.set(JSON.stringify(neighbor), neighbor);
-                          }
-                      });
-                  }
-              });
+      // Only generate permutations around the freshly calculated center (avgDist).
+      // The original builds were already aggressively micro-optimized in Phase 3 of the Optimizer.
+      // Searching around them here is redundant and causes N^2 combinatorial explosion.
+      const radii = [1, 2, 3]; 
+      radii.forEach(radius => {
+          statKeys.forEach(sFrom => {
+              const boundsFrom = getBounds(sFrom);
+              if (avgDist[sFrom] - radius >= boundsFrom[0] && boundsFrom[0] !== boundsFrom[1]) {
+                  statKeys.forEach(sTo => {
+                      const boundsTo = getBounds(sTo);
+                      if (sFrom !== sTo && avgDist[sTo] + radius <= boundsTo[1] && boundsTo[0] !== boundsTo[1]) {
+                          const neighbor = { ...avgDist };
+                          neighbor[sFrom] -= radius;
+                          neighbor[sTo] += radius;
+                          candidatesMap.set(JSON.stringify(neighbor), neighbor);
+                      }
+                  });
+              }
           });
       });
 
