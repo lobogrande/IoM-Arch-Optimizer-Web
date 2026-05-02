@@ -1,6 +1,20 @@
 import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
+import { persist, createJSONStorage } from 'zustand/middleware';
+import { get, set, del } from 'idb-keyval';
 import { EXTERNAL_UI_GROUPS, ASC1_LOCKED_UPGS, ASC2_LOCKED_UPGS } from './game_data';
+
+// Custom IndexedDB storage engine to bypass the 5MB localStorage limit
+const idbStorage = {
+  getItem: async (name) => {
+    return (await get(name)) || null;
+  },
+  setItem: async (name, value) => {
+    await set(name, value);
+  },
+  removeItem: async (name) => {
+    await del(name);
+  },
+};
 
 // Helper to reliably detect mobile devices via UserAgent or Touch + Screen Size
 const isMobileDevice = () => {
@@ -477,7 +491,8 @@ const useStore = create(
   }),
     }),
     {
-      name: 'iom-optimizer-storage', // The unique key used in the browser's localStorage
+      name: 'iom-optimizer-storage', // The unique key used in the browser's IndexedDB
+      storage: createJSONStorage(() => idbStorage),
     }
   )
 );

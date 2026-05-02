@@ -4,13 +4,13 @@
 ![Vite](https://img.shields.io/badge/Bundler-Vite-646CFF.svg?logo=vite)
 ![Pyodide](https://img.shields.io/badge/Engine-Pyodide_(Wasm)-3776AB.svg?logo=python)
 ![Tailwind](https://img.shields.io/badge/UI-Tailwind_CSS-38B2AC.svg?logo=tailwind-css)
-![Status](https://img.shields.io/badge/Status-Live-4CAF50.svg)
+![Status](https://img.shields.io/badge/Status-v1.8.0_Live-4CAF50.svg)
 
 A high-performance, 100% client-side **Monte Carlo Simulator and AI Build Optimizer** for the Archaeology mini-game in *Idle Obelisk Miner*. 
 
-🌐 **[Play Live / Use the Optimizer Here](https://iom-arch-optimizer-web.vercel.app/)**
+🌐 **[Play Live / Use the Optimizer Here](https://iom-arch-optimizer.pages.dev/)**
 
-> **⚠️ v1.0.0 Soft Launch Notice:** The core math engine has been tested against late-game stat combinations by our beta group, but we are currently crowd-sourcing edge cases. If you encounter a build that produces unexpected results, please submit a report via the in-app Feedback tab! 
+> **🎉 v1.8.0 Update:** Features the massive Forecaster UX overhaul! The app now calculates true Cumulative Binomial Budgets (50% Coin Flip vs. 90% Safe) for max floor pushes, introduces dynamic AI bottleneck diagnostics, safely handles Ascension stat wipes, and allows cross-profile workspace syncing!
 
 This tool evaluates your player stats, upgrades, and block card collections to compute the absolute perfect stat distribution for your account. Whether you are pushing for a new Max Floor, farming late-game Block Cards, or maximizing EXP yields, this engine mathematically eliminates the guesswork—all running locally in your browser at near-native speeds.
 
@@ -20,11 +20,11 @@ This tool evaluates your player stats, upgrades, and block card collections to c
 
 Idle Obelisk Miner has a deceptively complex combat engine. Finding the perfect stat distribution manually is nearly impossible due to three mathematical realities encoded into the game:
 
-1. **The Stat Plateau (Truncation):** The game runs in Unity (C#) and casts floats to integers via strict truncation (`math.floor`), not standard rounding. Because blocks only take whole hits, having 50 Strength and 54 Strength might both result in a "3-hit kill". Any stat points spent that do not push you past the next *Breakpoint* are mathematically wasted.
+1. **The Stat Plateau & 32-bit Math:** The game runs in GameMaker (GML), which compiles decimal constants as 32-bit floats and uses Banker's Rounding. Because blocks only take whole hits, having 50 Strength and 54 Strength might both result in the exact same "3-hit kill". Any stat points spent that do not mathematically push you past the next *Breakpoint* are completely wasted.
 2. **Multiplicative Menus:** In-game stats combine percentage bonuses from different menus multiplicatively, not additively. 
 3. **The "Suicide Farming Paradox":** Because the game has zero death-delay, buying survival stats (Agility/Stamina) when farming early-game blocks (e.g., Dirt Cards) pushes the player to deeper floors where block HP is exponentially higher. This causes your kills-per-minute to mathematically *plummet*. 
 
-**The Solution:** This engine emulates the C# source code exactly, executing hundreds of thousands of micro-tick combat simulations to find the optimal breakpoints for your specific target.
+**The Solution:** This engine emulates the GameMaker source code exactly (down to the microscopic 32-bit compilation drift epsilons), executing hundreds of thousands of micro-tick combat simulations to find the optimal breakpoints for your specific target.
 
 ---
 
@@ -33,19 +33,20 @@ Idle Obelisk Miner has a deceptively complex combat engine. Finding the perfect 
 Originally built as a heavy, server-bound Streamlit application, this project has been fully re-architected into a **Serverless Web Application**. It uses WebAssembly to execute the original Python math engine directly on the user's local device, resulting in zero server costs and infinite scalability.
 
 * **Frontend UI (`src/components`):** Built with React, Vite, and Tailwind CSS for a highly polished, responsive interface.
-* **State Management (`src/store.js`):** Powered by Zustand, featuring `localStorage` persistence so users never lose their imported builds or simulation history.
+* **State Management (`src/store.js`):** Powered by Zustand, integrated with `idb-keyval` to persist data into the browser's asynchronous **IndexedDB**. This completely bypasses standard 5MB `localStorage` limits, allowing users to safely store massive 1,000-run Monte Carlo histories and stamina traces.
 * **The Bridge (`public/engine_worker.js`):** Pyodide (Python via WebAssembly) runs inside dedicated browser Web Workers. It bypasses heavy JSON serialization overhead by maintaining a persistent Python memory state and only transferring lightweight mutation dictionaries.
-* **The Math Engine (`public/core`):** The exact 1:1 C# to Python translations (`player.py`, `block.py`, `combat_loop.py`) are preserved and executed natively in the browser.
+* **The Math Engine (`public/core`):** The exact 1:1 GameMaker (GML) to Python translations (`player.py`, `block.py`, `combat_loop.py`) are preserved and executed natively in the browser.
 * **The Orchestrator (`src/utils/optimizer.js`):** A Javascript-native Web Worker Pool that automatically scales to the user's `navigator.hardwareConcurrency` to max out their CPU cores during Monte Carlo grid searches.
 
 ---
 
 ## 🚀 Key Features
 
+* **Progression Forecaster:** Set a target floor and budget, and the Oracle will calculate exact cumulative binomial probabilities (50% Coin Flip vs 90% Safe bounds) to tell you if a push is viable. If you are failing, the dynamic AI will read your stamina-deficit ratios and explicitly tell you *why* (e.g. bleeding stamina vs. lacking armor penetration).
 * **Hardware-Aware Auto-Scaling:** The Javascript orchestrator dynamically benchmarks your device's CPU speed and adjusts the "Step Size" leaps the AI takes via a **3-Phase Successive Halving Algorithm** to ensure deep mathematical precision without freezing your browser.
-* **Deep Tie-Breaker Tournaments:** If two stat builds tie for 1st place, the AI throws them into a 500-iteration Monte Carlo race to see which build performs better against extreme RNG variations.
 * **Marginal ROI Analyzer:** Evaluates your current character and tests adding `+1` to every possible stat and un-maxed upgrade, ranking them by their raw output gain to tell you exactly what to buy next.
-* **Meta-Build Synthesizer:** Merge your historical runs into the ultimate Meta-Build by allowing the engine to calculate the statistical center of your favorite builds and generate nearby hybrid permutations.
+* **Profile Management:** Seamlessly save, manage, and rename multiple player loadouts. Sync upgrades from your active workspace into saved profiles while preserving base stats, and safely simulate Ascensions by flushing phantom internal upgrades.
+* **Deep Tie-Breaker Tournaments:** If two stat builds tie for 1st place, the AI throws them into a 500-iteration Monte Carlo race to see which build performs better against extreme RNG variations.
 * **Interactive Sandbox:** A fully featured AG Grid table that allows you to manually tweak stats and instantly view exact Hit/HP Breakpoints and Expected Damage Per Swing (EDPS) for every block in the game.
 
 ---

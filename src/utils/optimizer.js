@@ -33,6 +33,7 @@ export class EngineWorkerPool {
         this.workers = [ ];
         this.idleWorkers = [ ];
         this.taskQueue = [ ];
+        this.queueIndex = 0;
         this.callbacks = new Map();
         this.taskIdSeq = 0;
         this.readyCount = 0;
@@ -90,10 +91,19 @@ export class EngineWorkerPool {
     }
 
     pump() {
-        if (this.idleWorkers.length === 0 || this.taskQueue.length === 0) return;
-        const w = this.idleWorkers.pop();
-        const task = this.taskQueue.shift();
-        w.postMessage(task.msg);
+        // Instantly saturate all idle cores
+        while (this.idleWorkers.length > 0 && this.queueIndex < this.taskQueue.length) {
+            const w = this.idleWorkers.pop();
+            const task = this.taskQueue[this.queueIndex++];
+            w.postMessage(task.msg);
+        }
+
+        // Memory Leak Protection: Clean up the array periodically 
+        // to prevent OOM errors, but without triggering O(N^2) shifts on every pop
+        if (this.queueIndex > 10000 && this.queueIndex > this.taskQueue.length / 2) {
+            this.taskQueue = this.taskQueue.slice(this.queueIndex);
+            this.queueIndex = 0;
+        }
     }
 
     // Returns a promise that resolves when the worker finishes the Python simulation
@@ -111,7 +121,8 @@ export class EngineWorkerPool {
 
     clearQueue() {
         // Instantly resolves all pending promises with an abort flag so Promise.all() unblocks!
-        for (const task of this.taskQueue) {
+        for (let i = this.queueIndex; i < this.taskQueue.length; i++) {
+            const task = this.taskQueue[i];
             const cb = this.callbacks.get(task.msg.taskId);
             if (cb) {
                 this.callbacks.delete(task.msg.taskId);
@@ -119,6 +130,7 @@ export class EngineWorkerPool {
             }
         }
         this.taskQueue = [ ];
+        this.queueIndex = 0;
     }
 
     terminate() {
@@ -126,6 +138,7 @@ export class EngineWorkerPool {
         this.workers = [ ];
         this.idleWorkers = [ ];
         this.taskQueue = [ ];
+        this.queueIndex = 0;
         this.callbacks.clear();
     }
 }
@@ -238,18 +251,31 @@ export function getOptimalStepProfile(statsList, budget, bounds, simsPerSecond, 
         const remP1 = (budget - minSum) % step1;
         const p1Budget = budget - remP1;
 
-        // --- PREVENT ASC2 DIMENSIONALITY EXPLOSION ---
-        // If the player has 7 free variables, the Phase 2 box must be physically tighter 
-        // to prevent combinations from exploding past 150+ seconds baseline.
-        const divisor = numFree >= 6 ? 1.2 : 1.5;
-
+        // --- PREVENT MULTI-DIMENSIONAL EXPLOSION ---
+        // As free variables (numFree) increase (especially via Allow Unspent / Asc2), 
+        // the combinatorial space expands exponentially. We must dynamically tighten 
+        // the Phase 2 step ratio and Phase 3 radii to ensure baseline ETAs remain solvable.
         let step2;
-        if (step1 <= 15) step2 = Math.max(2, Math.floor(step1 / 3));
-        else if (step1 <= 30) step2 = Math.max(2, Math.floor(step1 / 2.5));
-        else if (step1 <= 50) step2 = Math.max(2, Math.floor(step1 / 2));
-        else step2 = Math.max(2, Math.floor(step1 / divisor));
+        if (numFree >= 7) {
+            // Extreme: Asc2 + Allow Unspent (8 variables)
+            step2 = Math.max(2, Math.ceil(step1 / 1.5));
+        } else if (numFree === 6) {
+            // High: Asc1 + Allow Unspent OR Asc2 (7 variables)
+            step2 = Math.max(2, Math.ceil(step1 / 2.0));
+        } else {
+            // Standard: Base 5 stats
+            if (step1 <= 15) step2 = Math.max(2, Math.floor(step1 / 3));
+            else if (step1 <= 30) step2 = Math.max(2, Math.floor(step1 / 2.5));
+            else if (step1 <= 50) step2 = Math.max(2, Math.floor(step1 / 2));
+            else step2 = Math.max(2, Math.floor(step1 / 1.5));
+        }
             
-        const p3Configs = [[2, 1], [1, 1], [2, 2], [1, 2] ];
+        let p3Configs = [[2, 1],[1, 1], [2, 2], [1, 2]];
+        if (numFree >= 7) {
+            p3Configs = [[1, 2], [1, 1]]; // Ultra-tight P3 radius for 8-dimensional space
+        } else if (numFree === 6) {
+            p3Configs = [[1, 1], [2, 2], [1, 2]]; // Tight P3 radius for 7-dimensional space
+        }
         
         for (const [p3Radius, step3] of p3Configs) {
             // Use the memory-safe counter function!

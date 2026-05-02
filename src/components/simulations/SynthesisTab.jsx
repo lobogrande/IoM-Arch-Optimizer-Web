@@ -233,14 +233,39 @@ export default function SynthesisTab() {
           cards: store.cards
       };
 
-      const statKeys = [...activeStats];
-      if (checkedRuns.some(r => r.Unassigned !== undefined)) {
+      const statKeys =[ ...activeStats ];
+      const hasUnassigned = checkedRuns.some(r => r.Unassigned !== undefined);
+      if (hasUnassigned) {
           statKeys.push('Unassigned');
       }
-      const candidatesMap = new Map();
-      const originalBIds =[];
 
+      // 1. Find the Maximum Budget among all selected runs
+      let targetBudget = 0;
       checkedRuns.forEach(r => {
+          let runBudget = activeStats.reduce((acc, s) => acc + (r[s] || 0), 0);
+          if (r.Unassigned !== undefined) runBudget += r.Unassigned;
+          if (runBudget > targetBudget) targetBudget = runBudget;
+      });
+
+      // 2. Normalization: Ensure all runs have a defined value for every statKey to prevent NaN crashes.
+      // If we have mixed budgets and Unassigned is active, scale the lower budget runs up via Unassigned.
+      const sanitizedRuns = checkedRuns.map(r => {
+          const clean = { ...r };
+          let spent = 0;
+          activeStats.forEach(s => { 
+              clean[s] = clean[s] || 0; 
+              spent += clean[s]; 
+          });
+          if (hasUnassigned) {
+              clean.Unassigned = Math.max(0, targetBudget - spent);
+          }
+          return clean;
+      });
+
+      const candidatesMap = new Map();
+      const originalBIds = [ ];
+
+      sanitizedRuns.forEach(r => {
           const dist = {};
           statKeys.forEach(s => dist[s] = r[s]);
           const bId = JSON.stringify(dist);
@@ -251,11 +276,12 @@ export default function SynthesisTab() {
       const avgDist = {};
       let sumAvg = 0;
       statKeys.forEach(s => {
-          const avg = Math.round(checkedRuns.reduce((acc, r) => acc + r[s], 0) / checkedRuns.length);
+          const avg = Math.round(sanitizedRuns.reduce((acc, r) => acc + r[s], 0) / sanitizedRuns.length);
           avgDist[s] = avg;
           sumAvg += avg;
       });
-      const expectedSum = statKeys.reduce((acc, s) => acc + checkedRuns[0][s], 0);
+      
+      const expectedSum = targetBudget; // Enforce max historical budget of selected runs
       const diff = expectedSum - sumAvg;
       if (diff !== 0) {
           let maxStat = statKeys[0];
@@ -276,80 +302,48 @@ export default function SynthesisTab() {
          return[0, STAT_CAPS[s]];
       };
 
-      const baseDists = Array.from(candidatesMap.values());
-      baseDists.forEach(baseDist => {
-          const isAvg = JSON.stringify(baseDist) === avgBId;
-          const radii = isAvg ? [1, 2] : [1];
-          radii.forEach(radius => {
-              statKeys.forEach(sFrom => {
-                  const boundsFrom = getBounds(sFrom);
-                  if (baseDist[sFrom] - radius >= boundsFrom[0] && boundsFrom[0] !== boundsFrom[1]) {
-                      statKeys.forEach(sTo => {
-                          const boundsTo = getBounds(sTo);
-                          if (sFrom !== sTo && baseDist[sTo] + radius <= boundsTo[1] && boundsTo[0] !== boundsTo[1]) {
-                              const neighbor = { ...baseDist };
-                              neighbor[sFrom] -= radius;
-                              neighbor[sTo] += radius;
-                              candidatesMap.set(JSON.stringify(neighbor), neighbor);
-                          }
-                      });
-                  }
-              });
+      // Only generate permutations around the freshly calculated center (avgDist).
+      // The original builds were already aggressively micro-optimized in Phase 3 of the Optimizer.
+      // Searching around them here is redundant and causes N^2 combinatorial explosion.
+      const radii = [1, 2, 3]; 
+      radii.forEach(radius => {
+          statKeys.forEach(sFrom => {
+              const boundsFrom = getBounds(sFrom);
+              if (avgDist[sFrom] - radius >= boundsFrom[0] && boundsFrom[0] !== boundsFrom[1]) {
+                  statKeys.forEach(sTo => {
+                      const boundsTo = getBounds(sTo);
+                      if (sFrom !== sTo && avgDist[sTo] + radius <= boundsTo[1] && boundsTo[0] !== boundsTo[1]) {
+                          const neighbor = { ...avgDist };
+                          neighbor[sFrom] -= radius;
+                          neighbor[sTo] += radius;
+                          candidatesMap.set(JSON.stringify(neighbor), neighbor);
+                      }
+                  });
+              }
           });
       });
 
       const candidates = Array.from(candidatesMap.values());
-      const totalR1Sims = candidates.length * 50;
-      const estR2Count = Math.min(5, candidates.length) + originalBIds.length;
-      const totalR2Sims = estR2Count * 450;
-      const totalSims = totalR1Sims + totalR2Sims;
+      
+      // Calculate realistic bounds for the progress bar based on successive halving math
+      const r1c = candidates.length;
+      const r2c = Math.max(5, Math.floor(r1c * 0.20)) + originalBIds.length;
+      const r3c = 5 + originalBIds.length;
+      const totalSims = (r1c * 10) + (r2c * 40) + (r3c * 450);
 
-      setSynthProgressMsg(`Booting Cores for ${totalSims.toLocaleString()} sims...`);
+      setSynthProgressMsg(`Booting Cores for ~${totalSims.toLocaleString()} sims...`);
       const pool = new EngineWorkerPool();
       await pool.init(() => {}, (ready, total) => setSynthProgressMsg(`Booting Cores: ${ready}/${total}`));
       await pool.syncState(baseStateDict);
 
       const buildRes = new Map();
+      candidates.forEach(dist => {
+          buildRes.set(JSON.stringify(dist), { dist, sum_t: 0, sum_f: 0, floors:[], metricsSum: {}, traces: {} });
+      });
+
       let completedSims = 0;
       let lastUpdate = Date.now();
       const synthStartTime = Date.now();
-
-      const r1Promises =[];
-      candidates.forEach(dist => {
-          const bId = JSON.stringify(dist);
-          if (!buildRes.has(bId)) buildRes.set(bId, { dist, sum_t: 0, sum_f: 0, floors:[], metricsSum: {}, traces: {} });
-          
-          for (let i = 0; i < 50; i++) {
-              const p = pool.runTask(dist).then(res => {
-                  if (res.aborted) return;
-                  const tr = buildRes.get(bId);
-                  tr.sum_t += (res[runTargetMetric] || 0);
-                  tr.sum_f += (res.highest_floor || 0);
-                  tr.floors.push(res.highest_floor || 0);
-                  
-                  for (const [mk, mv] of Object.entries(res)) {
-                      if (mk !== 'stamina_trace_floor' && mk !== 'stamina_trace_stamina' && mk !== 'total_time') {
-                          tr.metricsSum[mk] = (tr.metricsSum[mk] || 0.0) + mv;
-                      }
-                  }
-                  if (res.highest_floor && res.stamina_trace_floor && !tr.traces[res.highest_floor]) {
-                      tr.traces[res.highest_floor] = { floor: res.stamina_trace_floor, stamina: res.stamina_trace_stamina };
-                  }
-
-                  completedSims++;
-                  
-                  const now = Date.now();
-                  if (now - lastUpdate > 500 || completedSims === totalR1Sims) {
-                      setSynthProgressMsg(`⚔️ Round 1/2: Testing ${candidates.length} builds (${completedSims}/${totalSims} sims)`);
-                      setSynthProgressPct((completedSims / totalSims) * 100);
-                      lastUpdate = now;
-                  }
-              });
-              r1Promises.push(p);
-          }
-      });
-
-      await Promise.all(r1Promises);
 
       const getCeilingScore = (floors, count=3) => {
           if (!floors || floors.length === 0) return 0;
@@ -358,55 +352,83 @@ export default function SynthesisTab() {
           return top.reduce((a,b)=>a+b,0) / top.length;
       };
 
-      let sortedBIds = Array.from(buildRes.keys());
-      if (runTargetMetric === "highest_floor") {
-          sortedBIds.sort((a, b) => getCeilingScore(buildRes.get(b).floors, 3) - getCeilingScore(buildRes.get(a).floors, 3));
-      } else {
-          sortedBIds.sort((a, b) => buildRes.get(b).sum_t - buildRes.get(a).sum_t);
+      // 3-Round Elimination Tournament
+      const rounds =[
+          { label: "1/3: Scouting", runs: 10, isFinal: false },
+          { label: "2/3: Filtering", runs: 40, isFinal: false },
+          { label: "3/3: Deep Marathon", runs: 450, isFinal: true }
+      ];
+
+      let currentPoolIds = Array.from(candidatesMap.keys());
+
+      for (let roundIdx = 0; roundIdx < rounds.length; roundIdx++) {
+          const round = rounds[roundIdx];
+          const promises =[];
+
+          currentPoolIds.forEach(bId => {
+              const dist = buildRes.get(bId).dist;
+              for (let i = 0; i < round.runs; i++) {
+                  const p = pool.runTask(dist).then(res => {
+                      if (res.aborted) return;
+                      const tr = buildRes.get(bId);
+                      tr.sum_t += (res[runTargetMetric] || 0);
+                      tr.sum_f += (res.highest_floor || 0);
+                      tr.floors.push(res.highest_floor || 0);
+                      
+                      for (const [mk, mv] of Object.entries(res)) {
+                          if (mk !== 'stamina_trace_floor' && mk !== 'stamina_trace_stamina' && mk !== 'total_time') {
+                              tr.metricsSum[mk] = (tr.metricsSum[mk] || 0.0) + mv;
+                          }
+                      }
+                      if (res.highest_floor && res.stamina_trace_floor && !tr.traces[res.highest_floor]) {
+                          tr.traces[res.highest_floor] = { floor: res.stamina_trace_floor, stamina: res.stamina_trace_stamina };
+                      }
+
+                      completedSims++;
+                      
+                      const now = Date.now();
+                      if (now - lastUpdate > 500) {
+                          setSynthProgressMsg(`⚔️ Round ${round.label} (${completedSims}/${totalSims} sims)`);
+                          // Prevent pct from overshooting 99% before completion due to estimation variance
+                          setSynthProgressPct(Math.min(99, (completedSims / totalSims) * 100));
+                          lastUpdate = now;
+                      }
+                  });
+                  promises.push(p);
+              }
+          });
+
+          await Promise.all(promises);
+
+          if (!round.isFinal) {
+              let sortedBIds = [...currentPoolIds];
+              if (runTargetMetric === "highest_floor") {
+                  sortedBIds.sort((a, b) => getCeilingScore(buildRes.get(b).floors, 3) - getCeilingScore(buildRes.get(a).floors, 3));
+              } else {
+                  sortedBIds.sort((a, b) => buildRes.get(b).sum_t - buildRes.get(a).sum_t);
+              }
+
+              let nextIds;
+              if (roundIdx === 0) { // After Scout: Keep Top 20%
+                  const keepCount = Math.max(5, Math.floor(sortedBIds.length * 0.20));
+                  nextIds = sortedBIds.slice(0, keepCount);
+              } else { // After Filter: Keep Top 5
+                  nextIds = sortedBIds.slice(0, 5);
+              }
+              
+              // Algorithm Immunity: Original user inputs ALWAYS survive culling and advance to the next round
+              currentPoolIds = [...new Set([...nextIds, ...originalBIds])];
+          }
       }
 
-      const top5Ids = sortedBIds.slice(0, 5);
-      const r2Ids = [...new Set([...top5Ids, ...originalBIds])];
-
-      const r2Promises =[];
-      r2Ids.forEach(bId => {
-          const dist = buildRes.get(bId).dist;
-          for (let i = 0; i < 450; i++) {
-              const p = pool.runTask(dist).then(res => {
-                  if (res.aborted) return;
-                  const tr = buildRes.get(bId);
-                  tr.sum_t += (res[runTargetMetric] || 0);
-                  tr.sum_f += (res.highest_floor || 0);
-                  tr.floors.push(res.highest_floor || 0);
-                  
-                  for (const [mk, mv] of Object.entries(res)) {
-                      if (mk !== 'stamina_trace_floor' && mk !== 'stamina_trace_stamina' && mk !== 'total_time') {
-                          tr.metricsSum[mk] = (tr.metricsSum[mk] || 0.0) + mv;
-                      }
-                  }
-                  if (res.highest_floor && res.stamina_trace_floor && !tr.traces[res.highest_floor]) {
-                      tr.traces[res.highest_floor] = { floor: res.stamina_trace_floor, stamina: res.stamina_trace_stamina };
-                  }
-
-                  completedSims++;
-                  const now = Date.now();
-                  if (now - lastUpdate > 500 || completedSims === totalSims) {
-                      setSynthProgressMsg(`⚔️ Round 2/2: Deep verifying ${r2Ids.length} finalists (${completedSims}/${totalSims} sims)`);
-                      setSynthProgressPct((completedSims / totalSims) * 100);
-                      lastUpdate = now;
-                  }
-              });
-              r2Promises.push(p);
-          }
-      });
-
-      await Promise.all(r2Promises);
+      setSynthProgressMsg(`Finalizing Meta-Build...`);
+      setSynthProgressPct(100);
       pool.terminate();
 
       const synthElapsed = (Date.now() - synthStartTime) / 1000;
       if (synthElapsed > 0) setSimsPerSec(Math.max(1, Math.floor(totalSims / synthElapsed)));
 
-      let finalSortedIds = [...r2Ids];
+      let finalSortedIds = [...currentPoolIds];
       if (runTargetMetric === "highest_floor") {
           finalSortedIds.sort((a, b) => getCeilingScore(buildRes.get(b).floors, 5) - getCeilingScore(buildRes.get(a).floors, 5));
       } else {
@@ -422,7 +444,7 @@ export default function SynthesisTab() {
       const avgMetrics = {};
       for(const [mk, mv] of Object.entries(bestData.metricsSum)) avgMetrics[mk] = mv / 500.0;
 
-      const allSynthScores = r2Ids.map(bId => {
+      const allSynthScores = currentPoolIds.map(bId => {
           if (runTargetMetric === "highest_floor") return getCeilingScore(buildRes.get(bId).floors, 5);
           else return buildRes.get(bId).sum_t / 500.0;
       }).sort((a, b) => b - a);
@@ -448,7 +470,7 @@ export default function SynthesisTab() {
           stamina_trace: bestData.traces[medianFloor] || null
       };
 
-      const sameTargetRuns = checkedRuns.map(r => {
+      const sameTargetRuns = sanitizedRuns.map(r => {
           const bId = JSON.stringify(statKeys.reduce((acc, s) => { acc[s] = r[s]; return acc; }, {}));
           if (runTargetMetric === "highest_floor") return getCeilingScore(buildRes.get(bId).floors, 5);
           else return buildRes.get(bId).sum_t / 500.0;
