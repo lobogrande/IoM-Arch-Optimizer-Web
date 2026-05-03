@@ -31,7 +31,8 @@ const CustomTooltip = ({ index, step, backProps, primaryProps, isLastStep, toolt
               onClick={(e) => {
                 e.preventDefault();
                 e.stopPropagation();
-                if (window.__tourGo) window.__tourGo(step.data.skipTo);
+                // Direct CustomEvent bus to guarantee isolation from Joyride's prop stripping
+                window.dispatchEvent(new CustomEvent('tour-skip-direct', { detail: step.data.skipTo }));
               }}
               className="text-xs bg-[#2b2b2b] text-st-orange px-2 py-1.5 rounded border border-st-orange hover:bg-st-orange hover:text-[#2b2b2b] font-bold transition-colors shadow-sm cursor-pointer"
             >
@@ -55,11 +56,10 @@ const CustomTooltip = ({ index, step, backProps, primaryProps, isLastStep, toolt
 };
 
 export default function TourGuide() {
-  // 🛡️ Strict Uncontrolled Mode - No stepIndex
-  const { tourActive, activeTourId, stopTour, asc1_unlocked, asc2_unlocked, cards } = useStore();
+  // 🛡️ Bulletproof Controlled Mode
+  const { tourActive, activeTourId, stopTour, tourStepIndex, setTourStepIndex, asc1_unlocked, asc2_unlocked, cards } = useStore();
   
-  const joyrideHelpers = useRef(null);
-  const [seenReactiveCard, setSeenReactiveCard] = useState(false);
+  const[seenReactiveCard, setSeenReactiveCard] = useState(false);
   const reactiveCardId = Object.keys(cards || { }).find(k => cards[ k ] >= 3);
 
   useEffect(() => {
@@ -144,8 +144,6 @@ export default function TourGuide() {
       target: step.target,
       placement: step.placement,
       disableBeacon: true,
-      // 💀 THE INVERSE OVERLAY TRICK: Setting this to FALSE forces Joyride to build the SVG 
-      // overlay, PREVENTING it from attaching a rogue document.body click listener!
       disableOverlay: false, 
       spotlightClicks: true,
       content: step.text,
@@ -157,16 +155,18 @@ export default function TourGuide() {
     }));
   }, [ rawSteps ]);
 
-  // 🎧 GLOBAL JUMP HANDLER: Bypasses Joyride's state entirely for instant skips
+  // 🎧 EVENT BUS LISTENER: Intercepts custom jump events from the isolated Tooltip
   useEffect(() => {
-    window.__tourGo = (targetId) => {
+    const handleDirectSkip = (e) => {
+      const targetId = e.detail;
       const targetIdx = TOUR_STEPS.findIndex(s => s.id === targetId);
-      if (targetIdx !== -1 && joyrideHelpers.current) {
-        joyrideHelpers.current.go(targetIdx);
+      if (targetIdx !== -1) {
+        setTourStepIndex(targetIdx);
       }
     };
-    return () => { delete window.__tourGo; };
-  }, [ TOUR_STEPS ]);
+    window.addEventListener('tour-skip-direct', handleDirectSkip);
+    return () => window.removeEventListener('tour-skip-direct', handleDirectSkip);
+  }, [ TOUR_STEPS, setTourStepIndex ]);
 
   const handleCallback = (data) => {
     const { action, index, status, type } = data;
@@ -176,32 +176,47 @@ export default function TourGuide() {
       return;
     }
 
+    // 🛡️ IMMUNITY SHIELD: Completely ignore Joyride's outside click closure attempts
+    if (action === 'close') {
+      return;
+    }
+
     // ⚡ REACTIVE STEP SILENT SKIP
     if (type === 'step:before') {
        const upcomingStep = TOUR_STEPS[ index ];
        if (upcomingStep?.id === 'reactive-card') {
            const isBackward = action === 'prev';
            if (!reactiveCardId || seenReactiveCard) {
-               setTimeout(() => joyrideHelpers.current?.go(index + (isBackward ? -1 : 1)), 0);
-               return;
+               setTourStepIndex(index + (isBackward ? -1 : 1));
            } else {
                setSeenReactiveCard(true);
            }
        }
+       return;
     }
 
-    // 🖱️ UNCONTROLLED MODE NAVIGATION (Tab Click Interceptor)
-    if (type === 'step:after' && action === 'next') {
-      const currentStep = TOUR_STEPS[ index ];
-      if (currentStep && currentStep.data && currentStep.data.clickTarget) {
-        const btn = document.querySelector(currentStep.data.clickTarget);
-        if (btn) btn.click();
+    // 🖱️ CONTROLLED MODE NAVIGATION
+    if (type === 'step:after') {
+      if (action === 'next' || action === 'prev') {
+        const nextIdx = action === 'next' ? index + 1 : index - 1;
+        const currentStep = TOUR_STEPS[ index ];
+        
+        if (action === 'next' && currentStep?.data?.clickTarget) {
+          const btn = document.querySelector(currentStep.data.clickTarget);
+          if (btn) btn.click();
+          
+          // 🛡️ THE 100MS BRIDGE: Prevents the React 18 Gray Screen Crash
+          setTimeout(() => setTourStepIndex(nextIdx), 100);
+          return;
+        }
+        setTourStepIndex(nextIdx);
       }
     }
 
-    if (type === 'error:target_not_found' || type === 'error') {
-      console.error(`❌[TOUR] Target missing on step ${index}.`);
-      stopTour();
+    // 🛡️ CRASH RECOVERY: If a target isn't found, safely auto-skip to prevent Gray Screen hangs
+    if (type === 'error:target_not_found') {
+      console.warn(`⚠️ [TOUR] Target missing on step ${index}. Auto-skipping to prevent crash.`);
+      setTourStepIndex(index + 1);
       return;
     }
   };
@@ -212,7 +227,7 @@ export default function TourGuide() {
     <JoyrideComponent
       steps={TOUR_STEPS}
       run={tourActive}
-      getHelpers={(helpers) => { joyrideHelpers.current = helpers; }} // Uncontrolled Mode API Hook
+      stepIndex={tourStepIndex} // Back in safe Controlled Mode
       callback={handleCallback}
       continuous={true}
       showProgress={false}
@@ -223,10 +238,15 @@ export default function TourGuide() {
       styles={{
         options: {
           zIndex: 999999,
-          overlayColor: 'transparent', // Make the background invisible (fixes React SVG warnings)
+          overlayColor: 'transparent',
         },
         overlay: {
-          pointerEvents: 'none', // 💀 This lets physical clicks pass right through the transparent overlay to your UI!
+          pointerEvents: 'none',
+        },
+        // Prevents React 18 warnings by avoiding HTML styles on Joyride's SVG spotlight
+        spotlight: {
+          fill: 'transparent',
+          stroke: 'transparent',
         }
       }}
     />
