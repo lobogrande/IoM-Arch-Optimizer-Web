@@ -1,6 +1,5 @@
 // src/components/TourGuide.jsx
-// -> REPLACE ENTIRE FILE WITH:
-import React from 'react';
+import React, { useEffect } from 'react';
 import * as JoyrideModule from 'react-joyride';
 import useStore from '../store';
 
@@ -9,10 +8,8 @@ const Joyride = typeof JoyrideModule.default === 'function'
   : (JoyrideModule.default?.default || Object.values(JoyrideModule).find(v => typeof v === 'function'));
 const { ACTIONS, EVENTS, STATUS } = JoyrideModule;
 
-// The text and targets are completely customizable by you later.
-// We are using data-tour attributes to guarantee it finds the right elements.
 const TOUR_STEPS = {
-  setup:[
+  setup: [
     {
       target: '[data-tour="setup-profiles"]',
       content: 'Welcome to Player Setup! I use this area to manage your saved loadouts. You can interact with this box right now to see how it works.',
@@ -24,7 +21,7 @@ const TOUR_STEPS = {
       content: 'Your setup is divided into these tabs. Let\'s look at Base Stats first.',
       disableBeacon: true,
       placement: 'bottom',
-      data: { tab: 'stats' } // Tells our callback to switch to this tab
+      data: { tab: 'stats' }
     },
     {
       target: '[data-tour="setup-stat-Str"]',
@@ -37,7 +34,7 @@ const TOUR_STEPS = {
       content: 'Now let\'s check out the Internal Upgrades.',
       disableBeacon: true,
       placement: 'bottom',
-      data: { tab: 'upgrades_int' } // Automatically switches the tab
+      data: { tab: 'upgrades_int' }
     },
     {
       target: '[data-tour="setup-hide-maxed"]',
@@ -51,15 +48,40 @@ const TOUR_STEPS = {
 export default function TourGuide() {
   const { tourActive, activeTourId, tourStepIndex, stopTour, setTourStepIndex, setActiveSubTab, theme } = useStore();
 
+  // 🕵️‍♂️ SMART DOM SCANNER: Checks if targets exist right when you click the button
+  useEffect(() => {
+    if (tourActive && activeTourId && TOUR_STEPS[activeTourId]) {
+      console.warn(`🚨 [TOUR START] Tour "${activeTourId}" Activated! Step Index: ${tourStepIndex}`);
+      
+      const currentTarget = TOUR_STEPS[activeTourId][tourStepIndex]?.target;
+      const elementExists = document.querySelector(currentTarget);
+      
+      if (!elementExists) {
+        console.error(`❌ [TOUR ERROR] Could not find DOM target: "${currentTarget}"`);
+        console.error(`The tour is silently failing because the element does not exist on the screen right now.`);
+      } else {
+        console.warn(`✅ [TOUR OK] Found target: "${currentTarget}"`);
+      }
+    }
+  }, [tourActive, activeTourId, tourStepIndex]);
+
   const handleCallback = (data) => {
     const { action, index, status, type } = data;
+    console.warn(`🚨 [TOUR EVENT] Type: ${type} | Action: ${action} | Status: ${status}`);
 
-    if ([STATUS.FINISHED, STATUS.SKIPPED].includes(status) || action === ACTIONS.CLOSE) {
+    // If Joyride throws an error or can't find a target, tell us!
+    if (type === EVENTS.TARGET_NOT_FOUND || type === EVENTS.ERROR) {
+      console.error(`❌ [JOYRIDE FAILED] Missing target on step ${index}:`, TOUR_STEPS[activeTourId]?.[index]?.target);
       stopTour();
       return;
     }
 
-    // Only advance when the user explicitly clicks Next or Back
+    if ([STATUS.FINISHED, STATUS.SKIPPED].includes(status) || action === ACTIONS.CLOSE) {
+      console.warn("🚨 [TOUR CLOSED] Stopping tour.");
+      stopTour();
+      return;
+    }
+
     if (type === EVENTS.STEP_AFTER) {
       const nextIndex = index + (action === ACTIONS.PREV ? -1 : 1);
       
@@ -70,12 +92,9 @@ export default function TourGuide() {
       
       const nextStep = TOUR_STEPS[activeTourId][nextIndex];
       
-      // If the next step is on a different tab, switch it and wait for React to render
       if (nextStep && nextStep.data && nextStep.data.tab) {
         setActiveSubTab(nextStep.data.tab);
-        setTimeout(() => {
-          setTourStepIndex(nextIndex);
-        }, 200); // 200ms is enough for React to paint the new DOM
+        setTimeout(() => setTourStepIndex(nextIndex), 200);
       } else {
         setTourStepIndex(nextIndex);
       }
@@ -93,7 +112,7 @@ export default function TourGuide() {
       continuous={true}
       showProgress={true}
       showSkipButton={true}
-      spotlightClicks={true} // 🔥 THIS ALLOWS THE USER TO CLICK/TYPE IN THE APP DURING THE TOUR
+      spotlightClicks={true}
       spotlightPadding={8}
       styles={{
         options: {
