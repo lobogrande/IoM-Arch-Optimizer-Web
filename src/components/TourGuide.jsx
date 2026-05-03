@@ -47,10 +47,11 @@ const CustomTooltip = ({ index, step, backProps, primaryProps, isLastStep, toolt
 };
 
 export default function TourGuide() {
-  // We extract tourStepIndex and setTourStepIndex to enforce strict Controlled Mode
-  const { tourActive, activeTourId, stopTour, tourStepIndex, setTourStepIndex, asc1_unlocked, asc2_unlocked, cards } = useStore();
+  // 🛡️ Strict Uncontrolled Mode - No stepIndex
+  const { tourActive, activeTourId, stopTour, asc1_unlocked, asc2_unlocked, cards } = useStore();
   
-  const[seenReactiveCard, setSeenReactiveCard] = useState(false);
+  const joyrideHelpers = useRef(null);
+  const [seenReactiveCard, setSeenReactiveCard] = useState(false);
   const reactiveCardId = Object.keys(cards || { }).find(k => cards[ k ] >= 3);
 
   useEffect(() => {
@@ -135,7 +136,9 @@ export default function TourGuide() {
       target: step.target,
       placement: step.placement,
       disableBeacon: true,
-      disableOverlay: true, // Prevents SVG generation to kill React CSS warnings
+      // 💀 THE INVERSE OVERLAY TRICK: Setting this to FALSE forces Joyride to build the SVG 
+      // overlay, PREVENTING it from attaching a rogue document.body click listener!
+      disableOverlay: false, 
       spotlightClicks: true,
       content: step.text,
       data: {
@@ -145,12 +148,13 @@ export default function TourGuide() {
         onSkip: (targetId) => {
           const targetIdx = rawSteps.findIndex(s => s.id === targetId);
           if (targetIdx !== -1) {
-            setTourStepIndex(targetIdx); // Explicit state control fixes the Skip failures
+            // Uncontrolled API is safe and instant when fired from custom components
+            joyrideHelpers.current?.go(targetIdx); 
           }
         }
       }
     }));
-  }, [ rawSteps, setTourStepIndex ]);
+  }, [ rawSteps ]);
 
   const handleCallback = (data) => {
     const { action, index, status, type } = data;
@@ -166,34 +170,27 @@ export default function TourGuide() {
        if (upcomingStep?.id === 'reactive-card') {
            const isBackward = action === 'prev';
            if (!reactiveCardId || seenReactiveCard) {
-               setTourStepIndex(index + (isBackward ? -1 : 1));
+               setTimeout(() => joyrideHelpers.current?.go(index + (isBackward ? -1 : 1)), 0);
+               return;
            } else {
                setSeenReactiveCard(true);
            }
        }
-       return;
     }
 
-    // 🖱️ CONTROLLED MODE NAVIGATION
-    if (type === 'step:after') {
-      if (action === 'next') {
-        const currentStep = TOUR_STEPS[ index ];
-        if (currentStep && currentStep.data && currentStep.data.clickTarget) {
-          const btn = document.querySelector(currentStep.data.clickTarget);
-          if (btn) btn.click();
-          
-          // 🛡️ THE 100MS BRIDGE: Prevents the React 18 Gray Screen Crash by allowing 
-          // the app to paint the newly switched tab before Joyride searches for the target!
-          setTimeout(() => setTourStepIndex(index + 1), 100);
-          return;
-        }
-        setTourStepIndex(index + 1);
-      } else if (action === 'prev') {
-        setTourStepIndex(index - 1);
+    // 🖱️ UNCONTROLLED MODE NAVIGATION (Tab Click Interceptor)
+    if (type === 'step:after' && action === 'next') {
+      const currentStep = TOUR_STEPS[ index ];
+      if (currentStep && currentStep.data && currentStep.data.clickTarget) {
+        const btn = document.querySelector(currentStep.data.clickTarget);
+        if (btn) btn.click();
       }
-      
-      // 🛡️ IMMUNITY SHIELD: If action === 'close' (triggered by clicking an outside input),
-      // we INTENTIONALLY DO NOTHING. Joyride is trapped open until we manually stopTour()
+    }
+
+    if (type === 'error:target_not_found' || type === 'error') {
+      console.error(`❌[TOUR] Target missing on step ${index}.`);
+      stopTour();
+      return;
     }
   };
 
@@ -203,7 +200,7 @@ export default function TourGuide() {
     <JoyrideComponent
       steps={TOUR_STEPS}
       run={tourActive}
-      stepIndex={tourStepIndex} // We are fully back in Controlled Mode
+      getHelpers={(helpers) => { joyrideHelpers.current = helpers; }} // Uncontrolled Mode API Hook
       callback={handleCallback}
       continuous={true}
       showProgress={false}
@@ -214,6 +211,10 @@ export default function TourGuide() {
       styles={{
         options: {
           zIndex: 999999,
+          overlayColor: 'transparent', // Make the background invisible (fixes React SVG warnings)
+        },
+        overlay: {
+          pointerEvents: 'none', // 💀 This lets physical clicks pass right through the transparent overlay to your UI!
         }
       }}
     />
