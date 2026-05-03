@@ -9,18 +9,18 @@ const JoyrideComponent = JoyrideModule.default?.default || JoyrideModule.default
 export default function TourGuide() {
   const { tourActive, activeTourId, stopTour, theme, asc1_unlocked, asc2_unlocked, cards } = useStore();
   
-  // 🕹️ Isolated State: Allows us to natively intercept "Skips" without relying on React global rendering delays
+  // 🕹️ Isolated State for Custom Jumps
   const[tourStepIndex, setLocalStepIndex] = useState(0);
-  const [seenReactiveCard, setSeenReactiveCard] = useState(false);
+  const[seenReactiveCard, setSeenReactiveCard] = useState(false);
 
-  // Monitor for the first card that hits Poly or Infernal
+  // Monitor for the first card that hits Poly (3) or Infernal (4)
   const reactiveCardId = Object.keys(cards || { }).find(k => cards[ k ] >= 3);
 
   // 🧠 DYNAMIC ROUTING ENGINE
   const TOUR_STEPS = useMemo(() => {
     if (activeTourId !== 'setup') return [ ];
 
-    const s = [ ];
+    const s =[ ];
     const add = (step) => s.push(step);
 
     add({
@@ -35,7 +35,7 @@ export default function TourGuide() {
       id: 'profiles',
       target: '[data-tour="setup-profiles"]',
       content: 'This is the Profile Box. Because this tour is interactive, try clicking the dropdown menu right now!',
-      placement: 'right',
+      placement: 'auto', // AUTO entirely prevents the invisible off-screen tooltip bug!
       disableBeacon: true
     });
 
@@ -44,21 +44,21 @@ export default function TourGuide() {
       id: 'global-asc',
       target: '[data-tour="setup-asc"]',
       content: 'Let\'s set your Global Settings. Ascension properly filters your available Base Stats, Upgrades, Idols, and Cards. Set this first!',
-      placement: 'right',
+      placement: 'auto',
       disableBeacon: true
     });
     add({
       id: 'global-arch',
       target: '[data-tour="setup-arch-level"]',
       content: 'Your Archaeology Level directly impacts how many stat points you have to distribute. Update this.',
-      placement: 'right',
+      placement: 'auto',
       disableBeacon: true
     });
     add({
       id: 'global-floor',
       target: '[data-tour="setup-max-floor"]',
       content: 'Your Max Floor impacts filters for Internal Upgrades. Ensure this matches your game.',
-      placement: 'right',
+      placement: 'auto',
       disableBeacon: true
     });
 
@@ -67,7 +67,7 @@ export default function TourGuide() {
       id: 'nav-stats',
       target: '#setup-tab-stats',
       content: 'Your setup is divided into tabs. We will start with Base Stats. Please CLICK THIS TAB right now, and then click Next.',
-      placement: 'bottom',
+      placement: 'auto',
       disableBeacon: true,
       data: { clickTarget: '#setup-tab-stats' }
     });
@@ -83,8 +83,8 @@ export default function TourGuide() {
         content: `Enter your ${stat} here. You can click the box and type while this tooltip is open!`,
         placement: 'auto',
         disableBeacon: true,
-        locale: { skip: 'Skip Base Stats' },
-        data: { skipTo: 'nav-upgrades_int' }
+        locale: { skip: 'Skip Base Stats' }, // Renames the Skip button
+        data: { skipTo: 'nav-upgrades_int' } // Tells our interceptor where to jump
       });
     });
 
@@ -93,9 +93,9 @@ export default function TourGuide() {
       id: 'nav-upgrades_int',
       target: '#setup-tab-upgrades_int',
       content: 'Now, please CLICK THIS TAB to open your Internal Upgrades, and then click Next.',
-      placement: 'bottom',
+      placement: 'auto',
       disableBeacon: true,
-      hideBackButton: true, // Airlock
+      hideBackButton: true,
       data: { clickTarget: '#setup-tab-upgrades_int' }
     });
 
@@ -103,7 +103,7 @@ export default function TourGuide() {
       id: 'upgrades_int_content',
       target: '#tour-setup-int-upgrades',
       content: 'Please proceed to fill out all your current Archaeology upgrade levels. You can freely scroll through them. Click next when finished.',
-      placement: 'right',
+      placement: 'auto',
       disableBeacon: true
     });
 
@@ -112,7 +112,7 @@ export default function TourGuide() {
       id: 'nav-upgrades_ext',
       target: '#setup-tab-upgrades_ext',
       content: 'Next, please CLICK THIS TAB for External Upgrades, and then click Next.',
-      placement: 'bottom',
+      placement: 'auto',
       disableBeacon: true,
       hideBackButton: true,
       data: { clickTarget: '#setup-tab-upgrades_ext' }
@@ -144,7 +144,7 @@ export default function TourGuide() {
       id: 'nav-cards',
       target: '#setup-tab-cards',
       content: 'Almost done! Please CLICK THIS TAB to open Block Cards, and then click Next.',
-      placement: 'bottom',
+      placement: 'auto',
       disableBeacon: true,
       hideBackButton: true,
       data: { clickTarget: '#setup-tab-cards' }
@@ -154,7 +154,7 @@ export default function TourGuide() {
       id: 'total-infernal',
       target: '[data-tour="setup-total-infernal"]',
       content: 'Total Infernal Cards: Enter your total owned across ALL categories (fishing, arch, etc). This number is highly important because it calculates your massive infernal bonus!',
-      placement: 'bottom',
+      placement: 'auto',
       disableBeacon: true
     });
 
@@ -162,7 +162,7 @@ export default function TourGuide() {
       id: 'first-card',
       target: '#setup-card-dirt1',
       content: 'Here is your first Block Card. Set states just like before: 0=Locked, 1=Base, 2=Gilded, 3=Poly, 4=Infernal. Fill out all your cards now, then click Next!',
-      placement: 'right',
+      placement: 'auto',
       disableBeacon: true
     });
 
@@ -171,7 +171,7 @@ export default function TourGuide() {
       id: 'reactive-card',
       target: reactiveCardId ? `#setup-card-info-${reactiveCardId}` : 'body',
       content: 'Excellent! Because you set a card to Poly or Infernal, notice the potential Infernal buff bonus displayed below the card. This updates automatically!',
-      placement: 'top',
+      placement: 'auto',
       disableBeacon: true
     });
 
@@ -180,7 +180,7 @@ export default function TourGuide() {
       id: 'nav-idols',
       target: '#setup-tab-idols',
       content: 'Finally, please CLICK THIS TAB to open Arch Idols, and then click Next.',
-      placement: 'bottom',
+      placement: 'auto',
       disableBeacon: true,
       hideBackButton: true,
       data: { clickTarget: '#setup-tab-idols' }
@@ -218,13 +218,13 @@ export default function TourGuide() {
       content: 'You have successfully finished entering your full Player Setup! CLICK THIS MAIN TAB to verify your stats against the in-game UI to ensure perfect accuracy.',
       placement: 'bottom',
       disableBeacon: true,
-      data: { clickTarget: '[data-tour="main-tab-calc_stats"]' } // Hardware click intercept
+      data: { clickTarget: '[data-tour="main-tab-calc_stats"]' }
     });
 
     return s;
   },[ activeTourId, asc1_unlocked, asc2_unlocked, reactiveCardId ]);
 
-  // Restart local state engine on tour launch
+  // Initialize fresh state every time the tour launches
   useEffect(() => {
     if (tourActive) {
       setLocalStepIndex(0);
@@ -244,14 +244,18 @@ export default function TourGuide() {
       }
     }
 
-    // ⏭️ CUSTOM SECTION SKIPPER
-    // If user clicks "Skip Base Stats", we catch it, stop the termination, and programmatically jump
-    if (action === 'skip' && currentStep?.data?.skipTo) {
-      const targetIdx = TOUR_STEPS.findIndex(s => s.id === currentStep.data.skipTo);
-      if (targetIdx !== -1) {
-         setLocalStepIndex(targetIdx);
-         return; // Intercept success, keep the tour running!
+    // ⏭️ CUSTOM SECTION SKIPPER INTERCEPTOR
+    const isCustomSkip = action === 'skip' && currentStep?.data?.skipTo;
+    
+    if (isCustomSkip) {
+      if (type === 'step:after') {
+        const targetIdx = TOUR_STEPS.findIndex(s => s.id === currentStep.data.skipTo);
+        if (targetIdx !== -1) {
+           setLocalStepIndex(targetIdx);
+        }
       }
+      // Instantly return to prevent Joyride from triggering its default self-destruct sequence
+      return; 
     }
 
     // ⚡ REACTIVE STEP INTERCEPTOR
@@ -259,7 +263,7 @@ export default function TourGuide() {
        const upcomingStep = TOUR_STEPS[ index ];
        if (upcomingStep?.id === 'reactive-card') {
            const isBackward = action === 'prev';
-           // If they haven't upgraded a card, OR they already saw the popup, auto-skip over it instantly
+           // If they haven't upgraded a card, OR they already saw it, auto-skip silently
            if (!reactiveCardId || seenReactiveCard) {
                setLocalStepIndex(index + (isBackward ? -1 : 1));
                return;
@@ -269,13 +273,15 @@ export default function TourGuide() {
        }
     }
 
+    // FAULTS
     if (type === 'error:target_not_found' || type === 'error') {
-      console.error(`❌ [TOUR] Target missing on step ${index}. Stopping tour.`);
+      console.error(`❌ [TOUR] Target missing on step ${index}:`, currentStep?.target);
       stopTour();
       return;
     }
 
-    if (type === 'tour:end' || [ 'finished', 'skipped' ].includes(status) || action === 'close') {
+    // TERMINATION (Only if it's NOT a custom skip jump)
+    if (type === 'tour:end' ||[ 'finished', 'skipped' ].includes(status) || action === 'close') {
       stopTour();
       return;
     }
@@ -293,7 +299,7 @@ export default function TourGuide() {
     <JoyrideComponent
       steps={TOUR_STEPS}
       run={tourActive}
-      stepIndex={tourStepIndex} // Driven cleanly by isolated local state
+      stepIndex={tourStepIndex} // Driven strictly by our bulletproof local state
       callback={handleCallback}
       continuous={true}
       showProgress={true}
