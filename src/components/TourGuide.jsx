@@ -1,17 +1,18 @@
 // src/components/TourGuide.jsx
-// -> REPLACE ENTIRE FILE WITH:
-import React, { useMemo, useRef, useState, useEffect } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import * as JoyrideModule from 'react-joyride';
 import useStore from '../store';
 
 const JoyrideComponent = JoyrideModule.default?.default || JoyrideModule.default || JoyrideModule.Joyride;
 
-const CustomTooltip = ({ index, step, backProps, closeProps, primaryProps, isLastStep, tooltipProps }) => {
+const CustomTooltip = ({ index, step, backProps, primaryProps, isLastStep, tooltipProps }) => {
+  const { stopTour } = useStore();
+  
   return (
     <div {...tooltipProps} className="bg-st-bg border border-st-border shadow-2xl rounded-lg p-4 max-w-sm w-full flex flex-col gap-3 z-[999999]">
       <div className="flex justify-between items-start gap-4">
         <div className="text-sm text-st-text leading-snug font-medium whitespace-pre-wrap">{step.content}</div>
-        <button {...closeProps} type="button" className="text-st-text-light hover:text-red-500 font-bold text-xl leading-none px-1 cursor-pointer transition-colors" title="Close Tour">
+        <button type="button" onClick={stopTour} className="text-st-text-light hover:text-red-500 font-bold text-xl leading-none px-1 cursor-pointer transition-colors" title="Close Tour">
           &times;
         </button>
       </div>
@@ -21,10 +22,7 @@ const CustomTooltip = ({ index, step, backProps, closeProps, primaryProps, isLas
           {step.data?.skipTo && (
             <button
               type="button"
-              onPointerDown={(e) => e.stopPropagation()}
-              onClick={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
+              onClick={() => {
                 if (step.data.onSkip) step.data.onSkip(step.data.skipTo);
               }}
               className="text-xs bg-[#2b2b2b] text-st-orange px-2 py-1.5 rounded border border-st-orange hover:bg-st-orange hover:text-[#2b2b2b] font-bold transition-colors shadow-sm cursor-pointer"
@@ -49,17 +47,15 @@ const CustomTooltip = ({ index, step, backProps, closeProps, primaryProps, isLas
 };
 
 export default function TourGuide() {
-  const { tourActive, activeTourId, stopTour, asc1_unlocked, asc2_unlocked, cards } = useStore();
+  // We extract tourStepIndex and setTourStepIndex to enforce strict Controlled Mode
+  const { tourActive, activeTourId, stopTour, tourStepIndex, setTourStepIndex, asc1_unlocked, asc2_unlocked, cards } = useStore();
   
-  // 🕹️ Internal API Hook for Custom Jumps (Uncontrolled Mode)
-  const joyrideHelpers = useRef(null);
-  const [seenReactiveCard, setSeenReactiveCard] = useState(false);
-
+  const[seenReactiveCard, setSeenReactiveCard] = useState(false);
   const reactiveCardId = Object.keys(cards || { }).find(k => cards[ k ] >= 3);
 
   useEffect(() => {
     if (tourActive) setSeenReactiveCard(false);
-  },[ tourActive ]);
+  }, [ tourActive ]);
 
   // 🧠 DYNAMIC ROUTING ENGINE
   const rawSteps = useMemo(() => {
@@ -130,7 +126,7 @@ export default function TourGuide() {
     add('conclusion', '[data-tour="main-tab-calc_stats"]', 'You have successfully finished entering your full Player Setup! CLICK THIS MAIN TAB to verify your stats against the in-game UI to ensure perfect accuracy.', 'bottom', null, null, '[data-tour="main-tab-calc_stats"]');
 
     return s;
-  }, [ activeTourId, asc1_unlocked, asc2_unlocked, reactiveCardId ]);
+  },[ activeTourId, asc1_unlocked, asc2_unlocked, reactiveCardId ]);
 
   // 🚀 INJECT CUSTOM BUTTONS INTO RAW STEPS
   const TOUR_STEPS = useMemo(() => {
@@ -139,11 +135,9 @@ export default function TourGuide() {
       target: step.target,
       placement: step.placement,
       disableBeacon: true,
-      // 💀 BUG 1 FIX: Do NOT use disableOverlay: true. Joyride aggressively closes on outside clicks if true.
-      // Instead, we leave it false (default) and use CSS styles below to render the overlay invisible & pass-through.
-      disableOverlay: false, 
-      spotlightClicks: true, // Always allow clicking the spotlighted element
-      content: step.text, // Passed natively to CustomTooltip
+      disableOverlay: true, // Prevents SVG generation to kill React CSS warnings
+      spotlightClicks: true,
+      content: step.text,
       data: {
         clickTarget: step.clickTarget,
         skipTo: step.skipTo,
@@ -151,15 +145,20 @@ export default function TourGuide() {
         onSkip: (targetId) => {
           const targetIdx = rawSteps.findIndex(s => s.id === targetId);
           if (targetIdx !== -1) {
-            joyrideHelpers.current?.go(targetIdx); // Uncontrolled Jump
+            setTourStepIndex(targetIdx); // Explicit state control fixes the Skip failures
           }
         }
       }
     }));
-  }, [ rawSteps ]);
+  }, [ rawSteps, setTourStepIndex ]);
 
   const handleCallback = (data) => {
     const { action, index, status, type } = data;
+
+    if ([ 'finished', 'skipped' ].includes(status)) {
+      stopTour();
+      return;
+    }
 
     // ⚡ REACTIVE STEP SILENT SKIP
     if (type === 'step:before') {
@@ -167,32 +166,34 @@ export default function TourGuide() {
        if (upcomingStep?.id === 'reactive-card') {
            const isBackward = action === 'prev';
            if (!reactiveCardId || seenReactiveCard) {
-               setTimeout(() => joyrideHelpers.current?.go(index + (isBackward ? -1 : 1)), 0);
-               return;
+               setTourStepIndex(index + (isBackward ? -1 : 1));
            } else {
                setSeenReactiveCard(true);
            }
        }
+       return;
     }
 
-    // 🖱️ NATIVE DOM CLICKER FALLBACK
-    if (type === 'step:after' && action === 'next') {
-      const currentStep = TOUR_STEPS[ index ];
-      if (currentStep && currentStep.data && currentStep.data.clickTarget) {
-        const btn = document.querySelector(currentStep.data.clickTarget);
-        if (btn) btn.click();
+    // 🖱️ CONTROLLED MODE NAVIGATION
+    if (type === 'step:after') {
+      if (action === 'next') {
+        const currentStep = TOUR_STEPS[ index ];
+        if (currentStep && currentStep.data && currentStep.data.clickTarget) {
+          const btn = document.querySelector(currentStep.data.clickTarget);
+          if (btn) btn.click();
+          
+          // 🛡️ THE 100MS BRIDGE: Prevents the React 18 Gray Screen Crash by allowing 
+          // the app to paint the newly switched tab before Joyride searches for the target!
+          setTimeout(() => setTourStepIndex(index + 1), 100);
+          return;
+        }
+        setTourStepIndex(index + 1);
+      } else if (action === 'prev') {
+        setTourStepIndex(index - 1);
       }
-    }
-
-    if (type === 'error:target_not_found' || type === 'error') {
-      console.error(`❌ [TOUR] Target missing on step ${index}.`);
-      stopTour();
-      return;
-    }
-
-    // TERMINATE
-    if (type === 'tour:end' ||[ 'finished', 'skipped' ].includes(status) || action === 'close') {
-      stopTour();
+      
+      // 🛡️ IMMUNITY SHIELD: If action === 'close' (triggered by clicking an outside input),
+      // we INTENTIONALLY DO NOTHING. Joyride is trapped open until we manually stopTour()
     }
   };
 
@@ -202,27 +203,17 @@ export default function TourGuide() {
     <JoyrideComponent
       steps={TOUR_STEPS}
       run={tourActive}
-      // NO STEPINDEX! UNCONTROLLED MODE ONLY!
-      getHelpers={(helpers) => { joyrideHelpers.current = helpers; }} // Extracts API for skips
+      stepIndex={tourStepIndex} // We are fully back in Controlled Mode
       callback={handleCallback}
       continuous={true}
       showProgress={false}
       showSkipButton={false}
-      disableOverlayClose={true} // BUG 1 FIX: Respects ignoring document clicks because the overlay technically "exists"
-      tooltipComponent={CustomTooltip} // BUG 2 FIX: Complete bypass of Joyride's popper swallow mechanisms
+      disableOverlayClose={true}
+      disableCloseOnEsc={true}
+      tooltipComponent={CustomTooltip}
       styles={{
         options: {
           zIndex: 999999,
-          overlayColor: 'transparent', // The core visual trick for Bug 1 (Fully Unlocked Screen)
-        },
-        overlay: {
-          pointerEvents: 'none', // Allow hardware clicks to pass right through the overlay to the UI below
-        },
-        spotlight: {
-          backgroundColor: 'transparent', 
-          boxShadow: 'none',
-          border: 'none',
-          pointerEvents: 'none',
         }
       }}
     />
