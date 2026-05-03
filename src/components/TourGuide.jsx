@@ -84,9 +84,16 @@ export default function TourGuide() {
     });
 
     add({
-      target: '#tour-setup-int-upgrades',
-      content: 'Please proceed to fill out all your current Archaeology upgrade levels. You can freely scroll through them. Click next when finished.',
+      target: '[data-tour="setup-hide-maxed"]',
+      content: 'This toggle hides maxed upgrades to reduce screen clutter. Give it a click!',
       placement: 'auto',
+      disableBeacon: true
+    });
+
+    add({
+      target: 'div[id^="setup-upg-"]',
+      content: 'Please proceed to fill out all your current Archaeology upgrade levels. You can freely scroll through them while this tooltip stays here. Click next when finished.',
+      placement: 'right', // Forces the tooltip to sit nicely alongside the middle column
       disableBeacon: true
     });
 
