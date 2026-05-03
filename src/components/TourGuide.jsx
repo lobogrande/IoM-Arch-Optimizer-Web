@@ -1,6 +1,6 @@
 // src/components/TourGuide.jsx
 // -> REPLACE ENTIRE FILE WITH:
-import React, { useMemo, useRef, useState, useEffect } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import * as JoyrideModule from 'react-joyride';
 import useStore from '../store';
 
@@ -9,34 +9,25 @@ const JoyrideComponent = JoyrideModule.default?.default || JoyrideModule.default
 export default function TourGuide() {
   const { tourActive, activeTourId, stopTour, theme, asc1_unlocked, asc2_unlocked, cards } = useStore();
   
-  // 🕹️ Internal API Hook for Custom Jumps
-  const joyrideHelpers = useRef(null);
+  // 🕹️ Controlled State Engine
+  const [tourStepIndex, setLocalStepIndex] = useState(0);
   const [seenReactiveCard, setSeenReactiveCard] = useState(false);
 
-  // Monitor for the first card that hits Poly (3) or Infernal (4)
-  const reactiveCardId = Object.keys(cards || { }).find(k => cards[ k ] >= 3);
+  const reactiveCardId = Object.keys(cards || {}).find(k => cards[k] >= 3);
 
-  // Reset local state when a new tour launches
+  // Initialize fresh state every time the tour launches
   useEffect(() => {
-    if (tourActive) setSeenReactiveCard(false);
-  }, [ tourActive ]);
-
-  // 🚀 CUSTOM SKIP JUMP ENGINE
-  const handleCustomSkip = (skipToId) => {
-    // We look up the exact index of the Navigation Step we want to jump to.
-    const targetIdx = rawSteps.findIndex(s => s.id === skipToId);
-    if (targetIdx !== -1) {
-       // We tell Joyride to jump there. Because navigation steps target the 
-       // ALWAYS-VISIBLE tab buttons, this jump is 100% mathematically crash-proof!
-       joyrideHelpers.current?.go(targetIdx);
+    if (tourActive) {
+      setLocalStepIndex(0);
+      setSeenReactiveCard(false);
     }
-  };
+  }, [tourActive]);
 
-  // 🧠 DYNAMIC ROUTING ENGINE
+  // 🧠 THE STEP DEFINITIONS
   const rawSteps = useMemo(() => {
-    if (activeTourId !== 'setup') return [ ];
+    if (activeTourId !== 'setup') return [];
 
-    const s =[ ];
+    const s =[];
     const add = (id, target, text, placement, skipTo = null, skipLabel = null, clickTarget = null) => {
       s.push({ id, target, text, placement, skipTo, skipLabel, clickTarget });
     };
@@ -52,7 +43,7 @@ export default function TourGuide() {
     // --- 2. BASE STATS ---
     add('nav-stats', '#setup-tab-stats', 'Your setup is divided into tabs. We will start with Base Stats. Please CLICK THIS TAB right now, and then click Next.', 'bottom', null, null, '#setup-tab-stats');
 
-    const baseStats =[ 'Str', 'Agi', 'Per', 'Int', 'Luck' ];
+    const baseStats =['Str', 'Agi', 'Per', 'Int', 'Luck'];
     if (asc1_unlocked) baseStats.push('Div');
     if (asc2_unlocked) baseStats.push('Corr');
 
@@ -63,10 +54,11 @@ export default function TourGuide() {
     // --- 3. INTERNAL UPGRADES ---
     add('nav-upgrades_int', '#setup-tab-upgrades_int', 'Now let\'s check out the Internal Upgrades. Please CLICK THIS TAB to open it, and then click Next.', 'bottom', null, null, '#setup-tab-upgrades_int');
     add('hide-maxed', '[data-tour="setup-hide-maxed"]', 'This toggle hides maxed upgrades to reduce screen clutter. Give it a click!', 'auto', 'nav-upgrades_ext', 'Skip Int Upgrades');
-    add('upgrades_int_content', 'div[id^="setup-upg-"]', 'Please proceed to fill out your Archaeology upgrade levels. Because the screen is unlocked, you can freely scroll through the list! Click next when finished.', 'right', 'nav-upgrades_ext', 'Skip Int Upgrades');
+    add('upgrades_int_content', 'div[id^="setup-upg-"]', 'Here is your first Internal Upgrade box. Click Next to dismiss this popup so it stops obscuring the screen, then finish filling out the rest of your upgrades.', 'right', 'nav-upgrades_ext', 'Skip Int Upgrades');
 
     // --- 4. EXTERNAL UPGRADES ---
-    add('nav-upgrades_ext', '#setup-tab-upgrades_ext', 'Next up: External Upgrades. Please CLICK THIS TAB, and then click Next.', 'bottom', null, null, '#setup-tab-upgrades_ext');
+    // Docking the tooltip at the top Navigation bar so it stays out of the way!
+    add('nav-upgrades_ext', '#setup-tab-upgrades_ext', 'Finish filling out your internal upgrades first! When you are ready, please CLICK THIS TAB for External Upgrades, and then click Next.', 'bottom', null, null, '#setup-tab-upgrades_ext');
 
     const addExt = (extId, content) => {
       add(`ext-${extId}`, `#setup-ext-${extId}`, content, 'auto', 'nav-cards', 'Skip Ext Upgrades');
@@ -84,11 +76,11 @@ export default function TourGuide() {
     // --- 5. CARDS ---
     add('nav-cards', '#setup-tab-cards', 'Almost done! Time for Block Cards. Please CLICK THIS TAB, and then click Next.', 'bottom', null, null, '#setup-tab-cards');
     add('total-infernal', '[data-tour="setup-total-infernal"]', 'Total Infernal Cards: Enter your total owned across ALL categories (fishing, arch, etc). This number is highly important because it calculates your massive infernal bonus!', 'auto', 'nav-idols', 'Skip Cards');
-    add('first-card', '#setup-card-dirt1', 'Here is your first Block Card. Set states just like before: 0=Locked, 1=Base, 2=Gilded, 3=Poly, 4=Infernal. Take your time to scroll down and fill them all out.', 'right', 'nav-idols', 'Skip Cards');
+    add('first-card', '#setup-card-dirt1', 'Here is your first Block Card. Set states just like before: 0=Locked, 1=Base, 2=Gilded, 3=Poly, 4=Infernal. Click Next to dismiss this popup so it stops obscuring the screen, then finish filling out the rest of the cards.', 'right', 'nav-idols', 'Skip Cards');
     add('reactive-card', reactiveCardId ? `#setup-card-info-${reactiveCardId}` : 'body', 'Excellent! Because you set a card to Poly or Infernal, notice the potential Infernal buff bonus displayed below the card. This updates automatically!', 'auto', 'nav-idols', 'Skip Cards');
 
     // --- 6. IDOLS ---
-    add('nav-idols', '#setup-tab-idols', 'Finally, let\'s look at Arch Idols. Please CLICK THIS TAB, and then click Next.', 'bottom', null, null, '#setup-tab-idols');
+    add('nav-idols', '#setup-tab-idols', 'Take your time to finish filling out your cards. When you are done, please CLICK THIS TAB to open Arch Idols, and then click Next.', 'bottom', null, null, '#setup-tab-idols');
 
     if (!asc1_unlocked) {
       add('idols-locked', '#setup-idols-locked', 'As expected, because you have not unlocked Ascension 1, Arch Idols are hidden. You don\'t need to do anything here!', 'auto', 'conclusion', 'Skip Idols');
@@ -101,54 +93,63 @@ export default function TourGuide() {
     add('conclusion', '[data-tour="main-tab-calc_stats"]', 'You have successfully finished entering your full Player Setup! CLICK THIS MAIN TAB to verify your stats against the in-game UI to ensure perfect accuracy.', 'bottom', null, null, '[data-tour="main-tab-calc_stats"]');
 
     return s;
-  },[ activeTourId, asc1_unlocked, asc2_unlocked, reactiveCardId ]);
+  },[activeTourId, asc1_unlocked, asc2_unlocked, reactiveCardId]);
 
-  // Compile final Joyride steps with injected custom skip buttons
-  const TOUR_STEPS = rawSteps.map(step => ({
-    id: step.id,
-    target: step.target,
-    placement: step.placement,
-    disableBeacon: true,
-    disableOverlay: true, // 🔥 UX MAGIC: Permanently removes the dark mask
-    data: step.clickTarget ? { clickTarget: step.clickTarget } : { },
-    content: (
-      <div className="flex flex-col gap-3">
-        <span className="text-sm leading-snug">{step.text}</span>
-        {step.skipTo && (
-          <button
-            onClick={() => handleCustomSkip(step.skipTo)}
-            className="self-start text-xs bg-[#2b2b2b] text-[#ffa229] px-3 py-1.5 rounded border border-[#ffa229] hover:bg-[#ffa229] hover:text-[#2b2b2b] font-bold transition-colors cursor-pointer shadow-sm"
-          >
-            ⏭️ {step.skipLabel}
-          </button>
-        )}
-      </div>
-    )
-  }));
+  // 🚀 COMPILE FINAL STEPS
+  // We strictly memoize the component injection so Joyride doesn't destroy the Skip buttons!
+  const TOUR_STEPS = useMemo(() => {
+    return rawSteps.map(step => ({
+      id: step.id,
+      target: step.target,
+      placement: step.placement,
+      disableBeacon: true,
+      disableOverlay: true, // Permanent UI Unlock
+      data: step.clickTarget ? { clickTarget: step.clickTarget } : {},
+      content: (
+        <div className="flex flex-col gap-3">
+          <span className="text-sm leading-snug">{step.text}</span>
+          {step.skipTo && (
+            <button
+              type="button"
+              onPointerDown={(e) => e.stopPropagation()} // Prevents Joyride from hijacking the click
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                const targetIdx = rawSteps.findIndex(s => s.id === step.skipTo);
+                if (targetIdx !== -1) {
+                  setLocalStepIndex(targetIdx); // Fire the Custom Jump!
+                }
+              }}
+              className="self-start text-xs bg-[#2b2b2b] text-[#ffa229] px-3 py-1.5 rounded border border-[#ffa229] hover:bg-[#ffa229] hover:text-[#2b2b2b] font-bold transition-colors cursor-pointer shadow-sm"
+            >
+              ⏭️ {step.skipLabel}
+            </button>
+          )}
+        </div>
+      )
+    }));
+  }, [rawSteps]);
 
   const handleCallback = (data) => {
     const { action, index, status, type } = data;
 
-    // ⚡ REACTIVE STEP INTERCEPTOR
-    // If we reach the reactive card step, but they haven't upgraded a card yet, skip it automatically.
+    // ⚡ REACTIVE CARD STEP SILENT SKIP
     if (type === 'step:before') {
-       const upcomingStep = TOUR_STEPS[ index ];
+       const upcomingStep = TOUR_STEPS[index];
        if (upcomingStep?.id === 'reactive-card') {
            const isBackward = action === 'prev';
            if (!reactiveCardId || seenReactiveCard) {
-               // Jump over the step smoothly
-               setTimeout(() => joyrideHelpers.current?.go(index + (isBackward ? -1 : 1)), 0);
+               setLocalStepIndex(index + (isBackward ? -1 : 1));
                return;
            } else {
-               setSeenReactiveCard(true); // Mark as seen so it doesn't nag them again
+               setSeenReactiveCard(true);
            }
        }
     }
 
     // 🖱️ NATIVE DOM CLICKER FALLBACK
-    // If the user forgot to click the tab, this clicks it for them before moving forward!
     if (type === 'step:after' && action === 'next') {
-      const currentStep = TOUR_STEPS[ index ];
+      const currentStep = TOUR_STEPS[index];
       if (currentStep && currentStep.data && currentStep.data.clickTarget) {
         const btn = document.querySelector(currentStep.data.clickTarget);
         if (btn) btn.click();
@@ -161,9 +162,16 @@ export default function TourGuide() {
       return;
     }
 
-    // TERMINATE ON COMPLETION OR CLOSE
-    if (type === 'tour:end' || [ 'finished', 'skipped' ].includes(status) || action === 'close') {
+    // 🛑 TERMINATE TOUR
+    if (type === 'tour:end' || ['finished', 'skipped'].includes(status) || action === 'close') {
       stopTour();
+      return;
+    }
+
+    // 🔄 STANDARD CONTROLLED ADVANCEMENT
+    if (type === 'step:after') {
+       const nextIndex = index + (action === 'prev' ? -1 : 1);
+       setLocalStepIndex(nextIndex);
     }
   };
 
@@ -173,12 +181,12 @@ export default function TourGuide() {
     <JoyrideComponent
       steps={TOUR_STEPS}
       run={tourActive}
-      getHelpers={(helpers) => { joyrideHelpers.current = helpers; }} // Extracts the internal API
-      callback={handleCallback} // Strictly UNCONTROLLED Mode!
+      stepIndex={tourStepIndex} // Controlled Mode stabilized!
+      callback={handleCallback}
       continuous={true}
       showProgress={true}
-      showSkipButton={false} // Hidden default self-destruct skip button
-      disableOverlayClose={true} // Prevents invisible overlay misclicks
+      showSkipButton={false} // Hidden to use our custom buttons instead
+      disableOverlayClose={true}
       styles={{
         options: {
           zIndex: 999999,
