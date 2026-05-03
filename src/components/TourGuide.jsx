@@ -6,8 +6,7 @@ import useStore from '../store';
 
 const JoyrideComponent = JoyrideModule.default?.default || JoyrideModule.default || JoyrideModule.Joyride;
 
-const CustomTooltip = ({ index, step, isLastStep, tooltipProps }) => {
-  // 🛡️ Direct Zustand subscription completely bypasses Joyride's internal prop stripping
+const CustomTooltip = ({ index, step, backProps, primaryProps, isLastStep, tooltipProps }) => {
   const stopTour = useStore((state) => state.stopTour);
   const setTourStepIndex = useStore((state) => state.setTourStepIndex);
   
@@ -18,8 +17,6 @@ const CustomTooltip = ({ index, step, isLastStep, tooltipProps }) => {
       return;
     }
 
-    // 🛡️ The 100ms Bridge: If the step has a tab target, click the tab hardware, 
-    // then give React 18 a 100ms delay to paint the new UI before advancing the tour.
     if (step.data?.clickTarget) {
       const btn = document.querySelector(step.data.clickTarget);
       if (btn) btn.click();
@@ -82,14 +79,14 @@ const CustomTooltip = ({ index, step, isLastStep, tooltipProps }) => {
 };
 
 export default function TourGuide() {
-  const { tourActive, activeTourId, stopTour, tourStepIndex, setTourStepIndex, asc1_unlocked, asc2_unlocked, cards } = useStore();
+  const { tourActive, activeTourId, tourStepIndex, setTourStepIndex, asc1_unlocked, asc2_unlocked, cards } = useStore();
   
   const [seenReactiveCard, setSeenReactiveCard] = useState(false);
   const reactiveCardId = Object.keys(cards || { }).find(k => cards[ k ] >= 3);
 
   useEffect(() => {
     if (tourActive) setSeenReactiveCard(false);
-  },[ tourActive ]);
+  }, [ tourActive ]);
 
   // 🧠 DYNAMIC ROUTING ENGINE
   const rawSteps = useMemo(() => {
@@ -110,44 +107,30 @@ export default function TourGuide() {
 
     // --- 2. BASE STATS ---
     add('nav-stats', '#setup-tab-stats', 'My setup is divided into tabs. Start with Base Stats. Please CLICK THIS TAB right now, and then click Next.', 'bottom', null, null, '#setup-tab-stats');
-
-    const baseStats =[ 'Str', 'Agi', 'Per', 'Int', 'Luck' ];
-    if (asc1_unlocked) baseStats.push('Div');
-    if (asc2_unlocked) baseStats.push('Corr');
-
-    baseStats.forEach(stat => {
-      add(`stat-${stat}`, `#setup-stat-${stat}`, `Enter your ${stat} here. You can click the box and type while this tooltip is open!`, 'auto', 'nav-upgrades_int', 'Skip Base Stats');
-    });
+    
+    // 🛡️ Master Fix: Stable container targeting instead of volatile inputs!
+    add('base-stats-content', '#tour-setup-base-stats', 'Here are your Base Stats. Take your time to enter them according to your game. You can freely interact with the inputs and scroll around while this guide stays out of the way! Click Next when done.', 'top-start', 'nav-upgrades_int', 'Skip Base Stats');
 
     // --- 3. INTERNAL UPGRADES ---
-    add('nav-upgrades_int', '#setup-tab-upgrades_int', 'Now look at the Internal Upgrades. Please CLICK THIS TAB to open it, and then click Next.', 'bottom', null, null, '#setup-tab-upgrades_int');
+    add('nav-upgrades_int', '#setup-tab-upgrades_int', 'Now let\'s do Internal Upgrades. Please CLICK THIS TAB to open it, and then click Next.', 'bottom', null, null, '#setup-tab-upgrades_int');
     add('hide-maxed', '[data-tour="setup-hide-maxed"]', 'This toggle hides maxed upgrades to reduce screen clutter. Give it a click!', 'auto', 'nav-upgrades_ext', 'Skip Int Upgrades');
-    add('upgrades_int_content', 'div[id^="setup-upg-"]', 'Here is your first Internal Upgrade box. Click Next to dismiss this popup so it stops obscuring the screen, then finish filling out the rest of your upgrades.', 'right', 'nav-upgrades_ext', 'Skip Int Upgrades');
+    add('upgrades_int_content', '#tour-setup-int-upgrades', 'Here is the Internal Upgrades list. Take your time filling these out. The screen is fully unlocked so you can scroll freely without dismissing this popup! Click Next when ready.', 'top-start', 'nav-upgrades_ext', 'Skip Int Upgrades');
 
     // --- 4. EXTERNAL UPGRADES ---
-    add('nav-upgrades_ext', '#setup-tab-upgrades_ext', 'Take your time to finish filling out your Internal Upgrades! When you are ready, please CLICK THIS TAB for External Upgrades, and then click Next.', 'bottom', null, null, '#setup-tab-upgrades_ext');
-
-    const addExt = (extId, content) => {
-      add(`ext-${extId}`, `#setup-ext-${extId}`, content, 'auto', 'nav-cards', 'Skip Ext Upgrades');
-    };
-
-    addExt('axolotl', 'Axolotl Pet: A "-1" means you don\'t own it yet. A "0" means you own it but haven\'t ranked it up. Set its rank according to the game.');
-    addExt('dino', 'Dino Pet: Same as the Axolotl. "-1" means not owned, "0" means base rank. Enter your rank here.');
-    addExt('geoduck', 'Geoduck Tribute: Enter the number of Mythic Chests owned. You can find this in your game\'s Relic menu by looking at the summary window at the top.');
-    addExt('avada', 'Avada-Keda Skill: Check this box if you have purchased this skill in the game.');
-    addExt('block_bonker', 'Block Bonker Skill: Check this box if you have purchased this skill in the game.');
-    addExt('arch_bundle', 'Archaeology Bundle: If you are past OB30 and don\'t see the VP bundle in the game store, you already bought it! Check the box.');
-    addExt('ascension_bundle', 'Ascension Bundle: Same as the Arch bundle, but requires defeating OB66.');
-    addExt('arch_card', 'Arch Ability Card: 0=Locked, 1=Base, 2=Gilded, 3=Poly, 4=Infernal. If Infernal, remember to fill out the negative bonus buff below it!');
+    add('nav-upgrades_ext', '#setup-tab-upgrades_ext', 'When you are ready, please CLICK THIS TAB for External Upgrades, and then click Next.', 'bottom', null, null, '#setup-tab-upgrades_ext');
+    add('ext_content', '#tour-setup-ext-upgrades', 'External Upgrades include Pets, Skills, and Bundles. The Geoduck and Pets use special ranks instead of levels, so read the labels carefully! Scroll and fill these out.', 'top-start', 'nav-cards', 'Skip Ext Upgrades');
 
     // --- 5. CARDS ---
     add('nav-cards', '#setup-tab-cards', 'Almost done! Time for Block Cards. Please CLICK THIS TAB, and then click Next.', 'bottom', null, null, '#setup-tab-cards');
-    add('total-infernal', '[data-tour="setup-total-infernal"]', 'Total Infernal Cards: Enter your total owned across ALL categories (fishing, arch, etc). This number is highly important because it calculates your massive infernal bonus!', 'auto', 'nav-idols', 'Skip Cards');
-    add('first-card', '#setup-card-dirt1', 'Here is your first Block Card. Set stats just like before. Click Next to dismiss this popup so it stops obscuring the screen, then finish filling out the rest of the cards.', 'right', 'nav-idols', 'Skip Cards');
-    add('reactive-card', reactiveCardId ? `#setup-card-info-${reactiveCardId}` : 'body', 'Excellent! Because you set a card to Poly or Infernal, notice the potential Infernal buff bonus displayed below the card. This updates automatically!', 'auto', 'nav-idols', 'Skip Cards');
+    add('total-infernal', '[data-tour="setup-total-infernal"]', 'Total Infernal Cards: Enter your total owned across ALL categories (fishing, arch, etc). This calculates your massive infernal bonus!', 'auto', 'nav-idols', 'Skip Cards');
+    add('cards_content', '#tour-setup-cards', 'Here is your Block Card collection. Set their tiers just like in the game. Scroll down as needed.', 'top-start', 'nav-idols', 'Skip Cards');
+
+    if (reactiveCardId) {
+       add('reactive-card', `#setup-card-info-${reactiveCardId}`, 'Excellent! Because you set a card to Poly or Infernal, notice the Infernal buff bonus displayed below the card. This updates automatically!', 'auto', 'nav-idols', 'Skip Cards');
+    }
 
     // --- 6. IDOLS ---
-    add('nav-idols', '#setup-tab-idols', 'Take your time to finish filling out your cards. When you are done, please CLICK THIS TAB to open Arch Idols, and then click Next.', 'bottom', null, null, '#setup-tab-idols');
+    add('nav-idols', '#setup-tab-idols', 'Finally, please CLICK THIS TAB to open Arch Idols, and then click Next.', 'bottom', null, null, '#setup-tab-idols');
 
     if (!asc1_unlocked) {
       add('idols-locked', '#setup-idols-locked', 'As expected, because you have not unlocked Ascension 1, Arch Idols are hidden. You don\'t need to do anything here!', 'auto', 'conclusion', 'Skip Idols');
@@ -162,7 +145,6 @@ export default function TourGuide() {
     return s;
   },[ activeTourId, asc1_unlocked, asc2_unlocked, reactiveCardId ]);
 
-  // 🚀 MAP DATA TO JOYRIDE FORMAT
   const TOUR_STEPS = useMemo(() => {
     return rawSteps.map((step, idx, arr) => {
       const skipToIndex = arr.findIndex(s => s.id === step.skipTo);
@@ -171,8 +153,9 @@ export default function TourGuide() {
         target: step.target,
         placement: step.placement,
         disableBeacon: true,
-        // 💀 Core Fix for Bug 1: Natively rendering the overlay prevents Joyride from attaching outside-click listeners.
-        disableOverlay: false, 
+        disableOverlay: true, // Permanent UI Unlock
+        disableScroll: true, // 🛡️ Prevents Joyride from aggressively stealing the scrollbar!
+        spotlightClicks: true,
         content: step.text,
         data: {
           clickTarget: step.clickTarget,
@@ -181,12 +164,18 @@ export default function TourGuide() {
         }
       };
     });
-  }, [ rawSteps ]);
+  },[ rawSteps ]);
 
   const handleCallback = (data) => {
-    const { index, status, type } = data;
+    const { index, status, type, action } = data;
+    const { stopTour } = useStore.getState();
 
-    if ([ 'finished', 'skipped' ].includes(status)) {
+    // 🛡️ THE IMMORTALITY SHIELD: We explicitly intercept Joyride's outside-click closure attempts
+    if (action === 'close' || status === 'skipped') {
+      return;
+    }
+
+    if (status === 'finished') {
       stopTour();
       return;
     }
@@ -202,12 +191,6 @@ export default function TourGuide() {
            }
        }
        return;
-    }
-
-    // 🛡️ CRASH RECOVERY: If a target unmounts unexpectedly, safely skip it to prevent a UI hang
-    if (type === 'error:target_not_found') {
-      console.warn(`⚠️ [TOUR] Target missing on step ${index}. Auto-skipping.`);
-      setTourStepIndex(index + 1);
     }
   };
 
@@ -226,14 +209,7 @@ export default function TourGuide() {
       disableCloseOnEsc={true}
       tooltipComponent={CustomTooltip}
       styles={{
-        options: {
-          zIndex: 999999,
-          overlayColor: 'rgba(0,0,0,0)', // Completely invisible background
-        },
-        overlay: {
-          pointerEvents: 'none', // Allows clicking through the invisible background to your UI
-        }
-        // NOTE: We intentionally leave 'spotlight' styles EMPTY here to prevent fatal React SVG validation errors!
+        options: { zIndex: 999999 }
       }}
     />
   );
