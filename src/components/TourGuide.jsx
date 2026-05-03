@@ -12,7 +12,17 @@ const CustomTooltip = ({ index, step, backProps, primaryProps, isLastStep, toolt
     <div {...tooltipProps} className="bg-st-bg border border-st-border shadow-2xl rounded-lg p-4 max-w-sm w-full flex flex-col gap-3 z-[999999]">
       <div className="flex justify-between items-start gap-4">
         <div className="text-sm text-st-text leading-snug font-medium whitespace-pre-wrap">{step.content}</div>
-        <button type="button" onClick={stopTour} className="text-st-text-light hover:text-red-500 font-bold text-xl leading-none px-1 cursor-pointer transition-colors" title="Close Tour">
+        <button 
+          type="button" 
+          onPointerDown={(e) => e.stopPropagation()}
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            stopTour();
+          }} 
+          className="text-st-text-light hover:text-red-500 font-bold text-xl leading-none px-1 cursor-pointer transition-colors" 
+          title="Close Tour"
+        >
           &times;
         </button>
       </div>
@@ -22,7 +32,10 @@ const CustomTooltip = ({ index, step, backProps, primaryProps, isLastStep, toolt
           {step.data?.skipTo && (
             <button
               type="button"
-              onClick={() => {
+              onPointerDown={(e) => e.stopPropagation()}
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
                 if (step.data.onSkip) step.data.onSkip(step.data.skipTo);
               }}
               className="text-xs bg-[#2b2b2b] text-st-orange px-2 py-1.5 rounded border border-st-orange hover:bg-st-orange hover:text-[#2b2b2b] font-bold transition-colors shadow-sm cursor-pointer"
@@ -148,8 +161,8 @@ export default function TourGuide() {
         onSkip: (targetId) => {
           const targetIdx = rawSteps.findIndex(s => s.id === targetId);
           if (targetIdx !== -1) {
-            // Uncontrolled API is safe and instant when fired from custom components
-            joyrideHelpers.current?.go(targetIdx); 
+            // Push execution to the end of the event loop to prevent Joyride internal race conditions
+            setTimeout(() => joyrideHelpers.current?.go(targetIdx), 0);
           }
         }
       }
