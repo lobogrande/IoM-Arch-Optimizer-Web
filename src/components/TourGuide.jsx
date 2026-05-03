@@ -4,7 +4,10 @@ import React from 'react';
 import * as JoyrideModule from 'react-joyride';
 import useStore from '../store';
 
-const Joyride = JoyrideModule.default || JoyrideModule;
+// Safely unpack the component. Vite often double-wraps CJS modules in a nested default object.
+const Joyride = typeof JoyrideModule.default === 'function' 
+  ? JoyrideModule.default 
+  : (JoyrideModule.default?.default || Object.values(JoyrideModule).find(v => typeof v === 'function'));
 
 // We are targeting elements that are 100% guaranteed to exist on the screen
 const DEBUG_STEPS =[
