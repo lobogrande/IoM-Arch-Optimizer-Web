@@ -184,10 +184,10 @@ export default function TourGuide() {
         target: step.target,
         placement: step.placement,
         disableBeacon: true,
-        // 💀 Core Fix: Leave overlay enabled so Joyride doesn't bind document click listeners!
-        disableOverlay: false, 
+        // 💀 THE REAL FIX: Because we are in Controlled Mode, we intercept the 'close' event.
+        // We can safely disable the overlay entirely. No gray screen, no spotlights!
+        disableOverlay: true, 
         disableScroll: true,
-        spotlightClicks: true,
         content: step.text,
         data: {
           clickTarget: step.clickTarget,
@@ -248,16 +248,6 @@ export default function TourGuide() {
       styles={{
         options: {
           zIndex: 999999,
-          // 💀 Overrides the forced overlay from spotlightClicks to be invisible
-          overlayColor: 'rgba(0,0,0,0)', 
-        },
-        overlay: {
-          // 💀 Allows all hardware clicks to fall directly through the invisible mask
-          pointerEvents: 'none', 
-        },
-        spotlight: {
-          // 💀 Removes click interception from the spotlight hole
-          pointerEvents: 'none',
         }
       }}
     />
