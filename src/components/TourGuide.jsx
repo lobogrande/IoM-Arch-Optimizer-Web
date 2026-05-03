@@ -132,15 +132,15 @@ export default function TourGuide() {
     };
 
     add('start', 'body', 'Welcome to Player Setup! This tour is completely unlocked. You can freely click tabs, type numbers, and scroll. Click Next to begin.', 'center');
-    add('profiles', '[data-tour="setup-profiles"]', 'This is the Profile Box. Because the screen is unlocked, try clicking the dropdown menu right now to see your profiles!', 'auto');
+    add('profiles', '[data-tour="setup-profiles"]', 'This is the Profile Box. Clicking the dropdown menu right now to see your saved profiles!', 'auto');
 
     // --- 1. GLOBAL SETTINGS ---
-    add('global-asc', '[data-tour="setup-asc"]', 'Set your Global Settings. Ascension properly filters available Base Stats, Upgrades, Idols, and Cards. Set this first!', 'auto', 'nav-stats', 'Skip Globals');
+    add('global-asc', '[data-tour="setup-asc"]', 'Set your Global Settings. Ascension filters available Base Stats, Upgrades, Idols, and Cards. Set this first!', 'auto', 'nav-stats', 'Skip Globals');
     add('global-arch', '[data-tour="setup-arch-level"]', 'Your Archaeology Level directly impacts how many stat points you have to distribute. Update this.', 'auto', 'nav-stats', 'Skip Globals');
-    add('global-floor', '[data-tour="setup-max-floor"]', 'Your Max Floor impacts filters for Internal Upgrades. Ensure this matches your game.', 'auto', 'nav-stats', 'Skip Globals');
+    add('global-floor', '[data-tour="setup-max-floor"]', 'Your Max Floor impacts filters for Internal Upgrades. Ensure this matches your max floor reached.', 'auto', 'nav-stats', 'Skip Globals');
 
     // --- 2. BASE STATS ---
-    add('nav-stats', '#setup-tab-stats', 'My setup is divided into tabs. Start with Base Stats. Please CLICK THIS TAB right now, and then click Next.', 'bottom', null, null, '#setup-tab-stats');
+    add('nav-stats', '#setup-tab-stats', 'The Player Setup is divided into tabs. Start with Base Stats. Please CLICK THIS TAB now, and then click Next.', 'bottom', null, null, '#setup-tab-stats');
 
     const baseStats =[ 'Str', 'Agi', 'Per', 'Int', 'Luck' ];
     if (asc1_unlocked) baseStats.push('Div');
@@ -156,25 +156,25 @@ export default function TourGuide() {
     add('upgrades_int_content', 'div[id^="setup-upg-"]', 'Here is your first Internal Upgrade box. Click Next to dismiss this popup so it stops obscuring the screen, then finish filling out the rest of your upgrades.', 'right', 'nav-upgrades_ext', 'Skip Int Upgrades');
 
     // --- 4. EXTERNAL UPGRADES ---
-    add('nav-upgrades_ext', '#setup-tab-upgrades_ext', 'Take your time to finish filling out your Internal Upgrades! When you are ready, please CLICK THIS TAB for External Upgrades, and then click Next.', 'bottom', null, null, '#setup-tab-upgrades_ext');
+    add('nav-upgrades_ext', '#setup-tab-upgrades_ext', 'Please finish filling out your Internal Upgrades. When you are ready, please CLICK THIS TAB for External Upgrades, and then click Next.', 'bottom', null, null, '#setup-tab-upgrades_ext');
 
     const addExt = (extId, content) => {
       add(`ext-${extId}`, `#setup-ext-${extId}`, content, 'auto', 'nav-cards', 'Skip Ext Upgrades');
     };
 
-    addExt('axolotl', 'Axolotl Pet: A "-1" means you don\'t own it yet. A "0" means you own it but haven\'t ranked it up. Set its rank according to the game.');
-    addExt('dino', 'Dino Pet: Same as the Axolotl. "-1" means not owned, "0" means base rank. Enter your rank here.');
+    addExt('axolotl', 'Axolotl Pet: A "-1" means you don\'t own it yet. A "0" means you own it but haven\'t ranked it up. Set the value according to your quest rank in the game.');
+    addExt('dino', 'Dino Pet: Same as the Axolotl. "-1" means not owned, "0" means base rank. Enter your quest rank here.');
     addExt('geoduck', 'Geoduck Tribute: Enter the number of Mythic Chests owned. You can find this in your game\'s Relic menu by looking at the summary window at the top.');
     addExt('avada', 'Avada-Keda Skill: Check this box if you have purchased this skill in the game.');
     addExt('block', 'Block Bonker Skill: Check this box if you have purchased this skill in the game.');
     addExt('arch_bundle', 'Archaeology Bundle: If you are past OB30 and don\'t see the VP bundle in the game store, you already bought it! Check the box.');
     addExt('asc_bundle', 'Ascension Bundle: Same as the Arch bundle, but requires defeating OB66.');
-    addExt('arch_card', 'Arch Ability Card: 0=Locked, 1=Base, 2=Gilded, 3=Poly, 4=Infernal. If Infernal, remember to fill out the negative bonus buff below it!');
+    addExt('arch_card', 'Arch Ability Card: 0=Not Owned, 1=Base, 2=Gilded, 3=Poly, 4=Infernal. If Infernal, remember to fill out the negative bonus buff below it!');
 
     // --- 5. CARDS ---
     add('nav-cards', '#setup-tab-cards', 'Almost done! Time for Block Cards. Please CLICK THIS TAB, and then click Next.', 'bottom', null, null, '#setup-tab-cards');
-    add('total-infernal', '[data-tour="setup-total-infernal"]', 'Total Infernal Cards: Enter your total owned across ALL categories (fishing, arch, etc). This number is highly important because it calculates your massive infernal bonus!', 'auto', 'nav-idols', 'Skip Cards');
-    add('first-card', '#setup-card-dirt1', 'Here is your first Block Card. Set states just like before. Click Next to dismiss this popup so it stops obscuring the screen, then finish filling out the rest of the cards.', 'right', 'nav-idols', 'Skip Cards');
+    add('total-infernal', '[data-tour="setup-total-infernal"]', 'Total Infernal Cards: Enter your total owned across ALL categories (fishing, arch, etc). This number is important because it is used to calculate your infernal bonus!', 'auto', 'nav-idols', 'Skip Cards');
+    add('first-card', '#setup-card-dirt1', 'Here is your first Block Card: 0=Not Owned, 1=Base, 2=Gilded, 3=Poly, 4=Infernal. Click Next to dismiss this popup so it stops obscuring the screen, then finish filling out the rest of the cards.', 'right', 'nav-idols', 'Skip Cards');
     
     if (reactiveCardId) {
        add('reactive-card', `#setup-card-info-${reactiveCardId}`, 'Excellent! Because you set a card to Poly or Infernal, notice the potential Infernal buff bonus displayed below the card. This updates automatically!', 'auto', 'nav-idols', 'Skip Cards');
@@ -191,7 +191,7 @@ export default function TourGuide() {
     }
 
     // --- 7. CONCLUSION ---
-    add('conclusion', '[data-tour="main-tab-calc_stats"]', 'You have successfully finished entering your full Player Setup! CLICK THIS MAIN TAB to verify your stats against the in-game UI to ensure perfect accuracy.', 'bottom', null, null, '[data-tour="main-tab-calc_stats"]');
+    add('conclusion', '[data-tour="main-tab-calc_stats"]', 'You have successfully completed your Player Setup! CLICK THIS TAB to see your calculated stats and verify them against the in-game Arch Stats UI to ensure data entry accuracy.', 'bottom', null, null, '[data-tour="main-tab-calc_stats"]');
 
     return s;
   },[ activeTourId, asc1_unlocked, asc2_unlocked, reactiveCardId ]);
