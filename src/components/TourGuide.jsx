@@ -1,16 +1,8 @@
 // src/components/TourGuide.jsx
 // -> REPLACE ENTIRE FILE WITH:
-import React, { useEffect } from 'react';
-import * as JoyrideModule from 'react-joyride';
+import React from 'react';
+import Joyride, { ACTIONS, EVENTS, STATUS } from 'react-joyride';
 import useStore from '../store';
-
-// 🕵️‍♂️ VITE CJS/ESM SAFE UNPACKING
-// This strictly targets the component. If Vite double-wraps it, we unwrap it safely.
-let Joyride = JoyrideModule.default;
-if (Joyride && typeof Joyride !== 'function' && typeof Joyride.default === 'function') {
-  Joyride = Joyride.default;
-}
-const { ACTIONS, EVENTS, STATUS } = JoyrideModule;
 
 const TOUR_STEPS = {
   setup: [
@@ -52,13 +44,6 @@ const TOUR_STEPS = {
 export default function TourGuide() {
   const { tourActive, activeTourId, tourStepIndex, stopTour, setTourStepIndex, setActiveSubTab, theme } = useStore();
 
-  // Failsafe logger to ensure we actually grabbed the Component
-  useEffect(() => {
-    if (tourActive && typeof Joyride !== 'function') {
-      console.error("🚨 CRITICAL: react-joyride failed to unpack. Joyride is:", typeof Joyride, Joyride);
-    }
-  }, [ tourActive ]);
-
   const handleCallback = (data) => {
     const { action, index, status, type } = data;
 
@@ -96,11 +81,8 @@ export default function TourGuide() {
     }
   };
 
-  // Prevent parsing bug by spacing the fallback array
   const currentSteps = (activeTourId && TOUR_STEPS[ activeTourId ]) ? TOUR_STEPS[ activeTourId ] : [ ];
 
-  // We keep Joyride mounted and just pass an empty array if no tour is active. 
-  // This prevents React lifecycle bugs when dynamically injecting portals.
   if (!tourActive || !activeTourId || currentSteps.length === 0) return null;
 
   return (
