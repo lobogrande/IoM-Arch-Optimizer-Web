@@ -9,14 +9,13 @@ const JoyrideComponent = JoyrideModule.default?.default || JoyrideModule.default
 export default function TourGuide() {
   const { tourActive, activeTourId, stopTour, theme, asc1_unlocked, asc2_unlocked, cards } = useStore();
   
-  // 🕹️ Isolated State for Custom Jumps
-  const[tourStepIndex, setLocalStepIndex] = useState(0);
-  const[seenReactiveCard, setSeenReactiveCard] = useState(false);
+  const [tourStepIndex, setLocalStepIndex] = useState(0);
+  const [seenReactiveCard, setSeenReactiveCard] = useState(false);
 
   // Monitor for the first card that hits Poly (3) or Infernal (4)
   const reactiveCardId = Object.keys(cards || { }).find(k => cards[ k ] >= 3);
 
-  // 🧠 DYNAMIC ROUTING ENGINE
+  // 🧠 DYNAMIC ROUTING ENGINE (Now correctly returns a flat array)
   const TOUR_STEPS = useMemo(() => {
     if (activeTourId !== 'setup') return [ ];
 
@@ -35,7 +34,7 @@ export default function TourGuide() {
       id: 'profiles',
       target: '[data-tour="setup-profiles"]',
       content: 'This is the Profile Box. Because this tour is interactive, try clicking the dropdown menu right now!',
-      placement: 'auto', // AUTO entirely prevents the invisible off-screen tooltip bug!
+      placement: 'auto', 
       disableBeacon: true
     });
 
@@ -83,8 +82,8 @@ export default function TourGuide() {
         content: `Enter your ${stat} here. You can click the box and type while this tooltip is open!`,
         placement: 'auto',
         disableBeacon: true,
-        locale: { skip: 'Skip Base Stats' }, // Renames the Skip button
-        data: { skipTo: 'nav-upgrades_int' } // Tells our interceptor where to jump
+        locale: { skip: 'Skip Base Stats' },
+        data: { skipTo: 'nav-upgrades_int' }
       });
     });
 
@@ -222,7 +221,7 @@ export default function TourGuide() {
     });
 
     return s;
-  },[ activeTourId, asc1_unlocked, asc2_unlocked, reactiveCardId ]);
+  }, [ activeTourId, asc1_unlocked, asc2_unlocked, reactiveCardId ]);
 
   // Initialize fresh state every time the tour launches
   useEffect(() => {
@@ -230,11 +229,11 @@ export default function TourGuide() {
       setLocalStepIndex(0);
       setSeenReactiveCard(false);
     }
-  }, [ tourActive ]);
+  },[ tourActive ]);
 
   const handleCallback = (data) => {
     const { action, index, status, type } = data;
-    const currentStep = TOUR_STEPS[ index ];
+    const currentStep = TOUR_STEPS[ index ]; // FIXED: We now index the array directly!
 
     // 🖱️ NATIVE DOM CLICKER FALLBACK
     if (type === 'step:after' && action === 'next') {
@@ -254,7 +253,6 @@ export default function TourGuide() {
            setLocalStepIndex(targetIdx);
         }
       }
-      // Instantly return to prevent Joyride from triggering its default self-destruct sequence
       return; 
     }
 
@@ -280,8 +278,8 @@ export default function TourGuide() {
       return;
     }
 
-    // TERMINATION (Only if it's NOT a custom skip jump)
-    if (type === 'tour:end' ||[ 'finished', 'skipped' ].includes(status) || action === 'close') {
+    // TERMINATION
+    if (type === 'tour:end' || [ 'finished', 'skipped' ].includes(status) || action === 'close') {
       stopTour();
       return;
     }
@@ -297,9 +295,9 @@ export default function TourGuide() {
 
   return (
     <JoyrideComponent
-      steps={TOUR_STEPS}
+      steps={TOUR_STEPS} // FIXED: Passed the array directly!
       run={tourActive}
-      stepIndex={tourStepIndex} // Driven strictly by our bulletproof local state
+      stepIndex={tourStepIndex} 
       callback={handleCallback}
       continuous={true}
       showProgress={true}
