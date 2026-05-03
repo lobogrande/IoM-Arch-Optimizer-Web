@@ -1,7 +1,11 @@
 // src/components/TourGuide.jsx
 import React from 'react';
-import Joyride, { ACTIONS, EVENTS, STATUS } from 'react-joyride';
+import * as JoyrideModule from 'react-joyride';
 import useStore from '../store';
+
+// Safely extract the default component and named constants to support Vite ESM/CJS interop
+const Joyride = JoyrideModule.default || JoyrideModule.Joyride || JoyrideModule;
+const { ACTIONS, EVENTS, STATUS } = JoyrideModule;
 
 const TOUR_STEPS = {
   setup:[
