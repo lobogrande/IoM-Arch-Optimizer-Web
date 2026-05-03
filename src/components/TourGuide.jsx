@@ -244,6 +244,7 @@ export default function TourGuide() {
       showSkipButton={false}
       disableOverlayClose={true}
       disableCloseOnEsc={true}
+      disableFocusTrap={true} // 💀 THE FINAL UNLOCK: Kills the invisible React Focus Trap!
       tooltipComponent={CustomTooltip}
       styles={{
         options: {
