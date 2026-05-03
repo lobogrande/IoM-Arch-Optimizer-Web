@@ -7,12 +7,11 @@ import useStore from '../store';
 const Joyride = JoyrideModule.default || JoyrideModule.Joyride || JoyrideModule;
 const { ACTIONS, EVENTS, STATUS } = JoyrideModule;
 
-const TOUR_STEPS = {
+const RAW_TOUR_STEPS = {
   setup:[
     {
       target: '#tour-setup-profiles',
       content: 'Welcome to Player Setup! I use this area to manage your saved loadouts and character states so you can easily swap between different builds.',
-      disableBeacon: true,
       placement: 'auto'
     },
     {
@@ -67,6 +66,18 @@ const TOUR_STEPS = {
   ]
 };
 
+// Globally force standard UX rules across all steps
+const TOUR_STEPS = Object.fromEntries(
+  Object.entries(RAW_TOUR_STEPS).map(([key, steps]) =>[
+    key,
+    steps.map(step => ({
+      ...step,
+      disableBeacon: true, // completely removes the invisible pulsing circle
+      spotlightPadding: 8  // adds a nice breathable gap around the highlighted UI element
+    }))
+  ])
+);
+
 export default function TourGuide() {
   const { 
     tourActive, activeTourId, tourStepIndex, 
@@ -83,22 +94,19 @@ export default function TourGuide() {
       return;
     }
 
-    // Advance steps (both Forward and Backward)
-    if (type === EVENTS.STEP_AFTER || type === EVENTS.TARGET_NOT_FOUND) {
-      // If it can't find a target, it skips forward to prevent infinite locks
+    // Advance steps ONLY when the user explicitly clicks Next or Back
+    if (type === EVENTS.STEP_AFTER) {
       const nextIndex = index + (action === ACTIONS.PREV ? -1 : 1);
       const nextStep = TOUR_STEPS[activeTourId]?.[nextIndex];
       
       // Smart Tab Switching:
-      // If the NEXT step has a subTab payload, we programmaticly switch the tab in Zustand
-      // BEFORE Joyride tries to mount and find the target DOM node.
       if (nextStep && nextStep.data && nextStep.data.subTab) {
         setActiveSubTab(nextStep.data.subTab);
         
-        // Let React unmount/remount the DOM under the new tab before Joyride targets it
+        // Give React a 200ms buffer to fully destroy the old tab and paint the new DOM nodes
         setTimeout(() => {
           setTourStepIndex(nextIndex);
-        }, 50);
+        }, 200);
       } else {
         setTourStepIndex(nextIndex);
       }
@@ -126,10 +134,15 @@ export default function TourGuide() {
           backgroundColor: theme === 'dark' ? '#262730' : '#FFFFFF',
           textColor: theme === 'dark' ? '#FAFAFA' : '#31333F',
           arrowColor: theme === 'dark' ? '#262730' : '#FFFFFF',
-          overlayColor: 'rgba(0, 0, 0, 0.7)',
+          overlayColor: 'rgba(0, 0, 0, 0.85)', // Darkened the background for better contrast
         },
         tooltipContainer: {
           textAlign: 'left',
+        },
+        tooltip: {
+          // Added subtle border so the tooltip pops off the dark background
+          border: theme === 'dark' ? '1px solid rgba(255, 162, 41, 0.5)' : 'none', 
+          boxShadow: '0 10px 25px rgba(0,0,0,0.5)'
         },
         buttonNext: {
           backgroundColor: '#ffa229',
