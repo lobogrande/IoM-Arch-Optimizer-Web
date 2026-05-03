@@ -124,74 +124,95 @@ export default function TourGuide() {
 
   // 🧠 DYNAMIC ROUTING ENGINE (Granular Walkthroughs Restored)
   const rawSteps = useMemo(() => {
-    if (activeTourId !== 'setup') return [ ];
-
     const s =[ ];
     const add = (id, target, text, placement, skipTo = null, skipLabel = null, clickTarget = null) => {
       s.push({ id, target, text, placement, skipTo, skipLabel, clickTarget });
     };
 
-    add('start', 'body', 'Welcome to Player Setup! This tour is completely unlocked. You can freely click tabs, type numbers, and scroll. Click Next to begin.', 'center');
-    add('profiles', '[data-tour="setup-profiles"]', 'This is the Profile Box. Clicking the dropdown menu right now to see your saved profiles!', 'auto');
+    if (activeTourId === 'setup') {
+      add('start', 'body', 'Welcome to Player Setup! This tour is completely unlocked. You can freely click tabs, type numbers, and scroll. Click Next to begin.', 'center');
+      add('profiles', '[data-tour="setup-profiles"]', 'This is the Profile Box. Clicking the dropdown menu right now to see your saved profiles!', 'auto');
 
-    // --- 1. GLOBAL SETTINGS ---
-    add('global-asc', '[data-tour="setup-asc"]', 'Set your Global Settings. Ascension filters available Base Stats, Upgrades, Idols, and Cards. Set this first!', 'auto', 'nav-stats', 'Skip Globals');
-    add('global-arch', '[data-tour="setup-arch-level"]', 'Your Archaeology Level directly impacts how many stat points you have to distribute. Update this.', 'auto', 'nav-stats', 'Skip Globals');
-    add('global-floor', '[data-tour="setup-max-floor"]', 'Your Max Floor impacts filters for Internal Upgrades. Ensure this matches your max floor reached.', 'auto', 'nav-stats', 'Skip Globals');
+      // --- 1. GLOBAL SETTINGS ---
+      add('global-asc', '[data-tour="setup-asc"]', 'Set your Global Settings. Ascension filters available Base Stats, Upgrades, Idols, and Cards. Set this first!', 'auto', 'nav-stats', 'Skip Globals');
+      add('global-arch', '[data-tour="setup-arch-level"]', 'Your Archaeology Level directly impacts how many stat points you have to distribute. Update this.', 'auto', 'nav-stats', 'Skip Globals');
+      add('global-floor', '[data-tour="setup-max-floor"]', 'Your Max Floor impacts filters for Internal Upgrades. Ensure this matches your max floor reached.', 'auto', 'nav-stats', 'Skip Globals');
 
-    // --- 2. BASE STATS ---
-    add('nav-stats', '#setup-tab-stats', 'The Player Setup is divided into tabs. Start with Base Stats. Please CLICK THIS TAB now, and then click Next.', 'bottom', null, null, '#setup-tab-stats');
+      // --- 2. BASE STATS ---
+      add('nav-stats', '#setup-tab-stats', 'The Player Setup is divided into tabs. Start with Base Stats. Please CLICK THIS TAB now, and then click Next.', 'bottom', null, null, '#setup-tab-stats');
 
-    const baseStats =[ 'Str', 'Agi', 'Per', 'Int', 'Luck' ];
-    if (asc1_unlocked) baseStats.push('Div');
-    if (asc2_unlocked) baseStats.push('Corr');
+      const baseStats =[ 'Str', 'Agi', 'Per', 'Int', 'Luck' ];
+      if (asc1_unlocked) baseStats.push('Div');
+      if (asc2_unlocked) baseStats.push('Corr');
 
-    baseStats.forEach(stat => {
-      add(`stat-${stat}`, `#setup-stat-${stat}`, `Enter your ${stat} here. You can click the box and type while this tooltip is open!`, 'auto', 'nav-upgrades_int', 'Skip Base Stats');
-    });
+      baseStats.forEach(stat => {
+        add(`stat-${stat}`, `#setup-stat-${stat}`, `Enter your ${stat} here. You can click the box and type while this tooltip is open!`, 'auto', 'nav-upgrades_int', 'Skip Base Stats');
+      });
 
-    // --- 3. INTERNAL UPGRADES ---
-    add('nav-upgrades_int', '#setup-tab-upgrades_int', 'Now let\'s check out the Internal Upgrades. Please CLICK THIS TAB to open it, and then click Next.', 'bottom', null, null, '#setup-tab-upgrades_int');
-    add('hide-maxed', '[data-tour="setup-hide-maxed"]', 'This toggle hides maxed upgrades to reduce screen clutter. Give it a click!', 'auto', 'nav-upgrades_ext', 'Skip Int Upgrades');
-    add('upgrades_int_content', 'div[id^="setup-upg-"]', 'Here is your first Internal Upgrade box. Click Next to dismiss this popup so it stops obscuring the screen, then finish filling out the rest of your upgrades.', 'right', 'nav-upgrades_ext', 'Skip Int Upgrades');
+      // --- 3. INTERNAL UPGRADES ---
+      add('nav-upgrades_int', '#setup-tab-upgrades_int', 'Now let\'s check out the Internal Upgrades. Please CLICK THIS TAB to open it, and then click Next.', 'bottom', null, null, '#setup-tab-upgrades_int');
+      add('hide-maxed', '[data-tour="setup-hide-maxed"]', 'This toggle hides maxed upgrades to reduce screen clutter. Give it a click!', 'auto', 'nav-upgrades_ext', 'Skip Int Upgrades');
+      add('upgrades_int_content', 'div[id^="setup-upg-"]', 'Here is your first Internal Upgrade box. Click Next to dismiss this popup so it stops obscuring the screen, then finish filling out the rest of your upgrades.', 'right', 'nav-upgrades_ext', 'Skip Int Upgrades');
 
-    // --- 4. EXTERNAL UPGRADES ---
-    add('nav-upgrades_ext', '#setup-tab-upgrades_ext', 'Please finish filling out your Internal Upgrades. When you are ready, please CLICK THIS TAB for External Upgrades, and then click Next.', 'bottom', null, null, '#setup-tab-upgrades_ext');
+      // --- 4. EXTERNAL UPGRADES ---
+      add('nav-upgrades_ext', '#setup-tab-upgrades_ext', 'Please finish filling out your Internal Upgrades. When you are ready, please CLICK THIS TAB for External Upgrades, and then click Next.', 'bottom', null, null, '#setup-tab-upgrades_ext');
 
-    const addExt = (extId, content) => {
-      add(`ext-${extId}`, `#setup-ext-${extId}`, content, 'auto', 'nav-cards', 'Skip Ext Upgrades');
-    };
+      const addExt = (extId, content) => {
+        add(`ext-${extId}`, `#setup-ext-${extId}`, content, 'auto', 'nav-cards', 'Skip Ext Upgrades');
+      };
 
-    addExt('axolotl', 'Axolotl Pet: A "-1" means you don\'t own it yet. A "0" means you own it but haven\'t ranked it up. Set the value according to your quest rank in the game.');
-    addExt('dino', 'Dino Pet: Same as the Axolotl. "-1" means not owned, "0" means base rank. Enter your quest rank here.');
-    addExt('geoduck', 'Geoduck Tribute: Enter the number of Mythic Chests owned. You can find this in your game\'s Relic menu by looking at the summary window at the top.');
-    addExt('avada', 'Avada-Keda Skill: Check this box if you have purchased this skill in the game.');
-    addExt('block', 'Block Bonker Skill: Check this box if you have purchased this skill in the game.');
-    addExt('arch_bundle', 'Archaeology Bundle: If you are past OB30 and don\'t see the VP bundle in the game store, you already bought it! Check the box.');
-    addExt('asc_bundle', 'Ascension Bundle: Same as the Arch bundle, but requires defeating OB66.');
-    addExt('arch_card', 'Arch Ability Card: 0=Not Owned, 1=Base, 2=Gilded, 3=Poly, 4=Infernal. If Infernal, remember to fill out the negative bonus buff below it!');
+      addExt('axolotl', 'Axolotl Pet: A "-1" means you don\'t own it yet. A "0" means you own it but haven\'t ranked it up. Set the value according to your quest rank in the game.');
+      addExt('dino', 'Dino Pet: Same as the Axolotl. "-1" means not owned, "0" means base rank. Enter your quest rank here.');
+      addExt('geoduck', 'Geoduck Tribute: Enter the number of Mythic Chests owned. You can find this in your game\'s Relic menu by looking at the summary window at the top.');
+      addExt('avada', 'Avada-Keda Skill: Check this box if you have purchased this skill in the game.');
+      addExt('block', 'Block Bonker Skill: Check this box if you have purchased this skill in the game.');
+      addExt('arch_bundle', 'Archaeology Bundle: If you are past OB30 and don\'t see the VP bundle in the game store, you already bought it! Check the box.');
+      addExt('asc_bundle', 'Ascension Bundle: Same as the Arch bundle, but requires defeating OB66.');
+      addExt('arch_card', 'Arch Ability Card: 0=Not Owned, 1=Base, 2=Gilded, 3=Poly, 4=Infernal. If Infernal, remember to fill out the negative bonus buff below it!');
 
-    // --- 5. CARDS ---
-    add('nav-cards', '#setup-tab-cards', 'Almost done! Time for Block Cards. Please CLICK THIS TAB, and then click Next.', 'bottom', null, null, '#setup-tab-cards');
-    add('total-infernal', '[data-tour="setup-total-infernal"]', 'Total Infernal Cards: Enter your total owned across ALL categories (fishing, arch, etc). This number is important because it is used to calculate your infernal bonus!', 'auto', 'nav-idols', 'Skip Cards');
-    add('first-card', '#setup-card-dirt1', 'Here is your first Block Card: 0=Not Owned, 1=Base, 2=Gilded, 3=Poly, 4=Infernal. Click Next to dismiss this popup so it stops obscuring the screen, then finish filling out the rest of the cards.', 'right', 'nav-idols', 'Skip Cards');
-    
-    if (reactiveCardId) {
-       add('reactive-card', `#setup-card-info-${reactiveCardId}`, 'Excellent! Because you set a card to Poly or Infernal, notice the potential Infernal buff bonus displayed below the card. This updates automatically!', 'auto', 'nav-idols', 'Skip Cards');
+      // --- 5. CARDS ---
+      add('nav-cards', '#setup-tab-cards', 'Almost done! Time for Block Cards. Please CLICK THIS TAB, and then click Next.', 'bottom', null, null, '#setup-tab-cards');
+      add('total-infernal', '[data-tour="setup-total-infernal"]', 'Total Infernal Cards: Enter your total owned across ALL categories (fishing, arch, etc). This number is important because it is used to calculate your infernal bonus!', 'auto', 'nav-idols', 'Skip Cards');
+      add('first-card', '#setup-card-dirt1', 'Here is your first Block Card: 0=Not Owned, 1=Base, 2=Gilded, 3=Poly, 4=Infernal. Click Next to dismiss this popup so it stops obscuring the screen, then finish filling out the rest of the cards.', 'right', 'nav-idols', 'Skip Cards');
+      
+      if (reactiveCardId) {
+         add('reactive-card', `#setup-card-info-${reactiveCardId}`, 'Excellent! Because you set a card to Poly or Infernal, notice the potential Infernal buff bonus displayed below the card. This updates automatically!', 'auto', 'nav-idols', 'Skip Cards');
+      }
+
+      // --- 6. IDOLS ---
+      add('nav-idols', '#setup-tab-idols', 'Take your time to finish filling out your cards. When you are done, please CLICK THIS TAB to open Arch Idols, and then click Next.', 'bottom', null, null, '#setup-tab-idols');
+
+      if (!asc1_unlocked) {
+        add('idols-locked', '#setup-idols-locked', 'As expected, because you have not unlocked Ascension 1, Arch Idols are hidden. You don\'t need to do anything here!', 'auto', 'conclusion', 'Skip Idols');
+      } else {
+        add('idols-hestia', '#setup-ext-hestia', 'Enter your current Hestia Idol level here.', 'auto', 'conclusion', 'Skip Idols');
+        add('idols-hades', '#setup-ext-hades', 'And enter your Hades Idol level here.', 'auto', 'conclusion', 'Skip Idols');
+      }
+
+      // --- 7. CONCLUSION ---
+      add('conclusion', '[data-tour="main-tab-calc_stats"]', 'You have successfully completed your Player Setup! CLICK THIS TAB to see your calculated stats and verify them against the in-game Arch Stats UI to ensure data entry accuracy.', 'bottom', null, null, '[data-tour="main-tab-calc_stats"]');
+
+    } else if (activeTourId === 'calc_stats') {
+      add('calc-start', 'body', 'Welcome to the Calculated Stats page! This tab accurately mirrors your in-game Archaeology stats based on the profile you set up.', 'center');
+      add('calc-compendium', '[data-tour="calc-compendium"]', 'Set your Compendium Target Floor here. This determines the exact monster HP scaling applied to your damage calculations.', 'bottom');
+      add('calc-grid', '[data-tour="calc-grid"]', 'Here is the breakdown of your exact stats. I strongly recommend double-checking these numbers against the game UI to verify your setup!', 'auto');
+      add('calc-optimizer-link', '[data-tour="main-tab-optimizer"]', 'Once your stats look correct, the real fun begins. CLICK THIS TAB to proceed to the Optimizer!', 'bottom', null, null, '[data-tour="main-tab-optimizer"]');
+      
+    } else if (activeTourId === 'optimizer') {
+      add('opt-start', 'body', 'Welcome to the Optimizer! My simulator runs the exact GameMaker math in a background Pyodide Web Worker to find the ultimate stat distributions.', 'center');
+      add('opt-goal', '[data-tour="opt-goal"]', 'First, choose your optimization Goal (e.g., Max Floor Push or Target Block Farm).', 'auto');
+      add('opt-constraints', '[data-tour="opt-constraints"]', 'Set your constraints: the time limit, your target blocks, and max simulations per second.', 'auto');
+      add('opt-locks', '[data-tour="opt-locks"]', 'Have a stat you refuse to drop? Lock its value here so the Optimizer engine respects your choice.', 'auto');
+      add('opt-run', '[data-tour="opt-run"]', 'Click this button to unleash the Web Worker! You can continue clicking around and using the app while it processes in the background.', 'bottom');
+      add('opt-sandbox-link', '[data-tour="main-tab-sandbox"]', 'Curious about a specific custom build or want to manually test something? CLICK THIS TAB to open the Sandbox.', 'bottom', null, null, '[data-tour="main-tab-sandbox"]');
+
+    } else if (activeTourId === 'sandbox') {
+      add('sand-start', 'body', 'Welcome to the Sandbox! This is my testing ground for experimenting with hypothetical stat distributions outside of the main profile.', 'center');
+      add('sand-stats', '[data-tour="sand-stats"]', 'Modify any stat here. These inputs are isolated and will not overwrite your actual saved profile.', 'auto');
+      add('sand-floor', '[data-tour="sand-floor"]', 'Set the target floor. The math engine will calculate your exact hits-to-kill against this floor.', 'auto');
+      add('sand-hits', '[data-tour="sand-hits"]', 'Use the Minimum Hits filter to quickly find break-points. Blocks requiring more hits than this will automatically be hidden.', 'auto');
+      add('sand-results', '[data-tour="sand-results"]', 'Your dynamic results appear here in real-time as you type. Go ahead and try changing a stat right now!', 'auto');
     }
-
-    // --- 6. IDOLS ---
-    add('nav-idols', '#setup-tab-idols', 'Take your time to finish filling out your cards. When you are done, please CLICK THIS TAB to open Arch Idols, and then click Next.', 'bottom', null, null, '#setup-tab-idols');
-
-    if (!asc1_unlocked) {
-      add('idols-locked', '#setup-idols-locked', 'As expected, because you have not unlocked Ascension 1, Arch Idols are hidden. You don\'t need to do anything here!', 'auto', 'conclusion', 'Skip Idols');
-    } else {
-      add('idols-hestia', '#setup-ext-hestia', 'Enter your current Hestia Idol level here.', 'auto', 'conclusion', 'Skip Idols');
-      add('idols-hades', '#setup-ext-hades', 'And enter your Hades Idol level here.', 'auto', 'conclusion', 'Skip Idols');
-    }
-
-    // --- 7. CONCLUSION ---
-    add('conclusion', '[data-tour="main-tab-calc_stats"]', 'You have successfully completed your Player Setup! CLICK THIS TAB to see your calculated stats and verify them against the in-game Arch Stats UI to ensure data entry accuracy.', 'bottom', null, null, '[data-tour="main-tab-calc_stats"]');
 
     return s;
   },[ activeTourId, asc1_unlocked, asc2_unlocked, reactiveCardId ]);
