@@ -92,8 +92,8 @@ export default function TourGuide() {
 
     add({
       target: 'div[id^="setup-upg-"]',
-      content: 'Please proceed to fill out all your current Archaeology upgrade levels. You can freely scroll through them while this tooltip stays here. Click next when finished.',
-      placement: 'right', // Forces the tooltip to sit nicely alongside the middle column
+      content: 'This is where you log your Internal Upgrades. Because this is a massive list, let\'s keep the tour moving! You can return to fill these out after the walkthrough is complete. Click Next to continue.',
+      placement: 'right', // Will sit on the right on wide monitors, and drop below on laptops/mobile seamlessly
       disableBeacon: true
     });
 
