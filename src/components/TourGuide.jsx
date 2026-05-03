@@ -166,12 +166,9 @@ export default function TourGuide() {
     addExt('dino', 'Dino Pet: Same as the Axolotl. "-1" means not owned, "0" means base rank. Enter your rank here.');
     addExt('geoduck', 'Geoduck Tribute: Enter the number of Mythic Chests owned. You can find this in your game\'s Relic menu by looking at the summary window at the top.');
     addExt('avada', 'Avada-Keda Skill: Check this box if you have purchased this skill in the game.');
-    
-    // ⚠️ CHANGE 'bonker' BELOW TO MATCH THE EXACT group.id FROM YOUR game_data.js!
-    addExt('bonker', 'Block Bonker Skill: Check this box if you have purchased this skill in the game.');
-    
+    addExt('block', 'Block Bonker Skill: Check this box if you have purchased this skill in the game.');
     addExt('arch_bundle', 'Archaeology Bundle: If you are past OB30 and don\'t see the VP bundle in the game store, you already bought it! Check the box.');
-    addExt('ascension_bundle', 'Ascension Bundle: Same as the Arch bundle, but requires defeating OB66.');
+    addExt('asc_bundle', 'Ascension Bundle: Same as the Arch bundle, but requires defeating OB66.');
     addExt('arch_card', 'Arch Ability Card: 0=Locked, 1=Base, 2=Gilded, 3=Poly, 4=Infernal. If Infernal, remember to fill out the negative bonus buff below it!');
 
     // --- 5. CARDS ---
