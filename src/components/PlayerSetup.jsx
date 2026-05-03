@@ -206,7 +206,7 @@ export default function PlayerSetup() {
     if (statKey === 'Corr' && !asc2_unlocked) return null;
 
     return (
-      <div id={`setup-stat-${statKey}`} className="st-container flex flex-col items-center justify-center p-4">
+      <div data-tour={`setup-stat-${statKey}`} id={`setup-stat-${statKey}`} className="st-container flex flex-col items-center justify-center p-4">
         <div className="text-center mb-2">
           <span className="font-bold">{label}</span><br/>
           <span className="text-sm text-st-text-light">(Max: {STAT_CAPS[statKey]})</span>
@@ -246,7 +246,7 @@ export default function PlayerSetup() {
       {/* LEFT COLUMN: Global Settings & Data Sync */}
       <div className="w-full md:w-1/4 flex flex-col gap-4">
 
-        <div id="tour-setup-profiles" className="st-container">
+        <div data-tour="setup-profiles" className="st-container">
           <h3 className="font-bold mb-4 flex items-center justify-between">
             <span className="flex items-center gap-2">👤 Player Profiles</span>
             {hasUnsavedChanges && <span className="text-[10px] bg-st-orange text-[#2b2b2b] px-2 py-0.5 rounded font-bold uppercase shadow-sm">Unsaved</span>}
@@ -497,7 +497,7 @@ export default function PlayerSetup() {
       {/* RIGHT COLUMN: Setup Data Sub-Tabs */}
       <div className="w-full md:w-3/4">
         
-        <div className="flex flex-wrap items-center justify-between border-b border-st-border mb-4">
+        <div data-tour="setup-tabs" className="flex flex-wrap items-center justify-between border-b border-st-border mb-4">
           <div className="flex flex-wrap flex-1">
             {[ '📊 Base Stats', '⬆️ Int. Upgrades', '🌟 Ext. Upgrades', '🎴 Block Cards', '🗿 Arch Idols' ].map((tab, idx) => {
               const tabId =[ 'stats', 'upgrades_int', 'upgrades_ext', 'cards', 'idols' ][idx];
@@ -589,7 +589,7 @@ export default function PlayerSetup() {
         {activeSubTab === 'upgrades_int' && (
           <div id="tour-setup-int-upgrades">
             <div className="flex flex-col gap-4 mb-4">
-              <div className="flex items-center gap-3">
+              <div data-tour="setup-hide-maxed" className="flex items-center gap-3 max-w-max">
                 <button 
                   onClick={() => setHideMaxed(!hideMaxed)}
                   className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors duration-200 focus:outline-none ${hideMaxed ? 'bg-st-orange' : 'bg-gray-300'}`}
