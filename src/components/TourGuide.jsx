@@ -1,6 +1,6 @@
 // src/components/TourGuide.jsx
 // -> REPLACE ENTIRE FILE WITH:
-import React, { useMemo, useState, useEffect } from 'react';
+import React, { useMemo, useRef, useState, useEffect } from 'react';
 import * as JoyrideModule from 'react-joyride';
 import useStore from '../store';
 
@@ -9,25 +9,21 @@ const JoyrideComponent = JoyrideModule.default?.default || JoyrideModule.default
 export default function TourGuide() {
   const { tourActive, activeTourId, stopTour, theme, asc1_unlocked, asc2_unlocked, cards } = useStore();
   
-  // 🕹️ Controlled State Engine
-  const [tourStepIndex, setLocalStepIndex] = useState(0);
+  // 🕹️ Internal API Hook for Custom Jumps (Uncontrolled Mode)
+  const joyrideHelpers = useRef(null);
   const [seenReactiveCard, setSeenReactiveCard] = useState(false);
 
-  const reactiveCardId = Object.keys(cards || {}).find(k => cards[k] >= 3);
+  const reactiveCardId = Object.keys(cards || { }).find(k => cards[ k ] >= 3);
 
-  // Initialize fresh state every time the tour launches
   useEffect(() => {
-    if (tourActive) {
-      setLocalStepIndex(0);
-      setSeenReactiveCard(false);
-    }
-  }, [tourActive]);
+    if (tourActive) setSeenReactiveCard(false);
+  }, [ tourActive ]);
 
-  // 🧠 THE STEP DEFINITIONS
+  // 🧠 DYNAMIC ROUTING ENGINE
   const rawSteps = useMemo(() => {
-    if (activeTourId !== 'setup') return [];
+    if (activeTourId !== 'setup') return [ ];
 
-    const s =[];
+    const s =[ ];
     const add = (id, target, text, placement, skipTo = null, skipLabel = null, clickTarget = null) => {
       s.push({ id, target, text, placement, skipTo, skipLabel, clickTarget });
     };
@@ -43,7 +39,7 @@ export default function TourGuide() {
     // --- 2. BASE STATS ---
     add('nav-stats', '#setup-tab-stats', 'Your setup is divided into tabs. We will start with Base Stats. Please CLICK THIS TAB right now, and then click Next.', 'bottom', null, null, '#setup-tab-stats');
 
-    const baseStats =['Str', 'Agi', 'Per', 'Int', 'Luck'];
+    const baseStats =[ 'Str', 'Agi', 'Per', 'Int', 'Luck' ];
     if (asc1_unlocked) baseStats.push('Div');
     if (asc2_unlocked) baseStats.push('Corr');
 
@@ -57,8 +53,7 @@ export default function TourGuide() {
     add('upgrades_int_content', 'div[id^="setup-upg-"]', 'Here is your first Internal Upgrade box. Click Next to dismiss this popup so it stops obscuring the screen, then finish filling out the rest of your upgrades.', 'right', 'nav-upgrades_ext', 'Skip Int Upgrades');
 
     // --- 4. EXTERNAL UPGRADES ---
-    // Docking the tooltip at the top Navigation bar so it stays out of the way!
-    add('nav-upgrades_ext', '#setup-tab-upgrades_ext', 'Finish filling out your internal upgrades first! When you are ready, please CLICK THIS TAB for External Upgrades, and then click Next.', 'bottom', null, null, '#setup-tab-upgrades_ext');
+    add('nav-upgrades_ext', '#setup-tab-upgrades_ext', 'Take your time to finish filling out your Internal Upgrades! When you are ready, please CLICK THIS TAB for External Upgrades, and then click Next.', 'bottom', null, null, '#setup-tab-upgrades_ext');
 
     const addExt = (extId, content) => {
       add(`ext-${extId}`, `#setup-ext-${extId}`, content, 'auto', 'nav-cards', 'Skip Ext Upgrades');
@@ -76,7 +71,7 @@ export default function TourGuide() {
     // --- 5. CARDS ---
     add('nav-cards', '#setup-tab-cards', 'Almost done! Time for Block Cards. Please CLICK THIS TAB, and then click Next.', 'bottom', null, null, '#setup-tab-cards');
     add('total-infernal', '[data-tour="setup-total-infernal"]', 'Total Infernal Cards: Enter your total owned across ALL categories (fishing, arch, etc). This number is highly important because it calculates your massive infernal bonus!', 'auto', 'nav-idols', 'Skip Cards');
-    add('first-card', '#setup-card-dirt1', 'Here is your first Block Card. Set states just like before: 0=Locked, 1=Base, 2=Gilded, 3=Poly, 4=Infernal. Click Next to dismiss this popup so it stops obscuring the screen, then finish filling out the rest of the cards.', 'right', 'nav-idols', 'Skip Cards');
+    add('first-card', '#setup-card-dirt1', 'Here is your first Block Card. Set states just like before. Click Next to dismiss this popup so it stops obscuring the screen, then finish filling out the rest of the cards.', 'right', 'nav-idols', 'Skip Cards');
     add('reactive-card', reactiveCardId ? `#setup-card-info-${reactiveCardId}` : 'body', 'Excellent! Because you set a card to Poly or Infernal, notice the potential Infernal buff bonus displayed below the card. This updates automatically!', 'auto', 'nav-idols', 'Skip Cards');
 
     // --- 6. IDOLS ---
@@ -93,10 +88,9 @@ export default function TourGuide() {
     add('conclusion', '[data-tour="main-tab-calc_stats"]', 'You have successfully finished entering your full Player Setup! CLICK THIS MAIN TAB to verify your stats against the in-game UI to ensure perfect accuracy.', 'bottom', null, null, '[data-tour="main-tab-calc_stats"]');
 
     return s;
-  },[activeTourId, asc1_unlocked, asc2_unlocked, reactiveCardId]);
+  },[ activeTourId, asc1_unlocked, asc2_unlocked, reactiveCardId ]);
 
-  // 🚀 COMPILE FINAL STEPS
-  // We strictly memoize the component injection so Joyride doesn't destroy the Skip buttons!
+  // 🚀 INJECT CUSTOM BUTTONS INTO RAW STEPS
   const TOUR_STEPS = useMemo(() => {
     return rawSteps.map(step => ({
       id: step.id,
@@ -104,20 +98,21 @@ export default function TourGuide() {
       placement: step.placement,
       disableBeacon: true,
       disableOverlay: true, // Permanent UI Unlock
-      data: step.clickTarget ? { clickTarget: step.clickTarget } : {},
+      data: step.clickTarget ? { clickTarget: step.clickTarget } : { },
       content: (
         <div className="flex flex-col gap-3">
           <span className="text-sm leading-snug">{step.text}</span>
           {step.skipTo && (
             <button
               type="button"
-              onPointerDown={(e) => e.stopPropagation()} // Prevents Joyride from hijacking the click
+              // 🔥 THIS IS WHY THE BUTTONS FAILED IN V18! Joyride swallows events. We punch through it here.
+              onPointerDown={(e) => e.stopPropagation()} 
               onClick={(e) => {
                 e.preventDefault();
                 e.stopPropagation();
                 const targetIdx = rawSteps.findIndex(s => s.id === step.skipTo);
                 if (targetIdx !== -1) {
-                  setLocalStepIndex(targetIdx); // Fire the Custom Jump!
+                  joyrideHelpers.current?.go(targetIdx); // Fire the Uncontrolled Custom Jump!
                 }
               }}
               className="self-start text-xs bg-[#2b2b2b] text-[#ffa229] px-3 py-1.5 rounded border border-[#ffa229] hover:bg-[#ffa229] hover:text-[#2b2b2b] font-bold transition-colors cursor-pointer shadow-sm"
@@ -128,18 +123,18 @@ export default function TourGuide() {
         </div>
       )
     }));
-  }, [rawSteps]);
+  }, [ rawSteps ]);
 
   const handleCallback = (data) => {
     const { action, index, status, type } = data;
 
-    // ⚡ REACTIVE CARD STEP SILENT SKIP
+    // ⚡ REACTIVE STEP SILENT SKIP
     if (type === 'step:before') {
-       const upcomingStep = TOUR_STEPS[index];
+       const upcomingStep = TOUR_STEPS[ index ];
        if (upcomingStep?.id === 'reactive-card') {
            const isBackward = action === 'prev';
            if (!reactiveCardId || seenReactiveCard) {
-               setLocalStepIndex(index + (isBackward ? -1 : 1));
+               setTimeout(() => joyrideHelpers.current?.go(index + (isBackward ? -1 : 1)), 0);
                return;
            } else {
                setSeenReactiveCard(true);
@@ -149,7 +144,7 @@ export default function TourGuide() {
 
     // 🖱️ NATIVE DOM CLICKER FALLBACK
     if (type === 'step:after' && action === 'next') {
-      const currentStep = TOUR_STEPS[index];
+      const currentStep = TOUR_STEPS[ index ];
       if (currentStep && currentStep.data && currentStep.data.clickTarget) {
         const btn = document.querySelector(currentStep.data.clickTarget);
         if (btn) btn.click();
@@ -157,21 +152,14 @@ export default function TourGuide() {
     }
 
     if (type === 'error:target_not_found' || type === 'error') {
-      console.error(`❌ [TOUR] Target missing on step ${index}. Stopping tour.`);
+      console.error(`❌ [TOUR] Target missing on step ${index}.`);
       stopTour();
       return;
     }
 
-    // 🛑 TERMINATE TOUR
-    if (type === 'tour:end' || ['finished', 'skipped'].includes(status) || action === 'close') {
+    // TERMINATE
+    if (type === 'tour:end' ||[ 'finished', 'skipped' ].includes(status) || action === 'close') {
       stopTour();
-      return;
-    }
-
-    // 🔄 STANDARD CONTROLLED ADVANCEMENT
-    if (type === 'step:after') {
-       const nextIndex = index + (action === 'prev' ? -1 : 1);
-       setLocalStepIndex(nextIndex);
     }
   };
 
@@ -181,11 +169,12 @@ export default function TourGuide() {
     <JoyrideComponent
       steps={TOUR_STEPS}
       run={tourActive}
-      stepIndex={tourStepIndex} // Controlled Mode stabilized!
+      // NO STEPINDEX! UNCONTROLLED MODE ONLY!
+      getHelpers={(helpers) => { joyrideHelpers.current = helpers; }} // Extracts API for skips
       callback={handleCallback}
       continuous={true}
       showProgress={true}
-      showSkipButton={false} // Hidden to use our custom buttons instead
+      showSkipButton={false}
       disableOverlayClose={true}
       styles={{
         options: {
