@@ -1,22 +1,41 @@
 // src/components/TourGuide.jsx
-import React, { useMemo, useRef, useState, useEffect } from 'react';
+// -> REPLACE ENTIRE FILE WITH:
+import React, { useMemo, useState, useEffect } from 'react';
 import * as JoyrideModule from 'react-joyride';
 import useStore from '../store';
 
 const JoyrideComponent = JoyrideModule.default?.default || JoyrideModule.default || JoyrideModule.Joyride;
 
-const CustomTooltip = ({ index, step, backProps, primaryProps, isLastStep, tooltipProps }) => {
-  // Directly subscribe to the global store to bypass Joyride's prop stripping entirely
+const CustomTooltip = ({ index, step, isLastStep, tooltipProps }) => {
+  // 🛡️ Direct Zustand subscription completely bypasses Joyride's internal prop stripping
   const stopTour = useStore((state) => state.stopTour);
   const setTourStepIndex = useStore((state) => state.setTourStepIndex);
   
+  const handleNext = (e) => {
+    e.preventDefault();
+    if (isLastStep) {
+      stopTour();
+      return;
+    }
+
+    // 🛡️ The 100ms Bridge: If the step has a tab target, click the tab hardware, 
+    // then give React 18 a 100ms delay to paint the new UI before advancing the tour.
+    if (step.data?.clickTarget) {
+      const btn = document.querySelector(step.data.clickTarget);
+      if (btn) btn.click();
+      setTimeout(() => setTourStepIndex(index + 1), 100);
+    } else {
+      setTourStepIndex(index + 1);
+    }
+  };
+
   return (
-    <div {...tooltipProps} className="bg-st-bg border border-st-border shadow-2xl rounded-lg p-4 max-w-sm w-full flex flex-col gap-3 z-[999999]">
+    <div {...tooltipProps} className="bg-st-bg border border-st-border shadow-2xl rounded-lg p-4 max-w-sm w-full flex flex-col gap-3 z-[999999]" style={{ ...tooltipProps.style, pointerEvents: 'auto' }}>
       <div className="flex justify-between items-start gap-4">
         <div className="text-sm text-st-text leading-snug font-medium whitespace-pre-wrap">{step.content}</div>
         <button 
           type="button" 
-          onClick={stopTour} 
+          onClick={(e) => { e.preventDefault(); stopTour(); }} 
           className="text-st-text-light hover:text-red-500 font-bold text-xl leading-none px-1 cursor-pointer transition-colors" 
           title="Close Tour"
         >
@@ -29,7 +48,10 @@ const CustomTooltip = ({ index, step, backProps, primaryProps, isLastStep, toolt
           {step.data?.skipToIndex !== null && step.data?.skipToIndex !== undefined && (
             <button
               type="button"
-              onClick={() => setTourStepIndex(step.data.skipToIndex)}
+              onClick={(e) => {
+                e.preventDefault();
+                setTourStepIndex(step.data.skipToIndex);
+              }}
               className="text-xs bg-[#2b2b2b] text-st-orange px-2 py-1.5 rounded border border-st-orange hover:bg-st-orange hover:text-[#2b2b2b] font-bold transition-colors shadow-sm cursor-pointer"
             >
               ⏭️ {step.data.skipLabel}
@@ -38,11 +60,19 @@ const CustomTooltip = ({ index, step, backProps, primaryProps, isLastStep, toolt
         </div>
         <div className="flex items-center gap-2">
           {index > 0 && (
-            <button {...backProps} type="button" className="text-xs font-bold text-st-text-light hover:text-st-text px-2 py-1.5 transition-colors cursor-pointer">
+            <button 
+              type="button" 
+              onClick={(e) => { e.preventDefault(); setTourStepIndex(index - 1); }}
+              className="text-xs font-bold text-st-text-light hover:text-st-text px-2 py-1.5 transition-colors cursor-pointer"
+            >
               Back
             </button>
           )}
-          <button {...primaryProps} type="button" className="text-xs bg-st-orange text-[#2b2b2b] px-3 py-1.5 rounded font-bold hover:bg-[#ffa229] transition-colors shadow-sm cursor-pointer">
+          <button 
+            type="button" 
+            onClick={handleNext}
+            className="text-xs bg-st-orange text-[#2b2b2b] px-3 py-1.5 rounded font-bold hover:bg-[#ffa229] transition-colors shadow-sm cursor-pointer"
+          >
             {isLastStep ? 'Finish' : 'Next'}
           </button>
         </div>
@@ -52,20 +82,20 @@ const CustomTooltip = ({ index, step, backProps, primaryProps, isLastStep, toolt
 };
 
 export default function TourGuide() {
-  const { tourActive, activeTourId, tourStepIndex, setTourStepIndex, asc1_unlocked, asc2_unlocked, cards } = useStore();
+  const { tourActive, activeTourId, stopTour, tourStepIndex, setTourStepIndex, asc1_unlocked, asc2_unlocked, cards } = useStore();
   
   const [seenReactiveCard, setSeenReactiveCard] = useState(false);
-  const reactiveCardId = Object.keys(cards || {}).find(k => cards[k] >= 3);
+  const reactiveCardId = Object.keys(cards || { }).find(k => cards[ k ] >= 3);
 
   useEffect(() => {
     if (tourActive) setSeenReactiveCard(false);
-  }, [tourActive]);
+  },[ tourActive ]);
 
   // 🧠 DYNAMIC ROUTING ENGINE
   const rawSteps = useMemo(() => {
-    if (activeTourId !== 'setup') return[];
+    if (activeTourId !== 'setup') return [ ];
 
-    const s =[];
+    const s =[ ];
     const add = (id, target, text, placement, skipTo = null, skipLabel = null, clickTarget = null) => {
       s.push({ id, target, text, placement, skipTo, skipLabel, clickTarget });
     };
@@ -81,7 +111,7 @@ export default function TourGuide() {
     // --- 2. BASE STATS ---
     add('nav-stats', '#setup-tab-stats', 'My setup is divided into tabs. Start with Base Stats. Please CLICK THIS TAB right now, and then click Next.', 'bottom', null, null, '#setup-tab-stats');
 
-    const baseStats = ['Str', 'Agi', 'Per', 'Int', 'Luck'];
+    const baseStats =[ 'Str', 'Agi', 'Per', 'Int', 'Luck' ];
     if (asc1_unlocked) baseStats.push('Div');
     if (asc2_unlocked) baseStats.push('Corr');
 
@@ -130,9 +160,9 @@ export default function TourGuide() {
     add('conclusion', '[data-tour="main-tab-calc_stats"]', 'You have successfully finished entering your full Player Setup! CLICK THIS MAIN TAB to verify your stats against the in-game UI to ensure perfect accuracy.', 'bottom', null, null, '[data-tour="main-tab-calc_stats"]');
 
     return s;
-  },[activeTourId, asc1_unlocked, asc2_unlocked, reactiveCardId]);
+  },[ activeTourId, asc1_unlocked, asc2_unlocked, reactiveCardId ]);
 
-  // 🚀 INJECT CUSTOM DATA INTO PURE JOYRIDE STEPS
+  // 🚀 MAP DATA TO JOYRIDE FORMAT
   const TOUR_STEPS = useMemo(() => {
     return rawSteps.map((step, idx, arr) => {
       const skipToIndex = arr.findIndex(s => s.id === step.skipTo);
@@ -141,8 +171,8 @@ export default function TourGuide() {
         target: step.target,
         placement: step.placement,
         disableBeacon: true,
-        disableOverlay: true, // Permanent UI Unlock + Permanently kills the Gray Screen Crash
-        spotlightClicks: true,
+        // 💀 Core Fix for Bug 1: Natively rendering the overlay prevents Joyride from attaching outside-click listeners.
+        disableOverlay: false, 
         content: step.text,
         data: {
           clickTarget: step.clickTarget,
@@ -151,30 +181,22 @@ export default function TourGuide() {
         }
       };
     });
-  }, [rawSteps]);
+  }, [ rawSteps ]);
 
   const handleCallback = (data) => {
-    const { action, index, status, type } = data;
-    const { stopTour, setTourStepIndex } = useStore.getState();
+    const { index, status, type } = data;
 
-    // 1. Successful Termination
-    if (status === 'finished' || status === 'skipped') {
+    if ([ 'finished', 'skipped' ].includes(status)) {
       stopTour();
       return;
     }
 
-    // 2. 🛡️ THE IMMUNITY SHIELD: Completely ignore Joyride's outside click closures
-    if (action === 'close') {
-      return;
-    }
-
-    // 3. Reactive step silent skip logic
+    // ⚡ REACTIVE STEP SILENT SKIP
     if (type === 'step:before') {
-       const upcomingStep = TOUR_STEPS[index];
+       const upcomingStep = TOUR_STEPS[ index ];
        if (upcomingStep?.id === 'reactive-card') {
-           const isBackward = action === 'prev';
            if (!reactiveCardId || seenReactiveCard) {
-               setTourStepIndex(index + (isBackward ? -1 : 1));
+               setTourStepIndex(index + 1);
            } else {
                setSeenReactiveCard(true);
            }
@@ -182,27 +204,9 @@ export default function TourGuide() {
        return;
     }
 
-    // 4. Controlled Navigation & Tab Switch Interceptor
-    if (type === 'step:after') {
-      if (action === 'next' || action === 'prev') {
-        const nextIdx = action === 'next' ? index + 1 : index - 1;
-        const currentStep = TOUR_STEPS[index];
-        
-        if (action === 'next' && currentStep?.data?.clickTarget) {
-          const btn = document.querySelector(currentStep.data.clickTarget);
-          if (btn) btn.click();
-          
-          // 🛡️ THE 100MS BRIDGE: Ensure React 18 finishes painting the tab before moving
-          setTimeout(() => setTourStepIndex(nextIdx), 100);
-          return;
-        }
-        setTourStepIndex(nextIdx);
-      }
-    }
-
-    // 5. Auto-skip missing targets to prevent hangs
+    // 🛡️ CRASH RECOVERY: If a target unmounts unexpectedly, safely skip it to prevent a UI hang
     if (type === 'error:target_not_found') {
-      console.warn(`⚠️ [TOUR] Target missing on step ${index}. Auto-skipping to prevent crash.`);
+      console.warn(`⚠️ [TOUR] Target missing on step ${index}. Auto-skipping.`);
       setTourStepIndex(index + 1);
     }
   };
@@ -213,14 +217,23 @@ export default function TourGuide() {
     <JoyrideComponent
       steps={TOUR_STEPS}
       run={tourActive}
-      stepIndex={tourStepIndex} // Pure Controlled Mode
+      stepIndex={tourStepIndex} // Strict Controlled Mode
       callback={handleCallback}
       continuous={true}
       showProgress={false}
       showSkipButton={false}
+      disableOverlayClose={true}
+      disableCloseOnEsc={true}
       tooltipComponent={CustomTooltip}
       styles={{
-        options: { zIndex: 999999 }
+        options: {
+          zIndex: 999999,
+          overlayColor: 'rgba(0,0,0,0)', // Completely invisible background
+        },
+        overlay: {
+          pointerEvents: 'none', // Allows clicking through the invisible background to your UI
+        }
+        // NOTE: We intentionally leave 'spotlight' styles EMPTY here to prevent fatal React SVG validation errors!
       }}
     />
   );
