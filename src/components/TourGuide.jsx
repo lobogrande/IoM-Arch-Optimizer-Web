@@ -6,8 +6,50 @@ import useStore from '../store';
 
 const JoyrideComponent = JoyrideModule.default?.default || JoyrideModule.default || JoyrideModule.Joyride;
 
+const CustomTooltip = ({ index, step, backProps, closeProps, primaryProps, isLastStep, tooltipProps }) => {
+  return (
+    <div {...tooltipProps} className="bg-st-bg border border-st-border shadow-2xl rounded-lg p-4 max-w-sm w-full flex flex-col gap-3 z-[999999]">
+      <div className="flex justify-between items-start gap-4">
+        <div className="text-sm text-st-text leading-snug font-medium whitespace-pre-wrap">{step.content}</div>
+        <button {...closeProps} type="button" className="text-st-text-light hover:text-red-500 font-bold text-xl leading-none px-1 cursor-pointer transition-colors" title="Close Tour">
+          &times;
+        </button>
+      </div>
+      
+      <div className="flex items-center justify-between mt-2 pt-3 border-t border-st-border/50">
+        <div className="flex items-center gap-2">
+          {step.data?.skipTo && (
+            <button
+              type="button"
+              onPointerDown={(e) => e.stopPropagation()}
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                if (step.data.onSkip) step.data.onSkip(step.data.skipTo);
+              }}
+              className="text-xs bg-[#2b2b2b] text-st-orange px-2 py-1.5 rounded border border-st-orange hover:bg-st-orange hover:text-[#2b2b2b] font-bold transition-colors shadow-sm cursor-pointer"
+            >
+              ⏭️ {step.data.skipLabel}
+            </button>
+          )}
+        </div>
+        <div className="flex items-center gap-2">
+          {index > 0 && (
+            <button {...backProps} type="button" className="text-xs font-bold text-st-text-light hover:text-st-text px-2 py-1.5 transition-colors cursor-pointer">
+              Back
+            </button>
+          )}
+          <button {...primaryProps} type="button" className="text-xs bg-st-orange text-[#2b2b2b] px-3 py-1.5 rounded font-bold hover:bg-[#ffa229] transition-colors shadow-sm cursor-pointer">
+            {isLastStep ? 'Finish' : 'Next'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 export default function TourGuide() {
-  const { tourActive, activeTourId, stopTour, theme, asc1_unlocked, asc2_unlocked, cards } = useStore();
+  const { tourActive, activeTourId, stopTour, asc1_unlocked, asc2_unlocked, cards } = useStore();
   
   // 🕹️ Internal API Hook for Custom Jumps (Uncontrolled Mode)
   const joyrideHelpers = useRef(null);
@@ -17,7 +59,7 @@ export default function TourGuide() {
 
   useEffect(() => {
     if (tourActive) setSeenReactiveCard(false);
-  }, [ tourActive ]);
+  },[ tourActive ]);
 
   // 🧠 DYNAMIC ROUTING ENGINE
   const rawSteps = useMemo(() => {
@@ -32,12 +74,12 @@ export default function TourGuide() {
     add('profiles', '[data-tour="setup-profiles"]', 'This is the Profile Box. Because the screen is unlocked, try clicking the dropdown menu right now to see your profiles!', 'auto');
 
     // --- 1. GLOBAL SETTINGS ---
-    add('global-asc', '[data-tour="setup-asc"]', 'Let\'s set your Global Settings. Ascension properly filters your available Base Stats, Upgrades, Idols, and Cards. Set this first!', 'auto', 'nav-stats', 'Skip Globals');
+    add('global-asc', '[data-tour="setup-asc"]', 'Set your Global Settings. Ascension properly filters available Base Stats, Upgrades, Idols, and Cards. Set this first!', 'auto', 'nav-stats', 'Skip Globals');
     add('global-arch', '[data-tour="setup-arch-level"]', 'Your Archaeology Level directly impacts how many stat points you have to distribute. Update this.', 'auto', 'nav-stats', 'Skip Globals');
     add('global-floor', '[data-tour="setup-max-floor"]', 'Your Max Floor impacts filters for Internal Upgrades. Ensure this matches your game.', 'auto', 'nav-stats', 'Skip Globals');
 
     // --- 2. BASE STATS ---
-    add('nav-stats', '#setup-tab-stats', 'Your setup is divided into tabs. We will start with Base Stats. Please CLICK THIS TAB right now, and then click Next.', 'bottom', null, null, '#setup-tab-stats');
+    add('nav-stats', '#setup-tab-stats', 'My setup is divided into tabs. Start with Base Stats. Please CLICK THIS TAB right now, and then click Next.', 'bottom', null, null, '#setup-tab-stats');
 
     const baseStats =[ 'Str', 'Agi', 'Per', 'Int', 'Luck' ];
     if (asc1_unlocked) baseStats.push('Div');
@@ -48,7 +90,7 @@ export default function TourGuide() {
     });
 
     // --- 3. INTERNAL UPGRADES ---
-    add('nav-upgrades_int', '#setup-tab-upgrades_int', 'Now let\'s check out the Internal Upgrades. Please CLICK THIS TAB to open it, and then click Next.', 'bottom', null, null, '#setup-tab-upgrades_int');
+    add('nav-upgrades_int', '#setup-tab-upgrades_int', 'Now look at the Internal Upgrades. Please CLICK THIS TAB to open it, and then click Next.', 'bottom', null, null, '#setup-tab-upgrades_int');
     add('hide-maxed', '[data-tour="setup-hide-maxed"]', 'This toggle hides maxed upgrades to reduce screen clutter. Give it a click!', 'auto', 'nav-upgrades_ext', 'Skip Int Upgrades');
     add('upgrades_int_content', 'div[id^="setup-upg-"]', 'Here is your first Internal Upgrade box. Click Next to dismiss this popup so it stops obscuring the screen, then finish filling out the rest of your upgrades.', 'right', 'nav-upgrades_ext', 'Skip Int Upgrades');
 
@@ -71,7 +113,7 @@ export default function TourGuide() {
     // --- 5. CARDS ---
     add('nav-cards', '#setup-tab-cards', 'Almost done! Time for Block Cards. Please CLICK THIS TAB, and then click Next.', 'bottom', null, null, '#setup-tab-cards');
     add('total-infernal', '[data-tour="setup-total-infernal"]', 'Total Infernal Cards: Enter your total owned across ALL categories (fishing, arch, etc). This number is highly important because it calculates your massive infernal bonus!', 'auto', 'nav-idols', 'Skip Cards');
-    add('first-card', '#setup-card-dirt1', 'Here is your first Block Card. Set states just like before. Click Next to dismiss this popup so it stops obscuring the screen, then finish filling out the rest of the cards.', 'right', 'nav-idols', 'Skip Cards');
+    add('first-card', '#setup-card-dirt1', 'Here is your first Block Card. Set stats just like before. Click Next to dismiss this popup so it stops obscuring the screen, then finish filling out the rest of the cards.', 'right', 'nav-idols', 'Skip Cards');
     add('reactive-card', reactiveCardId ? `#setup-card-info-${reactiveCardId}` : 'body', 'Excellent! Because you set a card to Poly or Infernal, notice the potential Infernal buff bonus displayed below the card. This updates automatically!', 'auto', 'nav-idols', 'Skip Cards');
 
     // --- 6. IDOLS ---
@@ -88,7 +130,7 @@ export default function TourGuide() {
     add('conclusion', '[data-tour="main-tab-calc_stats"]', 'You have successfully finished entering your full Player Setup! CLICK THIS MAIN TAB to verify your stats against the in-game UI to ensure perfect accuracy.', 'bottom', null, null, '[data-tour="main-tab-calc_stats"]');
 
     return s;
-  },[ activeTourId, asc1_unlocked, asc2_unlocked, reactiveCardId ]);
+  }, [ activeTourId, asc1_unlocked, asc2_unlocked, reactiveCardId ]);
 
   // 🚀 INJECT CUSTOM BUTTONS INTO RAW STEPS
   const TOUR_STEPS = useMemo(() => {
@@ -97,31 +139,22 @@ export default function TourGuide() {
       target: step.target,
       placement: step.placement,
       disableBeacon: true,
-      disableOverlay: true, // Permanent UI Unlock
-      data: step.clickTarget ? { clickTarget: step.clickTarget } : { },
-      content: (
-        <div className="flex flex-col gap-3">
-          <span className="text-sm leading-snug">{step.text}</span>
-          {step.skipTo && (
-            <button
-              type="button"
-              // 🔥 THIS IS WHY THE BUTTONS FAILED IN V18! Joyride swallows events. We punch through it here.
-              onPointerDown={(e) => e.stopPropagation()} 
-              onClick={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                const targetIdx = rawSteps.findIndex(s => s.id === step.skipTo);
-                if (targetIdx !== -1) {
-                  joyrideHelpers.current?.go(targetIdx); // Fire the Uncontrolled Custom Jump!
-                }
-              }}
-              className="self-start text-xs bg-[#2b2b2b] text-[#ffa229] px-3 py-1.5 rounded border border-[#ffa229] hover:bg-[#ffa229] hover:text-[#2b2b2b] font-bold transition-colors cursor-pointer shadow-sm"
-            >
-              ⏭️ {step.skipLabel}
-            </button>
-          )}
-        </div>
-      )
+      // 💀 BUG 1 FIX: Do NOT use disableOverlay: true. Joyride aggressively closes on outside clicks if true.
+      // Instead, we leave it false (default) and use CSS styles below to render the overlay invisible & pass-through.
+      disableOverlay: false, 
+      spotlightClicks: true, // Always allow clicking the spotlighted element
+      content: step.text, // Passed natively to CustomTooltip
+      data: {
+        clickTarget: step.clickTarget,
+        skipTo: step.skipTo,
+        skipLabel: step.skipLabel,
+        onSkip: (targetId) => {
+          const targetIdx = rawSteps.findIndex(s => s.id === targetId);
+          if (targetIdx !== -1) {
+            joyrideHelpers.current?.go(targetIdx); // Uncontrolled Jump
+          }
+        }
+      }
     }));
   }, [ rawSteps ]);
 
@@ -173,30 +206,24 @@ export default function TourGuide() {
       getHelpers={(helpers) => { joyrideHelpers.current = helpers; }} // Extracts API for skips
       callback={handleCallback}
       continuous={true}
-      showProgress={true}
+      showProgress={false}
       showSkipButton={false}
-      disableOverlayClose={true}
+      disableOverlayClose={true} // BUG 1 FIX: Respects ignoring document clicks because the overlay technically "exists"
+      tooltipComponent={CustomTooltip} // BUG 2 FIX: Complete bypass of Joyride's popper swallow mechanisms
       styles={{
         options: {
           zIndex: 999999,
-          primaryColor: '#ffa229',
-          backgroundColor: theme === 'dark' ? '#262730' : '#FFFFFF',
-          textColor: theme === 'dark' ? '#FAFAFA' : '#31333F',
-          arrowColor: theme === 'dark' ? '#262730' : '#FFFFFF',
+          overlayColor: 'transparent', // The core visual trick for Bug 1 (Fully Unlocked Screen)
         },
-        tooltipContainer: { textAlign: 'left' },
-        tooltip: {
-          border: theme === 'dark' ? '1px solid rgba(255, 162, 41, 0.5)' : '1px solid #ddd',
-          boxShadow: '0 10px 25px rgba(0,0,0,0.5)'
+        overlay: {
+          pointerEvents: 'none', // Allow hardware clicks to pass right through the overlay to the UI below
         },
-        buttonNext: {
-          backgroundColor: '#ffa229',
-          color: '#2b2b2b',
-          fontWeight: 'bold',
-          padding: '8px 16px',
-          borderRadius: '4px'
-        },
-        buttonBack: { color: theme === 'dark' ? '#A3A8B8' : '#7D808D', marginRight: '8px' }
+        spotlight: {
+          backgroundColor: 'transparent', 
+          boxShadow: 'none',
+          border: 'none',
+          pointerEvents: 'none',
+        }
       }}
     />
   );
