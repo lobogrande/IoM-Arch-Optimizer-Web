@@ -20,7 +20,8 @@ const CustomTooltip = ({ index, step, backProps, primaryProps, isLastStep, toolt
     if (step.data?.clickTarget) {
       const btn = document.querySelector(step.data.clickTarget);
       if (btn) btn.click();
-      setTimeout(() => setTourStepIndex(index + 1), 100);
+      // 🛡️ 250ms Bridge: Guarantee React 18 has fully painted the new tab before advancing
+      setTimeout(() => setTourStepIndex(index + 1), 250);
     } else {
       setTourStepIndex(index + 1);
     }
@@ -79,10 +80,22 @@ const CustomTooltip = ({ index, step, backProps, primaryProps, isLastStep, toolt
 };
 
 export default function TourGuide() {
-  const { tourActive, activeTourId, tourStepIndex, setTourStepIndex, asc1_unlocked, asc2_unlocked, cards } = useStore();
+  // 🛡️ STRICT SELECTORS: We must never destructure the whole store.
+  // By picking primitive values, typing in the UI will NOT trigger re-renders here!
+  const tourActive = useStore(state => state.tourActive);
+  const activeTourId = useStore(state => state.activeTourId);
+  const tourStepIndex = useStore(state => state.tourStepIndex);
+  const setTourStepIndex = useStore(state => state.setTourStepIndex);
+  const stopTour = useStore(state => state.stopTour);
+  const asc1_unlocked = useStore(state => state.asc1_unlocked);
+  const asc2_unlocked = useStore(state => state.asc2_unlocked);
+
+  const reactiveCardId = useStore(state => {
+    if (!state.cards) return null;
+    return Object.keys(state.cards).find(k => state.cards[k] >= 3) || null;
+  });
   
   const [seenReactiveCard, setSeenReactiveCard] = useState(false);
-  const reactiveCardId = Object.keys(cards || { }).find(k => cards[ k ] >= 3);
 
   useEffect(() => {
     if (tourActive) setSeenReactiveCard(false);
@@ -141,7 +154,10 @@ export default function TourGuide() {
     add('nav-cards', '#setup-tab-cards', 'Almost done! Time for Block Cards. Please CLICK THIS TAB, and then click Next.', 'bottom', null, null, '#setup-tab-cards');
     add('total-infernal', '[data-tour="setup-total-infernal"]', 'Total Infernal Cards: Enter your total owned across ALL categories (fishing, arch, etc). This number is highly important because it calculates your massive infernal bonus!', 'auto', 'nav-idols', 'Skip Cards');
     add('first-card', '#setup-card-dirt1', 'Here is your first Block Card. Set states just like before. Click Next to dismiss this popup so it stops obscuring the screen, then finish filling out the rest of the cards.', 'right', 'nav-idols', 'Skip Cards');
-    add('reactive-card', reactiveCardId ? `#setup-card-info-${reactiveCardId}` : 'body', 'Excellent! Because you set a card to Poly or Infernal, notice the potential Infernal buff bonus displayed below the card. This updates automatically!', 'auto', 'nav-idols', 'Skip Cards');
+    
+    if (reactiveCardId) {
+       add('reactive-card', `#setup-card-info-${reactiveCardId}`, 'Excellent! Because you set a card to Poly or Infernal, notice the potential Infernal buff bonus displayed below the card. This updates automatically!', 'auto', 'nav-idols', 'Skip Cards');
+    }
 
     // --- 6. IDOLS ---
     add('nav-idols', '#setup-tab-idols', 'Take your time to finish filling out your cards. When you are done, please CLICK THIS TAB to open Arch Idols, and then click Next.', 'bottom', null, null, '#setup-tab-idols');
@@ -168,7 +184,7 @@ export default function TourGuide() {
         placement: step.placement,
         disableBeacon: true,
         disableOverlay: true, // Permanent UI Unlock
-        disableScroll: true, // 🛡️ Prevents Joyride from aggressively stealing the scrollbar!
+        disableScroll: true,  // 🛡️ Prevent Joyride from hijacking the window scrollbar
         spotlightClicks: true,
         content: step.text,
         data: {
@@ -182,9 +198,8 @@ export default function TourGuide() {
 
   const handleCallback = (data) => {
     const { index, status, type, action } = data;
-    const { stopTour } = useStore.getState();
 
-    // 🛡️ THE IMMORTALITY SHIELD: We explicitly intercept Joyride's outside-click closure attempts
+    // 🛡️ The Immortality Shield: Do nothing on outside clicks or escapes
     if (action === 'close' || status === 'skipped') {
       return;
     }
@@ -194,7 +209,7 @@ export default function TourGuide() {
       return;
     }
 
-    // ⚡ REACTIVE STEP SILENT SKIP
+    // ⚡ Reactive Step Silent Skip
     if (type === 'step:before') {
        const upcomingStep = TOUR_STEPS[ index ];
        if (upcomingStep?.id === 'reactive-card') {
@@ -205,6 +220,12 @@ export default function TourGuide() {
            }
        }
        return;
+    }
+
+    // 🛡️ Missing Target Auto-Skip: Throttled to prevent rapid cascades
+    if (type === 'error:target_not_found') {
+      console.warn(`⚠️ [TOUR] Target missing on step ${index}. Auto-skipping to prevent freeze.`);
+      setTimeout(() => setTourStepIndex(index + 1), 50);
     }
   };
 
