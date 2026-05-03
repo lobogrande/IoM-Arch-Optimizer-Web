@@ -9,7 +9,7 @@ const CustomTooltip = ({ index, step, backProps, primaryProps, isLastStep, toolt
   const { stopTour } = useStore();
   
   return (
-    <div {...tooltipProps} className="bg-st-bg border border-st-border shadow-2xl rounded-lg p-4 max-w-sm w-full flex flex-col gap-3 z-[999999]">
+    <div {...tooltipProps} className="bg-st-bg border border-st-border shadow-2xl rounded-lg p-4 max-w-sm w-full flex flex-col gap-3 z-[999999]" style={{ ...tooltipProps.style, pointerEvents: 'auto' }}>
       <div className="flex justify-between items-start gap-4">
         <div className="text-sm text-st-text leading-snug font-medium whitespace-pre-wrap">{step.content}</div>
         <button 
@@ -27,9 +27,11 @@ const CustomTooltip = ({ index, step, backProps, primaryProps, isLastStep, toolt
           {step.data?.skipTo && (
             <button
               type="button"
-              onClick={() => {
-                // Completely bypass Joyride's stripped props by dispatching a native window event
-                window.dispatchEvent(new CustomEvent('tour-skip', { detail: step.data.skipTo }));
+              onPointerDown={(e) => e.stopPropagation()}
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                if (window.__tourGo) window.__tourGo(step.data.skipTo);
               }}
               className="text-xs bg-[#2b2b2b] text-st-orange px-2 py-1.5 rounded border border-st-orange hover:bg-st-orange hover:text-[#2b2b2b] font-bold transition-colors shadow-sm cursor-pointer"
             >
@@ -155,17 +157,15 @@ export default function TourGuide() {
     }));
   }, [ rawSteps ]);
 
-  // 🎧 EVENT BUS LISTENER: Intercepts custom jump events from the isolated Tooltip
+  // 🎧 GLOBAL JUMP HANDLER: Bypasses Joyride's state entirely for instant skips
   useEffect(() => {
-    const handleSkip = (e) => {
-      const targetId = e.detail;
+    window.__tourGo = (targetId) => {
       const targetIdx = TOUR_STEPS.findIndex(s => s.id === targetId);
-      if (targetIdx !== -1) {
-        joyrideHelpers.current?.go(targetIdx);
+      if (targetIdx !== -1 && joyrideHelpers.current) {
+        joyrideHelpers.current.go(targetIdx);
       }
     };
-    window.addEventListener('tour-skip', handleSkip);
-    return () => window.removeEventListener('tour-skip', handleSkip);
+    return () => { delete window.__tourGo; };
   }, [ TOUR_STEPS ]);
 
   const handleCallback = (data) => {
