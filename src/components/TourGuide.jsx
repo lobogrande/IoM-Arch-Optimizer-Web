@@ -1,5 +1,5 @@
 // src/components/TourGuide.jsx
-import React, { useMemo, useState, useEffect } from 'react';
+import React, { useMemo, useRef, useState, useEffect } from 'react';
 import * as JoyrideModule from 'react-joyride';
 import useStore from '../store';
 
