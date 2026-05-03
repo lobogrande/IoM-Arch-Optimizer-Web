@@ -1,4 +1,5 @@
 // src/components/TourGuide.jsx
+// FIND THIS EXACT BLOCK:
 // -> REPLACE ENTIRE FILE WITH:
 import React, { useMemo, useState, useEffect } from 'react';
 import * as JoyrideModule from 'react-joyride';
@@ -95,7 +96,7 @@ export default function TourGuide() {
     return Object.keys(state.cards).find(k => state.cards[k] >= 3) || null;
   });
   
-  const [seenReactiveCard, setSeenReactiveCard] = useState(false);
+  const[seenReactiveCard, setSeenReactiveCard] = useState(false);
 
   useEffect(() => {
     if (tourActive) setSeenReactiveCard(false);
@@ -183,8 +184,9 @@ export default function TourGuide() {
         target: step.target,
         placement: step.placement,
         disableBeacon: true,
-        disableOverlay: true, // Permanent UI Unlock
-        disableScroll: true,  // 🛡️ Prevent Joyride from hijacking the window scrollbar
+        // 💀 Core Fix: Leave overlay enabled so Joyride doesn't bind document click listeners!
+        disableOverlay: false, 
+        disableScroll: true,
         spotlightClicks: true,
         content: step.text,
         data: {
@@ -244,7 +246,19 @@ export default function TourGuide() {
       disableCloseOnEsc={true}
       tooltipComponent={CustomTooltip}
       styles={{
-        options: { zIndex: 999999 }
+        options: {
+          zIndex: 999999,
+          // 💀 Overrides the forced overlay from spotlightClicks to be invisible
+          overlayColor: 'rgba(0,0,0,0)', 
+        },
+        overlay: {
+          // 💀 Allows all hardware clicks to fall directly through the invisible mask
+          pointerEvents: 'none', 
+        },
+        spotlight: {
+          // 💀 Removes click interception from the spotlight hole
+          pointerEvents: 'none',
+        }
       }}
     />
   );
