@@ -7,6 +7,7 @@ import BlockCompendium from './components/BlockCompendium';
 import Simulations from './components/Simulations';
 import Welcome from './components/Welcome';
 import About from './components/About';
+import TourGuide from './components/TourGuide';
 
 const TABS =[
   { id: 'welcome', label: '🏠 Welcome' },
@@ -142,6 +143,7 @@ function App() {
 
   return (
     <div className="min-h-screen bg-st-bg text-st-text p-4 md:p-8">
+      <TourGuide />
       
       <div className="flex items-center gap-4 mb-6 w-full">
         <h1 className="text-3xl md:text-4xl font-bold">
