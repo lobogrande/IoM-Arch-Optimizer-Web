@@ -1,13 +1,12 @@
 // src/components/TourGuide.jsx
 // -> REPLACE ENTIRE FILE WITH:
-import React, { useEffect } from 'react';
+import React from 'react';
 import * as JoyrideModule from 'react-joyride';
 import useStore from '../store';
 
-const Joyride = JoyrideModule.default || JoyrideModule.Joyride || JoyrideModule;
-const { ACTIONS, EVENTS, STATUS } = JoyrideModule;
+const Joyride = JoyrideModule.default || JoyrideModule;
 
-// Bare-minimum, foolproof steps.
+// We are targeting elements that are 100% guaranteed to exist on the screen
 const DEBUG_STEPS =[
   {
     target: '#tour-setup-profiles',
@@ -15,36 +14,32 @@ const DEBUG_STEPS =[
     disableBeacon: true,
   },
   {
-    target: '#tour-setup-import',
-    content: 'DEBUG STEP 2: Import Box',
+    target: 'h1', // The main title of your app, guaranteed to exist
+    content: 'DEBUG STEP 2: The Main Header!',
     disableBeacon: true,
   }
 ];
 
 export default function TourGuide() {
-  const { tourActive, activeTourId, tourStepIndex, stopTour, setTourStepIndex } = useStore();
-
-  // Log exactly when the component mounts and what Zustand is telling it to do
-  useEffect(() => {
-    console.log("🚨 [TOUR DEBUG] TourGuide Mount/Update:", { tourActive, activeTourId, tourStepIndex });
-  }, [tourActive, activeTourId, tourStepIndex]);
+  const { tourActive, stopTour } = useStore();
 
   const handleCallback = (data) => {
-    console.log("🚨 [TOUR DEBUG] Joyride Event Fired:", data);
-    const { action, index, status, type } = data;
+    // USING console.warn TO BYPASS BROWSER FILTERS!
+    console.warn("🚨[TOUR DEBUG] Event Fired:", data.type, data);
 
-    if ([STATUS.FINISHED, STATUS.SKIPPED].includes(status) || action === ACTIONS.CLOSE) {
-      console.log("🚨 [TOUR DEBUG] Tour Stopped/Closed");
+    const { status, action } = data;
+    
+    // Stop the tour if closed, finished, or skipped
+    if (status === 'finished' || status === 'skipped' || action === 'close') {
+      console.warn("🚨 [TOUR DEBUG] Tour Finished/Closed. Shutting down.");
       stopTour();
-      return;
-    }
-
-    if (type === EVENTS.STEP_AFTER || type === EVENTS.TARGET_NOT_FOUND) {
-      const nextIndex = index + (action === ACTIONS.PREV ? -1 : 1);
-      console.log(`🚨 [TOUR DEBUG] Advancing from step ${index} -> to step ${nextIndex}`);
-      setTourStepIndex(nextIndex);
     }
   };
+
+  // Log exactly when the component mounts using a warning
+  React.useEffect(() => {
+    console.warn("🚨 [TOUR DEBUG] Component Mounted. Active:", tourActive);
+  }, [tourActive]);
 
   if (!tourActive) return null;
 
@@ -52,11 +47,14 @@ export default function TourGuide() {
     <Joyride
       steps={DEBUG_STEPS}
       run={tourActive}
-      stepIndex={tourStepIndex}
-      callback={handleCallback}
       continuous={true}
       showProgress={true}
       showSkipButton={true}
+      callback={handleCallback}
+      // CRITICAL: We removed stepIndex={...}. Joyride is now entirely driving itself natively.
+      styles={{
+        options: { zIndex: 10000, primaryColor: '#ffa229' }
+      }}
     />
   );
 }
