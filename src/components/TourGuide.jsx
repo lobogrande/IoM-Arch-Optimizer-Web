@@ -1,5 +1,4 @@
 // src/components/TourGuide.jsx
-// FIND THIS EXACT BLOCK:
 // -> REPLACE ENTIRE FILE WITH:
 import React, { useMemo, useState, useEffect } from 'react';
 import * as JoyrideModule from 'react-joyride';
@@ -29,7 +28,7 @@ const CustomTooltip = ({ index, step, backProps, primaryProps, isLastStep, toolt
   };
 
   return (
-    <div {...tooltipProps} className="bg-st-bg border border-st-border shadow-2xl rounded-lg p-4 max-w-sm w-full flex flex-col gap-3 z-[999999]" style={{ ...tooltipProps.style, pointerEvents: 'auto' }}>
+    <div {...tooltipProps} id="iom-custom-tooltip" className="bg-st-bg border border-st-border shadow-2xl rounded-lg p-4 max-w-sm w-full flex flex-col gap-3 z-[999999]" style={{ ...tooltipProps.style, pointerEvents: 'auto' }}>
       <div className="flex justify-between items-start gap-4">
         <div className="text-sm text-st-text leading-snug font-medium whitespace-pre-wrap">{step.content}</div>
         <button 
@@ -81,8 +80,7 @@ const CustomTooltip = ({ index, step, backProps, primaryProps, isLastStep, toolt
 };
 
 export default function TourGuide() {
-  // 🛡️ STRICT SELECTORS: We must never destructure the whole store.
-  // By picking primitive values, typing in the UI will NOT trigger re-renders here!
+  // 🛡️ STRICT SELECTORS: Prevents the Tour component from re-rendering when you type in the UI!
   const tourActive = useStore(state => state.tourActive);
   const activeTourId = useStore(state => state.activeTourId);
   const tourStepIndex = useStore(state => state.tourStepIndex);
@@ -102,7 +100,7 @@ export default function TourGuide() {
     if (tourActive) setSeenReactiveCard(false);
   }, [ tourActive ]);
 
-  // 🧠 DYNAMIC ROUTING ENGINE
+  // 🧠 DYNAMIC ROUTING ENGINE (Granular Walkthroughs Restored)
   const rawSteps = useMemo(() => {
     if (activeTourId !== 'setup') return [ ];
 
@@ -184,10 +182,10 @@ export default function TourGuide() {
         target: step.target,
         placement: step.placement,
         disableBeacon: true,
-        // 💀 THE REAL FIX: Because we are in Controlled Mode, we intercept the 'close' event.
-        // We can safely disable the overlay entirely. No gray screen, no spotlights!
-        disableOverlay: true, 
+        // 💀 Core Fix: Leave overlay enabled so Joyride doesn't bind rogue document.body click listeners!
+        disableOverlay: false, 
         disableScroll: true,
+        spotlightClicks: true,
         content: step.text,
         data: {
           clickTarget: step.clickTarget,
@@ -234,23 +232,39 @@ export default function TourGuide() {
   if (!tourActive || !activeTourId || TOUR_STEPS.length === 0) return null;
 
   return (
-    <JoyrideComponent
-      steps={TOUR_STEPS}
-      run={tourActive}
-      stepIndex={tourStepIndex} // Strict Controlled Mode
-      callback={handleCallback}
-      continuous={true}
-      showProgress={false}
-      showSkipButton={false}
-      disableOverlayClose={true}
-      disableCloseOnEsc={true}
-      disableFocusTrap={true} // 💀 THE FINAL UNLOCK: Kills the invisible React Focus Trap!
-      tooltipComponent={CustomTooltip}
-      styles={{
-        options: {
-          zIndex: 999999,
+    <>
+      {/* 💀 THE NUCLEAR UNLOCK: Global CSS injection guarantees Joyride's overlay cannot physically render or block clicks */}
+      <style>{`
+        .react-joyride__overlay {
+          display: none !important;
+          pointer-events: none !important;
         }
-      }}
-    />
+      `}</style>
+
+      <JoyrideComponent
+        steps={TOUR_STEPS}
+        run={tourActive}
+        stepIndex={tourStepIndex} // Strict Controlled Mode
+        callback={handleCallback}
+        continuous={true}
+        showProgress={false}
+        showSkipButton={false}
+        disableOverlayClose={true}
+        disableCloseOnEsc={true}
+        disableFocusTrap={true} // 💀 Kills react-focus-lock so you can type and click everywhere!
+        tooltipComponent={CustomTooltip}
+        styles={{
+          options: {
+            zIndex: 999999,
+          },
+          overlay: {
+            display: 'none', // Secondary failsafe to hide the SVG mask
+          },
+          spotlight: {
+            display: 'none', // Secondary failsafe to hide the SVG mask
+          }
+        }}
+      />
+    </>
   );
 }
