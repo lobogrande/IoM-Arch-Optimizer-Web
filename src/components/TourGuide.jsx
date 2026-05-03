@@ -1,10 +1,7 @@
 // src/components/TourGuide.jsx
 // -> REPLACE ENTIRE FILE WITH:
-import React, { Suspense, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import useStore from '../store';
-
-// 🚀 THE VITE BYPASS: Asynchronously import the default module to avoid CJS mangling
-const Joyride = React.lazy(() => import('react-joyride'));
 
 const TOUR_STEPS = {
   setup: [
@@ -45,17 +42,42 @@ const TOUR_STEPS = {
 
 export default function TourGuide() {
   const { tourActive, activeTourId, tourStepIndex, stopTour, setTourStepIndex, setActiveSubTab, theme } = useStore();
+  const [ JoyrideComponent, setJoyrideComponent ] = useState(null);
 
+  // 🛡️ THE MANUAL PROMISE LOADER
+  // We manually download the module, find the component, and save it to state.
   useEffect(() => {
-    if (tourActive) console.warn(`🚨 [TOUR] Mounting Tour: ${activeTourId} at step ${tourStepIndex}`);
-  }, [ tourActive, activeTourId, tourStepIndex ]);
+    if (!tourActive || JoyrideComponent) return;
+
+    import('react-joyride')
+      .then((mod) => {
+        // Deeply unwrap Vite's mangled object to find the actual React Component
+        let Comp = mod.default || mod.Joyride || mod;
+        if (Comp && typeof Comp !== 'function' && Comp.default) {
+          Comp = Comp.default;
+        }
+        
+        if (typeof Comp !== 'function') {
+          console.error("🚨 Could not resolve Joyride Component. Extracted:", Comp);
+          stopTour();
+          return;
+        }
+
+        // We wrap it in a function so React State doesn't execute it immediately
+        setJoyrideComponent(() => Comp);
+      })
+      .catch((err) => {
+        console.error("🚨 Failed to dynamically load react-joyride:", err);
+        stopTour();
+      });
+  },[ tourActive, JoyrideComponent, stopTour ]);
 
   const handleCallback = (data) => {
     const { action, index, status, type } = data;
     
-    // Using string literals to bypass the need for named imports
+    // We use string literals for events to entirely avoid importing constants from the broken module
     if (type === 'error:target_not_found' || type === 'error') {
-      console.error(`❌ [TOUR] Target missing on step ${index}. Stopping tour.`);
+      console.warn(`[TOUR] Missing target on step ${index}. Stopping tour.`);
       stopTour();
       return;
     }
@@ -75,8 +97,10 @@ export default function TourGuide() {
       
       const nextStep = TOUR_STEPS[ activeTourId ][ nextIndex ];
       
+      // Handle automatic tab switching
       if (nextStep && nextStep.data && nextStep.data.tab) {
         setActiveSubTab(nextStep.data.tab);
+        // Wait 200ms for React to mount the new tab before advancing Joyride's target tracker
         setTimeout(() => setTourStepIndex(nextIndex), 200);
       } else {
         setTourStepIndex(nextIndex);
@@ -86,44 +110,43 @@ export default function TourGuide() {
 
   const currentSteps = (activeTourId && TOUR_STEPS[ activeTourId ]) ? TOUR_STEPS[ activeTourId ] : [ ];
 
-  if (!tourActive || !activeTourId || currentSteps.length === 0) return null;
+  // Wait until the user clicks "Need Help", AND our Manual Loader has finished fetching the component
+  if (!tourActive || !activeTourId || currentSteps.length === 0 || !JoyrideComponent) return null;
 
   return (
-    <Suspense fallback={null}>
-      <Joyride
-        steps={currentSteps}
-        run={tourActive}
-        stepIndex={tourStepIndex}
-        callback={handleCallback}
-        continuous={true}
-        showProgress={true}
-        showSkipButton={true}
-        spotlightClicks={true}
-        spotlightPadding={8}
-        styles={{
-          options: {
-            zIndex: 99999,
-            primaryColor: '#ffa229',
-            backgroundColor: theme === 'dark' ? '#262730' : '#FFFFFF',
-            textColor: theme === 'dark' ? '#FAFAFA' : '#31333F',
-            arrowColor: theme === 'dark' ? '#262730' : '#FFFFFF',
-            overlayColor: 'rgba(0, 0, 0, 0.75)',
-          },
-          tooltipContainer: { textAlign: 'left' },
-          tooltip: {
-            border: theme === 'dark' ? '1px solid rgba(255, 162, 41, 0.5)' : '1px solid #ddd',
-            boxShadow: '0 10px 25px rgba(0,0,0,0.5)'
-          },
-          buttonNext: {
-            backgroundColor: '#ffa229',
-            color: '#2b2b2b',
-            fontWeight: 'bold',
-            padding: '8px 16px',
-            borderRadius: '4px'
-          },
-          buttonBack: { color: theme === 'dark' ? '#A3A8B8' : '#7D808D', marginRight: '8px' }
-        }}
-      />
-    </Suspense>
+    <JoyrideComponent
+      steps={currentSteps}
+      run={tourActive}
+      stepIndex={tourStepIndex}
+      callback={handleCallback}
+      continuous={true}
+      showProgress={true}
+      showSkipButton={true}
+      spotlightClicks={true}
+      spotlightPadding={8}
+      styles={{
+        options: {
+          zIndex: 99999,
+          primaryColor: '#ffa229',
+          backgroundColor: theme === 'dark' ? '#262730' : '#FFFFFF',
+          textColor: theme === 'dark' ? '#FAFAFA' : '#31333F',
+          arrowColor: theme === 'dark' ? '#262730' : '#FFFFFF',
+          overlayColor: 'rgba(0, 0, 0, 0.75)',
+        },
+        tooltipContainer: { textAlign: 'left' },
+        tooltip: {
+          border: theme === 'dark' ? '1px solid rgba(255, 162, 41, 0.5)' : '1px solid #ddd',
+          boxShadow: '0 10px 25px rgba(0,0,0,0.5)'
+        },
+        buttonNext: {
+          backgroundColor: '#ffa229',
+          color: '#2b2b2b',
+          fontWeight: 'bold',
+          padding: '8px 16px',
+          borderRadius: '4px'
+        },
+        buttonBack: { color: theme === 'dark' ? '#A3A8B8' : '#7D808D', marginRight: '8px' }
+      }}
+    />
   );
 }
