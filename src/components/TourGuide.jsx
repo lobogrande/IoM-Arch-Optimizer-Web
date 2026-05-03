@@ -10,6 +10,7 @@ const CustomTooltip = ({ index, step, backProps, primaryProps, isLastStep, toolt
   const stopTour = useStore((state) => state.stopTour);
   const setTourStepIndex = useStore((state) => state.setTourStepIndex);
   
+  // 🛡️ SMART PRE-VERIFIER: Prevents Joyride from crashing by skipping missing DOM nodes
   const handleNext = (e) => {
     e.preventDefault();
     if (isLastStep) {
@@ -17,14 +18,35 @@ const CustomTooltip = ({ index, step, backProps, primaryProps, isLastStep, toolt
       return;
     }
 
+    const advance = (startIdx) => {
+      let nextIdx = startIdx;
+      while (nextIdx < step.data.allTargets.length) {
+        if (step.data.allClickTargets[nextIdx]) break; // Reached a tab switch, stop checking
+        if (document.querySelector(step.data.allTargets[nextIdx])) break; // Found a valid DOM node!
+        console.warn(`⚠️[TOUR] Skipping missing target to prevent crash: ${step.data.allTargets[nextIdx]}`);
+        nextIdx++;
+      }
+      setTourStepIndex(nextIdx);
+    };
+
     if (step.data?.clickTarget) {
       const btn = document.querySelector(step.data.clickTarget);
       if (btn) btn.click();
-      // 🛡️ 250ms Bridge: Guarantee React 18 has fully painted the new tab before advancing
-      setTimeout(() => setTourStepIndex(index + 1), 250);
+      setTimeout(() => advance(index + 1), 250); // Give React 18 time to mount the new tab
     } else {
-      setTourStepIndex(index + 1);
+      advance(index + 1);
     }
+  };
+
+  const handleBack = (e) => {
+    e.preventDefault();
+    let prevIdx = index - 1;
+    while (prevIdx > 0) {
+      if (step.data.allClickTargets[prevIdx]) break;
+      if (document.querySelector(step.data.allTargets[prevIdx])) break;
+      prevIdx--;
+    }
+    setTourStepIndex(prevIdx);
   };
 
   return (
@@ -60,7 +82,7 @@ const CustomTooltip = ({ index, step, backProps, primaryProps, isLastStep, toolt
           {index > 0 && (
             <button 
               type="button" 
-              onClick={(e) => { e.preventDefault(); setTourStepIndex(index - 1); }}
+              onClick={handleBack}
               className="text-xs font-bold text-st-text-light hover:text-st-text px-2 py-1.5 transition-colors cursor-pointer"
             >
               Back
@@ -175,6 +197,9 @@ export default function TourGuide() {
   },[ activeTourId, asc1_unlocked, asc2_unlocked, reactiveCardId ]);
 
   const TOUR_STEPS = useMemo(() => {
+    const allTargets = rawSteps.map(s => s.target);
+    const allClickTargets = rawSteps.map(s => s.clickTarget);
+
     return rawSteps.map((step, idx, arr) => {
       const skipToIndex = arr.findIndex(s => s.id === step.skipTo);
       return {
@@ -182,15 +207,15 @@ export default function TourGuide() {
         target: step.target,
         placement: step.placement,
         disableBeacon: true,
-        // 💀 Core Fix: Leave overlay enabled so Joyride doesn't bind rogue document.body click listeners!
-        disableOverlay: false, 
+        disableOverlay: true, 
         disableScroll: true,
-        spotlightClicks: true,
         content: step.text,
         data: {
           clickTarget: step.clickTarget,
           skipLabel: step.skipLabel,
-          skipToIndex: skipToIndex !== -1 ? skipToIndex : null
+          skipToIndex: skipToIndex !== -1 ? skipToIndex : null,
+          allTargets,        // Injected for the Smart Pre-Verifier loop
+          allClickTargets    // Injected for the Smart Pre-Verifier loop
         }
       };
     });
