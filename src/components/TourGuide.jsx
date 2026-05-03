@@ -73,8 +73,10 @@ export default function TourGuide() {
       return;
     }
 
-    if ([ 'finished', 'skipped' ].includes(status) || action === 'close') {
+    // 🛑 BULLETPROOF TERMINATION: Catch all possible end-of-tour events
+    if (type === 'tour:end' || [ 'finished', 'skipped' ].includes(status) || action === 'close') {
       stopTour();
+      return;
     }
   };
 
