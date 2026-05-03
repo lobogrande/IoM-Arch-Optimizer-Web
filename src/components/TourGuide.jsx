@@ -1,33 +1,52 @@
 // src/components/TourGuide.jsx
+// FIND THIS EXACT BLOCK:
 // -> REPLACE ENTIRE FILE WITH:
-import React, { useEffect } from 'react';
+import React from 'react';
 import * as JoyrideModule from 'react-joyride';
 import useStore from '../store';
-
-console.warn("🟢 TOURGUIDE V6 LOADED.");
 
 // Safely extract the root component
 const JoyrideComponent = JoyrideModule.default?.default || JoyrideModule.default || JoyrideModule.Joyride;
 
-// 🎯 V6 CHANGE: The first step now targets 'body' and centers itself. 
-// It requires zero DOM searching, which guarantees it will pop up instantly.
+// 🎯 THE GOLDEN PATH
+// Step 1 stabilizes the tour on the 'body'. The rest interactively guide the user.
 const TOUR_STEPS = {
   setup:[
     {
       target: 'body',
-      content: 'Welcome to Player Setup! I use this area to manage your saved loadouts. Click Next to see how it works.',
-      placement: 'center', // Centers it like a traditional modal
+      content: 'Welcome to Player Setup! This interactive walkthrough will guide you through configuring your stats. Click Next to begin.',
+      placement: 'center',
       disableBeacon: true
     },
     {
       target: '[data-tour="setup-profiles"]',
-      content: 'Here is your profile box. Because this walkthrough is interactive, you can click the dropdown right now!',
+      content: 'This is the Profile Box. Because this tour is interactive, you can actually click the dropdown and view your profiles right now!',
       placement: 'right',
       disableBeacon: true
     },
     {
       target: '[data-tour="setup-tabs"]',
-      content: 'Your setup is divided into these tabs. Let\'s look at Base Stats first.',
+      content: 'Your setup is divided into tabs. We will start with Base Stats.',
+      placement: 'bottom',
+      disableBeacon: true,
+      data: { tab: 'stats' } // Triggers our automatic tab switch
+    },
+    {
+      target: '[data-tour="setup-stat-Str"]',
+      content: 'Enter your Strength here. You can click the box, type a number, or use the +/- buttons while this tooltip is open!',
+      placement: 'auto',
+      disableBeacon: true
+    },
+    {
+      target: '[data-tour="setup-tabs"]',
+      content: 'Now let\'s check out the Internal Upgrades.',
+      placement: 'bottom',
+      disableBeacon: true,
+      data: { tab: 'upgrades_int' } // Automatically switches to the upgrades tab
+    },
+    {
+      target: '[data-tour="setup-hide-maxed"]',
+      content: 'This toggle hides maxed upgrades to reduce screen clutter. Give it a click!',
       placement: 'bottom',
       disableBeacon: true
     }
@@ -35,28 +54,35 @@ const TOUR_STEPS = {
 };
 
 export default function TourGuide() {
-  const { tourActive, activeTourId, stopTour, theme } = useStore();
-
-  useEffect(() => {
-    console.warn(`🔄 V6 Tour State -> Active: ${tourActive}, ID: ${activeTourId}`);
-  }, [ tourActive, activeTourId ]);
+  const { tourActive, activeTourId, tourStepIndex, stopTour, setTourStepIndex, setActiveSubTab, theme } = useStore();
 
   const handleCallback = (data) => {
-    // 🔥 Log EVERY SINGLE internal thought Joyride has
-    console.warn(`🔔 [JOYRIDE EVENT] Type: ${data.type} | Action: ${data.action} | Status: ${data.status}`);
+    const { action, index, status, type } = data;
 
-    const { action, status, type } = data;
-    
-    // Safety fallback
-    if (type === 'error:target_not_found' || type === 'error') {
-      console.error(`❌ [TOUR] Target missing. Stopping tour to prevent lock.`);
+    if ([ 'finished', 'skipped' ].includes(status) || action === 'close') {
       stopTour();
       return;
     }
 
-    // Stop if user finishes or clicks the 'X' / 'Skip' button
-    if ([ 'finished', 'skipped' ].includes(status) || action === 'close') {
-      stopTour();
+    // 🕹️ CONTROLLED MODE ADVANCEMENT
+    if (type === 'step:after') {
+      const nextIndex = index + (action === 'prev' ? -1 : 1);
+
+      if (nextIndex < 0 || nextIndex >= TOUR_STEPS[ activeTourId ].length) {
+        stopTour();
+        return;
+      }
+
+      const nextStep = TOUR_STEPS[ activeTourId ][ nextIndex ];
+
+      // If the next step has a tab attached, switch the UI first!
+      if (nextStep && nextStep.data && nextStep.data.tab) {
+        setActiveSubTab(nextStep.data.tab);
+        // Wait 300ms to guarantee React mounts the new tab DOM before moving the spotlight
+        setTimeout(() => setTourStepIndex(nextIndex), 300);
+      } else {
+        setTourStepIndex(nextIndex);
+      }
     }
   };
 
@@ -68,16 +94,17 @@ export default function TourGuide() {
     <JoyrideComponent
       steps={currentSteps}
       run={tourActive}
-      // CRITICAL: We removed stepIndex={...} so it drives itself natively without React 18 interference
+      stepIndex={tourStepIndex} // We are back in full control!
       callback={handleCallback}
       continuous={true}
       showProgress={true}
       showSkipButton={true}
       spotlightClicks={true}
       spotlightPadding={8}
+      disableOverlayClose={true} // Prevents accidental clicks outside the spotlight from closing the tour
       styles={{
         options: {
-          zIndex: 999999, // Maxed out
+          zIndex: 999999,
           primaryColor: '#ffa229',
           backgroundColor: theme === 'dark' ? '#262730' : '#FFFFFF',
           textColor: theme === 'dark' ? '#FAFAFA' : '#31333F',
