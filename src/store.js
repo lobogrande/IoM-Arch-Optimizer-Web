@@ -108,6 +108,11 @@ const useStore = create(
   lockedStats: { },
   simsPerSec: 15,
 
+  // Ephemeral Tour State
+  tourActive: false,
+  activeTourId: null,
+  tourStepIndex: 0,
+
   // Actions (Equivalent to updating st.session_state)
   setSetting: (key, value) => set((state) => {
     const updates = { [key]: value };
@@ -217,6 +222,12 @@ const useStore = create(
   setSandboxShowUnreachable: (val) => set({ sandboxShowUnreachable: val }),
   setSandboxShowCrits: (val) => set({ sandboxShowCrits: val }),
   setSandboxBlockFilters: (val) => set({ sandboxBlockFilters: val }),
+
+  // Tour Actions
+  startTour: (id) => set({ tourActive: true, activeTourId: id, tourStepIndex: 0 }),
+  stopTour: () => set({ tourActive: false, activeTourId: null, tourStepIndex: 0 }),
+  setTourStepIndex: (index) => set({ tourStepIndex: index }),
+
   saveRoiToCurrentRun: (context, category, data) => set((state) => {
     if (!state.opt_results) return state;
     // Bind a unique ID so we can flawlessly find it in the history arrays
@@ -493,6 +504,11 @@ const useStore = create(
     {
       name: 'iom-optimizer-storage', // The unique key used in the browser's IndexedDB
       storage: createJSONStorage(() => idbStorage),
+      partialize: (state) => {
+        // Prevent ephemeral states (like the active tour) from saving to IndexedDB
+        const { tourActive, activeTourId, tourStepIndex, ...rest } = state;
+        return rest;
+      },
     }
   )
 );
