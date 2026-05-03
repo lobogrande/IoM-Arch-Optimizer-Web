@@ -1,15 +1,11 @@
 // src/components/TourGuide.jsx
-// FIND THIS EXACT BLOCK:
 // -> REPLACE ENTIRE FILE WITH:
 import React from 'react';
 import * as JoyrideModule from 'react-joyride';
 import useStore from '../store';
 
-// Safely extract the root component
 const JoyrideComponent = JoyrideModule.default?.default || JoyrideModule.default || JoyrideModule.Joyride;
 
-// 🎯 THE GOLDEN PATH
-// Step 1 stabilizes the tour on the 'body'. The rest interactively guide the user.
 const TOUR_STEPS = {
   setup:[
     {
@@ -21,7 +17,7 @@ const TOUR_STEPS = {
     {
       target: '[data-tour="setup-profiles"]',
       content: 'This is the Profile Box. Because this tour is interactive, you can actually click the dropdown and view your profiles right now!',
-      placement: 'right',
+      placement: 'auto', // Auto prevents popper.js from crashing if screen space is tight
       disableBeacon: true
     },
     {
@@ -29,7 +25,7 @@ const TOUR_STEPS = {
       content: 'Your setup is divided into tabs. We will start with Base Stats.',
       placement: 'bottom',
       disableBeacon: true,
-      data: { tab: 'stats' } // Triggers our automatic tab switch
+      data: { tab: 'stats' } // We read this during step:before
     },
     {
       target: '[data-tour="setup-stat-Str"]',
@@ -42,47 +38,43 @@ const TOUR_STEPS = {
       content: 'Now let\'s check out the Internal Upgrades.',
       placement: 'bottom',
       disableBeacon: true,
-      data: { tab: 'upgrades_int' } // Automatically switches to the upgrades tab
+      data: { tab: 'upgrades_int' }
     },
     {
       target: '[data-tour="setup-hide-maxed"]',
       content: 'This toggle hides maxed upgrades to reduce screen clutter. Give it a click!',
-      placement: 'bottom',
+      placement: 'auto',
       disableBeacon: true
     }
   ]
 };
 
 export default function TourGuide() {
-  const { tourActive, activeTourId, tourStepIndex, stopTour, setTourStepIndex, setActiveSubTab, theme } = useStore();
+  const { tourActive, activeTourId, stopTour, setActiveSubTab, theme } = useStore();
 
   const handleCallback = (data) => {
     const { action, index, status, type } = data;
+    
+    // 🕵️‍♂️ AUTO-PILOT INTERCEPT
+    // Right before Joyride moves to a step, we check if we need to switch tabs to prep the DOM!
+    if (type === 'step:before') {
+      const upcomingStep = TOUR_STEPS[ activeTourId ]?.[ index ];
+      if (upcomingStep && upcomingStep.data && upcomingStep.data.tab) {
+        console.warn(`[TOUR] Prepping DOM: Switching to tab '${upcomingStep.data.tab}'`);
+        setActiveSubTab(upcomingStep.data.tab);
+      }
+    }
 
-    if ([ 'finished', 'skipped' ].includes(status) || action === 'close') {
+    // Failsafe: if Joyride completely loses the DOM, kill the tour
+    if (type === 'error:target_not_found' || type === 'error') {
+      console.error(`❌ [TOUR] Target missing on step ${index}. Stopping tour.`);
       stopTour();
       return;
     }
 
-    // 🕹️ CONTROLLED MODE ADVANCEMENT
-    if (type === 'step:after') {
-      const nextIndex = index + (action === 'prev' ? -1 : 1);
-
-      if (nextIndex < 0 || nextIndex >= TOUR_STEPS[ activeTourId ].length) {
-        stopTour();
-        return;
-      }
-
-      const nextStep = TOUR_STEPS[ activeTourId ][ nextIndex ];
-
-      // If the next step has a tab attached, switch the UI first!
-      if (nextStep && nextStep.data && nextStep.data.tab) {
-        setActiveSubTab(nextStep.data.tab);
-        // Wait 300ms to guarantee React mounts the new tab DOM before moving the spotlight
-        setTimeout(() => setTourStepIndex(nextIndex), 300);
-      } else {
-        setTourStepIndex(nextIndex);
-      }
+    // Stop if user finishes or clicks the 'X' / 'Skip' button
+    if ([ 'finished', 'skipped' ].includes(status) || action === 'close') {
+      stopTour();
     }
   };
 
@@ -94,14 +86,14 @@ export default function TourGuide() {
     <JoyrideComponent
       steps={currentSteps}
       run={tourActive}
-      stepIndex={tourStepIndex} // We are back in full control!
+      // NO stepIndex! We let the library drive itself flawlessly.
       callback={handleCallback}
       continuous={true}
       showProgress={true}
       showSkipButton={true}
       spotlightClicks={true}
       spotlightPadding={8}
-      disableOverlayClose={true} // Prevents accidental clicks outside the spotlight from closing the tour
+      disableOverlayClose={true} // Prevents accidental misclicks from closing the tour
       styles={{
         options: {
           zIndex: 999999,
