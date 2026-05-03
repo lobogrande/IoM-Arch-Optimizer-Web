@@ -24,6 +24,11 @@ function App() {
   const setActiveTab = store.setActiveTab;
   const calcWorkerRef = useRef(null);
 
+  // Failsafe: Clear any stuck tour state from IndexedDB on initial load
+  useEffect(() => {
+    store.stopTour();
+  }, [ ]);
+
   // Apply Dark Mode Class to HTML body natively
   useEffect(() => {
     if (store.theme === 'dark') {
