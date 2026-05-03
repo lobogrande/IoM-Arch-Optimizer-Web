@@ -1,6 +1,6 @@
 // src/components/TourGuide.jsx
 // -> REPLACE ENTIRE FILE WITH:
-import React from 'react';
+import React, { useEffect } from 'react';
 import * as JoyrideModule from 'react-joyride';
 import useStore from '../store';
 
@@ -16,32 +16,33 @@ const TOUR_STEPS = {
     },
     {
       target: '[data-tour="setup-profiles"]',
-      content: 'This is the Profile Box. Because this tour is interactive, you can actually click the dropdown and view your profiles right now!',
-      placement: 'auto', // Auto prevents popper.js from crashing if screen space is tight
+      content: 'This is the Profile Box. Because this tour is interactive, you can click the dropdown and view your profiles right now!',
+      placement: 'right',
       disableBeacon: true
     },
     {
-      target: '[data-tour="setup-tabs"]',
+      target: '#setup-tab-stats', // EXACT ID TARGET
       content: 'Your setup is divided into tabs. We will start with Base Stats.',
       placement: 'bottom',
       disableBeacon: true,
-      data: { tab: 'stats' } // We read this during step:before
+      data: { tab: 'stats' } // Pre-loads the tab while the user reads this
     },
     {
-      target: '[data-tour="setup-stat-Str"]',
+      target: '[data-tour="setup-stat-Str"]', 
       content: 'Enter your Strength here. You can click the box, type a number, or use the +/- buttons while this tooltip is open!',
       placement: 'auto',
       disableBeacon: true
     },
     {
-      target: '[data-tour="setup-tabs"]',
+      target: '#setup-tab-upgrades_int', // EXACT ID TARGET
       content: 'Now let\'s check out the Internal Upgrades.',
       placement: 'bottom',
       disableBeacon: true,
-      data: { tab: 'upgrades_int' }
+      hideBackButton: true, // Prevents a backwards-navigation React race condition
+      data: { tab: 'upgrades_int' } // Pre-loads the tab while the user reads this
     },
     {
-      target: '[data-tour="setup-hide-maxed"]',
+      target: '[data-tour="setup-hide-maxed"]', 
       content: 'This toggle hides maxed upgrades to reduce screen clutter. Give it a click!',
       placement: 'auto',
       disableBeacon: true
@@ -55,26 +56,28 @@ export default function TourGuide() {
   const handleCallback = (data) => {
     const { action, index, status, type } = data;
     
-    // 🕵️‍♂️ AUTO-PILOT INTERCEPT
-    // Right before Joyride moves to a step, we check if we need to switch tabs to prep the DOM!
-    if (type === 'step:before') {
-      const upcomingStep = TOUR_STEPS[ activeTourId ]?.[ index ];
-      if (upcomingStep && upcomingStep.data && upcomingStep.data.tab) {
-        console.warn(`[TOUR] Prepping DOM: Switching to tab '${upcomingStep.data.tab}'`);
-        setActiveSubTab(upcomingStep.data.tab);
-      }
-    }
-
-    // Failsafe: if Joyride completely loses the DOM, kill the tour
+    // Failsafe: if Joyride completely loses the DOM, kill the tour safely
     if (type === 'error:target_not_found' || type === 'error') {
       console.error(`❌ [TOUR] Target missing on step ${index}. Stopping tour.`);
       stopTour();
       return;
     }
 
-    // Stop if user finishes or clicks the 'X' / 'Skip' button
     if ([ 'finished', 'skipped' ].includes(status) || action === 'close') {
       stopTour();
+      return;
+    }
+
+    // 🕹️ PRE-LOAD DOM INTERCEPTOR
+    // This looks at where the user is going. If the NEXT step requires a tab,
+    // we switch it immediately so the DOM is fully rendered by the time they get there.
+    if (type === 'step:after') {
+      const nextIndex = index + (action === 'prev' ? -1 : 1);
+      const nextStep = TOUR_STEPS[ activeTourId ]?.[ nextIndex ];
+
+      if (nextStep && nextStep.data && nextStep.data.tab) {
+        setActiveSubTab(nextStep.data.tab);
+      }
     }
   };
 
@@ -86,14 +89,13 @@ export default function TourGuide() {
     <JoyrideComponent
       steps={currentSteps}
       run={tourActive}
-      // NO stepIndex! We let the library drive itself flawlessly.
-      callback={handleCallback}
+      callback={handleCallback} // We are natively driving the tour (Uncontrolled Mode)
       continuous={true}
       showProgress={true}
       showSkipButton={true}
       spotlightClicks={true}
       spotlightPadding={8}
-      disableOverlayClose={true} // Prevents accidental misclicks from closing the tour
+      disableOverlayClose={true} // Prevents accidental background clicks from canceling the tour
       styles={{
         options: {
           zIndex: 999999,
