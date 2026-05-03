@@ -511,7 +511,13 @@ export default function PlayerSetup() {
             })}
           </div>
           <button 
-            onClick={() => useStore.getState().startTour('setup')}
+            onClick={() => {
+              // 🔄 Force a complete unmount of the tour before starting it again to guarantee repeatability
+              useStore.getState().stopTour();
+              setTimeout(() => {
+                useStore.getState().startTour('setup');
+              }, 50);
+            }}
             className="mb-2 ml-4 py-1.5 px-3 bg-st-secondary border border-st-border text-st-text text-sm font-bold rounded hover:border-st-orange hover:text-st-orange transition-colors shadow-sm whitespace-nowrap"
           >
             ❓ Need Help?
