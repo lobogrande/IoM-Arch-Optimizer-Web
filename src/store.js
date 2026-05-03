@@ -260,15 +260,23 @@ const useStore = create(
   }),
   
   // Wipe all data to default baseline
-  resetState: () => set({
-    asc1_unlocked: false,
-    asc2_unlocked: false,
+  resetState: () => set((state) => {
+    const defaultExt = { };
+    EXTERNAL_UI_GROUPS.forEach(g => {
+      if (g.ui_type === 'pet') {
+        defaultExt[ g.rows[ 0 ] ] = -1;
+      }
+    });
+
+    return {
+      asc1_unlocked: false,
+      asc2_unlocked: false,
     arch_level: 1,
     current_max_floor: 1,
     geoduck_unlocked: false,
     base_stats: { Str: 0, Agi: 0, Per: 0, Int: 0, Luck: 0, Div: 0, Corr: 0 },
     upgrade_levels: { },
-    external_levels: { },
+    external_levels: defaultExt,
     cards: { },
     arch_ability_infernal_bonus: "0",
     total_infernal_cards: 0,
@@ -290,6 +298,7 @@ const useStore = create(
     simsPerSec: 15,
     cpuProfile: isMobileDevice() ? 'eco' : 'balanced',
     allowUnspent: false
+    };
   }),
 
   // Bulk load from JSON file
