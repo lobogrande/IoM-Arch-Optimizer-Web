@@ -10,7 +10,7 @@ const JoyrideComponent = JoyrideModule.default?.default || JoyrideModule.default
 export default function TourGuide() {
   const { tourActive, activeTourId, stopTour, theme, asc1_unlocked, asc2_unlocked } = useStore();
 
-  // 🧠 DYNAMIC ROUTING ENGINE (Pure Array, natively driven by Joyride)
+  // 🧠 DYNAMIC ROUTING ENGINE
   const TOUR_STEPS = useMemo(() => {
     if (activeTourId !== 'setup') return [ ];
 
@@ -57,7 +57,7 @@ export default function TourGuide() {
       content: 'Your setup is divided into tabs. We will start with Base Stats. Please CLICK THIS TAB right now, and then click Next.',
       placement: 'auto',
       disableBeacon: true,
-      data: { clickTarget: '#setup-tab-stats' } // Fallback hardware clicker
+      data: { clickTarget: '#setup-tab-stats' }
     });
 
     const baseStats =[ 'Str', 'Agi', 'Per', 'Int', 'Luck' ];
@@ -79,7 +79,7 @@ export default function TourGuide() {
       content: 'Now, please CLICK THIS TAB to open your Internal Upgrades, and then click Next.',
       placement: 'auto',
       disableBeacon: true,
-      hideBackButton: true, // Airlock prevents backwards crashing
+      hideBackButton: true,
       data: { clickTarget: '#setup-tab-upgrades_int' }
     });
 
@@ -92,17 +92,18 @@ export default function TourGuide() {
 
     add({
       target: 'div[id^="setup-upg-"]',
-      content: 'This is where you log your Internal Upgrades. Because this is a massive list, let\'s keep the tour moving! You can return to fill these out after the walkthrough is complete. Click Next to continue.',
-      placement: 'right', // Will sit on the right on wide monitors, and drop below on laptops/mobile seamlessly
+      content: 'Here is your first Internal Upgrade box. You can use the +/- buttons or type directly. Click Next to unlock the screen so you can fill out the rest of the list!',
+      placement: 'right', // Forces to sit alongside the column so it doesn't obscure it
       disableBeacon: true
     });
 
     // --- 4. EXTERNAL UPGRADES ---
     add({
       target: '#setup-tab-upgrades_ext',
-      content: 'Next, please CLICK THIS TAB for External Upgrades, and then click Next.',
-      placement: 'auto',
+      content: 'The dark mask is removed! Please scroll down and fill out your Internal Upgrades. Take your time. When you are finished, use the "Back to Tabs" floating button at the bottom right, CLICK THIS TAB, and hit Next.',
+      placement: 'bottom',
       disableBeacon: true,
+      disableOverlay: true, // 🔥 UX MAGIC: Unlocks the entire page!
       hideBackButton: true,
       data: { clickTarget: '#setup-tab-upgrades_ext' }
     });
@@ -144,17 +145,18 @@ export default function TourGuide() {
 
     add({
       target: '#setup-card-dirt1',
-      content: 'Here is your first Block Card. Set states just like before: 0=Locked, 1=Base, 2=Gilded, 3=Poly, 4=Infernal. If you set a card to Poly or Infernal, notice the potential Infernal buff bonus displayed below it!',
-      placement: 'auto',
+      content: 'Here is your first Block Card. Set states just like before: 0=Locked, 1=Base, 2=Gilded, 3=Poly, 4=Infernal. If you set a card to Poly or Infernal, notice the potential Infernal buff bonus displayed below it! Click Next to unlock the screen.',
+      placement: 'right',
       disableBeacon: true
     });
 
     // --- 6. IDOLS ---
     add({
       target: '#setup-tab-idols',
-      content: 'Finally, please CLICK THIS TAB to open Arch Idols, and then click Next.',
-      placement: 'auto',
+      content: 'The mask is removed again! Take your time and fill out all your Block Cards below. When you are finished, CLICK THIS TAB to open Arch Idols, and then click Next.',
+      placement: 'bottom',
       disableBeacon: true,
+      disableOverlay: true, // 🔥 UX MAGIC: Unlocks the page again!
       hideBackButton: true,
       data: { clickTarget: '#setup-tab-idols' }
     });
@@ -191,12 +193,7 @@ export default function TourGuide() {
     });
 
     return s;
-  }, [ activeTourId, asc1_unlocked, asc2_unlocked ]);
-
-  // Restart logging
-  useEffect(() => {
-    if (tourActive) console.warn("🟢 V14 Uncontrolled Tour Activated");
-  }, [ tourActive ]);
+  },[ activeTourId, asc1_unlocked, asc2_unlocked ]);
 
   const handleCallback = (data) => {
     const { action, index, status, type } = data;
@@ -210,14 +207,12 @@ export default function TourGuide() {
       }
     }
 
-    // FAULTS
     if (type === 'error:target_not_found' || type === 'error') {
-      console.error(`❌ [TOUR] Target missing on step ${index}. Stopping tour to prevent lock.`);
+      console.error(`❌ [TOUR] Target missing on step ${index}. Stopping tour.`);
       stopTour();
       return;
     }
 
-    // 🛑 BULLETPROOF TERMINATION
     if (type === 'tour:end' || [ 'finished', 'skipped' ].includes(status) || action === 'close') {
       stopTour();
     }
@@ -229,14 +224,13 @@ export default function TourGuide() {
     <JoyrideComponent
       steps={TOUR_STEPS}
       run={tourActive}
-      // NO stepIndex! We let the library drive itself natively for ultimate stability.
       callback={handleCallback}
       continuous={true}
       showProgress={true}
       showSkipButton={true}
       spotlightClicks={true}
       spotlightPadding={8}
-      disableOverlayClose={true} // Prevents background misclicks from closing the tour
+      disableOverlayClose={true} 
       styles={{
         options: {
           zIndex: 999999,
