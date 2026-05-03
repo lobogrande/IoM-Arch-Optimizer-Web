@@ -1,7 +1,6 @@
 // src/components/TourGuide.jsx
 // -> REPLACE ENTIRE FILE WITH:
 import React from 'react';
-import { flushSync } from 'react-dom'; // ⚡ The React 18 Magic Bullet
 import * as JoyrideModule from 'react-joyride';
 import useStore from '../store';
 
@@ -11,64 +10,60 @@ const TOUR_STEPS = {
   setup:[
     {
       target: 'body',
-      content: 'Welcome to Player Setup! This interactive walkthrough will guide you through configuring your stats. Click Next to begin.',
+      content: 'Welcome to Player Setup! This walkthrough is fully interactive. You can click on the app elements while the tour is running. Click Next to begin.',
       placement: 'center',
       disableBeacon: true
     },
     {
       target: '[data-tour="setup-profiles"]',
-      content: 'This is the Profile Box. Because this tour is interactive, you can click the dropdown and view your profiles right now!',
+      content: 'This is the Profile Box. Because this tour is interactive, try clicking the dropdown menu right now!',
       placement: 'right',
       disableBeacon: true
     },
     {
       target: '#setup-tab-stats',
-      content: 'Your setup is divided into tabs. We will start with Base Stats.',
+      content: 'We will start with Base Stats. Please CLICK THIS TAB right now, and then click Next.',
       placement: 'bottom',
       disableBeacon: true,
-      data: { requiredTab: 'stats' } // Pre-loads the tab
+      data: { clickTarget: '#setup-tab-stats' } // Fallback if they forget to click it
     },
     {
       target: '[data-tour="setup-stat-Str"]',
       content: 'Enter your Strength here. You can click the box, type a number, or use the +/- buttons while this tooltip is open!',
       placement: 'auto',
-      disableBeacon: true,
-      data: { requiredTab: 'stats' }
+      disableBeacon: true
     },
     {
       target: '#setup-tab-upgrades_int',
-      content: 'Now let\'s check out the Internal Upgrades.',
+      content: 'Now, please CLICK THIS TAB to open your Internal Upgrades, and then click Next.',
       placement: 'bottom',
       disableBeacon: true,
-      data: { requiredTab: 'upgrades_int' } // Pre-loads the tab so the next step doesn't crash!
+      hideBackButton: true, // Creates a safe "airlock" so they can't crash the tour by going backward
+      data: { clickTarget: '#setup-tab-upgrades_int' } // Fallback
     },
     {
       target: '[data-tour="setup-hide-maxed"]',
       content: 'This toggle hides maxed upgrades to reduce screen clutter. Give it a click!',
       placement: 'auto',
-      disableBeacon: true,
-      data: { requiredTab: 'upgrades_int' }
+      disableBeacon: true
     }
   ]
 };
 
 export default function TourGuide() {
-  const { tourActive, activeTourId, stopTour, setActiveSubTab, theme } = useStore();
+  const { tourActive, activeTourId, stopTour, theme } = useStore();
 
   const handleCallback = (data) => {
     const { action, index, status, type } = data;
 
-    // ⚡ REACT 18 SYNCHRONOUS DOM OVERRIDE
-    // step:before fires a millisecond before Joyride searches the screen for the target.
-    if (type === 'step:before') {
-      const upcomingStep = TOUR_STEPS[ activeTourId ]?.[ index ];
-      
-      if (upcomingStep && upcomingStep.data && upcomingStep.data.requiredTab) {
-        // flushSync forces React to instantly paint the new tab to the screen right now,
-        // guaranteeing that Joyride's scanner finds it without crashing!
-        flushSync(() => {
-          setActiveSubTab(upcomingStep.data.requiredTab);
-        });
+    // 🖱️ NATIVE DOM CLICKER FALLBACK
+    // If the user clicks Next without clicking the tab, we simulate a hardware click
+    // on the tab button before Joyride moves to the next step.
+    if (type === 'step:after' && action === 'next') {
+      const currentStep = TOUR_STEPS[ activeTourId ]?.[ index ];
+      if (currentStep && currentStep.data && currentStep.data.clickTarget) {
+        const btn = document.querySelector(currentStep.data.clickTarget);
+        if (btn) btn.click();
       }
     }
 
@@ -91,13 +86,13 @@ export default function TourGuide() {
     <JoyrideComponent
       steps={currentSteps}
       run={tourActive}
-      callback={handleCallback} // Uncontrolled Mode (lets Joyride drive natively)
+      callback={handleCallback} // Uncontrolled mode for ultimate stability
       continuous={true}
       showProgress={true}
       showSkipButton={true}
       spotlightClicks={true}
       spotlightPadding={8}
-      disableOverlayClose={true}
+      disableOverlayClose={true} // Prevents accidental background clicks from breaking the tour
       styles={{
         options: {
           zIndex: 999999,
