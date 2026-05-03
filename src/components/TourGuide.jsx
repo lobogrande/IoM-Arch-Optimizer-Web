@@ -14,12 +14,7 @@ const CustomTooltip = ({ index, step, backProps, primaryProps, isLastStep, toolt
         <div className="text-sm text-st-text leading-snug font-medium whitespace-pre-wrap">{step.content}</div>
         <button 
           type="button" 
-          onPointerDown={(e) => e.stopPropagation()}
-          onClick={(e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            stopTour();
-          }} 
+          onClick={stopTour} 
           className="text-st-text-light hover:text-red-500 font-bold text-xl leading-none px-1 cursor-pointer transition-colors" 
           title="Close Tour"
         >
@@ -32,11 +27,9 @@ const CustomTooltip = ({ index, step, backProps, primaryProps, isLastStep, toolt
           {step.data?.skipTo && (
             <button
               type="button"
-              onPointerDown={(e) => e.stopPropagation()}
-              onClick={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                if (step.data.onSkip) step.data.onSkip(step.data.skipTo);
+              onClick={() => {
+                // Completely bypass Joyride's stripped props by dispatching a native window event
+                window.dispatchEvent(new CustomEvent('tour-skip', { detail: step.data.skipTo }));
               }}
               className="text-xs bg-[#2b2b2b] text-st-orange px-2 py-1.5 rounded border border-st-orange hover:bg-st-orange hover:text-[#2b2b2b] font-bold transition-colors shadow-sm cursor-pointer"
             >
@@ -158,16 +151,22 @@ export default function TourGuide() {
         clickTarget: step.clickTarget,
         skipTo: step.skipTo,
         skipLabel: step.skipLabel,
-        onSkip: (targetId) => {
-          const targetIdx = rawSteps.findIndex(s => s.id === targetId);
-          if (targetIdx !== -1) {
-            // Push execution to the end of the event loop to prevent Joyride internal race conditions
-            setTimeout(() => joyrideHelpers.current?.go(targetIdx), 0);
-          }
-        }
       }
     }));
   }, [ rawSteps ]);
+
+  // 🎧 EVENT BUS LISTENER: Intercepts custom jump events from the isolated Tooltip
+  useEffect(() => {
+    const handleSkip = (e) => {
+      const targetId = e.detail;
+      const targetIdx = TOUR_STEPS.findIndex(s => s.id === targetId);
+      if (targetIdx !== -1) {
+        joyrideHelpers.current?.go(targetIdx);
+      }
+    };
+    window.addEventListener('tour-skip', handleSkip);
+    return () => window.removeEventListener('tour-skip', handleSkip);
+  }, [ TOUR_STEPS ]);
 
   const handleCallback = (data) => {
     const { action, index, status, type } = data;
