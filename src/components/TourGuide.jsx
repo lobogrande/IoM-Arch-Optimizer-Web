@@ -110,18 +110,12 @@ export default function TourGuide() {
       // Smart Tab Switching:
       if (nextStep && nextStep.data && nextStep.data.subTab) {
         setActiveSubTab(nextStep.data.subTab);
-        
-        // Massive 250ms buffer to guarantee React has fully painted the new tab DOM nodes 
-        // before Joyride attempts to draw the spotlight cutout.
-        setTimeout(() => {
-          setTourStepIndex(nextIndex);
-        }, 250);
-      } else {
-        // Even for same-page steps, a tiny 50ms buffer prevents the fast-click gray screen bug
-        setTimeout(() => {
-          setTourStepIndex(nextIndex);
-        }, 50);
       }
+      
+      // React 18 automatically batches state updates. By firing these synchronously,
+      // the DOM updates the tab and Joyride's target in the exact same render frame,
+      // entirely eliminating the "gray screen" async bug.
+      setTourStepIndex(nextIndex);
     }
   };
 
