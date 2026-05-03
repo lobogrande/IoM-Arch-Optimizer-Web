@@ -57,7 +57,7 @@ export default function TourGuide() {
     if (tourActive && typeof Joyride !== 'function') {
       console.error("🚨 CRITICAL: react-joyride failed to unpack. Joyride is:", typeof Joyride, Joyride);
     }
-  }, [tourActive]);
+  }, [ tourActive ]);
 
   const handleCallback = (data) => {
     const { action, index, status, type } = data;
@@ -70,7 +70,7 @@ export default function TourGuide() {
     }
 
     // Stop if user finishes or clicks the 'X' / 'Skip' button
-    if ([STATUS.FINISHED, STATUS.SKIPPED].includes(status) || action === ACTIONS.CLOSE) {
+    if ([ STATUS.FINISHED, STATUS.SKIPPED ].includes(status) || action === ACTIONS.CLOSE) {
       stopTour();
       return;
     }
@@ -79,12 +79,12 @@ export default function TourGuide() {
     if (type === EVENTS.STEP_AFTER) {
       const nextIndex = index + (action === ACTIONS.PREV ? -1 : 1);
       
-      if (nextIndex < 0 || nextIndex >= TOUR_STEPS[activeTourId].length) {
+      if (nextIndex < 0 || nextIndex >= TOUR_STEPS[ activeTourId ].length) {
         stopTour();
         return;
       }
       
-      const nextStep = TOUR_STEPS[activeTourId][nextIndex];
+      const nextStep = TOUR_STEPS[ activeTourId ][ nextIndex ];
       
       // Handle automatic tab switching
       if (nextStep && nextStep.data && nextStep.data.tab) {
@@ -96,6 +96,47 @@ export default function TourGuide() {
     }
   };
 
+  // Prevent parsing bug by spacing the fallback array
+  const currentSteps = (activeTourId && TOUR_STEPS[ activeTourId ]) ? TOUR_STEPS[ activeTourId ] : [ ];
+
   // We keep Joyride mounted and just pass an empty array if no tour is active. 
   // This prevents React lifecycle bugs when dynamically injecting portals.
-  const currentSteps = (activeTourId && TOUR_STEPS[activeTourId]) ? TOUR_STEPS[activeTourId] :
+  if (!tourActive || !activeTourId || currentSteps.length === 0) return null;
+
+  return (
+    <Joyride
+      steps={currentSteps}
+      run={tourActive}
+      stepIndex={tourStepIndex}
+      callback={handleCallback}
+      continuous={true}
+      showProgress={true}
+      showSkipButton={true}
+      spotlightClicks={true}
+      spotlightPadding={8}
+      styles={{
+        options: {
+          zIndex: 99999,
+          primaryColor: '#ffa229',
+          backgroundColor: theme === 'dark' ? '#262730' : '#FFFFFF',
+          textColor: theme === 'dark' ? '#FAFAFA' : '#31333F',
+          arrowColor: theme === 'dark' ? '#262730' : '#FFFFFF',
+          overlayColor: 'rgba(0, 0, 0, 0.75)',
+        },
+        tooltipContainer: { textAlign: 'left' },
+        tooltip: {
+          border: theme === 'dark' ? '1px solid rgba(255, 162, 41, 0.5)' : '1px solid #ddd',
+          boxShadow: '0 10px 25px rgba(0,0,0,0.5)'
+        },
+        buttonNext: {
+          backgroundColor: '#ffa229',
+          color: '#2b2b2b',
+          fontWeight: 'bold',
+          padding: '8px 16px',
+          borderRadius: '4px'
+        },
+        buttonBack: { color: theme === 'dark' ? '#A3A8B8' : '#7D808D', marginRight: '8px' }
+      }}
+    />
+  );
+}
