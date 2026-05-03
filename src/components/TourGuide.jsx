@@ -1,8 +1,20 @@
 // src/components/TourGuide.jsx
 // -> REPLACE ENTIRE FILE WITH:
 import React from 'react';
-import Joyride, { ACTIONS, EVENTS, STATUS } from 'react-joyride';
+import * as RawJoyrideModule from 'react-joyride';
 import useStore from '../store';
+
+// 🕵️‍♂️ VITE CJS/ESM INTELLIGENT DECODER
+// Vite sometimes double-wraps CJS modules. We look for known constants to find the true root.
+const Mod = (RawJoyrideModule && RawJoyrideModule.default && typeof RawJoyrideModule.default === 'object' && RawJoyrideModule.default.ACTIONS) 
+  ? RawJoyrideModule.default 
+  : RawJoyrideModule;
+
+// Extract the component and constants safely
+const JoyrideComponent = typeof Mod === 'function' ? Mod : (Mod.default || Mod.Joyride || Mod.ReactJoyride);
+const ACTIONS = Mod.ACTIONS || {};
+const EVENTS = Mod.EVENTS || {};
+const STATUS = Mod.STATUS || {};
 
 const TOUR_STEPS = {
   setup: [
@@ -49,7 +61,7 @@ export default function TourGuide() {
 
     // Safety fallback: if an element goes missing, kill the tour so the app doesn't lock up
     if (type === EVENTS.TARGET_NOT_FOUND || type === EVENTS.ERROR) {
-      console.warn(`[TOUR] Missing target on step ${index}. Stopping tour to prevent UI lock.`);
+      console.warn(`[TOUR] Missing target on step ${index}. Stopping tour.`);
       stopTour();
       return;
     }
@@ -85,8 +97,31 @@ export default function TourGuide() {
 
   if (!tourActive || !activeTourId || currentSteps.length === 0) return null;
 
+  // 🚨 THE VISUAL DIAGNOSTIC FAILSAFE
+  // If Vite mangled the import so badly we couldn't find the React Component, show this red box.
+  if (!JoyrideComponent || (typeof JoyrideComponent !== 'function' && typeof JoyrideComponent.render !== 'function')) {
+    return (
+      <div className="fixed inset-0 z-[999999] flex items-center justify-center bg-black/80 p-4">
+        <div className="bg-red-900 border-2 border-red-500 text-white p-6 rounded shadow-2xl max-w-2xl w-full">
+          <h2 className="text-2xl font-bold mb-2">🚨 Vite Dependency Error</h2>
+          <p className="mb-4">react-joyride failed to export the UI component. Please send this data to the AI:</p>
+          <pre className="bg-black/60 p-4 rounded overflow-auto text-xs font-mono text-red-200">
+            {JSON.stringify({
+              RawModuleKeys: Object.keys(RawJoyrideModule),
+              HasDefault: !!RawJoyrideModule.default,
+              DefaultKeys: RawJoyrideModule.default ? Object.keys(RawJoyrideModule.default) : null,
+            }, null, 2)}
+          </pre>
+          <button onClick={stopTour} className="mt-4 px-4 py-2 bg-white text-red-900 font-bold rounded shadow hover:bg-gray-200 transition-colors">
+            Force Close Tour
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <Joyride
+    <JoyrideComponent
       steps={currentSteps}
       run={tourActive}
       stepIndex={tourStepIndex}
