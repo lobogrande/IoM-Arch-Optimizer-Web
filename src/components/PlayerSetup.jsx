@@ -378,7 +378,7 @@ export default function PlayerSetup() {
         <div className="st-container">
           <h3 className="font-bold mb-4 flex items-center gap-2">⚙️ Global Settings</h3>
           
-          <label className="flex items-center gap-2 mb-2 cursor-pointer">
+          <label data-tour="setup-asc" className="flex items-center gap-2 mb-2 cursor-pointer">
             <input type="checkbox" checked={asc1_unlocked} onChange={(e) => {
               const isAscending = e.target.checked;
               setSetting('asc1_unlocked', isAscending);
@@ -411,7 +411,7 @@ export default function PlayerSetup() {
             <span className={!asc1_unlocked ? "opacity-50" : ""}>Ascension 2 Unlocked</span>
           </label>
 
-          <div className="mb-4">
+          <div data-tour="setup-arch-level" className="mb-4">
             <label className="text-sm text-st-text-light block mb-1">Arch Level</label>
             <input 
               type="number" className="st-input" 
@@ -422,7 +422,7 @@ export default function PlayerSetup() {
             />
           </div>
 
-          <div>
+          <div data-tour="setup-max-floor">
             <label className="text-sm text-st-text-light block mb-1">Max Floor Reached</label>
             <input 
               type="number" className="st-input" 
@@ -757,7 +757,7 @@ export default function PlayerSetup() {
             
             {/* INFERNAL CARDS UI HEADER */}
             <div className="st-container mb-6 flex flex-col sm:flex-row gap-4 items-center bg-st-secondary/50">
-              <div className="w-full sm:w-1/2">
+              <div data-tour="setup-total-infernal" className="w-full sm:w-1/2">
                 <label className="font-bold text-sm block mb-1">Total Infernal Cards (Global)</label>
                 <span className="text-xs text-st-text-light block mb-2 leading-tight">Sum of all Infernal cards you own across all categories (Archaeology, Fishing, etc). Used for the Infernal Multiplier.</span>
                 <input 
@@ -829,7 +829,7 @@ export default function PlayerSetup() {
                       </div>
                       
                       {infData && (
-                        <div className="h-10 mt-3 flex flex-col items-center justify-center w-full text-center border-t border-st-border/50 pt-2">
+                        <div id={`setup-card-info-${card_id}`} className="h-10 mt-3 flex flex-col items-center justify-center w-full text-center border-t border-st-border/50 pt-2">
                           {user_tier >= 3 && !is_locked ? (() => {
                             // Override the legacy 1.126 reverse-engineering hack with the true 1.0 base
                             const trueBase = (card_id === 'div3' && infData.base === 1.126) ? 1.0 : infData.base;
@@ -875,7 +875,7 @@ export default function PlayerSetup() {
             </div>
             
             {!asc1_unlocked ? (
-              <div className="p-4 bg-yellow-50 dark:bg-yellow-900/20 dark:text-yellow-200 border-l-4 border-yellow-400 text-yellow-700 rounded mb-6">
+              <div id="setup-idols-locked" className="p-4 bg-yellow-50 dark:bg-yellow-900/20 dark:text-yellow-200 border-l-4 border-yellow-400 text-yellow-700 rounded mb-6">
                 🔒 Arch Idols important for the simulator are locked until Ascension 1.
               </div>
             ) : (

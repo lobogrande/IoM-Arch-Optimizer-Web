@@ -194,6 +194,7 @@ function App() {
           return (
             <button
               key={tab.id}
+              data-tour={`main-tab-${tab.id}`}
               onClick={() => {
                 setActiveTab(tab.id);
               }}
