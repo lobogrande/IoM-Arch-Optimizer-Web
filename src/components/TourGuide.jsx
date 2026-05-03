@@ -6,10 +6,12 @@ import useStore from '../store';
 const JoyrideComponent = JoyrideModule.default?.default || JoyrideModule.default || JoyrideModule.Joyride;
 
 const CustomTooltip = ({ index, step, backProps, primaryProps, isLastStep, tooltipProps }) => {
-  const { stopTour } = useStore();
+  // Directly subscribe to the global store to bypass Joyride's prop stripping entirely
+  const stopTour = useStore((state) => state.stopTour);
+  const setTourStepIndex = useStore((state) => state.setTourStepIndex);
   
   return (
-    <div {...tooltipProps} className="bg-st-bg border border-st-border shadow-2xl rounded-lg p-4 max-w-sm w-full flex flex-col gap-3 z-[999999]" style={{ ...tooltipProps.style, pointerEvents: 'auto' }}>
+    <div {...tooltipProps} className="bg-st-bg border border-st-border shadow-2xl rounded-lg p-4 max-w-sm w-full flex flex-col gap-3 z-[999999]">
       <div className="flex justify-between items-start gap-4">
         <div className="text-sm text-st-text leading-snug font-medium whitespace-pre-wrap">{step.content}</div>
         <button 
@@ -24,16 +26,10 @@ const CustomTooltip = ({ index, step, backProps, primaryProps, isLastStep, toolt
       
       <div className="flex items-center justify-between mt-2 pt-3 border-t border-st-border/50">
         <div className="flex items-center gap-2">
-          {step.data?.skipTo && (
+          {step.data?.skipToIndex !== null && step.data?.skipToIndex !== undefined && (
             <button
               type="button"
-              onPointerDown={(e) => e.stopPropagation()}
-              onClick={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                // Direct CustomEvent bus to guarantee isolation from Joyride's prop stripping
-                window.dispatchEvent(new CustomEvent('tour-skip-direct', { detail: step.data.skipTo }));
-              }}
+              onClick={() => setTourStepIndex(step.data.skipToIndex)}
               className="text-xs bg-[#2b2b2b] text-st-orange px-2 py-1.5 rounded border border-st-orange hover:bg-st-orange hover:text-[#2b2b2b] font-bold transition-colors shadow-sm cursor-pointer"
             >
               ⏭️ {step.data.skipLabel}
@@ -56,21 +52,20 @@ const CustomTooltip = ({ index, step, backProps, primaryProps, isLastStep, toolt
 };
 
 export default function TourGuide() {
-  // 🛡️ Bulletproof Controlled Mode
-  const { tourActive, activeTourId, stopTour, tourStepIndex, setTourStepIndex, asc1_unlocked, asc2_unlocked, cards } = useStore();
+  const { tourActive, activeTourId, tourStepIndex, setTourStepIndex, asc1_unlocked, asc2_unlocked, cards } = useStore();
   
-  const[seenReactiveCard, setSeenReactiveCard] = useState(false);
-  const reactiveCardId = Object.keys(cards || { }).find(k => cards[ k ] >= 3);
+  const [seenReactiveCard, setSeenReactiveCard] = useState(false);
+  const reactiveCardId = Object.keys(cards || {}).find(k => cards[k] >= 3);
 
   useEffect(() => {
     if (tourActive) setSeenReactiveCard(false);
-  }, [ tourActive ]);
+  }, [tourActive]);
 
   // 🧠 DYNAMIC ROUTING ENGINE
   const rawSteps = useMemo(() => {
-    if (activeTourId !== 'setup') return [ ];
+    if (activeTourId !== 'setup') return[];
 
-    const s =[ ];
+    const s =[];
     const add = (id, target, text, placement, skipTo = null, skipLabel = null, clickTarget = null) => {
       s.push({ id, target, text, placement, skipTo, skipLabel, clickTarget });
     };
@@ -86,7 +81,7 @@ export default function TourGuide() {
     // --- 2. BASE STATS ---
     add('nav-stats', '#setup-tab-stats', 'My setup is divided into tabs. Start with Base Stats. Please CLICK THIS TAB right now, and then click Next.', 'bottom', null, null, '#setup-tab-stats');
 
-    const baseStats =[ 'Str', 'Agi', 'Per', 'Int', 'Luck' ];
+    const baseStats = ['Str', 'Agi', 'Per', 'Int', 'Luck'];
     if (asc1_unlocked) baseStats.push('Div');
     if (asc2_unlocked) baseStats.push('Corr');
 
@@ -135,55 +130,47 @@ export default function TourGuide() {
     add('conclusion', '[data-tour="main-tab-calc_stats"]', 'You have successfully finished entering your full Player Setup! CLICK THIS MAIN TAB to verify your stats against the in-game UI to ensure perfect accuracy.', 'bottom', null, null, '[data-tour="main-tab-calc_stats"]');
 
     return s;
-  },[ activeTourId, asc1_unlocked, asc2_unlocked, reactiveCardId ]);
+  },[activeTourId, asc1_unlocked, asc2_unlocked, reactiveCardId]);
 
-  // 🚀 INJECT CUSTOM BUTTONS INTO RAW STEPS
+  // 🚀 INJECT CUSTOM DATA INTO PURE JOYRIDE STEPS
   const TOUR_STEPS = useMemo(() => {
-    return rawSteps.map(step => ({
-      id: step.id,
-      target: step.target,
-      placement: step.placement,
-      disableBeacon: true,
-      disableOverlay: false, 
-      spotlightClicks: true,
-      content: step.text,
-      data: {
-        clickTarget: step.clickTarget,
-        skipTo: step.skipTo,
-        skipLabel: step.skipLabel,
-      }
-    }));
-  }, [ rawSteps ]);
-
-  // 🎧 EVENT BUS LISTENER: Intercepts custom jump events from the isolated Tooltip
-  useEffect(() => {
-    const handleDirectSkip = (e) => {
-      const targetId = e.detail;
-      const targetIdx = TOUR_STEPS.findIndex(s => s.id === targetId);
-      if (targetIdx !== -1) {
-        setTourStepIndex(targetIdx);
-      }
-    };
-    window.addEventListener('tour-skip-direct', handleDirectSkip);
-    return () => window.removeEventListener('tour-skip-direct', handleDirectSkip);
-  }, [ TOUR_STEPS, setTourStepIndex ]);
+    return rawSteps.map((step, idx, arr) => {
+      const skipToIndex = arr.findIndex(s => s.id === step.skipTo);
+      return {
+        id: step.id,
+        target: step.target,
+        placement: step.placement,
+        disableBeacon: true,
+        disableOverlay: true, // Permanent UI Unlock + Permanently kills the Gray Screen Crash
+        spotlightClicks: true,
+        content: step.text,
+        data: {
+          clickTarget: step.clickTarget,
+          skipLabel: step.skipLabel,
+          skipToIndex: skipToIndex !== -1 ? skipToIndex : null
+        }
+      };
+    });
+  }, [rawSteps]);
 
   const handleCallback = (data) => {
     const { action, index, status, type } = data;
+    const { stopTour, setTourStepIndex } = useStore.getState();
 
-    if ([ 'finished', 'skipped' ].includes(status)) {
+    // 1. Successful Termination
+    if (status === 'finished' || status === 'skipped') {
       stopTour();
       return;
     }
 
-    // 🛡️ IMMUNITY SHIELD: Completely ignore Joyride's outside click closure attempts
+    // 2. 🛡️ THE IMMUNITY SHIELD: Completely ignore Joyride's outside click closures
     if (action === 'close') {
       return;
     }
 
-    // ⚡ REACTIVE STEP SILENT SKIP
+    // 3. Reactive step silent skip logic
     if (type === 'step:before') {
-       const upcomingStep = TOUR_STEPS[ index ];
+       const upcomingStep = TOUR_STEPS[index];
        if (upcomingStep?.id === 'reactive-card') {
            const isBackward = action === 'prev';
            if (!reactiveCardId || seenReactiveCard) {
@@ -195,17 +182,17 @@ export default function TourGuide() {
        return;
     }
 
-    // 🖱️ CONTROLLED MODE NAVIGATION
+    // 4. Controlled Navigation & Tab Switch Interceptor
     if (type === 'step:after') {
       if (action === 'next' || action === 'prev') {
         const nextIdx = action === 'next' ? index + 1 : index - 1;
-        const currentStep = TOUR_STEPS[ index ];
+        const currentStep = TOUR_STEPS[index];
         
         if (action === 'next' && currentStep?.data?.clickTarget) {
           const btn = document.querySelector(currentStep.data.clickTarget);
           if (btn) btn.click();
           
-          // 🛡️ THE 100MS BRIDGE: Prevents the React 18 Gray Screen Crash
+          // 🛡️ THE 100MS BRIDGE: Ensure React 18 finishes painting the tab before moving
           setTimeout(() => setTourStepIndex(nextIdx), 100);
           return;
         }
@@ -213,11 +200,10 @@ export default function TourGuide() {
       }
     }
 
-    // 🛡️ CRASH RECOVERY: If a target isn't found, safely auto-skip to prevent Gray Screen hangs
+    // 5. Auto-skip missing targets to prevent hangs
     if (type === 'error:target_not_found') {
       console.warn(`⚠️ [TOUR] Target missing on step ${index}. Auto-skipping to prevent crash.`);
       setTourStepIndex(index + 1);
-      return;
     }
   };
 
@@ -227,27 +213,14 @@ export default function TourGuide() {
     <JoyrideComponent
       steps={TOUR_STEPS}
       run={tourActive}
-      stepIndex={tourStepIndex} // Back in safe Controlled Mode
+      stepIndex={tourStepIndex} // Pure Controlled Mode
       callback={handleCallback}
       continuous={true}
       showProgress={false}
       showSkipButton={false}
-      disableOverlayClose={true}
-      disableCloseOnEsc={true}
       tooltipComponent={CustomTooltip}
       styles={{
-        options: {
-          zIndex: 999999,
-          overlayColor: 'transparent',
-        },
-        overlay: {
-          pointerEvents: 'none',
-        },
-        // Prevents React 18 warnings by avoiding HTML styles on Joyride's SVG spotlight
-        spotlight: {
-          fill: 'transparent',
-          stroke: 'transparent',
-        }
+        options: { zIndex: 999999 }
       }}
     />
   );
