@@ -1,11 +1,15 @@
 // src/components/TourGuide.jsx
+// -> REPLACE ENTIRE FILE WITH:
 import React, { useEffect } from 'react';
 import * as JoyrideModule from 'react-joyride';
 import useStore from '../store';
 
-const Joyride = typeof JoyrideModule.default === 'function' 
-  ? JoyrideModule.default 
-  : (JoyrideModule.default?.default || Object.values(JoyrideModule).find(v => typeof v === 'function'));
+// 🕵️‍♂️ VITE CJS/ESM SAFE UNPACKING
+// This strictly targets the component. If Vite double-wraps it, we unwrap it safely.
+let Joyride = JoyrideModule.default;
+if (Joyride && typeof Joyride !== 'function' && typeof Joyride.default === 'function') {
+  Joyride = Joyride.default;
+}
 const { ACTIONS, EVENTS, STATUS } = JoyrideModule;
 
 const TOUR_STEPS = {
@@ -48,40 +52,30 @@ const TOUR_STEPS = {
 export default function TourGuide() {
   const { tourActive, activeTourId, tourStepIndex, stopTour, setTourStepIndex, setActiveSubTab, theme } = useStore();
 
-  // 🕵️‍♂️ SMART DOM SCANNER: Checks if targets exist right when you click the button
+  // Failsafe logger to ensure we actually grabbed the Component
   useEffect(() => {
-    if (tourActive && activeTourId && TOUR_STEPS[activeTourId]) {
-      console.warn(`🚨 [TOUR START] Tour "${activeTourId}" Activated! Step Index: ${tourStepIndex}`);
-      
-      const currentTarget = TOUR_STEPS[activeTourId][tourStepIndex]?.target;
-      const elementExists = document.querySelector(currentTarget);
-      
-      if (!elementExists) {
-        console.error(`❌ [TOUR ERROR] Could not find DOM target: "${currentTarget}"`);
-        console.error(`The tour is silently failing because the element does not exist on the screen right now.`);
-      } else {
-        console.warn(`✅ [TOUR OK] Found target: "${currentTarget}"`);
-      }
+    if (tourActive && typeof Joyride !== 'function') {
+      console.error("🚨 CRITICAL: react-joyride failed to unpack. Joyride is:", typeof Joyride, Joyride);
     }
-  }, [tourActive, activeTourId, tourStepIndex]);
+  }, [tourActive]);
 
   const handleCallback = (data) => {
     const { action, index, status, type } = data;
-    console.warn(`🚨 [TOUR EVENT] Type: ${type} | Action: ${action} | Status: ${status}`);
 
-    // If Joyride throws an error or can't find a target, tell us!
+    // Safety fallback: if an element goes missing, kill the tour so the app doesn't lock up
     if (type === EVENTS.TARGET_NOT_FOUND || type === EVENTS.ERROR) {
-      console.error(`❌ [JOYRIDE FAILED] Missing target on step ${index}:`, TOUR_STEPS[activeTourId]?.[index]?.target);
+      console.warn(`[TOUR] Missing target on step ${index}. Stopping tour to prevent UI lock.`);
       stopTour();
       return;
     }
 
+    // Stop if user finishes or clicks the 'X' / 'Skip' button
     if ([STATUS.FINISHED, STATUS.SKIPPED].includes(status) || action === ACTIONS.CLOSE) {
-      console.warn("🚨 [TOUR CLOSED] Stopping tour.");
       stopTour();
       return;
     }
 
+    // Advance steps
     if (type === EVENTS.STEP_AFTER) {
       const nextIndex = index + (action === ACTIONS.PREV ? -1 : 1);
       
@@ -92,6 +86,7 @@ export default function TourGuide() {
       
       const nextStep = TOUR_STEPS[activeTourId][nextIndex];
       
+      // Handle automatic tab switching
       if (nextStep && nextStep.data && nextStep.data.tab) {
         setActiveSubTab(nextStep.data.tab);
         setTimeout(() => setTourStepIndex(nextIndex), 200);
@@ -101,42 +96,6 @@ export default function TourGuide() {
     }
   };
 
-  if (!tourActive || !activeTourId || !TOUR_STEPS[activeTourId]) return null;
-
-  return (
-    <Joyride
-      steps={TOUR_STEPS[activeTourId]}
-      run={tourActive}
-      stepIndex={tourStepIndex}
-      callback={handleCallback}
-      continuous={true}
-      showProgress={true}
-      showSkipButton={true}
-      spotlightClicks={true}
-      spotlightPadding={8}
-      styles={{
-        options: {
-          zIndex: 99999,
-          primaryColor: '#ffa229',
-          backgroundColor: theme === 'dark' ? '#262730' : '#FFFFFF',
-          textColor: theme === 'dark' ? '#FAFAFA' : '#31333F',
-          arrowColor: theme === 'dark' ? '#262730' : '#FFFFFF',
-          overlayColor: 'rgba(0, 0, 0, 0.75)',
-        },
-        tooltipContainer: { textAlign: 'left' },
-        tooltip: {
-          border: theme === 'dark' ? '1px solid rgba(255, 162, 41, 0.5)' : '1px solid #ddd',
-          boxShadow: '0 10px 25px rgba(0,0,0,0.5)'
-        },
-        buttonNext: {
-          backgroundColor: '#ffa229',
-          color: '#2b2b2b',
-          fontWeight: 'bold',
-          padding: '8px 16px',
-          borderRadius: '4px'
-        },
-        buttonBack: { color: theme === 'dark' ? '#A3A8B8' : '#7D808D', marginRight: '8px' }
-      }}
-    />
-  );
-}
+  // We keep Joyride mounted and just pass an empty array if no tour is active. 
+  // This prevents React lifecycle bugs when dynamically injecting portals.
+  const currentSteps = (activeTourId && TOUR_STEPS[activeTourId]) ? TOUR_STEPS[activeTourId] :
