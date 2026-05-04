@@ -9,6 +9,19 @@ const JoyrideComponent = JoyrideModule.default?.default || JoyrideModule.default
 const CustomTooltip = ({ index, step, backProps, primaryProps, isLastStep, tooltipProps }) => {
   const stopTour = useStore((state) => state.stopTour);
   const setTourStepIndex = useStore((state) => state.setTourStepIndex);
+
+  // 📜 PERFECT SCROLLING ENGINE: Flawlessly center targets without breaking overflow containers
+  useEffect(() => {
+    if (step.target && step.target !== 'body') {
+      setTimeout(() => {
+        const el = document.querySelector(step.target);
+        if (el) {
+          const y = el.getBoundingClientRect().top + window.scrollY - (window.innerHeight / 2) + (el.offsetHeight / 2);
+          window.scrollTo({ top: Math.max(0, y), behavior: 'smooth' });
+        }
+      }, 50);
+    }
+  }, [index, step.target]);
   
   // 🛡️ SMART PRE-VERIFIER: Prevents Joyride from crashing by skipping missing DOM nodes
   const handleNext = (e) => {
@@ -22,12 +35,7 @@ const CustomTooltip = ({ index, step, backProps, primaryProps, isLastStep, toolt
       let nextIdx = startIdx;
       while (nextIdx < step.data.allTargets.length) {
         if (step.data.allClickTargets[nextIdx]) break; // Reached a tab switch, stop checking
-        const targetEl = document.querySelector(step.data.allTargets[nextIdx]);
-        if (targetEl) { 
-          // 📜 Smoothly center the target so the user can see surrounding context!
-          targetEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
-          break; 
-        }
+        if (document.querySelector(step.data.allTargets[nextIdx])) break; // Found a valid DOM node!
         console.warn(`⚠️[TOUR] Skipping missing target to prevent crash: ${step.data.allTargets[nextIdx]}`);
         nextIdx++;
       }
@@ -48,11 +56,7 @@ const CustomTooltip = ({ index, step, backProps, primaryProps, isLastStep, toolt
     let prevIdx = index - 1;
     while (prevIdx > 0) {
       if (step.data.allClickTargets[prevIdx]) break;
-      const targetEl = document.querySelector(step.data.allTargets[prevIdx]);
-      if (targetEl) {
-        targetEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        break;
-      }
+      if (document.querySelector(step.data.allTargets[prevIdx])) break;
       prevIdx--;
     }
     setTourStepIndex(prevIdx);
@@ -79,8 +83,6 @@ const CustomTooltip = ({ index, step, backProps, primaryProps, isLastStep, toolt
               type="button"
               onClick={(e) => {
                 e.preventDefault();
-                const targetEl = document.querySelector(step.data.allTargets[step.data.skipToIndex]);
-                if (targetEl) targetEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
                 setTourStepIndex(step.data.skipToIndex);
               }}
               className="text-xs bg-[#2b2b2b] text-st-orange px-2 py-1.5 rounded border border-st-orange hover:bg-st-orange hover:text-[#2b2b2b] font-bold transition-colors shadow-sm cursor-pointer"
