@@ -114,6 +114,10 @@ export default function TourGuide() {
   // Optimizer Dependencies for Dynamic Branching
   const optGoal = useStore(state => state.optGoal);
   const allowUnspent = useStore(state => state.allowUnspent);
+  const opt_results = useStore(state => state.opt_results);
+  const runMetric = opt_results?.run_target_metric || 'highest_floor';
+  const isFloorTarget = runMetric === 'highest_floor';
+  const hasLoot = !!opt_results?.show_loot;
 
   const reactiveCardId = useStore(state => {
     if (!state.cards) return null;
@@ -237,6 +241,41 @@ export default function TourGuide() {
 
       add('opt-synth-link', '[data-tour="main-tab-synth"]', 'Once you have your refined runs, it\'s time to synthesize them! CLICK THIS TAB to proceed to Synthesis.', 'bottom', null, null, '[data-tour="main-tab-synth"]');
 
+      // --- SYNTHESIS TAB ---
+      add('synth-filter', '[data-tour="synth-filter"]', 'Welcome to Synthesis! The target from your most recent Optimization is auto-selected here, filtering the history below to only show relevant runs.', 'bottom');
+      add('synth-table', '[data-tour="synth-table"]', 'This is your History Table. Select 2 to 5 of your recent highly-optimized runs using the checkboxes to combine them.', 'top');
+      add('synth-run', '[data-tour="synth-run-wrapper"]', 'Click here to Synthesize your Ultimate Meta-Build! The tooltip will wait here. Click Next when the synthesis is complete.', 'top');
+
+      // --- RESULTS DASHBOARD ---
+      add('res-tab-build', '[data-tour="res-tab-build"]', 'Here is your newly synthesized Ultimate Meta-Build! The AI has run a deep 500-simulation marathon to eliminate RNG variance.', 'top');
+      add('res-apply', '[data-tour="res-apply"]', 'You can instantly apply this meta-build back to your global profile here.', 'bottom');
+
+      add('res-tab-data-link', '[data-tour="res-tab-data"]', 'Now let\'s look at the analytics. CLICK THIS TAB to open the Simulation Data view, then click Next.', 'bottom', null, null, '[data-tour="res-tab-data"]');
+
+      if (isFloorTarget) {
+        add('res-data-push', '[data-tour="res-data-push"]', 'Because pushing floors is highly RNG-dependent, this table shows the cumulative probability and required Arch Seconds to reach specific milestones safely.', 'top');
+        add('res-inner-wall-link', '[data-tour="res-inner-wall"]', 'CLICK THIS TAB to view the Progression Wall, then click Next.', 'bottom', null, null, '[data-tour="res-inner-wall"]');
+        add('res-data-wall', '[data-tour="res-data-wall"]', 'This histogram and stamina trace show you exactly where and why your build runs out of stamina.', 'top');
+      } else {
+        add('res-data-banked', '[data-tour="res-data-banked"]', 'Here are your Banked Yields. This is the true, mathematically stable average of what this build produces per 1k Arch Seconds.', 'top');
+        add('res-inner-cards-link', '[data-tour="res-inner-cards"]', 'CLICK THIS TAB to view Card Drop estimates, then click Next.', 'bottom', null, null, '[data-tour="res-inner-cards"]');
+        add('res-data-cards', '[data-tour="res-data-cards"]', 'Select a block card here to see exactly how long it will take to farm Base, Poly, or Infernal copies!', 'top');
+        if (hasLoot) {
+          add('res-inner-loot-link', '[data-tour="res-inner-loot"]', 'CLICK THIS TAB to view Collateral Loot, then click Next.', 'bottom', null, null, '[data-tour="res-inner-loot"]');
+          add('res-data-loot', '[data-tour="res-data-loot"]', 'This breakdown shows all the extra fragments you will passively farm while targeting your primary goal.', 'top');
+        }
+      }
+
+      add('res-tab-roi-link', '[data-tour="res-tab-roi"]', 'Finally, CLICK THIS TAB to open the Upgrade Guide (ROI Analyzer), then click Next.', 'bottom', null, null, '[data-tour="res-tab-roi"]');
+
+      if (isFloorTarget) {
+        add('res-roi-disabled', '[data-tour="res-roi-disabled"]', 'The ROI Analyzer is disabled for Floor Pushing. Floor progression relies on large, discrete math breakpoints rather than +1 stat gains.', 'top');
+      } else {
+        add('res-roi-analyzer', '[data-tour="res-roi-analyzer"]', 'The ROI Analyzer runs isolated micro-simulations, adding +1 to every stat, card, and upgrade to rank their immediate raw output gain!', 'top');
+      }
+
+      add('opt-end', 'body', 'You have completed the Optimizer tour! Your next steps are to use the Sandbox for precise breakpoint tweaking, or the Duel tab to compare two builds side-by-side.', 'center');
+
     } else if (activeTourId === 'sandbox') {
       add('sand-start', 'body', 'Welcome to the Sandbox! This is my testing ground for experimenting with hypothetical stat distributions outside of the main profile.', 'center');
       add('sand-stats', '[data-tour="sand-stats"]', 'Modify any stat here. These inputs are isolated and will not overwrite your actual saved profile.', 'auto');
@@ -246,7 +285,7 @@ export default function TourGuide() {
     }
 
     return s;
-  },[ activeTourId, asc1_unlocked, asc2_unlocked, reactiveCardId, optGoal, allowUnspent ]);
+  },[ activeTourId, asc1_unlocked, asc2_unlocked, reactiveCardId, optGoal, allowUnspent, runMetric, hasLoot, isFloorTarget ]);
 
   const TOUR_STEPS = useMemo(() => {
     const allTargets = rawSteps.map(s => s.target);

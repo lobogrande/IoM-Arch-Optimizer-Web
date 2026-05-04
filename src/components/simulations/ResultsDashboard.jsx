@@ -472,6 +472,7 @@ export default function ResultsDashboard({ context }) {
         ].map((t) => (
           <button
             key={t.id}
+            data-tour={`res-tab-${t.id}`}
             onClick={() => setResTab(t.id)}
             className={`px-4 py-2 font-medium whitespace-nowrap transition-colors duration-200 border-b-2 ${
               resTab === t.id 
@@ -510,6 +511,7 @@ export default function ResultsDashboard({ context }) {
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-2 mt-6">
             <button 
+              data-tour="res-apply"
               onClick={(e) => {
                 store.setBaseStats(store.opt_results.best_final);
                 const btn = e.target;
@@ -564,6 +566,7 @@ export default function ResultsDashboard({ context }) {
             {innerTabs.map((t) => (
               <button
                 key={t.id}
+                data-tour={`res-inner-${t.id}`}
                 onClick={() => setDataTab(t.id)}
                 className={`px-4 py-2 font-medium whitespace-nowrap transition-colors duration-200 border-b-2 ${
                   dataTab === t.id ? 'border-st-orange text-st-text' : 'border-transparent text-st-text-light hover:text-st-orange'
@@ -578,7 +581,7 @@ export default function ResultsDashboard({ context }) {
             <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
               <div className="lg:col-span-2 space-y-6">
                 {isFloorTarget ? (
-                  <div className="space-y-4">
+                  <div data-tour="res-data-push" className="space-y-4">
                     <h4 className="font-bold text-lg border-b border-st-border pb-2 flex items-center gap-2">
                       🏆 Right-Tail Push Potential
                       <div className="group relative cursor-help text-st-text-light hover:text-st-orange font-normal">
@@ -672,7 +675,7 @@ export default function ResultsDashboard({ context }) {
                     })()}
                   </div>
                 ) : (
-                  <div className="space-y-6">
+                  <div data-tour="res-data-banked" className="space-y-6">
                     <div>
                       <h4 className="font-bold text-lg">💰 Banked Yields</h4>
                       <p className="text-sm text-st-text-light mb-1">Target {runMetric.includes("frag") ? "Fragments" : runMetric.includes("block") ? "Kills" : "EXP"} per <b>1k Arch Seconds</b></p>
@@ -803,7 +806,7 @@ export default function ResultsDashboard({ context }) {
             const activeBlock = cardSelBlock || defaultBlock;
 
             return (
-            <div className="space-y-6">
+            <div data-tour="res-data-cards" className="space-y-6">
               <h4 className="font-bold text-lg">🎴 Block Card Drop Estimates</h4>
               {displayBlocks.length === 0 ? (
                 <div className="text-st-text-light">No block kill data available for this run.</div>
@@ -907,7 +910,7 @@ export default function ResultsDashboard({ context }) {
           })()}
 
           {dataTab === 'loot' && store.opt_results.chart_loot && (
-            <div className="space-y-4">
+            <div data-tour="res-data-loot" className="space-y-4">
               <h4 className="font-bold text-lg">🎒 Collateral Loot Distribution</h4>
               <p className="text-sm text-st-text-light">On average, every <b>1k Arch Seconds</b> of simulated mining yields the following collateral fragments alongside your target:</p>
               <div className="w-full h-[400px] border border-st-border rounded bg-st-bg p-2">
@@ -932,7 +935,7 @@ export default function ResultsDashboard({ context }) {
           )}
 
           {dataTab === 'wall' && (
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div data-tour="res-data-wall" className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               <div className="w-full h-full border border-st-border rounded bg-st-bg p-4 flex flex-col">
                 <div className="mb-2">
                   <h4 className="font-bold text-lg">📊 Simulation Outcome Distribution</h4>
@@ -1019,12 +1022,12 @@ export default function ResultsDashboard({ context }) {
           <h3 className="text-2xl font-bold mb-4">🔮 Upgrade Guide (Marginal ROI)</h3>
           
           {store.opt_results.run_target_metric === 'highest_floor' ? (
-            <div className="bg-yellow-900/40 border-l-4 border-yellow-500 p-4 rounded">
+            <div data-tour="res-roi-disabled" className="bg-yellow-900/40 border-l-4 border-yellow-500 p-4 rounded">
               <p className="font-bold text-yellow-500">⚠️ ROI Analyzer is Disabled for Max Floor Push</p>
               <p className="text-sm mt-2">Because floor progression relies on large, discrete math 'Breakpoints', adding a single +1 to a stat rarely shows an immediate gain. To calculate exactly what stats you need to beat your current wall, send your build to Tab 6 (Hit Calculator Sandbox) and manually inspect the HP and Armor Breakpoints!</p>
             </div>
           ) : (
-            <div>
+            <div data-tour="res-roi-analyzer">
               <p className="text-st-text-light mb-4">Wondering what to buy next? The ROI Analyzer runs isolated micro-simulations, adding <strong>+1 Level</strong> to every stat and un-maxed upgrade, then ranks them by their immediate raw boost to your yields.</p>
               <div className="bg-yellow-900/40 border-l-4 border-yellow-500 p-3 rounded mb-6 text-sm">
                 ⚠️ <strong>Note:</strong> This engine ranks <strong>raw output gain</strong>, not cost efficiency. You must weigh the AI's top recommendations against your actual in-game fragment costs!
