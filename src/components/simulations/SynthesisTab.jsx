@@ -104,12 +104,14 @@ export default function SynthesisTab() {
       store.setSimDataTab('performance');
 
       setTimeout(() => {
-        const anchorId = isMetaBuild ? 'synth-results-anchor' : 'dashboard-anchor-optimizer';
-        const el = document.getElementById(anchorId);
-        if (el) {
-          el.scrollIntoView({ behavior: 'smooth', block: 'start' });
-        } else {
-          window.scrollTo({ top: 0, behavior: 'smooth' });
+        if (!store.tourActive) {
+          const anchorId = isMetaBuild ? 'synth-results-anchor' : 'dashboard-anchor-optimizer';
+          const el = document.getElementById(anchorId);
+          if (el) {
+            el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          } else {
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+          }
         }
       }, 150);
     }
@@ -560,8 +562,10 @@ export default function SynthesisTab() {
       store.setSimDataTab('performance');
 
       setTimeout(() => {
-          const el = document.getElementById('synth-results-anchor');
-          if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          if (!store.tourActive) {
+            const el = document.getElementById('synth-results-anchor');
+            if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          }
       }, 150);
 
     } catch (err) {
