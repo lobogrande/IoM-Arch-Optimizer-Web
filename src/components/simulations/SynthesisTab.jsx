@@ -677,16 +677,20 @@ export default function SynthesisTab() {
               </button>
             </div>
 
-            <div className="overflow-x-auto border border-st-border rounded bg-st-bg">
-              {(() => {
-                const tableStats = [...activeStats];
+            <div className="relative">
+              {/* 🎯 THE INVISIBLE ANCHOR: Placed strictly outside the overflow container to prevent browser scroll crashes, but physically aligned exactly over the checkbox column! */}
+              <div data-tour="synth-table" className="absolute top-0 left-2 w-10 h-10 pointer-events-none"></div>
+
+              <div className="overflow-x-auto border border-st-border rounded bg-st-bg">
+                {(() => {
+                  const tableStats = [...activeStats];
                 if (visibleHistory.some(r => r.Unassigned !== undefined)) tableStats.push('Unassigned');
 
                 return (
                   <table className="w-full text-left border-collapse text-sm">
                     <thead>
                       <tr className="border-b border-st-border bg-black/10">
-                        <th data-tour="synth-table" className="p-3 w-10 text-center">
+                        <th className="p-3 w-10 text-center">
                           <input 
                             type="checkbox" 
                             checked={visibleHistory.length > 0 && visibleHistory.every(r => r.Include)}
@@ -756,6 +760,7 @@ export default function SynthesisTab() {
                   </table>
                 );
               })()}
+              </div>
             </div>
           </div>
 
