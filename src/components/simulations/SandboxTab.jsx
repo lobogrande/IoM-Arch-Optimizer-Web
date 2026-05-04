@@ -135,9 +135,9 @@ export default function SandboxTab() {
         <h2 className="text-2xl font-bold">🧪 Block Hit Sandbox</h2>
         <button 
           onClick={() => store.startTour('sandbox')}
-          className="px-3 py-1.5 bg-st-orange text-[#2b2b2b] hover:bg-[#ffa229] text-sm font-bold rounded shadow-sm transition-colors cursor-pointer flex items-center gap-2"
+          className="text-sm bg-st-orange text-[#2b2b2b] px-3 py-1.5 rounded font-bold hover:bg-[#ffa229] transition-colors shadow-sm cursor-pointer"
         >
-          <span>❓</span> Help/Tour
+          ❓ Help / Tour
         </button>
       </div>
       <div data-tour="sand-breakpoints-info" className="text-sm text-st-text-light">
