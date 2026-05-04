@@ -309,7 +309,7 @@ export default function SandboxTab() {
                   className="st-input h-8" 
                 />
               </div>
-              <label className="flex items-center space-x-2 cursor-pointer mt-2">
+              <label data-tour="sand-unreachable" className="flex items-center space-x-2 cursor-pointer mt-2">
                 <input 
                   type="checkbox" 
                   checked={sandboxShowUnreachable}
