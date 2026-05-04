@@ -158,11 +158,9 @@ export default function SynthesisTab() {
     cols.push({
             headerName: "Actions", flex: 1, suppressAutoSize: true, minWidth: 140, sortable: false, filter: false,
             cellRenderer: (p) => {
-            const isFirstRow = p.node && p.node.rowIndex === 0;
             return (
               <div className="flex gap-2 items-center justify-center h-full">
                 <button 
-                  data-tour={isFirstRow ? "synth-history-view" : undefined}
                   onClick={() => handleRestore(p.data, true)} 
                   className="px-2 py-1 bg-st-orange text-[#2b2b2b] font-bold text-xs rounded hover:bg-[#ffb045] transition-colors"
                 >
@@ -835,15 +833,19 @@ export default function SynthesisTab() {
                 </button>
               </div>
               
-              <div 
-                className={`border border-st-border rounded bg-st-bg h-[400px] w-full outline-none ${store.theme === 'dark' ? 'ag-theme-quartz-dark' : 'ag-theme-quartz'}`}
-                tabIndex={-1}
-                onMouseEnter={(e) => {
-                  if (!e.currentTarget.contains(document.activeElement)) {
-                    e.currentTarget.focus();
-                  }
-                }}
-              >
+              <div className="relative w-full">
+                {/* 🎯 THE INVISIBLE ANCHOR: Bypasses AG-Grid's virtual DOM layout delays and scroll bugs */}
+                <div data-tour="synth-history-view" className="absolute top-[60px] right-[10%] w-10 h-10 pointer-events-none z-10"></div>
+                
+                <div 
+                  className={`border border-st-border rounded bg-st-bg h-[400px] w-full outline-none ${store.theme === 'dark' ? 'ag-theme-quartz-dark' : 'ag-theme-quartz'}`}
+                  tabIndex={-1}
+                  onMouseEnter={(e) => {
+                    if (!e.currentTarget.contains(document.activeElement)) {
+                      e.currentTarget.focus();
+                    }
+                  }}
+                >
                 <AgGridReact
                   ref={synthGridRef}
                   theme="legacy"
@@ -864,6 +866,7 @@ export default function SynthesisTab() {
                   }}
                 />
               </div>
+            </div>
             </div>
           )}
         </>
