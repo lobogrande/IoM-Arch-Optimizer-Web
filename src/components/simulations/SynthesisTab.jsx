@@ -156,11 +156,18 @@ export default function SynthesisTab() {
     });
 
     cols.push({
-        headerName: "Actions", flex: 1, suppressAutoSize: true, minWidth: 140, sortable: false, filter: false,
-        cellRenderer: (p) => {
-        return (
-          <div className="flex gap-2 items-center justify-center h-full">
-            <button onClick={() => handleRestore(p.data, true)} className="px-2 py-1 bg-st-orange text-[#2b2b2b] font-bold text-xs rounded hover:bg-[#ffb045] transition-colors">📊 View</button>
+            headerName: "Actions", flex: 1, suppressAutoSize: true, minWidth: 140, sortable: false, filter: false,
+            cellRenderer: (p) => {
+            const isFirstRow = p.node && p.node.rowIndex === 0;
+            return (
+              <div className="flex gap-2 items-center justify-center h-full">
+                <button 
+                  data-tour={isFirstRow ? "synth-history-view" : undefined}
+                  onClick={() => handleRestore(p.data, true)} 
+                  className="px-2 py-1 bg-st-orange text-[#2b2b2b] font-bold text-xs rounded hover:bg-[#ffb045] transition-colors"
+                >
+                  📊 View
+                </button>
             <button 
               onClick={() => {
                 const kept = [ ...store.synth_history ];
@@ -814,7 +821,7 @@ export default function SynthesisTab() {
           <hr className="border-st-border my-8" />
 
           {store.synth_history && store.synth_history.length > 0 && (
-            <div className="space-y-4">
+            <div data-tour="synth-history-log" className="space-y-4">
               <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
                 <div>
                   <h3 className="text-xl font-bold">📚 Meta-Build History Log</h3>

@@ -322,6 +322,9 @@ export default function TourGuide() {
         add('res-roi-analyzer', '[data-tour="res-roi-analyzer"]', 'The ROI Analyzer runs isolated micro-simulations, adding +1 to every stat, card, and upgrade to rank their immediate raw output gain!', 'top');
       }
 
+      add('synth-history-log', '[data-tour="synth-history-log"]', 'This Meta-Build History Log stores all your previous synthesized builds and their analytics information.', 'top');
+      add('synth-history-view', '[data-tour="synth-history-view"]', 'You can use the View button in the Actions column to reload an old build\'s analytics views and go back to review all those charts and analysis outputs we previously covered.', 'left');
+
       add('opt-end', 'body', 'You have completed the Optimizer tour! Your next steps are to use the Sandbox for precise breakpoint tweaking, or the Duel tab to compare two builds side-by-side.', 'center');
 
     } else if (activeTourId === 'sandbox') {
