@@ -443,9 +443,10 @@ export default function OptimizerTab() {
       <hr className="border-st-border" />
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div data-tour="opt-goal">
+        <div>
           <label className="block text-sm font-bold mb-1">Optimization Target</label>
           <select 
+            data-tour="opt-goal"
             value={optGoal} 
             onChange={(e) => setOptGoal(e.target.value)}
             className="w-full bg-st-bg border border-st-border rounded p-2 text-st-text focus:border-st-orange focus:outline-none"
