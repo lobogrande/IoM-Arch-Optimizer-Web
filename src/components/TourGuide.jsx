@@ -23,6 +23,8 @@ const CustomTooltip = ({ index, step, backProps, primaryProps, isLastStep, toolt
       isNextDisabled = true; disabledReason = "(Click the Tab first)";
     } else if (step.data.requireCondition === 'has_synthesis' && !synthesis_result) {
       isNextDisabled = true; disabledReason = "(Wait for completion)";
+    } else if (step.data.requireCondition === 'tab_res_build' && simResTab !== 'build') {
+      isNextDisabled = true; disabledReason = "(Click the Tab first)";
     } else if (step.data.requireCondition === 'tab_res_data' && simResTab !== 'data') {
       isNextDisabled = true; disabledReason = "(Click the Tab first)";
     } else if (step.data.requireCondition === 'tab_res_roi' && simResTab !== 'roi') {
@@ -295,7 +297,7 @@ export default function TourGuide() {
       add('synth-run', '[data-tour="synth-run-wrapper"]', 'Click here to Synthesize your Ultimate Meta-Build!', 'top', null, null, null, 'has_synthesis');
 
       // --- RESULTS DASHBOARD ---
-      add('res-tab-build', '[data-tour="res-tab-build"]', 'Here is your newly synthesized Ultimate Meta-Build! The AI has run a deep 500-simulation marathon to eliminate RNG variance.', 'top');
+      add('res-tab-build', '[data-tour="res-tab-build"]', 'Here is your newly synthesized Ultimate Meta-Build! The AI has run a deep 500-simulation marathon to eliminate RNG variance.', 'top', null, null, null, 'tab_res_build');
       add('res-apply', '[data-tour="res-apply"]', 'You can instantly apply this meta-build back to your global profile here.', 'bottom');
 
       add('res-tab-data-link', '[data-tour="res-tab-data"]', 'Now let\'s look at the analytics. CLICK THIS TAB to open the Simulation Data view.', 'bottom', null, null, null, 'tab_res_data');
