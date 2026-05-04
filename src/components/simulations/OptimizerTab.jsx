@@ -454,10 +454,10 @@ export default function OptimizerTab() {
           </select>
           
           {optGoal !== "Max Floor Push" && (
-            <label className="flex items-center space-x-2 mt-4 cursor-pointer text-st-text-light hover:text-st-orange transition-colors">
-              <input 
-                type="checkbox"
-                checked={allowUnspent}
+            <label data-tour="opt-allow-unspent" className="flex items-center space-x-2 mt-4 cursor-pointer text-st-text-light hover:text-st-orange transition-colors">
+            <input 
+              type="checkbox"
+              checked={allowUnspent}
                 onChange={(e) => setAllowUnspent(e.target.checked)}
                 className="accent-st-orange w-4 h-4"
               />
@@ -468,7 +468,7 @@ export default function OptimizerTab() {
         
         <div>
           {optGoal === "Fragment Farming" && (
-            <>
+            <div data-tour="opt-target-frag">
               <label className="block text-sm font-bold mb-1">Target Fragment</label>
               <select 
                 value={targetFrag} 
@@ -486,10 +486,10 @@ export default function OptimizerTab() {
                     <option key={val} value={val}>{name}</option>
                 ))}
               </select>
-            </>
+            </div>
           )}
           {optGoal === "Block Card Farming" && (
-            <>
+            <div data-tour="opt-target-block">
               <label className="block text-sm font-bold mb-1">Target Block ID</label>
               <select 
                 value={availableBlocks.includes(targetBlock) ? targetBlock : (availableBlocks[availableBlocks.length - 1] || "dirt1")} 
@@ -504,7 +504,7 @@ export default function OptimizerTab() {
                   ))
                 )}
               </select>
-            </>
+            </div>
           )}
         </div>
       </div>
@@ -525,7 +525,11 @@ export default function OptimizerTab() {
 
       <hr className="border-st-border" />
 
-      <details data-tour="opt-locks" className="st-container group cursor-pointer marker:text-st-orange">
+      <details 
+        data-tour="opt-locks" 
+        className="st-container group cursor-pointer marker:text-st-orange"
+        open={store.tourActive && store.activeTourId === 'optimizer' ? true : undefined}
+      >
         <summary className="font-bold text-lg">🔒 Stat Constraints / Locking (Optional)</summary>
         <div className="mt-4 text-sm text-st-text-light mb-4">
           Locking a stat removes an entire dimension from the AI's search grid. For every stat you lock, the AI can scan the remaining unlocked stats significantly faster and deeper.
@@ -538,7 +542,11 @@ export default function OptimizerTab() {
             const lockObj = isLocked ? (typeof lock === 'number' ? { type: 'exact', val: lock } : lock) : null;
 
             return (
-              <div key={stat} className={`st-container flex flex-col items-center justify-between ${stat === 'Unassigned' ? 'border-st-orange/50 bg-st-orange/5' : ''}`}>
+              <div 
+                key={stat} 
+                data-tour={`opt-lock-box-${stat}`}
+                className={`st-container flex flex-col items-center justify-between ${stat === 'Unassigned' ? 'border-st-orange/50 bg-st-orange/5' : ''}`}
+              >
                 <div className="font-bold mb-2 text-sm text-center">{stat === 'Unassigned' ? 'Unspent Points' : stat}</div>
                 
                 {stat === 'Unassigned' ? (
@@ -552,7 +560,7 @@ export default function OptimizerTab() {
                   />
                 )}
                 
-                <label className="flex items-center space-x-2 text-sm mb-2 cursor-pointer w-full justify-center">
+                <label data-tour={`opt-lock-cb-${stat}`} className="flex items-center space-x-2 text-sm mb-2 cursor-pointer w-full justify-center">
                   <input 
                     type="checkbox"
                     checked={isLocked}
@@ -564,6 +572,7 @@ export default function OptimizerTab() {
                 
                 <div className="w-full flex flex-col gap-1 mt-auto">
                   <select 
+                    data-tour={`opt-lock-type-${stat}`}
                     value={lockObj ? lockObj.type : 'exact'}
                     onChange={(e) => handleLockChange(stat, 'type', e.target.value)}
                     disabled={!isLocked}
@@ -577,6 +586,7 @@ export default function OptimizerTab() {
 
                   {(!lockObj || lockObj.type !== 'range') ? (
                     <input
+                      data-tour={`opt-lock-val-${stat}`}
                       type="number"
                       value={lockObj ? lockObj.val : (store.base_stats[stat] || 0)}
                       onFocus={(e) => e.target.select()}
@@ -614,9 +624,10 @@ export default function OptimizerTab() {
 
       <hr className="border-st-border" />
 
-      <div data-tour="opt-constraints">
-        <label className="block font-bold mb-2">⏱️ Target Compute Time (Seconds)</label>
-        <div className="flex items-center space-x-4 mb-6">
+      <div>
+        <div data-tour="opt-time-slider">
+          <label className="block font-bold mb-2">⏱️ Target Compute Time (Seconds)</label>
+          <div className="flex items-center space-x-4 mb-6">
           <input 
             type="range" 
             min="10" 
@@ -670,12 +681,13 @@ export default function OptimizerTab() {
           }
 
           return (
-            <div style={{ border: `1px solid ${gColor}`, borderLeft: `5px solid ${gColor}`, backgroundColor: gBg }} className="p-4 rounded mb-4">
+            <div data-tour="opt-precision-gauge" style={{ border: `1px solid ${gColor}`, borderLeft: `5px solid ${gColor}`, backgroundColor: gBg }} className="p-4 rounded mb-4">
               <div className="font-bold text-lg mb-1">{gIcon} Precision Gauge: {gTitle}</div>
               <div className="text-sm">{gDesc}</div>
             </div>
           );
         })()}
+        </div>
       </div>
 
       <details className="st-container group cursor-pointer marker:text-st-orange mb-6">

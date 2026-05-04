@@ -110,6 +110,10 @@ export default function TourGuide() {
   const stopTour = useStore(state => state.stopTour);
   const asc1_unlocked = useStore(state => state.asc1_unlocked);
   const asc2_unlocked = useStore(state => state.asc2_unlocked);
+  
+  // Optimizer Dependencies for Dynamic Branching
+  const optGoal = useStore(state => state.optGoal);
+  const allowUnspent = useStore(state => state.allowUnspent);
 
   const reactiveCardId = useStore(state => {
     if (!state.cards) return null;
@@ -202,10 +206,36 @@ export default function TourGuide() {
     } else if (activeTourId === 'optimizer') {
       add('opt-start', 'body', 'Welcome to the Optimizer! My simulator runs the exact GameMaker math in a background Pyodide Web Worker to find the ultimate stat distributions.', 'center');
       add('opt-goal', '[data-tour="opt-goal"]', 'First, choose your optimization Goal (e.g., Max Floor Push or Target Block Farm).', 'auto');
-      add('opt-constraints', '[data-tour="opt-constraints"]', 'Set your constraints: the time limit, your target blocks, and max simulations per second.', 'auto');
-      add('opt-locks', '[data-tour="opt-locks"]', 'Have a stat you refuse to drop? Lock its value here so the Optimizer engine respects your choice.', 'auto');
-      add('opt-run', '[data-tour="opt-run"]', 'Click this button to unleash the Web Worker! You can continue clicking around and using the app while it processes in the background.', 'bottom');
-      add('opt-sandbox-link', '[data-tour="main-tab-sandbox"]', 'Curious about a specific custom build or want to manually test something? CLICK THIS TAB to open the Sandbox.', 'bottom', null, null, '[data-tour="main-tab-sandbox"]');
+
+      // 🔀 DYNAMIC DECISION TREE
+      if (optGoal === "Fragment Farming") {
+        add('opt-target-frag', '[data-tour="opt-target-frag"]', 'Select the specific fragment tier you want to farm.', 'auto');
+      } else if (optGoal === "Block Card Farming") {
+        add('opt-target-block', '[data-tour="opt-target-block"]', 'Select the specific block card you want to target.', 'auto');
+      }
+
+      if (optGoal !== "Max Floor Push") {
+        add('opt-allow-unspent', '[data-tour="opt-allow-unspent"]', 'Check this if you want to intentionally leave stat points unspent to create a crippled build.', 'auto');
+      }
+
+      add('opt-locks-intro', '[data-tour="opt-locks"]', 'Now, check out the Stat Constraints expander. You use this section to lock stats.', 'auto');
+      add('opt-lock-cb', '[data-tour="opt-lock-cb-Str"]', 'Here is the toggle to lock a specific stat. Check it to lock Strength, for example.', 'auto');
+      add('opt-lock-type', '[data-tour="opt-lock-type-Str"]', 'Choose your locking constraint type (Exact, Min, Max, Range).', 'auto');
+      add('opt-lock-val', '[data-tour="opt-lock-val-Str"]', 'Enter the target numeric value here.', 'auto');
+
+      if (allowUnspent && optGoal !== "Max Floor Push") {
+        add('opt-lock-unspent', '[data-tour="opt-lock-box-Unassigned"]', 'Because you allowed unspent points, you can lock the amount of points intentionally left unspent here to force your crippled build.', 'auto');
+      }
+
+      add('opt-locks-finish', '[data-tour="opt-locks"]', 'Finish locking your required stats based on your goal, then click Next.', 'auto');
+
+      add('opt-time-slider', '[data-tour="opt-time-slider"]', 'Now set your time limit. Move the slider until the Precision Gauge below turns yellow to prepare for a fast Scout Run.', 'auto');
+      add('opt-run-scout', '[data-tour="opt-run"]', 'Click here to run the Scout Run. This helps you identify which stats drop to 0 or hit max cap so you know what you should lock for the real runs!', 'auto');
+
+      add('opt-precision', '[data-tour="opt-precision-gauge"]', 'After reviewing your scout run and locking the obvious stats, adjust the time limit again until this gauge turns Green for High Precision.', 'auto');
+      add('opt-run-real', '[data-tour="opt-run"]', 'With a Green precision gauge, run the optimizer 2 to 5 times to gather a solid set of runs.', 'auto');
+
+      add('opt-synth-link', '[data-tour="main-tab-synth"]', 'Once you have your refined runs, it\'s time to synthesize them! CLICK THIS TAB to proceed to Synthesis.', 'bottom', null, null, '[data-tour="main-tab-synth"]');
 
     } else if (activeTourId === 'sandbox') {
       add('sand-start', 'body', 'Welcome to the Sandbox! This is my testing ground for experimenting with hypothetical stat distributions outside of the main profile.', 'center');
@@ -216,7 +246,7 @@ export default function TourGuide() {
     }
 
     return s;
-  },[ activeTourId, asc1_unlocked, asc2_unlocked, reactiveCardId ]);
+  },[ activeTourId, asc1_unlocked, asc2_unlocked, reactiveCardId, optGoal, allowUnspent ]);
 
   const TOUR_STEPS = useMemo(() => {
     const allTargets = rawSteps.map(s => s.target);
