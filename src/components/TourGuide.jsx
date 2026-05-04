@@ -271,7 +271,7 @@ export default function TourGuide() {
       }
 
       if (optGoal !== "Max Floor Push") {
-        add('opt-allow-unspent', '[data-tour="opt-allow-unspent"]', 'Check this if you want to intentionally leave stat points unspent to create a crippled build.', 'auto');
+        add('opt-allow-unspent', '[data-tour="opt-allow-unspent"]', 'Check this if you want to intentionally leave stat points unspent to create a crippled build. (Not recommended for most use cases)', 'auto');
       }
 
       add('opt-locks-intro', '[data-tour="opt-locks"]', 'Now, check out the Stat Constraints expander. You use this section to lock stats.', 'auto');
@@ -311,9 +311,11 @@ export default function TourGuide() {
         add('res-inner-wall-link', '[data-tour="res-inner-wall"]', 'CLICK THIS TAB to view the Progression Wall.', 'bottom', null, null, null, 'tab_data_wall');
         add('res-data-wall', '[data-tour="res-data-wall"]', 'This histogram and stamina trace show you exactly where and why your build runs out of stamina.', 'top');
       } else {
-        add('res-data-banked', '[data-tour="res-data-banked"]', 'Here are your Banked Yields. This is the true, mathematically stable average of what this build produces per 1k Arch Seconds.', 'top');
+        const bankedLabel = runMetric.includes('frag') ? 'Fragment' : runMetric.includes('block') ? 'Block Kill' : 'EXP';
+        add('res-data-banked', '[data-tour="res-data-banked"]', `Here are your ${bankedLabel} Yields. This is the true, mathematically stable average of what this build produces per 1k Arch Seconds.`, 'top');
         add('res-inner-cards-link', '[data-tour="res-inner-cards"]', 'CLICK THIS TAB to view Card Drop estimates.', 'bottom', null, null, null, 'tab_data_cards');
-        add('res-data-cards', '[data-tour="res-data-cards"]', 'Select a block card here to see exactly how long it will take to farm Base, Poly, or Infernal copies!', 'top');
+        add('res-data-cards', '[data-tour="res-data-cards"]', 'Select a block card here to see exactly how long it will take to farm the Base Card, or fragments for its upgrades.', 'right');
+        add('res-data-cards-frag-count', '[data-tour="res-data-cards-frag-count"]', 'Change this dropdown to see the expected cost in Arch Seconds to farm the remaining fragments you need. Because of the math of Gamma distributions, farming 10 drops takes significantly less time than 10x the cost of a single drop!', 'right');
         if (hasLoot) {
           add('res-inner-loot-link', '[data-tour="res-inner-loot"]', 'CLICK THIS TAB to view Collateral Loot.', 'bottom', null, null, null, 'tab_data_loot');
           add('res-data-loot', '[data-tour="res-data-loot"]', 'This breakdown shows all the extra fragments you will passively farm while targeting your primary goal.', 'top');
@@ -326,6 +328,7 @@ export default function TourGuide() {
         add('res-roi-disabled', '[data-tour="res-roi-disabled"]', 'The ROI Analyzer is disabled for Floor Pushing. Floor progression relies on large, discrete math breakpoints rather than +1 stat gains.', 'top');
       } else {
         add('res-roi-analyzer', '[data-tour="res-roi-analyzer"]', 'The ROI Analyzer runs isolated micro-simulations, adding +1 to every stat, card, and upgrade to rank their immediate raw output gain!', 'top');
+        add('res-roi-precision', '[data-tour="res-roi-precision"]', 'Adjust the ROI Precision here. Running more micro-simulations per stat increases accuracy and stabilizes the math, but will take longer to compute.', 'right');
       }
 
       add('synth-history-log', '[data-tour="synth-history-log"]', 'This Meta-Build History Log stores all your previous synthesized builds and their analytics information.', 'top');

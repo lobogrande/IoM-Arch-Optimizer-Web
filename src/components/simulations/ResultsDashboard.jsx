@@ -677,7 +677,7 @@ export default function ResultsDashboard({ context }) {
                 ) : (
                   <div data-tour="res-data-banked" className="space-y-6">
                     <div>
-                      <h4 className="font-bold text-lg">💰 Banked Yields</h4>
+                      <h4 className="font-bold text-lg">💰 {runMetric.includes("frag") ? "Fragment" : runMetric.includes("block") ? "Block Kill" : "EXP"} Yields</h4>
                       <p className="text-sm text-st-text-light mb-1">Target {runMetric.includes("frag") ? "Fragments" : runMetric.includes("block") ? "Kills" : "EXP"} per <b>1k Arch Seconds</b></p>
                       {context === 'optimizer' ? (
                         <div className="text-xs text-st-orange/80 mb-2 italic">Note: 100-sim average. May vary ±5% due to RNG. Use Synthesis for a more accurate measurement.</div>
@@ -806,7 +806,7 @@ export default function ResultsDashboard({ context }) {
             const activeBlock = cardSelBlock || defaultBlock;
 
             return (
-            <div data-tour="res-data-cards" className="space-y-6">
+            <div className="space-y-6">
               <h4 className="font-bold text-lg">🎴 Block Card Drop Estimates</h4>
               {displayBlocks.length === 0 ? (
                 <div className="text-st-text-light">No block kill data available for this run.</div>
@@ -815,6 +815,7 @@ export default function ResultsDashboard({ context }) {
                   <div className="flex flex-col md:flex-row items-center gap-4">
                     <label className="font-bold whitespace-nowrap">Select Block:</label>
                     <select 
+                      data-tour="res-data-cards"
                       value={activeBlock} 
                       onChange={(e) => setCardSelBlock(e.target.value)}
                       className="w-full md:w-auto bg-st-bg border border-st-border rounded p-2 text-st-text focus:border-st-orange focus:outline-none"
@@ -867,6 +868,7 @@ export default function ResultsDashboard({ context }) {
                                   
                                   <div className={`flex items-center gap-1 relative group ${d.isFrag ? '' : 'invisible pointer-events-none'}`}>
                                     <select 
+                                      data-tour={d.isFrag && d.name === "Poly Fragments" ? "res-data-cards-frag-count" : undefined}
                                       value={d.count || 1}
                                       onChange={(e) => d.setCount && d.setCount(parseInt(e.target.value))}
                                       className="bg-[#1e1e1e] border border-st-border rounded px-2 py-1 text-xs text-st-orange font-bold focus:border-st-orange outline-none cursor-pointer"
@@ -1037,6 +1039,7 @@ export default function ResultsDashboard({ context }) {
                 <div>
                   <label className="text-sm font-bold block mb-1">🎯 ROI Precision (Simulations per item)</label>
                   <select 
+                    data-tour="res-roi-precision"
                     value={roiPrecision}
                     onChange={(e) => setRoiPrecision(parseInt(e.target.value))}
                     disabled={isRoiLoading}
