@@ -29,6 +29,8 @@ const CustomTooltip = ({ index, step, backProps, primaryProps, isLastStep, toolt
       isNextDisabled = true; disabledReason = "(Click the Tab first)";
     } else if (step.data.requireCondition === 'tab_res_roi' && simResTab !== 'roi') {
       isNextDisabled = true; disabledReason = "(Click the Tab first)";
+    } else if (step.data.requireCondition === 'tab_data_perf' && simDataTab !== 'performance') {
+      isNextDisabled = true; disabledReason = "(Click the Tab first)";
     } else if (step.data.requireCondition === 'tab_data_wall' && simDataTab !== 'wall') {
       isNextDisabled = true; disabledReason = "(Click the Tab first)";
     } else if (step.data.requireCondition === 'tab_data_cards' && simDataTab !== 'cards') {
