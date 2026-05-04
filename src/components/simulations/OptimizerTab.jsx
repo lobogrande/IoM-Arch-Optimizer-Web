@@ -407,7 +407,15 @@ export default function OptimizerTab() {
 
   return (
     <div className="space-y-6">
-      <h2 className="text-2xl font-bold">🚀 Monte Carlo Stat Optimizer</h2>
+      <div className="flex justify-between items-center">
+        <h2 className="text-2xl font-bold">🚀 Monte Carlo Stat Optimizer</h2>
+        <button
+          onClick={() => store.startTour('optimizer')}
+          className="text-sm bg-st-orange text-[#2b2b2b] px-3 py-1.5 rounded font-bold hover:bg-[#ffa229] transition-colors shadow-sm cursor-pointer"
+        >
+          ❓ Help / Tour
+        </button>
+      </div>
       <p className="text-st-text-light">Leverage Successive Halving to find highly optimized stat plateaus and statistical bests using your browser's local CPU cores.</p>
       
       <div className="st-container border-l-4 border-l-st-orange">
@@ -435,7 +443,7 @@ export default function OptimizerTab() {
       <hr className="border-st-border" />
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div>
+        <div data-tour="opt-goal">
           <label className="block text-sm font-bold mb-1">Optimization Target</label>
           <select 
             value={optGoal} 
@@ -517,7 +525,7 @@ export default function OptimizerTab() {
 
       <hr className="border-st-border" />
 
-      <details className="st-container group cursor-pointer marker:text-st-orange">
+      <details data-tour="opt-locks" className="st-container group cursor-pointer marker:text-st-orange">
         <summary className="font-bold text-lg">🔒 Stat Constraints / Locking (Optional)</summary>
         <div className="mt-4 text-sm text-st-text-light mb-4">
           Locking a stat removes an entire dimension from the AI's search grid. For every stat you lock, the AI can scan the remaining unlocked stats significantly faster and deeper.
@@ -606,7 +614,7 @@ export default function OptimizerTab() {
 
       <hr className="border-st-border" />
 
-      <div>
+      <div data-tour="opt-constraints">
         <label className="block font-bold mb-2">⏱️ Target Compute Time (Seconds)</label>
         <div className="flex items-center space-x-4 mb-6">
           <input 
@@ -694,8 +702,9 @@ export default function OptimizerTab() {
 
       {!isOptimizing ? (
         <button 
+          data-tour="opt-run"
           onClick={handleRunOptimizer}
-          className="w-full py-3 bg-st-orange text-[#2b2b2b] font-bold rounded-lg shadow hover:bg-[#ffb045] transition-colors mt-4"
+          className="w-full py-3 bg-st-orange text-[#2b2b2b] font-bold rounded-lg shadow hover:bg-[#ffb045] transition-colors mt-4 cursor-pointer"
         >
           🚀 Run Optimizer
         </button>
