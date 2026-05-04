@@ -342,7 +342,7 @@ export default function SandboxTab() {
                 <div><strong>Max Hits:</strong> Number of hits to destroy the block based purely on Regular (Non-Crit) damage.</div>
               </div>
               <div className="flex gap-2 w-full md:w-auto">
-                <label className="flex flex-1 items-center justify-center space-x-2 cursor-pointer bg-st-secondary px-3 py-2 border border-st-border rounded hover:border-st-orange transition-colors text-sm">
+                <label data-tour="sand-crits" className="flex flex-1 items-center justify-center space-x-2 cursor-pointer bg-st-secondary px-3 py-2 border border-st-border rounded hover:border-st-orange transition-colors text-sm">
                   <input 
                     type="checkbox" 
                     checked={sandboxShowCrits}
@@ -363,7 +363,7 @@ export default function SandboxTab() {
 
           <div 
             data-tour="sand-results"
-            className={`border border-st-border rounded bg-st-bg h-[600px] w-full outline-none relative ${store.theme === 'dark' ? 'ag-theme-quartz-dark' : 'ag-theme-quartz'}`}
+            className={`flex flex-col border border-st-border rounded bg-st-bg h-[600px] w-full outline-none relative ${store.theme === 'dark' ? 'ag-theme-quartz-dark' : 'ag-theme-quartz'}`}
             tabIndex={-1}
             onMouseEnter={(e) => {
               if (!e.currentTarget.contains(document.activeElement)) {
@@ -381,6 +381,7 @@ export default function SandboxTab() {
                 defaultColDef={sandboxDefaultColDef}
                 autoSizeStrategy={sandboxAutoSizeStrategy}
                 columnDefs={sandboxColumns}
+                alwaysShowHorizontalScroll={true}
                 onFirstDataRendered={(p) => { try { p.api.autoSizeColumns(p.api.getColumns().map(c => c.getColId())); } catch(e){} }}
                 onRowDataUpdated={(p) => { try { p.api.autoSizeColumns(p.api.getColumns().map(c => c.getColId())); } catch(e){} }}
                 onNewColumnsLoaded={(p) => { try { p.api.autoSizeColumns(p.api.getColumns().map(c => c.getColId())); } catch(e){} }}

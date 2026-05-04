@@ -15,6 +15,10 @@ const CustomTooltip = ({ index, step, backProps, primaryProps, isLastStep, toolt
   const synthesis_result = useStore((state) => state.synthesis_result);
   const simResTab = useStore((state) => state.simResTab);
   const simDataTab = useStore((state) => state.simDataTab);
+  
+  const sandbox_baseline = useStore((state) => state.sandbox_baseline);
+  const sandbox_baseline_stats = useStore((state) => state.sandbox_baseline_stats);
+  const sandbox_stats = useStore((state) => state.sandbox_stats);
 
   let isNextDisabled = false;
   let disabledReason = "";
@@ -37,6 +41,20 @@ const CustomTooltip = ({ index, step, backProps, primaryProps, isLastStep, toolt
       isNextDisabled = true; disabledReason = "(Click the Tab first)";
     } else if (step.data.requireCondition === 'tab_data_loot' && simDataTab !== 'loot') {
       isNextDisabled = true; disabledReason = "(Click the Tab first)";
+    } else if (step.data.requireCondition === 'sand_has_baseline' && !sandbox_baseline) {
+      isNextDisabled = true; disabledReason = "(Click 'Lock Baseline' first)";
+    } else if (step.data.requireCondition === 'sand_stat_changed') {
+      let isChanged = false;
+      if (sandbox_baseline_stats) {
+        for (const key in sandbox_baseline_stats) {
+          if ((sandbox_stats[key] || 0) !== (sandbox_baseline_stats[key] || 0)) {
+            isChanged = true; break;
+          }
+        }
+      }
+      if (!isChanged) {
+        isNextDisabled = true; disabledReason = "(Change a stat point first)";
+      }
     }
   }
 
@@ -338,8 +356,10 @@ export default function TourGuide() {
       add('sand-floor', '[data-tour="sand-floor"]', 'Set your Target Floor here. The health and armor of all blocks scale dynamically based on this input.', 'right');
       add('sand-hits', '[data-tour="sand-hits"]', 'Use this to filter out weak blocks. For example, if you set this to 2, the table will hide any block that you already 1-shot, allowing you to focus purely on the blocks causing you trouble.', 'right');
       add('sand-unreachable', '[data-tour="sand-unreachable"]', 'Check this to show "unreachable" blocks. This allows you to project forward and see blocks that don\'t actually spawn until a floor higher than the Target Floor you just entered. Perfect for planning ahead!', 'right');
-      add('sand-baseline', '[data-tour="sand-baseline"]', 'This is where things become interesting: Lock Baseline! Click this once to snapshot your current stats. As you change stats, the table will show you exactly how much Expected DPS (EDPS) you gain or lose compared to the baseline, colored in green and red!', 'right');
-      add('sand-target-filters', '[data-tour="sand-target-filters"]', 'If you only interested in specific blocks, you can multiselect those block cards here. All other blocks will be hidden from the table.', 'bottom');
+      add('sand-baseline', '[data-tour="sand-baseline"]', 'This is where things become interesting: Lock Baseline! Click this once to snapshot your current stats. As you change stats, the table will show you exactly how much Expected DPS (EDPS) you gain or lose compared to the baseline, colored in green and red!', 'right', null, null, null, 'sand_has_baseline');
+      add('sand-stat-change', '[data-tour="sand-stats"]', 'Now that you have a baseline locked, try changing at least one of your stats above to see the delta appear in the table!', 'right', null, null, null, 'sand_stat_changed');
+      add('sand-target-filters', '[data-tour="sand-target-filters"]', 'If you are only interested in specific blocks, you can multiselect those block cards here. All other blocks will be hidden from the table.', 'bottom');
+      add('sand-crits', '[data-tour="sand-crits"]', 'Toggle this checkbox to reveal detailed Crit, Super Crit, and Ultra Crit math columns for deep-dive analysis.', 'top');
       add('sand-results', '[data-tour="sand-results"]', 'Finally, your results! Pay close attention to "Avg Hits". Your goal is to tweak your stats to drop that number to the lowest possible whole number with the fewest stat points. Good luck!', 'top');
     }
 
