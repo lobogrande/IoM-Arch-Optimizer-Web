@@ -518,9 +518,9 @@ export default function PlayerSetup() {
                 useStore.getState().startTour('setup');
               }, 50);
             }}
-            className="mb-2 ml-4 py-1.5 px-3 bg-st-secondary border border-st-border text-st-text text-sm font-bold rounded hover:border-st-orange hover:text-st-orange transition-colors shadow-sm whitespace-nowrap"
+            className="mb-2 ml-4 py-1.5 px-3 bg-st-orange text-[#2b2b2b] hover:bg-[#ffa229] text-sm font-bold rounded shadow-sm transition-colors cursor-pointer flex items-center gap-2 whitespace-nowrap"
           >
-            ❓ Need Help?
+            <span>❓</span> Help/Tour
           </button>
         </div>
 
