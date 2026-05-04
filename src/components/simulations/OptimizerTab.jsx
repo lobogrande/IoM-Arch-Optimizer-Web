@@ -629,26 +629,27 @@ export default function OptimizerTab() {
         <div data-tour="opt-time-slider">
           <label className="block font-bold mb-2">⏱️ Target Compute Time (Seconds)</label>
           <div className="flex items-center space-x-4 mb-6">
-          <input 
-            type="range" 
-            min="10" 
-            max="600" 
-            step="10" 
-            value={displayTime} 
-            onChange={(e) => setDisplayTime(parseInt(e.target.value) || 10)}
-            className="w-full accent-st-orange cursor-pointer"
-          />
-          <input 
-            type="number"
-            min="10"
-            max="1800"
-            step="10"
-            value={displayTime === 0 ? '' : displayTime}
-            onChange={(e) => setDisplayTime(e.target.value === '' ? 0 : parseInt(e.target.value))}
-            onBlur={() => { const val = Math.max(10, displayTime); setDisplayTime(val); setTimeLimit(val); }}
-            onKeyDown={(e) => { if(e.key === 'Enter') { const val = Math.max(10, displayTime); setDisplayTime(val); setTimeLimit(val); } }}
-            className="st-input font-mono max-w-[120px]"
-          />
+            <input 
+              type="range" 
+              min="10" 
+              max="600" 
+              step="10" 
+              value={displayTime} 
+              onChange={(e) => setDisplayTime(parseInt(e.target.value) || 10)}
+              className="w-full accent-st-orange cursor-pointer"
+            />
+            <input 
+              type="number"
+              min="10"
+              max="1800"
+              step="10"
+              value={displayTime === 0 ? '' : displayTime}
+              onChange={(e) => setDisplayTime(e.target.value === '' ? 0 : parseInt(e.target.value))}
+              onBlur={() => { const val = Math.max(10, displayTime); setDisplayTime(val); setTimeLimit(val); }}
+              onKeyDown={(e) => { if(e.key === 'Enter') { const val = Math.max(10, displayTime); setDisplayTime(val); setTimeLimit(val); } }}
+              className="st-input font-mono max-w-[120px]"
+            />
+          </div>
         </div>
 
         {(() => {
@@ -688,7 +689,6 @@ export default function OptimizerTab() {
             </div>
           );
         })()}
-        </div>
       </div>
 
       <details className="st-container group cursor-pointer marker:text-st-orange mb-6">

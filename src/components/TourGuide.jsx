@@ -230,7 +230,7 @@ export default function TourGuide() {
       add('opt-locks-finish', '[data-tour="opt-locks"]', 'Finish locking your required stats based on your goal, then click Next.', 'auto');
 
       add('opt-time-slider', '[data-tour="opt-time-slider"]', 'Now set your time limit. Move the slider until the Precision Gauge below turns yellow to prepare for a fast Scout Run.', 'auto');
-      add('opt-run-scout', '[data-tour="opt-run"]', 'Click here to run the Scout Run. This helps you identify which stats drop to 0 or hit max cap so you know what you should lock for the real runs!', 'auto');
+      add('opt-run-scout', '[data-tour="opt-run"]', 'Click here to run the Scout Run. This helps you identify which stats to set to 0 or max, or at least how to narrow down stat lock ranges!', 'auto');
 
       add('opt-precision', '[data-tour="opt-precision-gauge"]', 'After reviewing your scout run and locking the obvious stats, adjust the time limit again until this gauge turns Green for High Precision.', 'auto');
       add('opt-run-real', '[data-tour="opt-run"]', 'With a Green precision gauge, run the optimizer 2 to 5 times to gather a solid set of runs.', 'auto');
