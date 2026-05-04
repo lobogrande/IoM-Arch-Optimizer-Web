@@ -660,7 +660,7 @@ export default function SynthesisTab() {
             </div>
           </div>
 
-          <div data-tour="synth-table">
+          <div>
             <h4 className="text-lg font-bold mb-1">📋 Run History Table</h4>
             <div className="flex flex-col md:flex-row gap-4 items-center justify-between mb-4">
               <div className="text-sm text-st-text-light">
@@ -677,7 +677,7 @@ export default function SynthesisTab() {
               </button>
             </div>
 
-            <div className="overflow-x-auto border border-st-border rounded bg-st-bg">
+            <div data-tour="synth-table" className="overflow-x-auto border border-st-border rounded bg-st-bg">
               {(() => {
                 const tableStats = [...activeStats];
                 if (visibleHistory.some(r => r.Unassigned !== undefined)) tableStats.push('Unassigned');
