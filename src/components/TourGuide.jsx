@@ -190,7 +190,8 @@ export default function TourGuide() {
       }
 
       // --- 7. CONCLUSION ---
-      add('conclusion', '[data-tour="main-tab-calc_stats"]', 'You have successfully completed your Player Setup! CLICK THIS TAB to see your calculated stats and verify them against the in-game Arch Stats UI to ensure data entry accuracy.', 'bottom', null, null, '[data-tour="main-tab-calc_stats"]');
+      add('nav-calc_stats', '[data-tour="main-tab-calc_stats"]', 'You have successfully completed your Player Setup! CLICK THIS TAB to see your calculated stats, and then click Next.', 'bottom', null, null, '[data-tour="main-tab-calc_stats"]');
+      add('troubleshooter', '[data-tour="calc-troubleshooter"]', 'If any of your calculated stats do not perfectly match the in-game Arch Stats UI, open this Stat Troubleshooter! It will help you diagnose missing upgrades, cards, and common data entry mistakes.', 'auto');
 
     } else if (activeTourId === 'calc_stats') {
       add('calc-start', 'body', 'Welcome to the Calculated Stats page! This tab accurately mirrors your in-game Archaeology stats based on the profile you set up.', 'center');
