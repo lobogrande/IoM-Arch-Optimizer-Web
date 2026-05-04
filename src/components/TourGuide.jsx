@@ -16,7 +16,8 @@ const CustomTooltip = ({ index, step, backProps, primaryProps, isLastStep, toolt
       setTimeout(() => {
         const el = document.querySelector(step.target);
         if (el) {
-          const y = el.getBoundingClientRect().top + window.scrollY - (window.innerHeight / 2) + (el.offsetHeight / 2);
+          // Position the element in the top 33% of the screen, leaving massive room for tables below it!
+          const y = el.getBoundingClientRect().top + window.scrollY - (window.innerHeight / 3);
           window.scrollTo({ top: Math.max(0, y), behavior: 'smooth' });
         }
       }, 50);
@@ -381,6 +382,7 @@ export default function TourGuide() {
         disableOverlayClose={true}
         disableCloseOnEsc={true}
         disableFocusTrap={true} // 💀 Kills react-focus-lock so you can type and click everywhere!
+        disableScrolling={true} // 🛑 NUKES JOYRIDE'S SCROLL ENGINE GLOBALLY!
         tooltipComponent={CustomTooltip}
         styles={{
           options: {
