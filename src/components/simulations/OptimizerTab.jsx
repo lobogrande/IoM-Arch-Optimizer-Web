@@ -713,28 +713,29 @@ export default function OptimizerTab() {
         ⚠️ <strong>CRITICAL:</strong> Unlike the old server version, you <strong>CAN</strong> safely change tabs while the AI is running! However, do not refresh or close this browser window or the simulation will be aborted.
       </div>
 
-      {!isOptimizing ? (
-        <button 
-          data-tour="opt-run"
-          onClick={handleRunOptimizer}
-          className="w-full py-3 bg-st-orange text-[#2b2b2b] font-bold rounded-lg shadow hover:bg-[#ffb045] transition-colors mt-4 cursor-pointer"
-        >
-          🚀 Run Optimizer
-        </button>
-      ) : (
-        <div className="w-full mt-4 p-4 border border-st-border rounded bg-st-bg">
-          <div className="flex justify-between text-sm font-bold mb-2 text-st-orange">
-            <span>{optProgressMsg}</span>
-            <span>{Math.floor(optProgressPct)}%</span>
+      <div data-tour="opt-run-wrapper">
+        {!isOptimizing ? (
+          <button 
+            onClick={handleRunOptimizer}
+            className="w-full py-3 bg-st-orange text-[#2b2b2b] font-bold rounded-lg shadow hover:bg-[#ffb045] transition-colors mt-4 cursor-pointer"
+          >
+            🚀 Run Optimizer
+          </button>
+        ) : (
+          <div className="w-full mt-4 p-4 border border-st-border rounded bg-st-bg">
+            <div className="flex justify-between text-sm font-bold mb-2 text-st-orange">
+              <span>{optProgressMsg}</span>
+              <span>{Math.floor(optProgressPct)}%</span>
+            </div>
+            <div className="w-full bg-[#1e1e1e] rounded-full h-4 overflow-hidden border border-st-border">
+              <div 
+                className="bg-st-orange h-4 transition-all duration-300"
+                style={{ width: `${optProgressPct}%` }}
+              ></div>
+            </div>
           </div>
-          <div className="w-full bg-[#1e1e1e] rounded-full h-4 overflow-hidden border border-st-border">
-            <div 
-              className="bg-st-orange h-4 transition-all duration-300"
-              style={{ width: `${optProgressPct}%` }}
-            ></div>
-          </div>
-        </div>
-      )}
+        )}
+      </div>
 
       {store.opt_results && !store.synthesis_result && !isOptimizing && <ResultsDashboard context="optimizer" />}
 
