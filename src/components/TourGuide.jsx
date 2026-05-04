@@ -210,6 +210,8 @@ export default function TourGuide() {
     if (activeTourId === 'setup') {
       add('start', 'body', 'Welcome to Player Setup! This tour is completely unlocked. You can freely click tabs, type numbers, and scroll. Click Next to begin.', 'center');
       add('profiles', '[data-tour="setup-profiles"]', 'This is the Profile Box. Clicking the dropdown menu right now to see your saved profiles!', 'auto');
+      add('setup-import', '[data-tour="setup-import"]', 'You can import your data by dropping a JSON save file here. Note that it must be a file exported from THIS simulator, not the IoM game itself!', 'right');
+      add('setup-export', '[data-tour="setup-export"]', 'You can back up your current workspace (to re-import later) or share it with others by clicking here to download it as a JSON file.', 'right');
 
       // --- 1. GLOBAL SETTINGS ---
       add('global-asc', '[data-tour="setup-asc"]', 'Set your Global Settings. Ascension filters available Base Stats, Upgrades, Idols, and Cards. Set this first!', 'auto', 'nav-stats', 'Skip Globals');
