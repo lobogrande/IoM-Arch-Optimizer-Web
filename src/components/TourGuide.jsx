@@ -331,7 +331,7 @@ export default function TourGuide() {
       add('synth-history-log', '[data-tour="synth-history-log"]', 'This Meta-Build History Log stores all your previous synthesized builds and their analytics information.', 'top');
       add('synth-history-view', '[data-tour="synth-history-view"]', 'You can use the View button in the Actions column to reload an old build\'s analytics views and go back to review all those charts and analysis outputs we previously covered.', 'top');
 
-      add('opt-end', 'body', 'You have completed the Optimizer tour! Your next steps are to use the Sandbox for precise breakpoint tweaking, or the Duel tab to compare two builds side-by-side.', 'center');
+      add('opt-end', 'body', 'You have completed the Optimizer tour! Your next steps are to use the Sandbox for precise breakpoint tweaking, the Duel tab to compare two builds side-by-side, or the Forecaster to project max floor push build improvements.', 'center');
 
     } else if (activeTourId === 'sandbox') {
       add('sand-start', 'body', 'Welcome to the Sandbox! This is my testing ground for experimenting with hypothetical stat distributions outside of the main profile.', 'center');
