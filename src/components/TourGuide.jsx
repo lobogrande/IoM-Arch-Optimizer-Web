@@ -9,6 +9,34 @@ const JoyrideComponent = JoyrideModule.default?.default || JoyrideModule.default
 const CustomTooltip = ({ index, step, backProps, primaryProps, isLastStep, tooltipProps }) => {
   const stopTour = useStore((state) => state.stopTour);
   const setTourStepIndex = useStore((state) => state.setTourStepIndex);
+  
+  // 🛡️ Atomic selectors to drive the Next button conditional locking
+  const simActiveSubTab = useStore((state) => state.simActiveSubTab);
+  const synthesis_result = useStore((state) => state.synthesis_result);
+  const simResTab = useStore((state) => state.simResTab);
+  const simDataTab = useStore((state) => state.simDataTab);
+
+  let isNextDisabled = false;
+  let disabledReason = "";
+  if (step.data?.requireCondition) {
+    if (step.data.requireCondition === 'tab_synth' && simActiveSubTab !== 'synth') {
+      isNextDisabled = true; disabledReason = "(Click the Tab first)";
+    } else if (step.data.requireCondition === 'has_synthesis' && !synthesis_result) {
+      isNextDisabled = true; disabledReason = "(Wait for completion)";
+    } else if (step.data.requireCondition === 'tab_res_data' && simResTab !== 'data') {
+      isNextDisabled = true; disabledReason = "(Click the Tab first)";
+    } else if (step.data.requireCondition === 'tab_res_roi' && simResTab !== 'roi') {
+      isNextDisabled = true; disabledReason = "(Click the Tab first)";
+    } else if (step.data.requireCondition === 'tab_data_wall' && simDataTab !== 'wall') {
+      isNextDisabled = true; disabledReason = "(Click the Tab first)";
+    } else if (step.data.requireCondition === 'tab_data_cards' && simDataTab !== 'cards') {
+      isNextDisabled = true; disabledReason = "(Click the Tab first)";
+    } else if (step.data.requireCondition === 'tab_data_loot' && simDataTab !== 'loot') {
+      isNextDisabled = true; disabledReason = "(Click the Tab first)";
+    }
+  }
+
+  // 📜 PERFECT SCROLLING ENGINE: Flawlessly center targets without breaking overflow containers
 
   // 📜 PERFECT SCROLLING ENGINE: Flawlessly center targets without breaking overflow containers
   useEffect(() => {
@@ -93,6 +121,7 @@ const CustomTooltip = ({ index, step, backProps, primaryProps, isLastStep, toolt
           )}
         </div>
         <div className="flex items-center gap-2">
+          {isNextDisabled && <span className="text-xs text-red-400 font-bold mr-1 animate-pulse">{disabledReason}</span>}
           {index > 0 && (
             <button 
               type="button" 
@@ -104,8 +133,13 @@ const CustomTooltip = ({ index, step, backProps, primaryProps, isLastStep, toolt
           )}
           <button 
             type="button" 
-            onClick={handleNext}
-            className="text-xs bg-st-orange text-[#2b2b2b] px-3 py-1.5 rounded font-bold hover:bg-[#ffa229] transition-colors shadow-sm cursor-pointer"
+            onClick={isNextDisabled ? undefined : handleNext}
+            disabled={isNextDisabled}
+            className={`text-xs px-3 py-1.5 rounded font-bold shadow-sm transition-colors ${
+              isNextDisabled
+                ? 'bg-gray-600 text-gray-400 cursor-not-allowed opacity-50'
+                : 'bg-st-orange text-[#2b2b2b] hover:bg-[#ffa229] cursor-pointer'
+            }`}
           >
             {isLastStep ? 'Finish' : 'Next'}
           </button>
@@ -147,8 +181,8 @@ export default function TourGuide() {
   // 🧠 DYNAMIC ROUTING ENGINE (Granular Walkthroughs Restored)
   const rawSteps = useMemo(() => {
     const s =[ ];
-    const add = (id, target, text, placement, skipTo = null, skipLabel = null, clickTarget = null) => {
-      s.push({ id, target, text, placement, skipTo, skipLabel, clickTarget });
+    const add = (id, target, text, placement, skipTo = null, skipLabel = null, clickTarget = null, requireCondition = null) => {
+      s.push({ id, target, text, placement, skipTo, skipLabel, clickTarget, requireCondition });
     };
 
     if (activeTourId === 'setup') {
@@ -253,34 +287,34 @@ export default function TourGuide() {
       add('opt-precision', '[data-tour="opt-precision-gauge"]', 'After reviewing your scout run and locking the obvious stats, adjust the time limit again until this gauge turns Green for High Precision.', 'auto');
       add('opt-run-real', '[data-tour="opt-run-wrapper"]', 'With a Green precision gauge, run the optimizer 2 to 5 times to gather a solid set of runs. The tooltip will wait here. Click Next when you are finished running your batch!', 'top');
 
-      add('opt-synth-link', '[data-tour="main-tab-synth"]', 'Once you have your refined runs, it\'s time to synthesize them! CLICK THIS TAB to proceed to Synthesis.', 'bottom', null, null, '[data-tour="main-tab-synth"]');
+      add('opt-synth-link', '[data-tour="main-tab-synth"]', 'Once you have your refined runs, it\'s time to synthesize them! CLICK THIS TAB to proceed.', 'bottom', null, null, null, 'tab_synth');
 
       // --- SYNTHESIS TAB ---
       add('synth-filter', '[data-tour="synth-filter"]', 'Welcome to Synthesis! The target from your most recent Optimization is auto-selected here, filtering the history below to only show relevant runs.', 'bottom');
       add('synth-table', '[data-tour="synth-table"]', 'This is your History Table. Select 2 to 5 of your recent highly-optimized runs using the checkboxes to combine them.', 'top');
-      add('synth-run', '[data-tour="synth-run-wrapper"]', 'Click here to Synthesize your Ultimate Meta-Build! The tooltip will wait here. Click Next when the synthesis is complete.', 'top');
+      add('synth-run', '[data-tour="synth-run-wrapper"]', 'Click here to Synthesize your Ultimate Meta-Build!', 'top', null, null, null, 'has_synthesis');
 
       // --- RESULTS DASHBOARD ---
       add('res-tab-build', '[data-tour="res-tab-build"]', 'Here is your newly synthesized Ultimate Meta-Build! The AI has run a deep 500-simulation marathon to eliminate RNG variance.', 'top');
       add('res-apply', '[data-tour="res-apply"]', 'You can instantly apply this meta-build back to your global profile here.', 'bottom');
 
-      add('res-tab-data-link', '[data-tour="res-tab-data"]', 'Now let\'s look at the analytics. CLICK THIS TAB to open the Simulation Data view, then click Next.', 'bottom', null, null, '[data-tour="res-tab-data"]');
+      add('res-tab-data-link', '[data-tour="res-tab-data"]', 'Now let\'s look at the analytics. CLICK THIS TAB to open the Simulation Data view.', 'bottom', null, null, null, 'tab_res_data');
 
       if (isFloorTarget) {
         add('res-data-push', '[data-tour="res-data-push"]', 'Because pushing floors is highly RNG-dependent, this table shows the cumulative probability and required Arch Seconds to reach specific milestones safely.', 'top');
-        add('res-inner-wall-link', '[data-tour="res-inner-wall"]', 'CLICK THIS TAB to view the Progression Wall, then click Next.', 'bottom', null, null, '[data-tour="res-inner-wall"]');
+        add('res-inner-wall-link', '[data-tour="res-inner-wall"]', 'CLICK THIS TAB to view the Progression Wall.', 'bottom', null, null, null, 'tab_data_wall');
         add('res-data-wall', '[data-tour="res-data-wall"]', 'This histogram and stamina trace show you exactly where and why your build runs out of stamina.', 'top');
       } else {
         add('res-data-banked', '[data-tour="res-data-banked"]', 'Here are your Banked Yields. This is the true, mathematically stable average of what this build produces per 1k Arch Seconds.', 'top');
-        add('res-inner-cards-link', '[data-tour="res-inner-cards"]', 'CLICK THIS TAB to view Card Drop estimates, then click Next.', 'bottom', null, null, '[data-tour="res-inner-cards"]');
+        add('res-inner-cards-link', '[data-tour="res-inner-cards"]', 'CLICK THIS TAB to view Card Drop estimates.', 'bottom', null, null, null, 'tab_data_cards');
         add('res-data-cards', '[data-tour="res-data-cards"]', 'Select a block card here to see exactly how long it will take to farm Base, Poly, or Infernal copies!', 'top');
         if (hasLoot) {
-          add('res-inner-loot-link', '[data-tour="res-inner-loot"]', 'CLICK THIS TAB to view Collateral Loot, then click Next.', 'bottom', null, null, '[data-tour="res-inner-loot"]');
+          add('res-inner-loot-link', '[data-tour="res-inner-loot"]', 'CLICK THIS TAB to view Collateral Loot.', 'bottom', null, null, null, 'tab_data_loot');
           add('res-data-loot', '[data-tour="res-data-loot"]', 'This breakdown shows all the extra fragments you will passively farm while targeting your primary goal.', 'top');
         }
       }
 
-      add('res-tab-roi-link', '[data-tour="res-tab-roi"]', 'Finally, CLICK THIS TAB to open the Upgrade Guide (ROI Analyzer), then click Next.', 'bottom', null, null, '[data-tour="res-tab-roi"]');
+      add('res-tab-roi-link', '[data-tour="res-tab-roi"]', 'Finally, CLICK THIS TAB to open the Upgrade Guide (ROI Analyzer).', 'bottom', null, null, null, 'tab_res_roi');
 
       if (isFloorTarget) {
         add('res-roi-disabled', '[data-tour="res-roi-disabled"]', 'The ROI Analyzer is disabled for Floor Pushing. Floor progression relies on large, discrete math breakpoints rather than +1 stat gains.', 'top');
@@ -320,7 +354,8 @@ export default function TourGuide() {
           skipLabel: step.skipLabel,
           skipToIndex: skipToIndex !== -1 ? skipToIndex : null,
           allTargets,        // Injected for the Smart Pre-Verifier loop
-          allClickTargets    // Injected for the Smart Pre-Verifier loop
+          allClickTargets,   // Injected for the Smart Pre-Verifier loop
+          requireCondition: step.requireCondition
         }
       };
     });
