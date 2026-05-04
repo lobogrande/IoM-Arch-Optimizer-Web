@@ -24,7 +24,7 @@ export default function CalculatedStats() {
       </div>
 
       {/* --- STAT TROUBLESHOOTER EXPANDER --- */}
-      <div className="st-container mb-6">
+      <div data-tour="calc-troubleshooter" className="st-container mb-6">
         <button 
           onClick={() => setShowTroubleshooter(!showTroubleshooter)}
           className="w-full flex justify-between items-center font-bold text-lg hover:text-st-orange transition-colors"

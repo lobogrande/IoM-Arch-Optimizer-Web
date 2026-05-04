@@ -130,7 +130,7 @@ export default function Simulations() {
       `}</style>
       
       {/* SUB-TABS ROUTING */}
-      <div className="flex overflow-x-auto border-b border-st-border mb-6 no-scrollbar">
+      <div className="flex flex-wrap border-b border-st-border mb-6">
         {[
           { id: 'optimizer', label: '🚀 Optimizer' },
           { id: 'synth', label: '🧬 Build Synthesis & History' },
@@ -140,6 +140,7 @@ export default function Simulations() {
         ].map((tab) => (
           <button
             key={tab.id}
+            data-tour={`main-tab-${tab.id}`}
             onClick={() => setActiveSubTab(tab.id)}
             className={`px-4 py-2 font-medium whitespace-nowrap transition-colors duration-200 border-b-2 ${
               activeSubTab === tab.id 

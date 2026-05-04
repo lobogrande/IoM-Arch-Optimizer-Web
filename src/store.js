@@ -108,6 +108,11 @@ const useStore = create(
   lockedStats: { },
   simsPerSec: 15,
 
+  // Ephemeral Tour State
+  tourActive: false,
+  activeTourId: null,
+  tourStepIndex: 0,
+
   // Actions (Equivalent to updating st.session_state)
   setSetting: (key, value) => set((state) => {
     const updates = { [key]: value };
@@ -217,6 +222,12 @@ const useStore = create(
   setSandboxShowUnreachable: (val) => set({ sandboxShowUnreachable: val }),
   setSandboxShowCrits: (val) => set({ sandboxShowCrits: val }),
   setSandboxBlockFilters: (val) => set({ sandboxBlockFilters: val }),
+
+  // Tour Actions
+  startTour: (id) => set({ tourActive: true, activeTourId: id, tourStepIndex: 0 }),
+  stopTour: () => set({ tourActive: false, activeTourId: null, tourStepIndex: 0 }),
+  setTourStepIndex: (index) => set({ tourStepIndex: index }),
+
   saveRoiToCurrentRun: (context, category, data) => set((state) => {
     if (!state.opt_results) return state;
     // Bind a unique ID so we can flawlessly find it in the history arrays
@@ -249,36 +260,45 @@ const useStore = create(
   }),
   
   // Wipe all data to default baseline
-  resetState: () => set({
-    asc1_unlocked: false,
-    asc2_unlocked: false,
-    arch_level: 1,
-    current_max_floor: 1,
-    geoduck_unlocked: false,
-    base_stats: { Str: 0, Agi: 0, Per: 0, Int: 0, Luck: 0, Div: 0, Corr: 0 },
-    upgrade_levels: { },
-    external_levels: { },
-    cards: { },
-    arch_ability_infernal_bonus: "0",
-    total_infernal_cards: 0,
-    sandbox_stats: { Str: 0, Agi: 0, Per: 0, Int: 0, Luck: 0, Div: 0, Corr: 0 },
-    sandbox_floor: 1,
-    duelStatsA: { Str: 0, Agi: 0, Per: 0, Int: 0, Luck: 0, Div: 0, Corr: 0 },
-    duelStatsB: { Str: 0, Agi: 0, Per: 0, Int: 0, Luck: 0, Div: 0, Corr: 0 },
-    activeProfileId: null,
-    profiles: [ ],
-    opt_results: null,
-    run_history: [ ],
-    synth_history: [ ],
-    synthesis_result: null,
-    lockedStats: { },
-    optGoal: "Max Floor Push",
-    targetFrag: 0,
-    targetBlock: "myth3",
-    timeLimit: 60,
-    simsPerSec: 15,
-    cpuProfile: isMobileDevice() ? 'eco' : 'balanced',
-    allowUnspent: false
+  resetState: () => set((state) => {
+    const defaultExt = { };
+    EXTERNAL_UI_GROUPS.forEach(g => {
+      if (g.ui_type === 'pet') {
+        defaultExt[ g.rows[ 0 ] ] = -1;
+      }
+    });
+
+    return {
+      asc1_unlocked: false,
+      asc2_unlocked: false,
+      arch_level: 1,
+      current_max_floor: 1,
+      geoduck_unlocked: false,
+      base_stats: { Str: 0, Agi: 0, Per: 0, Int: 0, Luck: 0, Div: 0, Corr: 0 },
+      upgrade_levels: { },
+      external_levels: defaultExt,
+      cards: { },
+      arch_ability_infernal_bonus: "0",
+      total_infernal_cards: 0,
+      sandbox_stats: { Str: 0, Agi: 0, Per: 0, Int: 0, Luck: 0, Div: 0, Corr: 0 },
+      sandbox_floor: 1,
+      duelStatsA: { Str: 0, Agi: 0, Per: 0, Int: 0, Luck: 0, Div: 0, Corr: 0 },
+      duelStatsB: { Str: 0, Agi: 0, Per: 0, Int: 0, Luck: 0, Div: 0, Corr: 0 },
+      activeProfileId: null,
+      profiles: [ ],
+      opt_results: null,
+      run_history: [ ],
+      synth_history: [ ],
+      synthesis_result: null,
+      lockedStats: { },
+      optGoal: "Max Floor Push",
+      targetFrag: 0,
+      targetBlock: "myth3",
+      timeLimit: 60,
+      simsPerSec: 15,
+      cpuProfile: isMobileDevice() ? 'eco' : 'balanced',
+      allowUnspent: false
+    };
   }),
 
   // Bulk load from JSON file
@@ -493,6 +513,11 @@ const useStore = create(
     {
       name: 'iom-optimizer-storage', // The unique key used in the browser's IndexedDB
       storage: createJSONStorage(() => idbStorage),
+      partialize: (state) => {
+        // Prevent ephemeral states (like the active tour) from saving to IndexedDB
+        const { tourActive, activeTourId, tourStepIndex, ...rest } = state;
+        return rest;
+      },
     }
   )
 );

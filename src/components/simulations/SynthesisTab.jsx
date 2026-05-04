@@ -104,12 +104,14 @@ export default function SynthesisTab() {
       store.setSimDataTab('performance');
 
       setTimeout(() => {
-        const anchorId = isMetaBuild ? 'synth-results-anchor' : 'dashboard-anchor-optimizer';
-        const el = document.getElementById(anchorId);
-        if (el) {
-          el.scrollIntoView({ behavior: 'smooth', block: 'start' });
-        } else {
-          window.scrollTo({ top: 0, behavior: 'smooth' });
+        if (!store.tourActive) {
+          const anchorId = isMetaBuild ? 'synth-results-anchor' : 'dashboard-anchor-optimizer';
+          const el = document.getElementById(anchorId);
+          if (el) {
+            el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          } else {
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+          }
         }
       }, 150);
     }
@@ -154,11 +156,16 @@ export default function SynthesisTab() {
     });
 
     cols.push({
-        headerName: "Actions", flex: 1, suppressAutoSize: true, minWidth: 140, sortable: false, filter: false,
-        cellRenderer: (p) => {
-        return (
-          <div className="flex gap-2 items-center justify-center h-full">
-            <button onClick={() => handleRestore(p.data, true)} className="px-2 py-1 bg-st-orange text-[#2b2b2b] font-bold text-xs rounded hover:bg-[#ffb045] transition-colors">📊 View</button>
+            headerName: "Actions", flex: 1, suppressAutoSize: true, minWidth: 140, sortable: false, filter: false,
+            cellRenderer: (p) => {
+            return (
+              <div className="flex gap-2 items-center justify-center h-full">
+                <button 
+                  onClick={() => handleRestore(p.data, true)} 
+                  className="px-2 py-1 bg-st-orange text-[#2b2b2b] font-bold text-xs rounded hover:bg-[#ffb045] transition-colors"
+                >
+                  📊 View
+                </button>
             <button 
               onClick={() => {
                 const kept = [ ...store.synth_history ];
@@ -212,6 +219,7 @@ export default function SynthesisTab() {
     setIsSynthesizing(true);
     setSynthProgressPct(0);
     setSynthProgressMsg("Calculating center and generating permutations...");
+    store.setSimsState('synthesis_result', null); // 🔒 Instantly locks the Tour Next button!
     
     try {
       const runTargetMetric = checkedRuns[0].Target;
@@ -559,8 +567,10 @@ export default function SynthesisTab() {
       store.setSimDataTab('performance');
 
       setTimeout(() => {
-          const el = document.getElementById('synth-results-anchor');
-          if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          if (!store.tourActive) {
+            const el = document.getElementById('synth-results-anchor');
+            if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          }
       }, 150);
 
     } catch (err) {
@@ -593,9 +603,9 @@ export default function SynthesisTab() {
       ) : (
         <>
           <div className="flex flex-col md:flex-row gap-4 items-start">
-            <div className="w-full md:w-2/3">
+            <div data-tour="synth-filter" className="w-full md:w-2/3">
               <label className="block text-sm font-bold mb-1">🔍 Filter visible runs by optimization target:</label>
-              <select 
+              <select
                 multiple
                 value={currentViewTargets}
                 onChange={(e) => setViewTargets(Array.from(e.target.selectedOptions, option => option.value))}
@@ -631,24 +641,26 @@ export default function SynthesisTab() {
             )}
 
             <div className="flex flex-col md:flex-row gap-4">
-              {!isSynthesizing ? (
-                <button 
-                  onClick={handleSynthesize}
-                  className="flex-1 py-3 bg-st-orange text-[#2b2b2b] font-bold rounded-lg shadow hover:bg-[#ffb045] transition-colors"
-                >
-                  🧬 Synthesize Ultimate Meta-Build
-                </button>
-              ) : (
-                <div className="flex-1 p-2 border border-st-border rounded bg-st-bg">
-                  <div className="flex justify-between text-sm font-bold mb-1 text-st-orange">
-                    <span>{synthProgressMsg}</span>
-                    <span>{Math.floor(synthProgressPct)}%</span>
+              <div data-tour="synth-run-wrapper" className="flex-1">
+                {!isSynthesizing ? (
+                  <button 
+                    onClick={handleSynthesize}
+                    className="w-full py-3 bg-st-orange text-[#2b2b2b] font-bold rounded-lg shadow hover:bg-[#ffb045] transition-colors"
+                  >
+                    🧬 Synthesize Ultimate Meta-Build
+                  </button>
+                ) : (
+                  <div className="w-full p-2 border border-st-border rounded bg-st-bg">
+                    <div className="flex justify-between text-sm font-bold mb-1 text-st-orange">
+                      <span>{synthProgressMsg}</span>
+                      <span>{Math.floor(synthProgressPct)}%</span>
+                    </div>
+                    <div className="w-full bg-[#1e1e1e] rounded-full h-3 overflow-hidden border border-st-border">
+                      <div className="bg-st-orange h-3 transition-all duration-300" style={{ width: `${synthProgressPct}%` }}></div>
+                    </div>
                   </div>
-                  <div className="w-full bg-[#1e1e1e] rounded-full h-3 overflow-hidden border border-st-border">
-                    <div className="bg-st-orange h-3 transition-all duration-300" style={{ width: `${synthProgressPct}%` }}></div>
-                  </div>
-                </div>
-              )}
+                )}
+              </div>
               <button
                 onClick={deleteUnchecked}
                 className="flex-1 py-3 bg-[#2b2b2b] border border-red-900 text-red-400 font-bold rounded-lg hover:bg-red-900 hover:text-white transition-colors"
@@ -675,9 +687,13 @@ export default function SynthesisTab() {
               </button>
             </div>
 
-            <div className="overflow-x-auto border border-st-border rounded bg-st-bg">
-              {(() => {
-                const tableStats = [...activeStats];
+            <div className="relative">
+              {/* 🎯 THE INVISIBLE ANCHOR: Placed strictly outside the overflow container to prevent browser scroll crashes, but physically aligned exactly over the checkbox column! */}
+              <div data-tour="synth-table" className="absolute top-0 left-2 w-10 h-10 pointer-events-none"></div>
+
+              <div className="overflow-x-auto border border-st-border rounded bg-st-bg">
+                {(() => {
+                  const tableStats = [...activeStats];
                 if (visibleHistory.some(r => r.Unassigned !== undefined)) tableStats.push('Unassigned');
 
                 return (
@@ -754,6 +770,7 @@ export default function SynthesisTab() {
                   </table>
                 );
               })()}
+              </div>
             </div>
           </div>
 
@@ -802,7 +819,7 @@ export default function SynthesisTab() {
           <hr className="border-st-border my-8" />
 
           {store.synth_history && store.synth_history.length > 0 && (
-            <div className="space-y-4">
+            <div data-tour="synth-history-log" className="space-y-4">
               <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
                 <div>
                   <h3 className="text-xl font-bold">📚 Meta-Build History Log</h3>
@@ -817,7 +834,7 @@ export default function SynthesisTab() {
               </div>
               
               <div 
-                className={`border border-st-border rounded bg-st-bg h-[400px] w-full outline-none ${store.theme === 'dark' ? 'ag-theme-quartz-dark' : 'ag-theme-quartz'}`}
+                className={`relative border border-st-border rounded bg-st-bg h-[400px] w-full outline-none ${store.theme === 'dark' ? 'ag-theme-quartz-dark' : 'ag-theme-quartz'}`}
                 tabIndex={-1}
                 onMouseEnter={(e) => {
                   if (!e.currentTarget.contains(document.activeElement)) {
@@ -825,6 +842,9 @@ export default function SynthesisTab() {
                   }
                 }}
               >
+                {/* 🎯 THE RESPONSIVE RIGHT-SIDE ANCHOR: Draws the eye directly to the Actions column without relying on brittle pixel heights or virtualized rows! */}
+                <div data-tour="synth-history-view" className="absolute top-0 right-[10%] w-10 h-4 pointer-events-none z-10"></div>
+                
                 <AgGridReact
                   ref={synthGridRef}
                   theme="legacy"

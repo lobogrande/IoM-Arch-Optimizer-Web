@@ -7,6 +7,8 @@ import BlockCompendium from './components/BlockCompendium';
 import Simulations from './components/Simulations';
 import Welcome from './components/Welcome';
 import About from './components/About';
+import TourGuide from './components/TourGuide';
+import { del, get, set } from 'idb-keyval'; // Import direct DB access
 
 const TABS =[
   { id: 'welcome', label: '🏠 Welcome' },
@@ -22,6 +24,30 @@ function App() {
   const activeTab = store.activeTab;
   const setActiveTab = store.setActiveTab;
   const calcWorkerRef = useRef(null);
+
+  // Failsafe: Dig directly into IndexedDB to purge corrupted tour state from before the partialize rule
+  useEffect(() => {
+    const purgeCorruptTourState = async () => {
+      try {
+        const stored = await get('iom-optimizer-storage');
+        if (stored && stored.state) {
+          let modified = false;
+          if ('tourActive' in stored.state) { delete stored.state.tourActive; modified = true; }
+          if ('activeTourId' in stored.state) { delete stored.state.activeTourId; modified = true; }
+          if ('tourStepIndex' in stored.state) { delete stored.state.tourStepIndex; modified = true; }
+          
+          if (modified) {
+            await set('iom-optimizer-storage', stored);
+            store.stopTour();
+            console.log("🧹 Cleared corrupted tour state from IndexedDB.");
+          }
+        }
+      } catch (err) {
+        console.error("Failed to purge IDB:", err);
+      }
+    };
+    purgeCorruptTourState();
+  }, [ ]);
 
   // Apply Dark Mode Class to HTML body natively
   useEffect(() => {
@@ -142,6 +168,7 @@ function App() {
 
   return (
     <div className="min-h-screen bg-st-bg text-st-text p-4 md:p-8">
+      <TourGuide />
       
       <div className="flex items-center gap-4 mb-6 w-full">
         <h1 className="text-3xl md:text-4xl font-bold">
@@ -167,6 +194,7 @@ function App() {
           return (
             <button
               key={tab.id}
+              data-tour={`main-tab-${tab.id}`}
               onClick={() => {
                 setActiveTab(tab.id);
               }}
