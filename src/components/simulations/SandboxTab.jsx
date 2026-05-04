@@ -131,8 +131,16 @@ export default function SandboxTab() {
 
   return (
     <div className="space-y-6 animate-fade-in">
-      <h2 className="text-2xl font-bold">🧪 Block Hit Sandbox</h2>
-      <div className="text-sm text-st-text-light">
+      <div className="flex items-center justify-between">
+        <h2 className="text-2xl font-bold">🧪 Block Hit Sandbox</h2>
+        <button 
+          onClick={() => store.startTour('sandbox')}
+          className="px-3 py-1.5 bg-st-secondary border border-st-border hover:border-st-orange text-st-text text-sm font-bold rounded shadow-sm transition-colors cursor-pointer flex items-center gap-2"
+        >
+          <span>❓</span> Tour Guide
+        </button>
+      </div>
+      <div data-tour="sand-breakpoints-info" className="text-sm text-st-text-light">
         <p>💡 <strong>What is a Breakpoint?</strong></p>
         <p>A breakpoint is the exact stat number required to reduce the hits needed to break a block (e.g., dropping from 3 hits down to 2). Because blocks can only take whole hits, any stat points you spend that <em>don't</em> push you past the next breakpoint are mathematically wasted!</p>
       </div>
@@ -159,7 +167,7 @@ export default function SandboxTab() {
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
         <div className="lg:col-span-1 space-y-6">
           <div className="st-container bg-black/10">
-            <div className="grid grid-cols-2 gap-2 mb-2">
+            <div data-tour="sand-sync" className="grid grid-cols-2 gap-2 mb-2">
               <button 
                 onClick={() => {
                   activeStats.forEach(s => store.setSandboxStat(s, store.base_stats[s] || 0));
@@ -206,7 +214,7 @@ export default function SandboxTab() {
               </button>
             </div>
             
-            <div className="flex gap-2 mb-2">
+            <div data-tour="sand-baseline" className="flex gap-2 mb-2">
               <button 
                 onClick={() => setSandboxBaseline(sbData, store.sandbox_stats)}
                 disabled={!sbData}
@@ -238,7 +246,7 @@ export default function SandboxTab() {
             </div>
 
             <h4 className="font-bold mb-4">Sandbox Stats</h4>
-            <div className="grid grid-cols-2 gap-3 mb-6">
+            <div data-tour="sand-stats" className="grid grid-cols-2 gap-3 mb-6">
               {activeStats.map(stat => (
                 <div key={stat} className="st-container flex flex-col items-center bg-st-bg p-2">
                   <div className="text-center mb-1">
@@ -279,9 +287,9 @@ export default function SandboxTab() {
             <h4 className="font-bold mb-4">Settings</h4>
             
             <div className="space-y-4 text-sm">
-             <div>
+             <div data-tour="sand-floor">
                 <label className="block mb-1">Target Floor:</label>
-                <input 
+                <input
                   type="number"
                   value={store.sandbox_floor ?? store.current_max_floor}
                   onFocus={(e) => e.target.select()}
@@ -290,7 +298,7 @@ export default function SandboxTab() {
                   className="st-input h-8" 
                 />
               </div>
-              <div>
+              <div data-tour="sand-hits">
                 <label className="block mb-1">Min Avg Hits to Kill:</label>
                 <input 
                   type="number"
@@ -316,9 +324,9 @@ export default function SandboxTab() {
 
         <div className="lg:col-span-3">
           <div className="flex flex-col md:flex-row gap-4 justify-between items-start md:items-end mb-4">
-            <div className="w-full md:w-1/2">
+            <div data-tour="sand-target-filters" className="w-full md:w-1/2">
               <label className="block font-bold mb-1">🎯 Target Breakpoints</label>
-              <select 
+              <select
                 multiple
                 value={sandboxBlockFilters}
                 onChange={(e) => setSandboxBlockFilters(Array.from(e.target.selectedOptions, o => o.value))}
@@ -354,7 +362,8 @@ export default function SandboxTab() {
           </div>
 
           <div 
-            className={`border border-st-border rounded bg-st-bg h-[600px] w-full outline-none ${store.theme === 'dark' ? 'ag-theme-quartz-dark' : 'ag-theme-quartz'}`}
+            data-tour="sand-results"
+            className={`border border-st-border rounded bg-st-bg h-[600px] w-full outline-none relative ${store.theme === 'dark' ? 'ag-theme-quartz-dark' : 'ag-theme-quartz'}`}
             tabIndex={-1}
             onMouseEnter={(e) => {
               if (!e.currentTarget.contains(document.activeElement)) {

@@ -331,11 +331,15 @@ export default function TourGuide() {
       add('opt-end', 'body', 'You have completed the Optimizer tour! Your next steps are to use the Sandbox for exploring block hit breakpoints, the Build Duel tab to compare two builds side-by-side, or the Milestone Forecaster to explore ROI improvements for your max floor push build.', 'center');
 
     } else if (activeTourId === 'sandbox') {
-      add('sand-start', 'body', 'Welcome to the Sandbox! This is my testing ground for experimenting with hypothetical stat distributions outside of the main profile.', 'center');
-      add('sand-stats', '[data-tour="sand-stats"]', 'Modify any stat here. These inputs are isolated and will not overwrite your actual saved profile.', 'auto');
-      add('sand-floor', '[data-tour="sand-floor"]', 'Set the target floor. The math engine will calculate your exact hits-to-kill against this floor.', 'auto');
-      add('sand-hits', '[data-tour="sand-hits"]', 'Use the Minimum Hits filter to quickly find break-points. Blocks requiring more hits than this will automatically be hidden.', 'auto');
-      add('sand-results', '[data-tour="sand-results"]', 'Your dynamic results appear here in real-time as you type. Go ahead and try changing a stat right now!', 'auto');
+      add('sand-start', 'body', 'Welcome to the Sandbox! This is my testing ground for experimenting with stat distributions and discovering combat breakpoints without affecting your global profile.', 'center');
+      add('sand-breakpoints-info', '[data-tour="sand-breakpoints-info"]', 'What is a breakpoint? Because you can only deal damage in whole hits, any stat point that doesn\'t push a block\'s "Hits to Kill" down by a full integer is mathematically wasted! The goal is to eliminate those wasted points.', 'bottom');
+      add('sand-sync', '[data-tour="sand-sync"]', 'Use these buttons to Pull your current stats from your Global Profile, or Push your newly discovered optimal stats back to the main app once you are done experimenting.', 'right');
+      add('sand-stats', '[data-tour="sand-stats"]', 'This is the isolated sandbox stat editor. As you tweak these numbers, the results table will recalculate in real-time!', 'right');
+      add('sand-floor', '[data-tour="sand-floor"]', 'Set your Target Floor here. The health and armor of all blocks scale dynamically based on this input.', 'right');
+      add('sand-hits', '[data-tour="sand-hits"]', 'Use this to filter out weak blocks. For example, if you set this to 2, the table will hide any block that you already 1-shot, allowing you to focus purely on the blocks causing you trouble.', 'right');
+      add('sand-baseline', '[data-tour="sand-baseline"]', 'This is my favorite feature: Lock Baseline! Click this once to snapshot your current table. As you change stats, the table will show you exactly how much Expected DPS (EDPS) you gain or lose compared to the snapshot, colored in green and red!', 'right');
+      add('sand-target-filters', '[data-tour="sand-target-filters"]', 'If you are optimizing for a specific fragment or drop, you can multiselect specific block cards here. All other blocks will be hidden from the table.', 'bottom');
+      add('sand-results', '[data-tour="sand-results"]', 'Finally, your results! Pay close attention to "Avg Hits". Your goal is to tweak your stats to drop that number to the lowest possible whole number with the fewest stat points. Good luck!', 'top');
     }
 
     return s;
