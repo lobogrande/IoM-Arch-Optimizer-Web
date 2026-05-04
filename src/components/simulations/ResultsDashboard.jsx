@@ -464,7 +464,7 @@ export default function ResultsDashboard({ context }) {
         <h3 className="text-xl font-bold text-green-400">✅ Simulation Complete in {store.opt_results.elapsed.toFixed(1)} seconds!</h3>
       </div>
 
-      <div className="flex overflow-x-auto border-b border-st-border mb-6 no-scrollbar">
+      <div className="flex flex-wrap border-b border-st-border mb-6">
         {[
           { id: 'build', label: '🏆 The Build' },
           { id: 'data', label: '📊 Simulation Data' },
@@ -562,7 +562,7 @@ export default function ResultsDashboard({ context }) {
         <div className="st-container animate-fade-in">
           <h3 className="text-2xl font-bold mb-4">📊 Advanced Analytics Dashboard</h3>
           
-          <div className="flex overflow-x-auto border-b border-st-border mb-6 no-scrollbar">
+          <div className="flex flex-wrap border-b border-st-border mb-6">
             {innerTabs.map((t) => (
               <button
                 key={t.id}

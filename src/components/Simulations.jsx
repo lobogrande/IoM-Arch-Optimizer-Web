@@ -130,7 +130,7 @@ export default function Simulations() {
       `}</style>
       
       {/* SUB-TABS ROUTING */}
-      <div className="flex overflow-x-auto border-b border-st-border mb-6 no-scrollbar">
+      <div className="flex flex-wrap border-b border-st-border mb-6">
         {[
           { id: 'optimizer', label: '🚀 Optimizer' },
           { id: 'synth', label: '🧬 Build Synthesis & History' },
