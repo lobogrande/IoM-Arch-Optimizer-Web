@@ -220,7 +220,7 @@ export default function TourGuide() {
 
       add('opt-locks-intro', '[data-tour="opt-locks"]', 'Now, check out the Stat Constraints expander. You use this section to lock stats.', 'auto');
       add('opt-lock-cb', '[data-tour="opt-lock-cb-Str"]', 'Here is the toggle to lock a specific stat. Check it to lock Strength, for example.', 'top');
-      add('opt-lock-type', '[data-tour="opt-lock-type-Str"]', 'Choose your locking constraint type (Exact, Min, Max, Range).', 'left');
+      add('opt-lock-type', '[data-tour="opt-lock-type-Str"]', 'Choose your locking constraint type (Exact, Min, Max, Range).', 'right');
       add('opt-lock-val', '[data-tour="opt-lock-val-Str"]', 'Enter the target numeric value here.', 'bottom');
 
       if (allowUnspent && optGoal !== "Max Floor Push") {
