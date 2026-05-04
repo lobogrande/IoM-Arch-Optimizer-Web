@@ -253,14 +253,8 @@ export default function TourGuide() {
       add('nav-calc_stats', '[data-tour="main-tab-calc_stats"]', 'You have successfully completed your Player Setup! CLICK THIS TAB to see your calculated stats, and then click Next.', 'bottom', null, null, '[data-tour="main-tab-calc_stats"]');
       add('troubleshooter', '[data-tour="calc-troubleshooter"]', 'If any of your calculated stats do not perfectly match the in-game Arch Stats UI, open this Stat Troubleshooter! It will help you diagnose missing upgrades, cards, and common data entry mistakes.', 'auto');
 
-    } else if (activeTourId === 'calc_stats') {
-      add('calc-start', 'body', 'Welcome to the Calculated Stats page! This tab accurately mirrors your in-game Archaeology stats based on the profile you set up.', 'center');
-      add('calc-compendium', '[data-tour="calc-compendium"]', 'Set your Compendium Target Floor here. This determines the exact monster HP scaling applied to your damage calculations.', 'bottom');
-      add('calc-grid', '[data-tour="calc-grid"]', 'Here is the breakdown of your exact stats. I strongly recommend double-checking these numbers against the game UI to verify your setup!', 'auto');
-      add('calc-optimizer-link', '[data-tour="main-tab-optimizer"]', 'Once your stats look correct, the real fun begins. CLICK THIS TAB to proceed to the Optimizer!', 'bottom', null, null, '[data-tour="main-tab-optimizer"]');
-      
     } else if (activeTourId === 'optimizer') {
-      add('opt-start', 'body', 'Welcome to the Optimizer! My simulator runs the exact GameMaker math in a background Pyodide Web Worker to find the ultimate stat distributions.', 'center');
+      add('opt-start', 'body', 'Welcome to the Optimizer! This simulator will help you find the optimal stat distributions for each optimization goal in the game.', 'center');
       add('opt-goal', '[data-tour="opt-goal"]', 'First, choose your optimization Goal (e.g., Max Floor Push or Target Block Farm).', 'auto');
 
       // 🔀 DYNAMIC DECISION TREE
@@ -274,7 +268,7 @@ export default function TourGuide() {
         add('opt-allow-unspent', '[data-tour="opt-allow-unspent"]', 'Check this if you want to intentionally leave stat points unspent to create a crippled build. (Not recommended for most use cases)', 'auto');
       }
 
-      add('opt-locks-intro', '[data-tour="opt-locks"]', 'Now, check out the Stat Constraints expander. You use this section to lock stats.', 'auto');
+      add('opt-locks-intro', '[data-tour="opt-locks"]', 'Now, check out the Stat Constraints expander. You use this section to lock stats. This is an important step because it will reduce the computation time and increase the accuracy of the results.', 'auto');
       add('opt-lock-cb', '[data-tour="opt-lock-cb-Str"]', 'Here is the toggle to lock a specific stat. Check it to lock Strength, for example.', 'top');
       add('opt-lock-type', '[data-tour="opt-lock-type-Str"]', 'Choose your locking constraint type (Exact, Min, Max, Range).', 'right');
       add('opt-lock-val', '[data-tour="opt-lock-val-Str"]', 'Enter the target numeric value here.', 'bottom');
@@ -283,9 +277,9 @@ export default function TourGuide() {
         add('opt-lock-unspent', '[data-tour="opt-lock-box-Unassigned"]', 'Because you allowed unspent points, you can lock the amount of points intentionally left unspent here to force your crippled build.', 'auto');
       }
 
-      add('opt-locks-finish', '[data-tour="opt-locks"]', 'Finish locking your required stats based on your goal, then click Next.', 'auto');
+      add('opt-locks-finish', '[data-tour="opt-locks"]', 'Finish locking your required stats based on your goal, then click Next. It is recommended to reduce the search space as much as you can. Use Scout Runs to identify the best boundaries for each stat.', 'auto');
 
-      add('opt-time-slider', '[data-tour="opt-time-slider"]', 'Now set your time limit. Move the slider until the Precision Gauge below turns yellow to prepare for a fast Scout Run.', 'auto');
+      add('opt-time-slider', '[data-tour="opt-time-slider"]', 'Now set your time limit. Move the slider until the Precision Gauge below turns yellow to prepare for a fast Scout Run. (If you already locked enough stats to turn it green, you can skip ahead a few steps)', 'auto');
       add('opt-run-scout', '[data-tour="opt-run-wrapper"]', 'Click here to run the Scout Run. This helps you identify which stats drop to 0 or hit max cap so you know what you should lock for the real runs!', 'top');
 
       add('opt-precision', '[data-tour="opt-precision-gauge"]', 'After reviewing your scout run and locking the obvious stats, adjust the time limit again until this gauge turns Green for High Precision.', 'auto');
@@ -294,13 +288,13 @@ export default function TourGuide() {
       add('opt-synth-link', '[data-tour="main-tab-synth"]', 'Once you have your refined runs, it\'s time to synthesize them! CLICK THIS TAB to proceed.', 'bottom', null, null, null, 'tab_synth');
 
       // --- SYNTHESIS TAB ---
-      add('synth-filter', '[data-tour="synth-filter"]', 'Welcome to Synthesis! The target from your most recent Optimization is auto-selected here, filtering the history below to only show relevant runs.', 'bottom');
-      add('synth-table', '[data-tour="synth-table"]', 'This is your History Table. Select 2 to 5 of your recent highly-optimized runs using the checkboxes to combine them.', 'top');
+      add('synth-filter', '[data-tour="synth-filter"]', 'Welcome to Synthesis! The target from your most recent Optimization is auto-selected here, filtering the build history below to only show relevant runs.', 'bottom');
+      add('synth-table', '[data-tour="synth-table"]', 'This is your Optimization Build History Table. Select 2 to 5 of your recent optimized runs using the checkboxes to use them as inputs for synthesis.', 'top');
       add('synth-run', '[data-tour="synth-run-wrapper"]', 'Click here to Synthesize your Ultimate Meta-Build!', 'top', null, null, null, 'has_synthesis');
 
       // --- RESULTS DASHBOARD ---
       add('res-tab-build', '[data-tour="res-tab-build"]', 'Here is your newly synthesized Ultimate Meta-Build! The AI has run a deep 500-simulation marathon to eliminate RNG variance.', 'top', null, null, null, 'tab_res_build');
-      add('res-apply', '[data-tour="res-apply"]', 'You can instantly apply this meta-build back to your global profile here.', 'bottom');
+      add('res-apply', '[data-tour="res-apply"]', 'You can instantly apply this Meta-Build back to your global profile here.', 'bottom');
 
       add('res-tab-data-link', '[data-tour="res-tab-data"]', 'Now let\'s look at the analytics. CLICK THIS TAB to open the Simulation Data view.', 'bottom', null, null, null, 'tab_res_data');
       
@@ -309,23 +303,23 @@ export default function TourGuide() {
       if (isFloorTarget) {
         add('res-data-push', '[data-tour="res-data-push"]', 'Because pushing floors is highly RNG-dependent, this table shows the cumulative probability and required Arch Seconds to reach specific milestones safely.', 'top');
         add('res-inner-wall-link', '[data-tour="res-inner-wall"]', 'CLICK THIS TAB to view the Progression Wall.', 'bottom', null, null, null, 'tab_data_wall');
-        add('res-data-wall', '[data-tour="res-data-wall"]', 'This histogram and stamina trace show you exactly where and why your build runs out of stamina.', 'top');
+        add('res-data-wall', '[data-tour="res-data-wall"]', 'This histogram and stamina trace show you exactly where your build runs out of stamina.', 'top');
       } else {
         const bankedLabel = runMetric.includes('frag') ? 'Fragment' : runMetric.includes('block') ? 'Block Kill' : 'EXP';
         add('res-data-banked', '[data-tour="res-data-banked"]', `Here are your ${bankedLabel} Yields. This is the true, mathematically stable average of what this build produces per 1k Arch Seconds.`, 'top');
         add('res-inner-cards-link', '[data-tour="res-inner-cards"]', 'CLICK THIS TAB to view Card Drop estimates.', 'bottom', null, null, null, 'tab_data_cards');
-        add('res-data-cards', '[data-tour="res-data-cards"]', 'Select a block card here to see exactly how long it will take to farm the Base Card, or fragments for its upgrades.', 'right');
+        add('res-data-cards', '[data-tour="res-data-cards"]', 'Select a block card here to see exactly how long it will take to farm the Base Card or fragments for its upgrades.', 'right');
         add('res-data-cards-frag-count', '[data-tour="res-data-cards-frag-count"]', 'Change this dropdown to see the expected cost in Arch Seconds to farm the remaining fragments you need. Because of the math of Gamma distributions, farming 10 drops takes significantly less time than 10x the cost of a single drop!', 'right');
         if (hasLoot) {
           add('res-inner-loot-link', '[data-tour="res-inner-loot"]', 'CLICK THIS TAB to view Collateral Loot.', 'bottom', null, null, null, 'tab_data_loot');
-          add('res-data-loot', '[data-tour="res-data-loot"]', 'This breakdown shows all the extra fragments you will passively farm while targeting your primary goal.', 'top');
+          add('res-data-loot', '[data-tour="res-data-loot"]', 'This breakdown shows average rate at which you will obtain each type of fragment while targeting your primary goal.', 'top');
         }
       }
 
       add('res-tab-roi-link', '[data-tour="res-tab-roi"]', 'Finally, CLICK THIS TAB to open the Upgrade Guide (ROI Analyzer).', 'bottom', null, null, null, 'tab_res_roi');
 
       if (isFloorTarget) {
-        add('res-roi-disabled', '[data-tour="res-roi-disabled"]', 'The ROI Analyzer is disabled for Floor Pushing. Floor progression relies on large, discrete math breakpoints rather than +1 stat gains.', 'top');
+        add('res-roi-disabled', '[data-tour="res-roi-disabled"]', 'The ROI Analyzer is disabled for Floor Pushing. Floor progression relies on large, discrete math breakpoints rather than +1 stat gains. If you want to do ROI analysis for floor pushing, consider using the Milestone Forecaster instead.', 'top');
       } else {
         add('res-roi-analyzer', '[data-tour="res-roi-analyzer"]', 'The ROI Analyzer runs isolated micro-simulations, adding +1 to every stat, card, and upgrade to rank their immediate raw output gain!', 'top');
         add('res-roi-precision', '[data-tour="res-roi-precision"]', 'Adjust the ROI Precision here. Running more micro-simulations per stat increases accuracy and stabilizes the math, but will take longer to compute.', 'right');
@@ -334,7 +328,7 @@ export default function TourGuide() {
       add('synth-history-log', '[data-tour="synth-history-log"]', 'This Meta-Build History Log stores all your previous synthesized builds and their analytics information.', 'top');
       add('synth-history-view', '[data-tour="synth-history-view"]', 'You can use the View button in the Actions column to reload an old build\'s analytics views and go back to review all those charts and analysis outputs we previously covered.', 'top');
 
-      add('opt-end', 'body', 'You have completed the Optimizer tour! Your next steps are to use the Sandbox for precise breakpoint tweaking, the Duel tab to compare two builds side-by-side, or the Forecaster to project max floor push build improvements.', 'center');
+      add('opt-end', 'body', 'You have completed the Optimizer tour! Your next steps are to use the Sandbox for exploring block hit breakpoints, the Build Duel tab to compare two builds side-by-side, or the Milestone Forecaster to explore ROI improvements for your max floor push build.', 'center');
 
     } else if (activeTourId === 'sandbox') {
       add('sand-start', 'body', 'Welcome to the Sandbox! This is my testing ground for experimenting with hypothetical stat distributions outside of the main profile.', 'center');
