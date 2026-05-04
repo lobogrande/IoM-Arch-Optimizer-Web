@@ -196,6 +196,8 @@ export default function OptimizerTab() {
     setIsOptimizing(true);
     setOptProgressMsg("Calculating Execution Plan...");
     setOptProgressPct(0);
+    store.setOptResults(null); // 🔒 Instantly locks any tour conditions relying on results!
+    store.setSimsState('synthesis_result', null);
 
     try {
       const baseStateDict = {

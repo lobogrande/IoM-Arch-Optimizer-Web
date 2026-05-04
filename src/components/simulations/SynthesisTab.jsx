@@ -212,6 +212,7 @@ export default function SynthesisTab() {
     setIsSynthesizing(true);
     setSynthProgressPct(0);
     setSynthProgressMsg("Calculating center and generating permutations...");
+    store.setSimsState('synthesis_result', null); // 🔒 Instantly locks the Tour Next button!
     
     try {
       const runTargetMetric = checkedRuns[0].Target;
