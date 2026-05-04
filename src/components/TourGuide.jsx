@@ -301,6 +301,8 @@ export default function TourGuide() {
       add('res-apply', '[data-tour="res-apply"]', 'You can instantly apply this meta-build back to your global profile here.', 'bottom');
 
       add('res-tab-data-link', '[data-tour="res-tab-data"]', 'Now let\'s look at the analytics. CLICK THIS TAB to open the Simulation Data view.', 'bottom', null, null, null, 'tab_res_data');
+      
+      add('res-inner-perf-link', '[data-tour="res-inner-performance"]', 'Make sure you have the Performance tab selected to see your core metrics.', 'bottom', null, null, null, 'tab_data_perf');
 
       if (isFloorTarget) {
         add('res-data-push', '[data-tour="res-data-push"]', 'Because pushing floors is highly RNG-dependent, this table shows the cumulative probability and required Arch Seconds to reach specific milestones safely.', 'top');
