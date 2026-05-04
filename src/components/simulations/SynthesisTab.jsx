@@ -834,8 +834,7 @@ export default function SynthesisTab() {
               </div>
               
               <div 
-                data-tour="synth-history-view"
-                className={`border border-st-border rounded bg-st-bg h-[400px] w-full outline-none ${store.theme === 'dark' ? 'ag-theme-quartz-dark' : 'ag-theme-quartz'}`}
+                className={`relative border border-st-border rounded bg-st-bg h-[400px] w-full outline-none ${store.theme === 'dark' ? 'ag-theme-quartz-dark' : 'ag-theme-quartz'}`}
                 tabIndex={-1}
                 onMouseEnter={(e) => {
                   if (!e.currentTarget.contains(document.activeElement)) {
@@ -843,6 +842,9 @@ export default function SynthesisTab() {
                   }
                 }}
               >
+                {/* 🎯 THE RESPONSIVE RIGHT-SIDE ANCHOR: Draws the eye directly to the Actions column without relying on brittle pixel heights or virtualized rows! */}
+                <div data-tour="synth-history-view" className="absolute top-0 right-[10%] w-10 h-4 pointer-events-none z-10"></div>
+                
                 <AgGridReact
                   ref={synthGridRef}
                   theme="legacy"
