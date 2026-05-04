@@ -16,13 +16,13 @@ const CustomTooltip = ({ index, step, backProps, primaryProps, isLastStep, toolt
       setTimeout(() => {
         const el = document.querySelector(step.target);
         if (el) {
-          // Position the element in the top 33% of the screen, leaving massive room for tables below it!
-          const y = el.getBoundingClientRect().top + window.scrollY - (window.innerHeight / 3);
-          window.scrollTo({ top: Math.max(0, y), behavior: 'smooth' });
+          // Find the actual scrollable parent and smoothly center the target vertically.
+          // inline: 'nearest' is the silver bullet that stops overflow-x tables from yanking the screen!
+          el.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'nearest' });
         }
       }, 50);
     }
-  }, [index, step.target]);
+  },[index, step.target]);
   
   // 🛡️ SMART PRE-VERIFIER: Prevents Joyride from crashing by skipping missing DOM nodes
   const handleNext = (e) => {
