@@ -219,9 +219,9 @@ export default function TourGuide() {
       }
 
       add('opt-locks-intro', '[data-tour="opt-locks"]', 'Now, check out the Stat Constraints expander. You use this section to lock stats.', 'auto');
-      add('opt-lock-cb', '[data-tour="opt-lock-cb-Str"]', 'Here is the toggle to lock a specific stat. Check it to lock Strength, for example.', 'auto');
-      add('opt-lock-type', '[data-tour="opt-lock-type-Str"]', 'Choose your locking constraint type (Exact, Min, Max, Range).', 'auto');
-      add('opt-lock-val', '[data-tour="opt-lock-val-Str"]', 'Enter the target numeric value here.', 'auto');
+      add('opt-lock-cb', '[data-tour="opt-lock-cb-Str"]', 'Here is the toggle to lock a specific stat. Check it to lock Strength, for example.', 'top');
+      add('opt-lock-type', '[data-tour="opt-lock-type-Str"]', 'Choose your locking constraint type (Exact, Min, Max, Range).', 'left');
+      add('opt-lock-val', '[data-tour="opt-lock-val-Str"]', 'Enter the target numeric value here.', 'bottom');
 
       if (allowUnspent && optGoal !== "Max Floor Push") {
         add('opt-lock-unspent', '[data-tour="opt-lock-box-Unassigned"]', 'Because you allowed unspent points, you can lock the amount of points intentionally left unspent here to force your crippled build.', 'auto');
