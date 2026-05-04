@@ -593,9 +593,9 @@ export default function SynthesisTab() {
       ) : (
         <>
           <div className="flex flex-col md:flex-row gap-4 items-start">
-            <div className="w-full md:w-2/3">
+            <div data-tour="synth-filter" className="w-full md:w-2/3">
               <label className="block text-sm font-bold mb-1">🔍 Filter visible runs by optimization target:</label>
-              <select 
+              <select
                 multiple
                 value={currentViewTargets}
                 onChange={(e) => setViewTargets(Array.from(e.target.selectedOptions, option => option.value))}
@@ -631,24 +631,26 @@ export default function SynthesisTab() {
             )}
 
             <div className="flex flex-col md:flex-row gap-4">
-              {!isSynthesizing ? (
-                <button 
-                  onClick={handleSynthesize}
-                  className="flex-1 py-3 bg-st-orange text-[#2b2b2b] font-bold rounded-lg shadow hover:bg-[#ffb045] transition-colors"
-                >
-                  🧬 Synthesize Ultimate Meta-Build
-                </button>
-              ) : (
-                <div className="flex-1 p-2 border border-st-border rounded bg-st-bg">
-                  <div className="flex justify-between text-sm font-bold mb-1 text-st-orange">
-                    <span>{synthProgressMsg}</span>
-                    <span>{Math.floor(synthProgressPct)}%</span>
+              <div data-tour="synth-run-wrapper" className="flex-1">
+                {!isSynthesizing ? (
+                  <button 
+                    onClick={handleSynthesize}
+                    className="w-full py-3 bg-st-orange text-[#2b2b2b] font-bold rounded-lg shadow hover:bg-[#ffb045] transition-colors"
+                  >
+                    🧬 Synthesize Ultimate Meta-Build
+                  </button>
+                ) : (
+                  <div className="w-full p-2 border border-st-border rounded bg-st-bg">
+                    <div className="flex justify-between text-sm font-bold mb-1 text-st-orange">
+                      <span>{synthProgressMsg}</span>
+                      <span>{Math.floor(synthProgressPct)}%</span>
+                    </div>
+                    <div className="w-full bg-[#1e1e1e] rounded-full h-3 overflow-hidden border border-st-border">
+                      <div className="bg-st-orange h-3 transition-all duration-300" style={{ width: `${synthProgressPct}%` }}></div>
+                    </div>
                   </div>
-                  <div className="w-full bg-[#1e1e1e] rounded-full h-3 overflow-hidden border border-st-border">
-                    <div className="bg-st-orange h-3 transition-all duration-300" style={{ width: `${synthProgressPct}%` }}></div>
-                  </div>
-                </div>
-              )}
+                )}
+              </div>
               <button
                 onClick={deleteUnchecked}
                 className="flex-1 py-3 bg-[#2b2b2b] border border-red-900 text-red-400 font-bold rounded-lg hover:bg-red-900 hover:text-white transition-colors"
@@ -658,7 +660,7 @@ export default function SynthesisTab() {
             </div>
           </div>
 
-          <div>
+          <div data-tour="synth-table">
             <h4 className="text-lg font-bold mb-1">📋 Run History Table</h4>
             <div className="flex flex-col md:flex-row gap-4 items-center justify-between mb-4">
               <div className="text-sm text-st-text-light">
