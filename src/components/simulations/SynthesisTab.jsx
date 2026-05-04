@@ -833,19 +833,16 @@ export default function SynthesisTab() {
                 </button>
               </div>
               
-              <div className="relative w-full">
-                {/* 🎯 THE INVISIBLE ANCHOR: Bypasses AG-Grid's virtual DOM layout delays and scroll bugs */}
-                <div data-tour="synth-history-view" className="absolute top-[60px] right-[10%] w-10 h-10 pointer-events-none z-10"></div>
-                
-                <div 
-                  className={`border border-st-border rounded bg-st-bg h-[400px] w-full outline-none ${store.theme === 'dark' ? 'ag-theme-quartz-dark' : 'ag-theme-quartz'}`}
-                  tabIndex={-1}
-                  onMouseEnter={(e) => {
-                    if (!e.currentTarget.contains(document.activeElement)) {
-                      e.currentTarget.focus();
-                    }
-                  }}
-                >
+              <div 
+                data-tour="synth-history-view"
+                className={`border border-st-border rounded bg-st-bg h-[400px] w-full outline-none ${store.theme === 'dark' ? 'ag-theme-quartz-dark' : 'ag-theme-quartz'}`}
+                tabIndex={-1}
+                onMouseEnter={(e) => {
+                  if (!e.currentTarget.contains(document.activeElement)) {
+                    e.currentTarget.focus();
+                  }
+                }}
+              >
                 <AgGridReact
                   ref={synthGridRef}
                   theme="legacy"
@@ -866,7 +863,6 @@ export default function SynthesisTab() {
                   }}
                 />
               </div>
-            </div>
             </div>
           )}
         </>
