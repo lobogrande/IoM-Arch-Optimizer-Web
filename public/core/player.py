@@ -299,9 +299,8 @@ class Player:
         upg_mult = 1.0 + (0.03 * self.stat('Int')) + self.u('F29')
         card_mult = 1.0 + self.inf('rare3')
         
-        # GameMaker processes intermediate integer rounding between multiplicative stages
-        intermediate_ap = self._gm_int(base_ap * upg_mult, drift=1)
-        return self._gm_int(intermediate_ap * card_mult, drift=1)
+        val = base_ap * upg_mult * card_mult
+        return self._gm_int(val, drift=1)
 
     @property
     def atk_spd(self): return 1.0
