@@ -232,7 +232,11 @@ class Player:
                 'div1': (0.1, 4), 'div2': (0.0125, 4), 'div3': (1.0, 0), 'div4': (0.005, 4)
             }
             if block_id in bases:
-                return bases[block_id][0] * inf_mult
+                base_val, dec = bases[block_id]
+                val = base_val * inf_mult
+                if dec == 0:
+                    return float(round(val))
+                return val
         return 0.0
 
     # ==========================================================================
