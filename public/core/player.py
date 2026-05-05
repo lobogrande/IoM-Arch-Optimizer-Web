@@ -232,7 +232,11 @@ class Player:
                 'div1': (0.1, 4), 'div2': (0.0125, 4), 'div3': (1.0, 0), 'div4': (0.005, 4)
             }
             if block_id in bases:
-                return bases[block_id][0] * inf_mult
+                base_val, dec = bases[block_id]
+                val = base_val * inf_mult
+                if dec == 0:
+                    return float(round(val))
+                return val
         return 0.0
 
     # ==========================================================================
@@ -295,9 +299,8 @@ class Player:
         upg_mult = 1.0 + (0.03 * self.stat('Int')) + self.u('F29')
         card_mult = 1.0 + self.inf('rare3')
         
-        # GameMaker processes intermediate integer rounding between multiplicative stages
-        intermediate_ap = self._gm_int(base_ap * upg_mult, drift=1)
-        return self._gm_int(intermediate_ap * card_mult, drift=1)
+        val = base_ap * upg_mult * card_mult
+        return self._gm_int(val, drift=1)
 
     @property
     def atk_spd(self): return 1.0
@@ -380,7 +383,9 @@ class Player:
     @property
     def stamina_mod_chance(self): return self.u('H3') + self.u('H14') + self.u('F24') + self.u('F44') + self.u('H40') + self.u('H50') + (0.002 * self.stat('Luck')) + self.inf('myth3') + self.inf('div4')
     @property
-    def stamina_mod_gain(self): return self._gm_int((3.0 + self.u('F43') + self.u('H23')) * (1.0 + self.u('F55') + self.stat('Corr') * (0.01 + self.u('H52'))), drift=1) + self.inf('div3')
+    def stamina_mod_gain(self): 
+        val = (3.0 + self.u('F43') + self.u('H23')) * (1.0 + self.u('F55') + self.stat('Corr') * (0.01 + self.u('H52'))) + self.inf('div3')
+        return self._gm_int(val, drift=1)
 
     @property
     def gleaming_floor_chance(self): return (self.u('F19') + self.inf('myth1') + self.inf('div2')) if self.asc2_unlocked else 0.0

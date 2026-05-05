@@ -281,6 +281,17 @@ export default function SynthesisTab() {
           candidatesMap.set(bId, dist);
       });
 
+      const getBounds = (s) => {
+         const lock = lockedStats[s];
+         if (!lock) return [ 0, STAT_CAPS[s] ];
+         if (typeof lock === 'number') return [ lock, lock ];
+         if (lock.type === 'exact') return [ lock.val, lock.val ];
+         if (lock.type === 'min') return[ lock.val, STAT_CAPS[s] ];
+         if (lock.type === 'max') return [ 0, lock.val ];
+         if (lock.type === 'range') return[ lock.min, lock.max ];
+         return [ 0, STAT_CAPS[s] ];
+      };
+
       const avgDist = {};
       let sumAvg = 0;
       statKeys.forEach(s => {
@@ -290,25 +301,46 @@ export default function SynthesisTab() {
       });
       
       const expectedSum = targetBudget; // Enforce max historical budget of selected runs
-      const diff = expectedSum - sumAvg;
-      if (diff !== 0) {
-          let maxStat = statKeys[0];
-          statKeys.forEach(s => { if (avgDist[s] > avgDist[maxStat]) maxStat = s; });
-          avgDist[maxStat] += diff;
+      let diff = expectedSum - sumAvg;
+      
+      if (diff > 0) {
+          // Safe greedy top-up respecting strict caps and user locks
+          const unlockedStats = statKeys.filter(s => {
+              const bounds = getBounds(s);
+              return bounds[0] !== bounds[1]; // Skip exact-locked stats
+          }).sort((a, b) => avgDist[b] - avgDist[a]);
+
+          for (const s of unlockedStats) {
+              if (diff <= 0) break;
+              const maxAllowed = getBounds(s)[1];
+              const room = maxAllowed - avgDist[s];
+              if (room > 0) {
+                  const add = Math.min(room, diff);
+                  avgDist[s] += add;
+                  diff -= add;
+              }
+          }
+      } else if (diff < 0) {
+          // Safe greedy reduction respecting caps (in case rounding pushes us over budget)
+          const unlockedStats = statKeys.filter(s => {
+              const bounds = getBounds(s);
+              return bounds[0] !== bounds[1];
+          }).sort((a, b) => avgDist[b] - avgDist[a]);
+
+          for (const s of unlockedStats) {
+              if (diff >= 0) break;
+              const minAllowed = getBounds(s)[0];
+              const room = avgDist[s] - minAllowed;
+              if (room > 0) {
+                  const sub = Math.min(room, Math.abs(diff));
+                  avgDist[s] -= sub;
+                  diff += sub;
+              }
+          }
       }
+      
       const avgBId = JSON.stringify(avgDist);
       candidatesMap.set(avgBId, { ...avgDist });
-
-      const getBounds = (s) => {
-         const lock = lockedStats[s];
-         if (!lock) return [0, STAT_CAPS[s]];
-         if (typeof lock === 'number') return[lock, lock];
-         if (lock.type === 'exact') return [lock.val, lock.val];
-         if (lock.type === 'min') return [lock.val, STAT_CAPS[s]];
-         if (lock.type === 'max') return [0, lock.val];
-         if (lock.type === 'range') return [lock.min, lock.max];
-         return[0, STAT_CAPS[s]];
-      };
 
       // Only generate permutations around the freshly calculated center (avgDist).
       // The original builds were already aggressively micro-optimized in Phase 3 of the Optimizer.
