@@ -936,85 +936,138 @@ export default function ResultsDashboard({ context }) {
             </div>
           )}
 
-          {dataTab === 'wall' && (
-            <div data-tour="res-data-wall" className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <div className="w-full h-full border border-st-border rounded bg-st-bg p-4 flex flex-col">
-                <div className="mb-2">
-                  <h4 className="font-bold text-lg">📊 Simulation Outcome Distribution</h4>
-                  <p className="text-xs text-st-text-light">Histogram of floors reached across all simulated runs.</p>
-                </div>
-                <div className="w-full h-[300px]">
-                  <Plot
-                    data={[{
-                      x: Object.keys(store.opt_results.chart_hist),
-                      y: Object.values(store.opt_results.chart_hist),
-                      type: 'bar',
-                      marker: { color: '#ff4b4b' },
-                      text: Object.values(store.opt_results.chart_hist),
-                      textposition: 'outside'
-                    }]}
-                    layout={{
-                      font: { color: store.theme === 'dark' ? '#FAFAFA' : '#31333F' },
-                      paper_bgcolor: 'rgba(0,0,0,0)', plot_bgcolor: 'rgba(0,0,0,0)',
-                      margin: { t: 10, b: 50, l: 60, r: 20 },
-                      xaxis: { type: 'category', title: { text: 'Floor Reached', standoff: 15 }, color: chartFontColor, gridcolor: chartGridColor }, 
-                      yaxis: { title: { text: 'Number of Runs', standoff: 15 }, color: chartFontColor, gridcolor: chartGridColor }
-                    }}
-                    useResizeHandler={true} style={{ width: '100%', height: '100%' }} config={{ displayModeBar: false }}
-                  />
-                </div>
-              </div>
-              {(store.opt_results.final_summary_out.stamina_trace || store.opt_results.final_summary_out.stamina_trace_median) && (() => {
-                const out = store.opt_results.final_summary_out;
-                const traces = [ ];
-                
-                const medTrace = out.stamina_trace_median || out.stamina_trace;
-                if (medTrace) {
-                  traces.push({
-                    x: medTrace.floor,
-                    y: medTrace.stamina,
-                    name: 'Median Run',
-                    type: 'scatter', mode: 'lines', fill: 'tozeroy',
-                    line: { color: '#ffa229', width: 2 }, fillcolor: 'rgba(255, 162, 41, 0.2)'
-                  });
-                }
-                
-                if (out.stamina_trace_max && out.stamina_trace_max !== medTrace) {
-                  traces.push({
-                    x: out.stamina_trace_max.floor,
-                    y: out.stamina_trace_max.stamina,
-                    name: 'Peak Run',
-                    type: 'scatter', mode: 'lines',
-                    line: { color: '#4CAF50', width: 3 }
-                  });
-                }
+          {dataTab === 'wall' && (() => {
+            const histKeys = Object.keys(store.opt_results.chart_hist).map(Number);
+            const histValues = Object.values(store.opt_results.chart_hist);
+            const floors = finalSum.floors || [ ];
+            const tot = floors.length;
+            
+            const maxSta = (finalSum.avg_metrics && finalSum.avg_metrics.in_game_time) 
+              ? finalSum.avg_metrics.in_game_time 
+              : ((finalSum.stamina_trace && finalSum.stamina_trace.stamina && finalSum.stamina_trace.stamina.length > 0) 
+                ? finalSum.stamina_trace.stamina[0] 
+                : 0);
 
-                return (
-                  <div className="w-full h-full border border-st-border rounded bg-st-bg p-4 flex flex-col">
-                    <div className="mb-2">
-                      <h4 className="font-bold text-lg">📉 Stamina Depletion Traces</h4>
-                      <p className="text-xs text-st-text-light">Remaining stamina at each floor checkpoint.</p>
-                    </div>
-                    <div className="w-full h-[300px]">
-                      <Plot
-                        data={traces}
-                        layout={{
-                          font: { color: store.theme === 'dark' ? '#FAFAFA' : '#31333F' },
-                          paper_bgcolor: 'rgba(0,0,0,0)', plot_bgcolor: 'rgba(0,0,0,0)',
-                          margin: { t: 10, b: 70, l: 60, r: 20 },
-                          showlegend: traces.length > 1,
-                          legend: { orientation: 'h', y: -0.35, x: 0.5, xanchor: 'center' },
-                          xaxis: { title: { text: 'Floor Level', standoff: 15 }, color: chartFontColor, gridcolor: chartGridColor }, 
-                          yaxis: { title: { text: 'Stamina Remaining', standoff: 15 }, color: chartFontColor, gridcolor: chartGridColor }
-                        }}
-                        useResizeHandler={true} style={{ width: '100%', height: '100%' }} config={{ displayModeBar: false }}
-                      />
-                    </div>
+            const customHoverText = histKeys.map(floor => {
+              const count = floors.filter(f => f >= floor).length;
+              const prob = count / (tot || 1);
+              
+              let runs50 = Infinity, cost50 = Infinity;
+              let runs90 = Infinity, cost90 = Infinity;
+
+              if (prob >= 1) {
+                runs50 = 1; runs90 = 1;
+              } else if (prob > 0) {
+                runs50 = Math.ceil(Math.log(1 - 0.50) / Math.log(1 - prob));
+                runs90 = Math.ceil(Math.log(1 - 0.90) / Math.log(1 - prob));
+              }
+
+              if (runs50 !== Infinity) cost50 = (runs50 * maxSta) / 1000.0;
+              if (runs90 !== Infinity) cost90 = (runs90 * maxSta) / 1000.0;
+              
+              const probStr = (prob * 100).toFixed(1);
+              
+              let hoverHtml = `<b>Floor ${floor}</b><br>`;
+              hoverHtml += `Runs Ended Here: ${store.opt_results.chart_hist[floor]}<br>`;
+              hoverHtml += `Cumul. Probability (≥ ${floor}): ${probStr}%<br><br>`;
+              
+              if (prob > 0 && prob < 1) {
+                 hoverHtml += `<b>50% Chance (Coin Flip)</b><br>`;
+                 hoverHtml += `Runs: ${runs50} (~${cost50.toFixed(1)}k Secs)<br>`;
+                 hoverHtml += `<b>90% Chance (Safe)</b><br>`;
+                 hoverHtml += `Runs: ${runs90} (~${cost90.toFixed(1)}k Secs)`;
+              } else if (prob === 1) {
+                 hoverHtml += `Guaranteed (1 Run)`;
+              } else {
+                 hoverHtml += `Not Reached`;
+              }
+              
+              return hoverHtml;
+            });
+
+            return (
+              <div data-tour="res-data-wall" className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <div className="w-full h-full border border-st-border rounded bg-st-bg p-4 flex flex-col">
+                  <div className="mb-2">
+                    <h4 className="font-bold text-lg">📊 Simulation Outcome Distribution</h4>
+                    <p className="text-xs text-st-text-light">Histogram of floors reached. Hover over bars for dynamic push costs.</p>
                   </div>
-                );
-              })()}
-            </div>
-          )}
+                  <div className="w-full h-[300px]">
+                    <Plot
+                      data={[{
+                        x: histKeys,
+                        y: histValues,
+                        type: 'bar',
+                        marker: { color: '#ff4b4b' },
+                        text: histValues,
+                        textposition: 'outside',
+                        customdata: customHoverText,
+                        hovertemplate: '%{customdata}<extra></extra>'
+                      }]}
+                      layout={{
+                        font: { color: store.theme === 'dark' ? '#FAFAFA' : '#31333F' },
+                        paper_bgcolor: 'rgba(0,0,0,0)', plot_bgcolor: 'rgba(0,0,0,0)',
+                        margin: { t: 10, b: 50, l: 60, r: 20 },
+                        xaxis: { type: 'category', title: { text: 'Floor Reached', standoff: 15 }, color: chartFontColor, gridcolor: chartGridColor }, 
+                        yaxis: { title: { text: 'Number of Runs', standoff: 15 }, color: chartFontColor, gridcolor: chartGridColor },
+                        hoverlabel: { bgcolor: store.theme === 'dark' ? '#1e1e1e' : '#ffffff', font: { color: store.theme === 'dark' ? '#FAFAFA' : '#31333F' }, bordercolor: '#ffa229' }
+                      }}
+                      useResizeHandler={true} style={{ width: '100%', height: '100%' }} config={{ displayModeBar: false }}
+                    />
+                  </div>
+                </div>
+                {(store.opt_results.final_summary_out.stamina_trace || store.opt_results.final_summary_out.stamina_trace_median) && (() => {
+                  const out = store.opt_results.final_summary_out;
+                  const traces = [ ];
+                  
+                  const medTrace = out.stamina_trace_median || out.stamina_trace;
+                  if (medTrace) {
+                    traces.push({
+                      x: medTrace.floor,
+                      y: medTrace.stamina,
+                      name: 'Median Run',
+                      type: 'scatter', mode: 'lines', fill: 'tozeroy',
+                      line: { color: '#ffa229', width: 2 }, fillcolor: 'rgba(255, 162, 41, 0.2)'
+                    });
+                  }
+                  
+                  if (out.stamina_trace_max && out.stamina_trace_max !== medTrace) {
+                    traces.push({
+                      x: out.stamina_trace_max.floor,
+                      y: out.stamina_trace_max.stamina,
+                      name: 'Peak Run',
+                      type: 'scatter', mode: 'lines',
+                      line: { color: '#4CAF50', width: 3 }
+                    });
+                  }
+
+                  return (
+                    <div className="w-full h-full border border-st-border rounded bg-st-bg p-4 flex flex-col">
+                      <div className="mb-2">
+                        <h4 className="font-bold text-lg">📉 Stamina Depletion Traces</h4>
+                        <p className="text-xs text-st-text-light">Remaining stamina at each floor checkpoint.</p>
+                      </div>
+                      <div className="w-full h-[300px]">
+                        <Plot
+                          data={traces}
+                          layout={{
+                            font: { color: store.theme === 'dark' ? '#FAFAFA' : '#31333F' },
+                            paper_bgcolor: 'rgba(0,0,0,0)', plot_bgcolor: 'rgba(0,0,0,0)',
+                            margin: { t: 10, b: 70, l: 60, r: 20 },
+                            showlegend: traces.length > 1,
+                            legend: { orientation: 'h', y: -0.35, x: 0.5, xanchor: 'center' },
+                            xaxis: { title: { text: 'Floor Level', standoff: 15 }, color: chartFontColor, gridcolor: chartGridColor }, 
+                            yaxis: { title: { text: 'Stamina Remaining', standoff: 15 }, color: chartFontColor, gridcolor: chartGridColor }
+                          }}
+                          useResizeHandler={true} style={{ width: '100%', height: '100%' }} config={{ displayModeBar: false }}
+                        />
+                      </div>
+                    </div>
+                  );
+                })()}
+              </div>
+            );
+          })()}
         </div>
       )}
 
