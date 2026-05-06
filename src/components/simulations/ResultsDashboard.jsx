@@ -655,8 +655,8 @@ export default function ResultsDashboard({ context }) {
                                 <th className="py-2 pr-2">Probability</th>
                                 <th className="py-2 pr-2">Floor</th>
                                 <th className="py-2 pr-2">50% Chance <span className="text-xs font-normal">(Coin Flip)</span></th>
-                                <th className="py-2 pr-2">90% Chance <span className="text-xs font-normal">(Safe Budget)</span></th>
-                                <th className="py-2">99% Chance <span className="text-xs font-normal">(Guaranteed)</span></th>
+                                <th className="py-2 pr-2">90% Chance <span className="text-xs font-normal">(Highly Likely)</span></th>
+                                <th className="py-2">99% Chance <span className="text-xs font-normal">(Near Certain)</span></th>
                               </tr>
                             </thead>
                             <tbody>
@@ -984,12 +984,12 @@ export default function ResultsDashboard({ context }) {
                 if (prob > 0 && prob < 1) {
                    hoverHtml += `<b>50% Chance (Coin Flip)</b><br>`;
                    hoverHtml += `Runs: ${runs50} (~${cost50.toFixed(1)}k Secs)<br>`;
-                   hoverHtml += `<b>90% Chance (Safe)</b><br>`;
+                   hoverHtml += `<b>90% Chance (Highly Likely)</b><br>`;
                    hoverHtml += `Runs: ${runs90} (~${cost90.toFixed(1)}k Secs)<br>`;
-                   hoverHtml += `<b>99% Chance (Guaranteed)</b><br>`;
+                   hoverHtml += `<b>99% Chance (Near Certain)</b><br>`;
                    hoverHtml += `Runs: ${runs99} (~${cost99.toFixed(1)}k Secs)`;
                 } else if (prob === 1) {
-                   hoverHtml += `Guaranteed (1 Run)`;
+                   hoverHtml += `100% Expected (1 Run)`;
                 } else {
                    hoverHtml += `Not Reached`;
                 }
