@@ -615,18 +615,21 @@ export default function ResultsDashboard({ context }) {
                         
                         let runs50 = Infinity, cost50 = Infinity;
                         let runs90 = Infinity, cost90 = Infinity;
+                        let runs99 = Infinity, cost99 = Infinity;
 
                         if (prob >= 1) {
-                          runs50 = 1; runs90 = 1;
+                          runs50 = 1; runs90 = 1; runs99 = 1;
                         } else if (prob > 0) {
                           runs50 = Math.ceil(Math.log(1 - 0.50) / Math.log(1 - prob));
                           runs90 = Math.ceil(Math.log(1 - 0.90) / Math.log(1 - prob));
+                          runs99 = Math.ceil(Math.log(1 - 0.99) / Math.log(1 - prob));
                         }
 
                         if (runs50 !== Infinity) cost50 = (runs50 * maxSta) / 1000.0;
                         if (runs90 !== Infinity) cost90 = (runs90 * maxSta) / 1000.0;
+                        if (runs99 !== Infinity) cost99 = (runs99 * maxSta) / 1000.0;
                         
-                        return { floor: targetFloor, prob, runs50, cost50, runs90, cost90 };
+                        return { floor: targetFloor, prob, runs50, cost50, runs90, cost90, runs99, cost99 };
                       };
 
                       const tiers =[
@@ -652,7 +655,8 @@ export default function ResultsDashboard({ context }) {
                                 <th className="py-2 pr-2">Probability</th>
                                 <th className="py-2 pr-2">Floor</th>
                                 <th className="py-2 pr-2">50% Chance <span className="text-xs font-normal">(Coin Flip)</span></th>
-                                <th className="py-2">90% Chance <span className="text-xs font-normal">(Safe Budget)</span></th>
+                                <th className="py-2 pr-2">90% Chance <span className="text-xs font-normal">(Safe Budget)</span></th>
+                                <th className="py-2">99% Chance <span className="text-xs font-normal">(Guaranteed)</span></th>
                               </tr>
                             </thead>
                             <tbody>
@@ -663,8 +667,11 @@ export default function ResultsDashboard({ context }) {
                                   <td className="py-2 pr-2 text-st-text-light whitespace-nowrap">
                                     {t.data.runs50 === Infinity ? "N/A" : <>{t.data.runs50} run{t.data.runs50 !== 1 ? 's' : ''} <br className="md:hidden"/><span className="text-xs">(~{t.data.cost50.toFixed(1)}k Secs)</span></>}
                                   </td>
-                                  <td className="py-2 text-st-text-light whitespace-nowrap">
+                                  <td className="py-2 pr-2 text-st-text-light whitespace-nowrap">
                                     {t.data.runs90 === Infinity ? "N/A" : <>{t.data.runs90} run{t.data.runs90 !== 1 ? 's' : ''} <br className="md:hidden"/><span className="text-xs">(~{t.data.cost90.toFixed(1)}k Secs)</span></>}
+                                  </td>
+                                  <td className="py-2 text-st-text-light whitespace-nowrap">
+                                    {t.data.runs99 === Infinity ? "N/A" : <>{t.data.runs99} run{t.data.runs99 !== 1 ? 's' : ''} <br className="md:hidden"/><span className="text-xs">(~{t.data.cost99.toFixed(1)}k Secs)</span></>}
                                   </td>
                                 </tr>
                               ))}
@@ -949,41 +956,46 @@ export default function ResultsDashboard({ context }) {
                 : 0);
 
             const customHoverText = histKeys.map(floor => {
-              const count = floors.filter(f => f >= floor).length;
-              const prob = count / (tot || 1);
-              
-              let runs50 = Infinity, cost50 = Infinity;
-              let runs90 = Infinity, cost90 = Infinity;
+                const count = floors.filter(f => f >= floor).length;
+                const prob = count / (tot || 1);
+                
+                let runs50 = Infinity, cost50 = Infinity;
+                let runs90 = Infinity, cost90 = Infinity;
+                let runs99 = Infinity, cost99 = Infinity;
 
-              if (prob >= 1) {
-                runs50 = 1; runs90 = 1;
-              } else if (prob > 0) {
-                runs50 = Math.ceil(Math.log(1 - 0.50) / Math.log(1 - prob));
-                runs90 = Math.ceil(Math.log(1 - 0.90) / Math.log(1 - prob));
-              }
+                if (prob >= 1) {
+                  runs50 = 1; runs90 = 1; runs99 = 1;
+                } else if (prob > 0) {
+                  runs50 = Math.ceil(Math.log(1 - 0.50) / Math.log(1 - prob));
+                  runs90 = Math.ceil(Math.log(1 - 0.90) / Math.log(1 - prob));
+                  runs99 = Math.ceil(Math.log(1 - 0.99) / Math.log(1 - prob));
+                }
 
-              if (runs50 !== Infinity) cost50 = (runs50 * maxSta) / 1000.0;
-              if (runs90 !== Infinity) cost90 = (runs90 * maxSta) / 1000.0;
-              
-              const probStr = (prob * 100).toFixed(1);
-              
-              let hoverHtml = `<b>Floor ${floor}</b><br>`;
-              hoverHtml += `Runs Ended Here: ${store.opt_results.chart_hist[floor]}<br>`;
-              hoverHtml += `Cumul. Probability (≥ ${floor}): ${probStr}%<br><br>`;
-              
-              if (prob > 0 && prob < 1) {
-                 hoverHtml += `<b>50% Chance (Coin Flip)</b><br>`;
-                 hoverHtml += `Runs: ${runs50} (~${cost50.toFixed(1)}k Secs)<br>`;
-                 hoverHtml += `<b>90% Chance (Safe)</b><br>`;
-                 hoverHtml += `Runs: ${runs90} (~${cost90.toFixed(1)}k Secs)`;
-              } else if (prob === 1) {
-                 hoverHtml += `Guaranteed (1 Run)`;
-              } else {
-                 hoverHtml += `Not Reached`;
-              }
-              
-              return hoverHtml;
-            });
+                if (runs50 !== Infinity) cost50 = (runs50 * maxSta) / 1000.0;
+                if (runs90 !== Infinity) cost90 = (runs90 * maxSta) / 1000.0;
+                if (runs99 !== Infinity) cost99 = (runs99 * maxSta) / 1000.0;
+                
+                const probStr = (prob * 100).toFixed(1);
+                
+                let hoverHtml = `<b>Floor ${floor}</b><br>`;
+                hoverHtml += `Runs Ended Here: ${store.opt_results.chart_hist[floor]}<br>`;
+                hoverHtml += `Cumul. Probability (≥ ${floor}): ${probStr}%<br><br>`;
+                
+                if (prob > 0 && prob < 1) {
+                   hoverHtml += `<b>50% Chance (Coin Flip)</b><br>`;
+                   hoverHtml += `Runs: ${runs50} (~${cost50.toFixed(1)}k Secs)<br>`;
+                   hoverHtml += `<b>90% Chance (Safe)</b><br>`;
+                   hoverHtml += `Runs: ${runs90} (~${cost90.toFixed(1)}k Secs)<br>`;
+                   hoverHtml += `<b>99% Chance (Guaranteed)</b><br>`;
+                   hoverHtml += `Runs: ${runs99} (~${cost99.toFixed(1)}k Secs)`;
+                } else if (prob === 1) {
+                   hoverHtml += `Guaranteed (1 Run)`;
+                } else {
+                   hoverHtml += `Not Reached`;
+                }
+                
+                return hoverHtml;
+              });
 
             return (
               <div data-tour="res-data-wall" className="grid grid-cols-1 lg:grid-cols-2 gap-6">
