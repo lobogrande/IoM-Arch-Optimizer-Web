@@ -321,7 +321,7 @@ export default function TourGuide() {
       add('res-inner-perf-link', '[data-tour="res-inner-performance"]', 'Make sure you have the Performance tab selected to see your core metrics.', 'bottom', null, null, null, 'tab_data_perf');
 
       if (isFloorTarget) {
-        add('res-data-push', '[data-tour="res-data-push"]', 'Because pushing floors is highly RNG-dependent, this table shows the cumulative probability and required Arch Seconds to reach specific milestones safely.', 'top');
+        add('res-data-push', '[data-tour="res-data-push"]', 'Because pushing floors is highly RNG-dependent, this table shows the cumulative probability and required Arch Seconds to reach specific milestones with high likelihood.', 'top');
         add('res-inner-wall-link', '[data-tour="res-inner-wall"]', 'CLICK THIS TAB to view the Progression Wall.', 'bottom', null, null, null, 'tab_data_wall');
         add('res-data-wall', '[data-tour="res-data-wall"]', 'This histogram and stamina trace show you exactly where your build runs out of stamina.', 'top');
       } else {

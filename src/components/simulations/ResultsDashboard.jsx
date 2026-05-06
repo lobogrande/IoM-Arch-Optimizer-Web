@@ -898,9 +898,9 @@ export default function ResultsDashboard({ context }) {
                                 
                                 {valMins > 0 ? (
                                   <div className="space-y-3 text-sm">
-                                    <div><strong>50% (Lucky):</strong><br/>~{rt50.rt} | ~{rt50.arch.toFixed(1)}k Arch Secs</div>
-                                    <div><strong>90% (Safe):</strong><br/>~{rt90.rt} | ~{rt90.arch.toFixed(1)}k Arch Secs</div>
-                                    <div><strong>99% (Guaranteed):</strong><br/>~{rt99.rt} | ~{rt99.arch.toFixed(1)}k Arch Secs</div>
+                                    <div><strong>50% (Coin Flip):</strong><br/>~{rt50.rt} | ~{rt50.arch.toFixed(1)}k Arch Secs</div>
+                                    <div><strong>90% (Highly Likely):</strong><br/>~{rt90.rt} | ~{rt90.arch.toFixed(1)}k Arch Secs</div>
+                                    <div><strong>99% (Near Certain):</strong><br/>~{rt99.rt} | ~{rt99.arch.toFixed(1)}k Arch Secs</div>
                                   </div>
                                 ) : (
                                   <div className="text-st-text-light text-sm py-8">N/A (0 kills)</div>
