@@ -483,6 +483,7 @@ export default function PathfinderTab() {
               </details>
             ))}
           </div>
+        </div>
         </>
       )}
 
