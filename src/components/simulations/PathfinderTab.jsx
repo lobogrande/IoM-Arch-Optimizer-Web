@@ -227,7 +227,7 @@ export default function PathfinderTab() {
                           <div className="flex items-center gap-2 mb-2 ml-28 opacity-70">
                             <div className="h-full border-l border-dashed border-st-border"></div>
                             <div className="bg-st-secondary/20 px-2 py-0.5 rounded text-[10px] text-st-text-light border border-st-border flex items-center gap-1">
-                              <span>⏳ +{formatNum(group.time_delta)} AS</span>
+                              <span>⏳ +{formatNum(group.time_delta)} Arch Sec</span>
                               <span>•</span>
                               <span className={group.active_build === 'Push' ? 'text-purple-400' : 'text-green-400'}>
                                 Running {group.active_build} Build: {group.events[0].active_build_str}
@@ -239,7 +239,7 @@ export default function PathfinderTab() {
                         {/* BATCHED EVENT NODE */}
                         <div className="flex gap-4 items-start">
                           <div className="w-24 text-st-orange shrink-0 font-bold mt-0.5">
-                            {formatNum(group.arch_sec)} AS
+                            {formatNum(group.arch_sec)} Arch Sec
                           </div>
                           <div className="flex-1 space-y-3">
                             {group.events.map((node, evIdx) => (
@@ -262,7 +262,7 @@ export default function PathfinderTab() {
                                   
                                   {/* Farm Yields */}
                                   <div>
-                                    <strong className="text-green-400 border-b border-st-border pb-0.5 mb-1 block">Farm Yields (/1k AS)</strong>
+                                    <strong className="text-green-400 border-b border-st-border pb-0.5 mb-1 block">Farm Yields (/1k Arch Sec)</strong>
                                     XP: {formatNum(((finalEvent.yields.farm?.xp_per_min || 0) / 60) * 1000)}<br/>
                                     C: {(((finalEvent.yields.farm?.frag_1_per_min || 0) / 60) * 1000).toFixed(2)} | R: {(((finalEvent.yields.farm?.frag_2_per_min || 0) / 60) * 1000).toFixed(2)}<br/>
                                     E: {(((finalEvent.yields.farm?.frag_3_per_min || 0) / 60) * 1000).toFixed(2)}
@@ -270,7 +270,7 @@ export default function PathfinderTab() {
 
                                   {/* Push Yields */}
                                   <div>
-                                    <strong className="text-purple-400 border-b border-st-border pb-0.5 mb-1 block">Push Yields (/1k AS)</strong>
+                                    <strong className="text-purple-400 border-b border-st-border pb-0.5 mb-1 block">Push Yields (/1k Arch Sec)</strong>
                                     XP: {formatNum(((finalEvent.yields.push?.xp_per_min || 0) / 60) * 1000)}<br/>
                                     C: {(((finalEvent.yields.push?.frag_1_per_min || 0) / 60) * 1000).toFixed(2)} | R: {(((finalEvent.yields.push?.frag_2_per_min || 0) / 60) * 1000).toFixed(2)}<br/>
                                     E: {(((finalEvent.yields.push?.frag_3_per_min || 0) / 60) * 1000).toFixed(2)}
