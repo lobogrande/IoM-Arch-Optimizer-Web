@@ -198,74 +198,100 @@ export default function PathfinderTab() {
                   <span className="text-xs text-st-text-light">{nodes.length} Events</span>
                 </summary>
                 <div className="p-3 space-y-4 text-xs font-mono">
-                  {nodes.map((node, idx) => (
-                    <div key={idx} className="flex flex-col border-b border-st-border/50 pb-3 last:border-0 last:pb-0">
-                      
-                      {/* TIME GAP ANNOTATION */}
-                      {node.time_delta > 0 && (
-                        <div className="flex items-center gap-2 mb-2 ml-28 opacity-70">
-                          <div className="h-full border-l border-dashed border-st-border"></div>
-                          <div className="bg-st-secondary/20 px-2 py-0.5 rounded text-[10px] text-st-text-light border border-st-border flex items-center gap-1">
-                            <span>⏳ +{formatNum(node.time_delta)} AS</span>
-                            <span>•</span>
-                            <span className={node.active_build === 'Push' ? 'text-purple-400' : 'text-green-400'}>
-                              Running {node.active_build} Build
-                            </span>
+                  {nodes.reduce((acc, node) => {
+                    // Group events that occur at the exact same Arch Sec timestamp
+                    if (acc.length === 0 || acc[acc.length - 1].arch_sec !== node.arch_sec) {
+                      acc.push({
+                        arch_sec: node.arch_sec,
+                        time_delta: node.time_delta,
+                        active_build: node.active_build,
+                        events:[ node ]
+                      });
+                    } else {
+                      // Grab the time gap annotation if it was recorded on the first event in the batch
+                      if (node.time_delta > 0 && !acc[acc.length - 1].time_delta) {
+                        acc[acc.length - 1].time_delta = node.time_delta;
+                        acc[acc.length - 1].active_build = node.active_build;
+                      }
+                      acc[acc.length - 1].events.push(node);
+                    }
+                    return acc;
+                  },[ ]).map((group, idx) => {
+                    const finalEvent = group.events[group.events.length - 1];
+
+                    return (
+                      <div key={idx} className="flex flex-col border-b border-st-border/50 pb-3 last:border-0 last:pb-0">
+                        
+                        {/* TIME GAP ANNOTATION */}
+                        {group.time_delta > 0 && (
+                          <div className="flex items-center gap-2 mb-2 ml-28 opacity-70">
+                            <div className="h-full border-l border-dashed border-st-border"></div>
+                            <div className="bg-st-secondary/20 px-2 py-0.5 rounded text-[10px] text-st-text-light border border-st-border flex items-center gap-1">
+                              <span>⏳ +{formatNum(group.time_delta)} AS</span>
+                              <span>•</span>
+                              <span className={group.active_build === 'Push' ? 'text-purple-400' : 'text-green-400'}>
+                                Running {group.active_build} Build
+                              </span>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* BATCHED EVENT NODE */}
+                        <div className="flex gap-4 items-start">
+                          <div className="w-24 text-st-orange shrink-0 font-bold mt-0.5">
+                            {formatNum(group.arch_sec)} AS
+                          </div>
+                          <div className="flex-1 space-y-3">
+                            {group.events.map((node, evIdx) => (
+                              <div key={evIdx}>
+                                <strong className={`block ${node.type === 'level' ? 'text-green-400' : node.type === 'floor' ? 'text-purple-400' : 'text-st-text'}`}>
+                                  {node.event}
+                                </strong>
+                                <span className="text-st-text-light block mt-0.5">{node.desc}</span>
+                              </div>
+                            ))}
+                            
+                            {/* SIDE-BY-SIDE SNAPSHOT (Only show the final state after the batch resolves) */}
+                            {finalEvent.yields && finalEvent.frags && (
+                              <details className="mt-2 group/debug text-[10px] text-gray-500 bg-[#0E1117] p-2 rounded border border-st-border w-fit">
+                                <summary className="cursor-pointer hover:text-gray-300 w-max select-none font-bold">
+                                  🔍 Player State Snapshot (Post-Batch)
+                                </summary>
+                                
+                                <div className="pt-2 mt-1 grid grid-cols-1 md:grid-cols-3 gap-4 border-t border-st-border">
+                                  
+                                  {/* Farm Yields */}
+                                  <div>
+                                    <strong className="text-green-400 border-b border-st-border pb-0.5 mb-1 block">Farm Yields (/1k AS)</strong>
+                                    XP: {formatNum(((finalEvent.yields.farm?.xp_per_min || 0) / 60) * 1000)}<br/>
+                                    C: {(((finalEvent.yields.farm?.frag_1_per_min || 0) / 60) * 1000).toFixed(2)} | R: {(((finalEvent.yields.farm?.frag_2_per_min || 0) / 60) * 1000).toFixed(2)}<br/>
+                                    E: {(((finalEvent.yields.farm?.frag_3_per_min || 0) / 60) * 1000).toFixed(2)}
+                                  </div>
+
+                                  {/* Push Yields */}
+                                  <div>
+                                    <strong className="text-purple-400 border-b border-st-border pb-0.5 mb-1 block">Push Yields (/1k AS)</strong>
+                                    XP: {formatNum(((finalEvent.yields.push?.xp_per_min || 0) / 60) * 1000)}<br/>
+                                    C: {(((finalEvent.yields.push?.frag_1_per_min || 0) / 60) * 1000).toFixed(2)} | R: {(((finalEvent.yields.push?.frag_2_per_min || 0) / 60) * 1000).toFixed(2)}<br/>
+                                    E: {(((finalEvent.yields.push?.frag_3_per_min || 0) / 60) * 1000).toFixed(2)}
+                                  </div>
+
+                                  {/* Bank */}
+                                  <div>
+                                    <strong className="text-st-text-light border-b border-st-border pb-0.5 mb-1 block">Fragment Bank</strong>
+                                    C: {(finalEvent.frags?.com || 0).toFixed(1)} | R: {(finalEvent.frags?.rare || 0).toFixed(1)}<br/>
+                                    E: {(finalEvent.frags?.epic || 0).toFixed(1)} | L: {(finalEvent.frags?.leg || 0).toFixed(1)}<br/>
+                                    M: {(finalEvent.frags?.myth || 0).toFixed(1)} | D: {(finalEvent.frags?.div || 0).toFixed(1)}
+                                  </div>
+
+                                </div>
+                              </details>
+                            )}
                           </div>
                         </div>
-                      )}
-
-                      {/* EVENT NODE */}
-                      <div className="flex gap-4 items-start">
-                        <div className="w-24 text-st-orange shrink-0 font-bold mt-0.5">
-                          {formatNum(node.arch_sec)} AS
-                        </div>
-                        <div className="flex-1">
-                          <strong className={`block ${node.type === 'level' ? 'text-green-400' : node.type === 'floor' ? 'text-purple-400' : 'text-st-text'}`}>
-                            {node.event}
-                          </strong>
-                          <span className="text-st-text-light block mt-0.5">{node.desc}</span>
-                          
-                          {/* SIDE-BY-SIDE SNAPSHOT */}
-                          {node.yields && node.frags && (
-                            <details className="mt-2 group/debug text-[10px] text-gray-500 bg-[#0E1117] p-2 rounded border border-st-border w-fit">
-                              <summary className="cursor-pointer hover:text-gray-300 w-max select-none font-bold">
-                                🔍 Player State Snapshot (Post-Event)
-                              </summary>
-                              
-                              <div className="pt-2 mt-1 grid grid-cols-1 md:grid-cols-3 gap-4 border-t border-st-border">
-                                
-                                {/* Farm Yields */}
-                                <div>
-                                  <strong className="text-green-400 border-b border-st-border pb-0.5 mb-1 block">Farm Yields (/1k AS)</strong>
-                                  XP: {formatNum(((node.yields.farm?.xp_per_min || 0) / 60) * 1000)}<br/>
-                                  C: {(((node.yields.farm?.frag_1_per_min || 0) / 60) * 1000).toFixed(2)} | R: {(((node.yields.farm?.frag_2_per_min || 0) / 60) * 1000).toFixed(2)}<br/>
-                                  E: {(((node.yields.farm?.frag_3_per_min || 0) / 60) * 1000).toFixed(2)}
-                                </div>
-
-                                {/* Push Yields */}
-                                <div>
-                                  <strong className="text-purple-400 border-b border-st-border pb-0.5 mb-1 block">Push Yields (/1k AS)</strong>
-                                  XP: {formatNum(((node.yields.push?.xp_per_min || 0) / 60) * 1000)}<br/>
-                                  C: {(((node.yields.push?.frag_1_per_min || 0) / 60) * 1000).toFixed(2)} | R: {(((node.yields.push?.frag_2_per_min || 0) / 60) * 1000).toFixed(2)}<br/>
-                                  E: {(((node.yields.push?.frag_3_per_min || 0) / 60) * 1000).toFixed(2)}
-                                </div>
-
-                                {/* Bank */}
-                                <div>
-                                  <strong className="text-st-text-light border-b border-st-border pb-0.5 mb-1 block">Fragment Bank</strong>
-                                  C: {(node.frags?.com || 0).toFixed(1)} | R: {(node.frags?.rare || 0).toFixed(1)}<br/>
-                                  E: {(node.frags?.epic || 0).toFixed(1)} | L: {(node.frags?.leg || 0).toFixed(1)}<br/>
-                                  M: {(node.frags?.myth || 0).toFixed(1)} | D: {(node.frags?.div || 0).toFixed(1)}
-                                </div>
-
-                              </div>
-                            </details>
-                          )}
-                        </div>
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               </details>
             ))}
