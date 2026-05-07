@@ -12,8 +12,8 @@ export default function PathfinderTab() {
   const[simStatus, setSimStatus] = useState('');
   const [simProgress, setSimProgress] = useState(0);
   const [groupBy, setGroupBy] = useState('level'); // 'level' or 'floor'
-  const [targetLevelAdd, setTargetLevelAdd] = useState(30); // How many levels to simulate
-  const [startFrags, setStartFrags] = useState({ dirt: 0, com: 0, rare: 0, epic: 0, leg: 0, myth: 0, div: 0 });
+  const [targetLevel, setTargetLevel] = useState("30"); // Absolute target level
+  const [startFrags, setStartFrags] = useState({ com: 0, rare: 0, epic: 0, leg: 0, myth: 0, div: 0 });
 
   const handleFragChange = (key, val) => {
     setStartFrags(prev => ({ ...prev, [key]: parseFloat(val) || 0 }));
@@ -69,11 +69,15 @@ export default function PathfinderTab() {
 
       await pool.syncState(activeState);
 
-      const targetArch = activeState.arch_level + targetLevelAdd;
+      // Sanitize the user input: must be numeric, and strictly > current arch level
+      const parsedTarget = parseInt(targetLevel);
+      const targetArch = (!isNaN(parsedTarget) && parsedTarget > activeState.arch_level) 
+        ? parsedTarget 
+        : activeState.arch_level + 1; 
       
       // Pass the user's manual fragments if using current workspace, otherwise start at 0
       const initialFrags = startMode === 'template' 
-        ? { dirt: 0, com: 0, rare: 0, epic: 0, leg: 0, myth: 0, div: 0 } 
+        ? { com: 0, rare: 0, epic: 0, leg: 0, myth: 0, div: 0 } 
         : startFrags;
 
       const result = await runPathfinderSimulation(activeState, targetArch, initialFrags, pool, (prog) => {
@@ -132,14 +136,14 @@ export default function PathfinderTab() {
         </div>
 
         <div className="mb-6">
-          <label className="block text-sm font-bold text-st-text mb-2">Simulate Forward By (Arch Levels):</label>
+          <label className="block text-sm font-bold text-st-text mb-2">Target Arch Level (Stopping Point):</label>
           <input 
             type="number" 
-            min="1" 
-            max="150"
-            value={targetLevelAdd}
-            onChange={(e) => setTargetLevelAdd(parseInt(e.target.value) || 1)}
+            min="2"
+            value={targetLevel}
+            onChange={(e) => setTargetLevel(e.target.value)}
             className="w-full bg-[#0E1117] border border-st-border rounded p-2 text-st-text focus:border-st-orange outline-none"
+            placeholder="e.g. 50"
           />
         </div>
 
