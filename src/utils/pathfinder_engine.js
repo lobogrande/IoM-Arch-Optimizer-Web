@@ -39,7 +39,8 @@ const getAvailableStatKeys = (state) => {
 };
 
 // Tests +1 point in every stat concurrently, returning the one that maximizes the target metric
-async function incrementalOptimize(pool, state, targetMetric) {
+// Uses a Mini-Monte Carlo batch to wash out extreme RNG spikes
+async function incrementalOptimize(pool, state, targetMetric, samples = 3) {
     const stats = getAvailableStatKeys(state);
     let bestStat = 'Str';
     let bestVal = -1;
@@ -47,8 +48,23 @@ async function incrementalOptimize(pool, state, targetMetric) {
 
     const promises = stats.map(async (stat) => {
         const testStats = { ...state.base_stats, [stat]: (state.base_stats[stat] || 0) + 1 };
-        const yields = await pool.runTask(testStats, state.upgrade_levels, state.external_levels, state.cards);
-        return { stat, val: yields[targetMetric] || 0, yields };
+        
+        // Fire batch of runs to the parallel worker pool
+        const tasks = Array.from({ length: samples }, () => pool.runTask(testStats, state.upgrade_levels, state.external_levels, state.cards));
+        const batchResults = await Promise.all(tasks);
+        
+        let sum = 0;
+        let localBestYields = null;
+        
+        batchResults.forEach(res => {
+            sum += res[targetMetric] || 0;
+            // Keep the yields from the run that reached the absolute highest floor as our representative sample
+            if (!localBestYields || res.highest_floor > localBestYields.highest_floor) {
+                localBestYields = res;
+            }
+        });
+        
+        return { stat, val: sum / samples, yields: localBestYields };
     });
 
     const results = await Promise.all(promises);
@@ -63,17 +79,34 @@ async function incrementalOptimize(pool, state, targetMetric) {
 }
 
 // Tests if the specialized Push Build is mathematically capable of surviving 1 floor higher
-async function attemptFloorPush(pool, state) {
+// Runs a batch of 10 to detect low-probability brute-force victories
+async function attemptFloorPush(pool, state, samples = 10) {
     const nextFloor = state.current_max_floor + 1;
     const testState = { ...state, current_max_floor: nextFloor };
     
     // Briefly sync the engine to the new ceiling
     await pool.syncState(testState);
-    // CRITICAL: We pass state.push_stats here, simulating a temporary respec!
-    const yields = await pool.runTask(state.push_stats, testState.upgrade_levels, testState.external_levels, testState.cards);
     
-    if (yields.highest_floor >= nextFloor) {
-        return { success: true };
+    // Fire a wide net of parallel simulations using the Push Build
+    const tasks = Array.from({ length: samples }, () => pool.runTask(state.push_stats, testState.upgrade_levels, testState.external_levels, testState.cards));
+    const batchResults = await Promise.all(tasks);
+    
+    let successes = 0;
+    let totalTimeSec = 0;
+    
+    batchResults.forEach(res => {
+        totalTimeSec += res.total_time;
+        if (res.highest_floor >= nextFloor) successes++;
+    });
+
+    if (successes > 0) {
+        // Calculate probabilistic time penalty!
+        const winRate = successes / samples;
+        const expectedRuns = 1.0 / winRate;
+        const avgRunTimeMins = (totalTimeSec / samples) / 60.0;
+        const timePenaltyMins = expectedRuns * avgRunTimeMins;
+        
+        return { success: true, timePenaltyMins, winRate };
     } else {
         // Revert the engine back to current reality
         await pool.syncState(state); 
@@ -268,6 +301,9 @@ export async function runPathfinderSimulation(startState, pool, onProgress) {
             if (pushResult.success) {
                 state.current_max_floor++;
                 
+                // Add the expected time it took to probabilistically brute-force the run!
+                timeElapsedMins += pushResult.timePenaltyMins;
+                
                 // CRITICAL: We pushed the floor! Now we must re-sync the engine to this new ceiling
                 // and recalculate the FARMING yields, simulating the player respeccing back to farm!
                 await pool.syncState(state);
@@ -287,7 +323,10 @@ export async function runPathfinderSimulation(startState, pool, onProgress) {
                         return `${FRAG_NAMES_UI[type] || type} T${tier}`;
                     });
                 
-                let floorDesc = `Temporarily respecced to Push Build to breach ceiling!`;
+                const winRateStr = (pushResult.winRate * 100).toFixed(0);
+                const timeCostStr = pushResult.timePenaltyMins.toFixed(1);
+                
+                let floorDesc = `Brute-forced ceiling with ${winRateStr}% win rate. (Cost: ${timeCostStr} mins).`;
                 if (newUpgs.length > 0) floorDesc += ` Unlocks: ${newUpgs.join(', ')}.`;
                 if (newBlocks.length > 0) floorDesc += ` New Blocks: ${newBlocks.join(', ')}.`;
 
