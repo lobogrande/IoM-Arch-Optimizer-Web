@@ -44,10 +44,10 @@ export async function runPathfinderSimulation(startState, pool, onProgress) {
     
     let history = [ ];
     
-    // Safety limit for Phase 2 testing (Stop at Arch 30 or 100 events)
+    // Safety limit for Phase 2 testing (Stop at Arch 30 or 2000 events)
     const TARGET_LEVEL = 30;
     let eventCount = 0;
-    const MAX_EVENTS = 100;
+    const MAX_EVENTS = 2000;
 
     // Define the core Internal Upgrades to track for "Goal 2: Max Internal Upgrades"
     // Added 3, 4, 5 to track Gem Upgrades!
@@ -124,10 +124,27 @@ export async function runPathfinderSimulation(startState, pool, onProgress) {
         }
 
         // 3. JUMP: Fast-Forward to the nearest event
-        let t_step = Math.min(t_next_level, t_next_upgrade);
-        
-        // Failsafe for soft-locks (e.g. 0 yields)
-        if (t_step === Infinity || t_step <= 0) t_step = 1; 
+        let t_step = 0;
+        let eventType = null;
+
+        // Prioritize Upgrades if they trigger at the exact same moment as a Level Up
+        if (t_next_upgrade <= t_next_level && t_next_upgrade !== Infinity) {
+            t_step = t_next_upgrade;
+            eventType = 'upgrade';
+        } else if (t_next_level !== Infinity) {
+            t_step = t_next_level;
+            eventType = 'level';
+        } else {
+            // Failsafe for soft-locks (e.g. 0 yields)
+            history.push({
+                type: "system",
+                event: "Engine Stalled",
+                time_mins: timeElapsedMins,
+                level: state.arch_level,
+                desc: "Yields dropped to 0. Cannot progress time."
+            });
+            break;
+        }
 
         // Apply Time & Accrue Resources
         timeElapsedMins += t_step;
@@ -138,7 +155,7 @@ export async function runPathfinderSimulation(startState, pool, onProgress) {
         });
 
         // 4. RESOLVE EVENT
-        if (t_step === t_next_level) {
+        if (eventType === 'level') {
             state.arch_level++;
             currentExp = 0; // Reset exp
             unspentPoints++;
@@ -167,7 +184,7 @@ export async function runPathfinderSimulation(startState, pool, onProgress) {
                 yields: { ...yields }
             });
             
-        } else if (t_step === t_next_upgrade) {
+        } else if (eventType === 'upgrade') {
             // Buy Upgrade (Don't deduct if it's gems since we aren't tracking the gem bank perfectly yet)
             if (nextUpgradeCost.currency !== 'gems') {
                 frags[ nextUpgradeCost.currency ] -= nextUpgradeCost.amount;
