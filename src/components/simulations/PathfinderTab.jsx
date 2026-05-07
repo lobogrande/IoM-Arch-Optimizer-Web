@@ -1,12 +1,16 @@
 // src/components/simulations/PathfinderTab.jsx
 import React, { useState } from 'react';
 import useStore from '../../store';
+import { EngineWorkerPool } from '../../utils/optimizer';
+import { runPathfinderSimulation } from '../../utils/pathfinder_engine';
 
 export default function PathfinderTab() {
   const store = useStore();
-  const [startMode, setStartMode] =[ useState('template') ]; // 'template' or 'current'
+  const[startMode, setStartMode] =[ useState('template') ];
   const [isSimulating, setIsSimulating] =[ useState(false) ];
   const [pathData, setPathData] =[ useState(null) ];
+  const[simStatus, setSimStatus] =[ useState('') ];
+  const [simProgress, setSimProgress] =[ useState(0) ];
 
   // Hardcoded Ascension 2 Starting Template Baseline
   const asc2Template = {
@@ -22,16 +26,45 @@ export default function PathfinderTab() {
   const handleStartPathfinder = async () => {
     setIsSimulating(true);
     setPathData(null);
+    setSimProgress(0);
+    setSimStatus('Booting Engine...');
     
-    // We will build the Event Engine in Phase 2.
-    // For now, mock a 1-second delay to test the UI state.
-    setTimeout(() => {
-      setPathData({
-        message: "Engine hook pending...",
-        nodes: [ ]
+    try {
+      const pool = new EngineWorkerPool();
+      await pool.init();
+      
+      setSimStatus('Syncing Engine State...');
+      
+      // Force Asc2 Unlocked for the template start!
+      const activeState = startMode === 'template' ? { ...asc2Template, asc2_unlocked: true, asc1_unlocked: true } : {
+        asc1_unlocked: store.asc1_unlocked,
+        asc2_unlocked: store.asc2_unlocked,
+        arch_level: store.arch_level,
+        current_max_floor: store.current_max_floor,
+        arch_ability_infernal_bonus: parseFloat(store.arch_ability_infernal_bonus) / 100.0,
+        total_infernal_cards: store.total_infernal_cards,
+        base_stats: store.base_stats,
+        upgrade_levels: store.upgrade_levels,
+        external_levels: store.external_levels,
+        cards: store.cards
+      };
+
+      await pool.syncState(activeState);
+
+      const result = await runPathfinderSimulation(activeState, pool, (prog) => {
+        setSimProgress(prog.progress);
+        setSimStatus(prog.status);
       });
-      setIsSimulating(false);
-    }, 1000);
+
+      pool.terminate();
+      setPathData(result);
+      
+    } catch (err) {
+      console.error(err);
+      setSimStatus('Engine Error: ' + err.message);
+    }
+    
+    setIsSimulating(false);
   };
 
   return (
@@ -99,17 +132,36 @@ export default function PathfinderTab() {
         <button
           onClick={handleStartPathfinder}
           disabled={isSimulating}
-          className="w-full py-3 bg-st-orange text-st-bg rounded font-bold text-lg hover:bg-opacity-90 transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-md"
+          className="w-full py-3 bg-st-orange text-st-bg rounded font-bold text-lg hover:bg-opacity-90 transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-md flex flex-col items-center justify-center"
         >
-          {isSimulating ? 'Initializing Engine...' : 'Run Path Simulation'}
+          <span>{isSimulating ? simStatus : 'Run Path Simulation'}</span>
+          {isSimulating && (
+            <div className="w-1/2 bg-st-bg/20 rounded h-1.5 mt-2 overflow-hidden">
+              <div className="bg-white h-full transition-all duration-300" style={{ width: `${simProgress}%` }} />
+            </div>
+          )}
         </button>
       </div>
 
-      {/* RESULTS AREA (Stubbed) */}
+      {/* RESULTS AREA (Phase 2 Simple Log) */}
       {pathData && (
         <div className="bg-st-bg border border-st-border rounded p-4 shadow-sm animate-fade-in">
-          <h3 className="text-lg font-bold text-st-text mb-4">Trajectory Output</h3>
-          <div className="h-64 flex items-center justify-center border border-dashed border-st-border text-st-text-light">[ Phase 4: Non-linear Node Timeline & Plotly Yield Charts will render here ]
+          <h3 className="text-lg font-bold text-st-text mb-4 border-b border-st-border pb-2">Phase 2 Event Log</h3>
+          <div className="space-y-2 max-h-96 overflow-y-auto font-mono text-xs">
+            {pathData.history.map((node, idx) => (
+              <div key={idx} className="p-2 border border-st-border rounded bg-st-secondary/10 flex gap-4 items-center">
+                <div className="w-24 text-st-orange">
+                  Day {(node.time_mins / 1440).toFixed(1)}
+                </div>
+                <div className="w-24 text-gray-400">
+                  Lvl {node.level}
+                </div>
+                <div className="flex-1">
+                  <strong className="text-st-text block">{node.event}</strong>
+                  <span className="text-st-text-light">{node.desc}</span>
+                </div>
+              </div>
+            ))}
           </div>
         </div>
       )}
