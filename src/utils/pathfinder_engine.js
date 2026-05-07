@@ -161,21 +161,18 @@ async function runFastOptimizer(pool, state, targetMetric, budget, previousBuild
 
 // Tests if the specialized Push Build is mathematically capable of surviving 1 floor higher
 // Runs a batch of 50 to massively smooth out the RNG and accurately measure the Win Rate
-async function attemptFloorPush(pool, state, samples = 50) {
+async function attemptFloorPush(pool, state, maxTimePenaltySecs, samples = 50) {
     const nextFloor = state.current_max_floor + 1;
     const testState = { ...state, current_max_floor: nextFloor };
     
-    // Briefly sync the engine to the new ceiling
     await pool.syncState(testState);
     
-    // Fire a wide net of parallel simulations using the Push Build
     const tasks = Array.from({ length: samples }, () => pool.runTask(state.push_stats, testState.upgrade_levels, testState.external_levels, testState.cards));
     const batchResults = await Promise.all(tasks);
     
     let successes = 0;
     let totalTimeSec = 0;
     
-    // Track the true average yields of the Push Build during these attempts
     let pushYields = { xp_per_min: 0, frag_0_per_min: 0, frag_1_per_min: 0, frag_2_per_min: 0, frag_3_per_min: 0, frag_4_per_min: 0, frag_5_per_min: 0, frag_6_per_min: 0 };
     
     batchResults.forEach(res => {
@@ -183,24 +180,32 @@ async function attemptFloorPush(pool, state, samples = 50) {
         if (res.highest_floor >= nextFloor) successes++;
         
         pushYields.xp_per_min += res.xp_per_min || 0;
-        for (let i = 0; i <= 6; i++) {
-            pushYields[`frag_${i}_per_min`] += res[`frag_${i}_per_min`] || 0;
-        }
+        for (let i = 0; i <= 6; i++) pushYields[`frag_${i}_per_min`] += res[`frag_${i}_per_min`] || 0;
     });
 
-    // Average the yields across the samples
     Object.keys(pushYields).forEach(k => pushYields[k] /= samples);
 
     if (successes > 0) {
-        // Calculate probabilistic time penalty!
         const winRate = successes / samples;
+        
+        // REJECT 1: Minimum Reliability Guard. If Win Rate is < 5%, it's too volatile. Wait for stats!
+        if (winRate < 0.05) {
+            await pool.syncState(state); 
+            return { success: false };
+        }
+
         const expectedRuns = 1.0 / winRate;
-        const avgRunTimeSecs = (totalTimeSec / samples); // natively Arch Seconds
+        const avgRunTimeSecs = (totalTimeSec / samples); 
         const timePenaltySecs = expectedRuns * avgRunTimeSecs;
         
+        // REJECT 2: Temporal Paradox Guard. If the brute-force grind takes longer than just waiting for a Level Up, wait for the Level Up!
+        if (timePenaltySecs > maxTimePenaltySecs) {
+            await pool.syncState(state); 
+            return { success: false };
+        }
+
         return { success: true, timePenaltySecs, winRate, pushYields };
     } else {
-        // Revert the engine back to current reality
         await pool.syncState(state); 
         return { success: false };
     }
@@ -258,7 +263,7 @@ export async function runPathfinderSimulation(startState, targetLevel, initialFr
     
     // 2. Establish perfect Push Build (Against uncapped gradient!)
     const pushTestState = { ...state, current_max_floor: 200 };
-    const optPush = await runFastOptimizer(pool, pushTestState, 'highest_floor', expectedBudget, state.push_stats, 8);
+    const optPush = await runFastOptimizer(pool, pushTestState, 'highest_floor', expectedBudget, state.push_stats, 12); // Bumped validation samples to reliably catch 5-10% win rates
     state.push_stats = optPush.bestBuild;
     
     // 3. Generate baseline UI Push Yields against actual target floor
