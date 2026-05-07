@@ -1,6 +1,7 @@
 // src/utils/pathfinder_engine.js
 
 import { calculateUpgradeCost, UPGRADE_NAMES, UPGRADE_LEVEL_REQS, BLOCK_MIN_FLOORS } from '../game_data';
+import { generateDistributions } from './optimizer';
 
 // XP Math deduced from player telemetry
 export const getExpRequired = (level) => {
@@ -34,22 +35,52 @@ const FRAG_RATE_KEYS = {
  */
 const getAvailableStatKeys = (state) => {
     const keys =['Str', 'Agi', 'Per', 'Int', 'Luck'];
+    if (state.asc1_unlocked) keys.push('Div'); // CRITICAL FIX: Restored missing Divinity stat
     if (state.asc2_unlocked) keys.push('Corr');
     return keys;
 };
 
-// Tests +1 point in every stat concurrently, returning the one that maximizes the target metric
-// Uses a Mini-Monte Carlo batch to wash out extreme RNG spikes
-async function incrementalOptimize(pool, state, targetMetric, samples = 3) {
+// Formatter for logs
+const formatBuildStr = (build, state) => {
     const stats = getAvailableStatKeys(state);
-    let bestStat = 'Str';
-    let bestVal = -1;
-    let bestYields = null;
+    return `[${stats.map(s => build[s] || 0).join('/')}]`;
+};
 
-    const promises = stats.map(async (stat) => {
-        const testStats = { ...state.base_stats, [stat]: (state.base_stats[stat] || 0) + 1 };
-        
-        // Fire batch of runs to the parallel worker pool
+// Tests a dynamic coarse grid of full redistributions + immediate neighbors to jump over breakpoints!
+async function smartRespec(pool, state, targetMetric, currentBuild, addedPoints = 1, samples = 2) {
+    const stats = getAvailableStatKeys(state);
+    const budget = stats.reduce((sum, s) => sum + (currentBuild[s] || 0), 0) + addedPoints;
+
+    // 1. Generate Neighbors (Incremental +1) to ensure we never regress
+    const candidates = [ ];
+    stats.forEach(s => {
+        candidates.push({ ...currentBuild, [s]: (currentBuild[s] || 0) + addedPoints });
+    });
+
+    // 2. Coarse Grid Search (Generates ~50-100 full redistributions to find massive breakpoint leaps)
+    let step = Math.max(1, Math.ceil(budget / 3));
+    let grid = generateDistributions(stats, budget, step, null);
+    
+    // Safety valve: prevent lag spikes late game by expanding the step size
+    while (grid.length > 100 && step < budget) {
+        step++;
+        grid = generateDistributions(stats, budget, step, null);
+    }
+    candidates.push(...grid);
+
+    // 3. Deduplicate
+    const uniqueKeys = new Set();
+    const finalCandidates = [ ];
+    for (const c of candidates) {
+        const key = stats.map(s => c[s] || 0).join(',');
+        if (!uniqueKeys.has(key)) {
+            uniqueKeys.add(key);
+            finalCandidates.push(c);
+        }
+    }
+
+    // 4. Evaluate (Mini-Monte Carlo to smooth RNG)
+    const promises = finalCandidates.map(async (testStats) => {
         const tasks = Array.from({ length: samples }, () => pool.runTask(testStats, state.upgrade_levels, state.external_levels, state.cards));
         const batchResults = await Promise.all(tasks);
         
@@ -58,24 +89,29 @@ async function incrementalOptimize(pool, state, targetMetric, samples = 3) {
         
         batchResults.forEach(res => {
             sum += res[targetMetric] || 0;
-            // Keep the yields from the run that reached the absolute highest floor as our representative sample
             if (!localBestYields || res.highest_floor > localBestYields.highest_floor) {
                 localBestYields = res;
             }
         });
         
-        return { stat, val: sum / samples, yields: localBestYields };
+        return { build: testStats, val: sum / samples, yields: localBestYields };
     });
 
     const results = await Promise.all(promises);
+    
+    let bestBuild = currentBuild;
+    let bestVal = -1;
+    let bestYields = null;
+
     for (const res of results) {
         if (res.val > bestVal) {
             bestVal = res.val;
-            bestStat = res.stat;
+            bestBuild = res.build;
             bestYields = res.yields;
         }
     }
-    return { bestStat, bestYields };
+    
+    return { bestBuild, bestYields };
 }
 
 // Tests if the specialized Push Build is mathematically capable of surviving 1 floor higher
@@ -249,16 +285,22 @@ export async function runPathfinderSimulation(startState, pool, onProgress) {
         if (eventType === 'level') {
             state.arch_level++;
             currentExp = 0; // Reset exp
+            unspentPoints++; // Track points to distribute
             
-            // PHASE 3.5: Dual-Track Micro-Optimizer!
-            // 1. Test where the new point goes for the Farming Build (xp_per_min)
-            const optFarm = await incrementalOptimize(pool, { ...state, base_stats: state.base_stats }, 'xp_per_min');
-            state.base_stats = { ...state.base_stats, [optFarm.bestStat]: (state.base_stats[optFarm.bestStat] || 0) + 1 };
+            // PHASE 3.5: Dual-Track Smart Redistribution!
+            // 1. Farm Build (Maximizes xp_per_min)
+            const optFarm = await smartRespec(pool, state, 'xp_per_min', state.base_stats, unspentPoints);
+            state.base_stats = optFarm.bestBuild;
             postEventYields = optFarm.bestYields;
 
-            // 2. Test where the new point goes for the Push Build (highest_floor)
-            const optPush = await incrementalOptimize(pool, { ...state, base_stats: state.push_stats }, 'highest_floor');
-            state.push_stats = { ...state.push_stats, [optPush.bestStat]: (state.push_stats[optPush.bestStat] || 0) + 1 };
+            // 2. Push Build (Maximizes highest_floor)
+            const optPush = await smartRespec(pool, state, 'highest_floor', state.push_stats, unspentPoints);
+            state.push_stats = optPush.bestBuild;
+
+            unspentPoints = 0; // Points have been consumed
+
+            const farmStr = formatBuildStr(state.base_stats, state);
+            const pushStr = formatBuildStr(state.push_stats, state);
 
             history.push({
                 type: "level",
@@ -266,7 +308,7 @@ export async function runPathfinderSimulation(startState, pool, onProgress) {
                 arch_sec: cumulativeArchSecs,
                 level: state.arch_level,
                 floor: state.current_max_floor,
-                desc: `Farm Build placed point in ${optFarm.bestStat}. Push Build placed point in ${optPush.bestStat}.`,
+                desc: `Farm: ${farmStr} | Push: ${pushStr}`,
                 yields: { ...postEventYields },
                 frags: { ...frags }
             });
