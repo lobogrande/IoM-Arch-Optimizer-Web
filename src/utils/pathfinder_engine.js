@@ -103,10 +103,10 @@ async function attemptFloorPush(pool, state, samples = 10) {
         // Calculate probabilistic time penalty!
         const winRate = successes / samples;
         const expectedRuns = 1.0 / winRate;
-        const avgRunTimeMins = (totalTimeSec / samples) / 60.0;
-        const timePenaltyMins = expectedRuns * avgRunTimeMins;
+        const avgRunTimeSecs = (totalTimeSec / samples); // totalTimeSec is natively Arch Seconds from the engine
+        const timePenaltySecs = expectedRuns * avgRunTimeSecs;
         
-        return { success: true, timePenaltyMins, winRate };
+        return { success: true, timePenaltySecs, winRate };
     } else {
         // Revert the engine back to current reality
         await pool.syncState(state); 
@@ -120,7 +120,7 @@ export async function runPathfinderSimulation(startState, pool, onProgress) {
         ...startState, 
         push_stats: { ...startState.base_stats } 
     };
-    let timeElapsedMins = 0;
+    let cumulativeArchSecs = 0;
     let currentExp = 0;
     let unspentPoints = 0;
     
@@ -141,7 +141,7 @@ export async function runPathfinderSimulation(startState, pool, onProgress) {
     history.push({
         type: "system",
         event: "Simulation Started",
-        time_mins: 0,
+        arch_sec: cumulativeArchSecs,
         level: state.arch_level,
         floor: state.current_max_floor,
         desc: "Beginning Asc2 Journey"
@@ -234,7 +234,7 @@ export async function runPathfinderSimulation(startState, pool, onProgress) {
         }
 
         // Apply Time & Accrue Resources
-        timeElapsedMins += t_step;
+        cumulativeArchSecs += t_step * 60; // Convert minutes to Arch Seconds
         currentExp += yields.xp_per_min * t_step;
         Object.keys(frags).forEach(k => {
             const rKey = FRAG_RATE_KEYS[ k ];
@@ -261,7 +261,7 @@ export async function runPathfinderSimulation(startState, pool, onProgress) {
             history.push({
                 type: "level",
                 event: `🎉 Level Up: Arch ${state.arch_level}`,
-                time_mins: timeElapsedMins,
+                arch_sec: cumulativeArchSecs,
                 level: state.arch_level,
                 floor: state.current_max_floor,
                 desc: `Farm Build placed point in ${optFarm.bestStat}. Push Build placed point in ${optPush.bestStat}.`,
@@ -286,7 +286,7 @@ export async function runPathfinderSimulation(startState, pool, onProgress) {
             history.push({
                 type: "upgrade",
                 event: `🛒 Bought ${upgName} (Lvl ${newLvl})`,
-                time_mins: timeElapsedMins,
+                arch_sec: cumulativeArchSecs,
                 level: state.arch_level,
                 floor: state.current_max_floor,
                 desc: `Cost: ${nextUpgradeCost.amount} ${fragUI}`,
@@ -302,7 +302,7 @@ export async function runPathfinderSimulation(startState, pool, onProgress) {
                 state.current_max_floor++;
                 
                 // Add the expected time it took to probabilistically brute-force the run!
-                timeElapsedMins += pushResult.timePenaltyMins;
+                cumulativeArchSecs += pushResult.timePenaltySecs;
                 
                 // CRITICAL: We pushed the floor! Now we must re-sync the engine to this new ceiling
                 // and recalculate the FARMING yields, simulating the player respeccing back to farm!
@@ -324,16 +324,21 @@ export async function runPathfinderSimulation(startState, pool, onProgress) {
                     });
                 
                 const winRateStr = (pushResult.winRate * 100).toFixed(0);
-                const timeCostStr = pushResult.timePenaltyMins.toFixed(1);
                 
-                let floorDesc = `Brute-forced ceiling with ${winRateStr}% win rate. (Cost: ${timeCostStr} mins).`;
+                // Format the Arch Seconds penalty cleanly for the description
+                let timeCostStr = "";
+                if (pushResult.timePenaltySecs >= 1000000) timeCostStr = (pushResult.timePenaltySecs / 1000000).toFixed(2) + "m";
+                else if (pushResult.timePenaltySecs >= 1000) timeCostStr = (pushResult.timePenaltySecs / 1000).toFixed(1) + "k";
+                else timeCostStr = Math.floor(pushResult.timePenaltySecs).toString();
+                
+                let floorDesc = `Brute-forced ceiling with ${winRateStr}% win rate. (Cost: ${timeCostStr} AS).`;
                 if (newUpgs.length > 0) floorDesc += ` Unlocks: ${newUpgs.join(', ')}.`;
                 if (newBlocks.length > 0) floorDesc += ` New Blocks: ${newBlocks.join(', ')}.`;
 
                 history.push({
                     type: "floor",
                     event: `🚀 Max Floor Pushed to ${state.current_max_floor}`,
-                    time_mins: timeElapsedMins,
+                    arch_sec: cumulativeArchSecs,
                     level: state.arch_level,
                     floor: state.current_max_floor,
                     desc: floorDesc,
@@ -348,7 +353,7 @@ export async function runPathfinderSimulation(startState, pool, onProgress) {
         if (onProgress) {
             onProgress({
                 progress: (state.arch_level / TARGET_LEVEL) * 100,
-                status: `Simulating... (Level ${state.arch_level}, Day ${(timeElapsedMins / 1440).toFixed(1)})`
+                status: `Simulating... (Level ${state.arch_level})`
             });
         }
     }
@@ -356,7 +361,7 @@ export async function runPathfinderSimulation(startState, pool, onProgress) {
     history.push({
         type: "system",
         event: "Simulation Complete",
-        time_mins: timeElapsedMins,
+        arch_sec: cumulativeArchSecs,
         level: state.arch_level,
         floor: state.current_max_floor,
         desc: "Reached testing limits."
