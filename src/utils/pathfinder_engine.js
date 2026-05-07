@@ -533,7 +533,12 @@ export async function runPathfinderSimulation(startState, targetLevel, initialFr
 
         if (!hasInstantUpgrade) {
             while (true) {
-                const pushResult = await attemptFloorPush(pool, state);
+                // Calculate the Temporal Paradox Guard limit (How many seconds until next level?)
+                const expNeeded = getExpRequired(state.arch_level) - currentExp;
+                const currentXpRate = currentFarmYields?.xp_per_min || 1;
+                const timeToNextLevelSecs = (expNeeded / currentXpRate) * 60;
+
+                const pushResult = await attemptFloorPush(pool, state, timeToNextLevelSecs, 50);
                 if (pushResult.success) {
                     state.current_max_floor++;
                     
