@@ -1,8 +1,9 @@
 // src/components/simulations/PathfinderTab.jsx
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import useStore from '../../store';
 import { EngineWorkerPool } from '../../utils/optimizer';
 import { runPathfinderSimulation } from '../../utils/pathfinder_engine';
+import Plot from 'react-plotly.js';
 
 export default function PathfinderTab() {
   const store = useStore();
@@ -29,6 +30,40 @@ export default function PathfinderTab() {
   };
 
   // Hardcoded Ascension 2 Starting Template Baseline
+  const[shiftFloor, setShiftFloor] = useState("100");
+
+  const getFarmCorr = (desc) => {
+    if (!desc) return null;
+    const match = desc.match(/Farm:\s*\[(.*?)]/);
+    if (match) {
+      const parts = match[1].split('/');
+      if (parts.length >= 7) return parseInt(parts[ 6 ]);
+    }
+    return null;
+  };
+
+  const chartData = useMemo(() => {
+    if (!pathData) return null;
+    const xVals =[ ];
+    const xpVals =[ ];
+    const divVals =[ ];
+    const corrVals =[ ];
+
+    let lastCorr = 0;
+
+    pathData.history.forEach(ev => {
+      xVals.push(ev.arch_sec);
+      xpVals.push((ev.yields?.farm?.xp_per_min || 0));
+      divVals.push(ev.yields?.farm?.frag_6_per_min || 0);
+      
+      const parsedCorr = getFarmCorr(ev.desc);
+      if (parsedCorr !== null) lastCorr = parsedCorr;
+      corrVals.push(lastCorr);
+    });
+
+    return { xVals, xpVals, divVals, corrVals };
+  },[pathData]);
+
   const asc2Template = {
     arch_level: 1,
     current_max_floor: 1,
@@ -80,7 +115,8 @@ export default function PathfinderTab() {
         ? { com: 0, rare: 0, epic: 0, leg: 0, myth: 0, div: 0 } 
         : startFrags;
 
-      const result = await runPathfinderSimulation(activeState, targetArch, initialFrags, pool, (prog) => {
+      const parsedShift = parseInt(shiftFloor) || 100;
+      const result = await runPathfinderSimulation(activeState, targetArch, initialFrags, pool, parsedShift, (prog) => {
         setSimProgress(prog.progress);
         setSimStatus(prog.status);
       });
@@ -135,16 +171,30 @@ export default function PathfinderTab() {
           </button>
         </div>
 
-        <div className="mb-6">
-          <label className="block text-sm font-bold text-st-text mb-2">Target Arch Level (Stopping Point):</label>
-          <input 
-            type="number" 
-            min="2"
-            value={targetLevel}
-            onChange={(e) => setTargetLevel(e.target.value)}
-            className="w-full bg-[#0E1117] border border-st-border rounded p-2 text-st-text focus:border-st-orange outline-none"
-            placeholder="e.g. 50"
-          />
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+          <div>
+            <label className="block text-sm font-bold text-st-text mb-2">Target Arch Level (Stopping Point):</label>
+            <input 
+              type="number" 
+              min="2"
+              value={targetLevel}
+              onChange={(e) => setTargetLevel(e.target.value)}
+              className="w-full bg-[#0E1117] border border-st-border rounded p-2 text-st-text focus:border-st-orange outline-none"
+              placeholder="e.g. 50"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-bold text-st-text mb-2">Strategic Shift (Target Floor):</label>
+            <input 
+              type="number" 
+              min="1"
+              value={shiftFloor}
+              onChange={(e) => setShiftFloor(e.target.value)}
+              className="w-full bg-[#0E1117] border border-st-border rounded p-2 text-st-text focus:border-st-orange outline-none"
+              placeholder="e.g. 100"
+            />
+            <span className="text-[10px] text-st-text-light block mt-1">Shifts Farm Build priority to Divine Frags.</span>
+          </div>
         </div>
 
         <div className="bg-[#0E1117] p-3 rounded border border-st-border text-xs font-mono text-st-text-light mb-6">
@@ -208,52 +258,111 @@ export default function PathfinderTab() {
         </button>
       </div>
 
-      {/* RESULTS AREA (Phase 2 Grouped Log) */}
+      {/* VISUALIZATIONS & RESULTS AREA */}
       {pathData && (
-        <div className="bg-st-bg border border-st-border rounded p-4 shadow-sm animate-fade-in">
-          <div className="flex justify-between items-center mb-4 border-b border-st-border pb-2">
-            <h3 className="text-lg font-bold text-st-text">Phase 2 Event Log</h3>
-            <div className="flex bg-st-secondary/50 rounded border border-st-border text-xs font-bold overflow-hidden">
-              <button 
-                onClick={() => setGroupBy('level')}
-                className={`px-3 py-1.5 transition-colors ${groupBy === 'level' ? 'bg-st-orange text-st-bg' : 'text-st-text hover:bg-st-secondary'}`}
-              >
-                Group by Arch Level
-              </button>
-              <button 
-                onClick={() => setGroupBy('floor')}
-                className={`px-3 py-1.5 transition-colors border-l border-st-border ${groupBy === 'floor' ? 'bg-st-orange text-st-bg' : 'text-st-text hover:bg-st-secondary'}`}
-              >
-                Group by Max Floor
-              </button>
+        <>
+          <div className="bg-[#0E1117] border border-st-border rounded p-4 shadow-sm animate-fade-in mb-6">
+            <h3 className="text-lg font-bold text-st-text mb-4 border-b border-st-border pb-2">Strategic Crossover Analysis</h3>
+            <div className="h-[400px] w-full">
+              <Plot
+                data={[
+                  {
+                    x: chartData.xVals,
+                    y: chartData.xpVals,
+                    type: 'scatter',
+                    mode: 'lines',
+                    name: 'XP / Min',
+                    line: { color: '#4ade80', shape: 'hv', width: 2 },
+                    yaxis: 'y'
+                  },
+                  {
+                    x: chartData.xVals,
+                    y: chartData.divVals,
+                    type: 'scatter',
+                    mode: 'lines',
+                    name: 'Divine Frags / Min',
+                    line: { color: '#facc15', shape: 'hv', width: 2 },
+                    yaxis: 'y2'
+                  },
+                  {
+                    x: chartData.xVals,
+                    y: chartData.corrVals,
+                    type: 'scatter',
+                    mode: 'lines',
+                    name: 'Corruption (Farm)',
+                    line: { color: '#a855f7', dash: 'dot', shape: 'hv', width: 2 },
+                    yaxis: 'y3'
+                  }
+                ]}
+                layout={{
+                  paper_bgcolor: 'transparent',
+                  plot_bgcolor: 'transparent',
+                  font: { color: '#FAFAFA' },
+                  margin: { l: 50, r: 50, t: 10, b: 40 },
+                  xaxis: { title: 'Timeline (Arch Seconds)', gridcolor: '#333' },
+                  yaxis: { title: 'XP/Min', titlefont: { color: '#4ade80' }, tickfont: { color: '#4ade80' }, gridcolor: '#333' },
+                  yaxis2: { title: 'Div Frags/Min', titlefont: { color: '#facc15' }, tickfont: { color: '#facc15' }, overlaying: 'y', side: 'right', showgrid: false },
+                  yaxis3: { title: 'Corruption Points', titlefont: { color: '#a855f7' }, tickfont: { color: '#a855f7' }, overlaying: 'y', side: 'left', position: 0.1, showgrid: false, dtick: 2 },
+                  legend: { orientation: 'h', y: -0.2, x: 0.5, xanchor: 'center' },
+                  autosize: true
+                }}
+                useResizeHandler={true}
+                style={{ width: '100%', height: '100%' }}
+              />
             </div>
+            <p className="text-xs text-st-text-light mt-2 italic text-center">
+              Watch for the "Corruption Crossover" — where an increase in Corruption (purple) momentarily tanks Exp/Min before scaling higher due to synergistic multipliers.
+            </p>
           </div>
-          
-          <div className="space-y-3 max-h-[600px] overflow-y-auto pr-2">
-            {Object.entries(
-              pathData.history.reduce((acc, node) => {
-                const key = groupBy === 'level' ? node.level : node.floor;
-                if (!acc[ key ]) acc[ key ] =[ ];
-                acc[ key ].push(node);
-                return acc;
-              }, { })
-            ).map(([ groupKey, nodes ]) => (
-              <details 
-                key={groupKey} 
-                className="bg-st-secondary/10 border border-st-border rounded overflow-hidden" 
-                open={groupKey === "1" || groupKey === "30"}
-              >
-                <summary className="p-3 bg-st-secondary/20 font-bold cursor-pointer hover:bg-st-secondary/30 transition-colors flex justify-between items-center text-sm text-st-text outline-none select-none group">
-                  <div className="flex items-center gap-2">
-                    <svg className="w-4 h-4 text-st-text-light transform transition-transform group-open:rotate-90" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                    </svg>
-                    <span>{groupBy === 'level' ? 'Arch Level' : 'Max Floor'} {groupKey} Progression</span>
-                  </div>
-                  <span className="text-xs text-st-text-light">{nodes.length} Events</span>
-                </summary>
-                <div className="p-3 space-y-4 text-xs font-mono">
-                  {nodes.reduce((acc, node) => {
+
+          <div className="bg-st-bg border border-st-border rounded p-4 shadow-sm animate-fade-in">
+            <div className="flex justify-between items-center mb-4 border-b border-st-border pb-2">
+              <h3 className="text-lg font-bold text-st-text">Node-Graph Timeline</h3>
+              <div className="flex bg-st-secondary/50 rounded border border-st-border text-xs font-bold overflow-hidden">
+                <button 
+                  onClick={() => setGroupBy('level')}
+                  className={`px-3 py-1.5 transition-colors ${groupBy === 'level' ? 'bg-st-orange text-st-bg' : 'text-st-text hover:bg-st-secondary'}`}
+                >
+                  Group by Arch Level
+                </button>
+                <button 
+                  onClick={() => setGroupBy('floor')}
+                  className={`px-3 py-1.5 transition-colors border-l border-st-border ${groupBy === 'floor' ? 'bg-st-orange text-st-bg' : 'text-st-text hover:bg-st-secondary'}`}
+                >
+                  Group by Max Floor
+                </button>
+              </div>
+            </div>
+            
+            <div className="max-h-[600px] overflow-y-auto pr-2 pl-2">
+              {Object.entries(
+                pathData.history.reduce((acc, node) => {
+                  const key = groupBy === 'level' ? node.level : node.floor;
+                  if (!acc[ key ]) acc[ key ] =[ ];
+                  acc[ key ].push(node);
+                  return acc;
+                }, { })
+              ).map(([ groupKey, nodes ]) => (
+                <details 
+                  key={groupKey} 
+                  className="bg-[#0E1117] border border-st-border rounded mb-3 overflow-hidden shadow-sm" 
+                  open={groupKey === "1" || groupKey === "30" || groupKey === "2"}
+                >
+                  <summary className="p-3 bg-st-secondary/20 font-bold cursor-pointer hover:bg-st-secondary/40 transition-colors flex justify-between items-center text-sm text-st-text outline-none select-none group sticky top-0 z-10 backdrop-blur-md">
+                    <div className="flex items-center gap-2">
+                      <svg className="w-4 h-4 text-st-text-light transform transition-transform group-open:rotate-90" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                      </svg>
+                      <span className="text-st-orange">{groupBy === 'level' ? 'Arch Level' : 'Max Floor'} {groupKey} Progression</span>
+                    </div>
+                    <span className="text-xs bg-st-bg px-2 py-1 rounded-full border border-st-border text-st-text-light">{nodes.length} Events</span>
+                  </summary>
+                  
+                  <div className="p-4 text-xs font-mono relative">
+                    {/* The Timeline Spine */}
+                    <div className="absolute left-[39px] top-4 bottom-4 w-px bg-st-border" />
+                    
+                    {nodes.reduce((acc, node) => {
                     // Group events that occur at the exact same Arch Sec timestamp
                     if (acc.length === 0 || acc[acc.length - 1].arch_sec !== node.arch_sec) {
                       acc.push({
@@ -275,45 +384,68 @@ export default function PathfinderTab() {
                     const finalEvent = group.events[group.events.length - 1];
 
                     return (
-                      <div key={idx} className="flex flex-col border-b border-st-border/50 pb-3 last:border-0 last:pb-0">
+                      <div key={idx} className="relative mb-8 last:mb-0">
                         
                         {/* TIME GAP ANNOTATION */}
                         {group.time_delta > 0 && (
-                          <div className="flex items-center gap-2 mb-2 ml-28 opacity-70">
-                            <div className="h-full border-l border-dashed border-st-border"></div>
-                            <div className="bg-st-secondary/20 px-2 py-0.5 rounded text-[10px] text-st-text-light border border-st-border flex items-center gap-1">
-                              <span>⏳ +{formatNum(group.time_delta)} Arch Sec</span>
-                              <span>•</span>
-                              <span className={group.active_build === 'Push' ? 'text-purple-400' : 'text-green-400'}>
-                                Running {group.active_build} Build: {group.events[0].active_build_str}
-                              </span>
-                            </div>
+                          <div className="absolute -top-6 left-12 flex items-center gap-2 opacity-80 bg-st-bg z-10 px-1 border border-st-border rounded shadow-sm">
+                            <span className="text-[10px] text-st-text-light flex items-center gap-1">
+                              <svg className="w-3 h-3 text-st-orange" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                              </svg>
+                              +{formatNum(group.time_delta)} Arch Sec
+                            </span>
+                            <span className="text-st-text-light/50">•</span>
+                            <span className={`text-[10px] ${group.active_build === 'Push' ? 'text-purple-400' : 'text-green-400'}`}>
+                              {group.active_build} Build: {group.events[0].active_build_str}
+                            </span>
                           </div>
                         )}
 
                         {/* BATCHED EVENT NODE */}
-                        <div className="flex gap-4 items-start">
-                          <div className="w-24 text-st-orange shrink-0 font-bold mt-0.5">
-                            {formatNum(group.arch_sec)} Arch Sec
+                        <div className="flex gap-6 items-start relative z-10">
+                          
+                          {/* NODE DOT & TIMESTAMP */}
+                          <div className="w-16 flex flex-col items-end shrink-0 pt-1">
+                            <div className="text-st-orange font-bold text-xs">{formatNum(group.arch_sec)} s</div>
                           </div>
-                          <div className="flex-1 space-y-3">
-                            {group.events.map((node, evIdx) => (
-                              <div key={evIdx}>
-                                <strong className={`block ${node.type === 'level' ? 'text-green-400' : node.type === 'floor' ? 'text-purple-400' : 'text-st-text'}`}>
-                                  {node.event}
-                                </strong>
-                                <span className="text-st-text-light block mt-0.5">{node.desc}</span>
-                              </div>
-                            ))}
+                          
+                          {/* THE DOT */}
+                          <div className="w-3 h-3 rounded-full bg-st-bg border-2 border-st-orange mt-1.5 shrink-0 z-10" />
+
+                          {/* EVENTS BUBBLE */}
+                          <div className="flex-1 bg-st-secondary/20 border border-st-border rounded p-3 shadow-sm hover:bg-st-secondary/30 transition-colors">
+                            <div className="space-y-3">
+                              {group.events.map((node, evIdx) => {
+                                let evColor = 'text-st-text';
+                                if (node.type === 'level') evColor = 'text-green-400';
+                                else if (node.type === 'floor') evColor = 'text-purple-400';
+                                else if (node.type === 'upgrade') evColor = 'text-blue-400';
+
+                                return (
+                                  <div key={evIdx}>
+                                    <strong className={`block text-sm ${evColor}`}>
+                                      {node.event}
+                                    </strong>
+                                    <span className="text-st-text-light block mt-0.5 leading-relaxed">
+                                      {node.desc}
+                                    </span>
+                                  </div>
+                                );
+                              })}
+                            </div>
                             
                             {/* SIDE-BY-SIDE SNAPSHOT (Only show the final state after the batch resolves) */}
                             {finalEvent.yields && finalEvent.frags && (
-                              <details className="mt-2 group/debug text-[10px] text-gray-500 bg-[#0E1117] p-2 rounded border border-st-border w-fit">
-                                <summary className="cursor-pointer hover:text-gray-300 w-max select-none font-bold">
-                                  🔍 Player State Snapshot (Post-Batch)
+                              <details className="mt-3 group/debug text-[10px] bg-[#0E1117] p-2 rounded border border-st-border">
+                                <summary className="cursor-pointer hover:text-gray-300 w-max select-none font-bold text-gray-400 flex items-center gap-1">
+                                  <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                  </svg>
+                                  Player State Snapshot
                                 </summary>
                                 
-                                <div className="pt-2 mt-1 grid grid-cols-1 md:grid-cols-3 gap-4 border-t border-st-border">
+                                <div className="pt-2 mt-2 grid grid-cols-1 md:grid-cols-3 gap-4 border-t border-st-border text-gray-400">
                                   
                                   {/* Farm Yields */}
                                   <div>
@@ -351,7 +483,7 @@ export default function PathfinderTab() {
               </details>
             ))}
           </div>
-        </div>
+        </>
       )}
 
     </div>

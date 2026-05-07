@@ -244,7 +244,7 @@ async function attemptFloorPush(pool, state, maxTimePenaltySecs, samples = 50) {
     }
 }
 
-export async function runPathfinderSimulation(startState, targetLevel, initialFrags, pool, onProgress) {
+export async function runPathfinderSimulation(startState, targetLevel, initialFrags, pool, shiftFloor, onProgress) {
     // 1. Initialize Tracked State (Dual-Track the base stats!)
     let state = { 
         ...startState, 
@@ -290,7 +290,8 @@ export async function runPathfinderSimulation(startState, targetLevel, initialFr
     let currentPushYields = null;
 
     // 1. Establish perfect Farm Build
-    const optFarm = await runFastOptimizer(pool, state, 'xp_per_min', expectedBudget, state.base_stats, 3);
+    const farmMetric = state.current_max_floor >= shiftFloor ? 'frag_6_per_min' : 'xp_per_min';
+    const optFarm = await runFastOptimizer(pool, state, farmMetric, expectedBudget, state.base_stats, 3);
     state.base_stats = optFarm.bestBuild;
     currentFarmYields = optFarm.bestYields;
     
@@ -439,7 +440,8 @@ export async function runPathfinderSimulation(startState, targetLevel, initialFr
             const totalBudget = state.arch_level + (state.upgrade_levels[12] || 0);
 
             // PHASE 3.5: Dual-Track Full Redistribution Optimizer!
-            const optFarm = await runFastOptimizer(pool, state, 'xp_per_min', totalBudget, state.base_stats, 3);
+            const farmMetric = state.current_max_floor >= shiftFloor ? 'frag_6_per_min' : 'xp_per_min';
+            const optFarm = await runFastOptimizer(pool, state, farmMetric, totalBudget, state.base_stats, 3);
             state.base_stats = optFarm.bestBuild;
             currentFarmYields = optFarm.bestYields;
 
@@ -493,7 +495,8 @@ export async function runPathfinderSimulation(startState, targetLevel, initialFr
             if (nextUpgradeId >= 8) {
                 const totalBudget = state.arch_level + (state.upgrade_levels[12] || 0);
 
-                const optFarm = await runFastOptimizer(pool, state, 'xp_per_min', totalBudget, state.base_stats, 3);
+                const farmMetric = state.current_max_floor >= shiftFloor ? 'frag_6_per_min' : 'xp_per_min';
+                const optFarm = await runFastOptimizer(pool, state, farmMetric, totalBudget, state.base_stats, 3);
                 state.base_stats = optFarm.bestBuild;
                 currentFarmYields = optFarm.bestYields;
 
@@ -592,8 +595,18 @@ export async function runPathfinderSimulation(startState, targetLevel, initialFr
                     });
                     
                     // We pushed the floor! Recalculate ALL yields against the new reality using smoothed averages!
-                    await pool.syncState(state);
-                    currentFarmYields = await getSmoothedYields(pool, state, state.base_stats, 3);
+                    let didShift = false;
+                    if (state.current_max_floor === shiftFloor) {
+                        didShift = true;
+                        const totalBudget = state.arch_level + (state.upgrade_levels[12] || 0);
+                        const optFarm = await runFastOptimizer(pool, state, 'frag_6_per_min', totalBudget, state.base_stats, 3);
+                        state.base_stats = optFarm.bestBuild;
+                        currentFarmYields = optFarm.bestYields;
+                        lastFarmStr = formatBuildStr(state.base_stats, state);
+                    } else {
+                        await pool.syncState(state);
+                        currentFarmYields = await getSmoothedYields(pool, state, state.base_stats, 3);
+                    }
                     
                     const pushTestState = { ...state, current_max_floor: state.current_max_floor + 1 };
                     await pool.syncState(pushTestState);
@@ -625,6 +638,7 @@ export async function runPathfinderSimulation(startState, targetLevel, initialFr
                 let floorDesc = `Brute-forced ceiling with ${winRateStr}% win rate.`;
                 if (newUpgs.length > 0) floorDesc += ` Unlocks: ${newUpgs.join(', ')}.`;
                 if (newBlocks.length > 0) floorDesc += ` New Blocks: ${newBlocks.join(', ')}.`;
+                if (didShift) floorDesc += ` STRATEGIC SHIFT: Farm Build now optimizing for Divine Fragments!`;
 
                 let timeGapPush = cumulativeArchSecs - lastEventTime;
                 
