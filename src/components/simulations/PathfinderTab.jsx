@@ -12,6 +12,7 @@ export default function PathfinderTab() {
   const[simStatus, setSimStatus] = useState('');
   const [simProgress, setSimProgress] = useState(0);
   const [groupBy, setGroupBy] = useState('level'); // 'level' or 'floor'
+  const [targetLevelAdd, setTargetLevelAdd] = useState(30); // How many levels to simulate
 
   // Generic Number Formatter to keep the UI clean
   const formatNum = (val) => {
@@ -63,7 +64,9 @@ export default function PathfinderTab() {
 
       await pool.syncState(activeState);
 
-      const result = await runPathfinderSimulation(activeState, pool, (prog) => {
+      const targetArch = activeState.arch_level + targetLevelAdd;
+
+      const result = await runPathfinderSimulation(activeState, targetArch, pool, (prog) => {
         setSimProgress(prog.progress);
         setSimStatus(prog.status);
       });
@@ -116,6 +119,18 @@ export default function PathfinderTab() {
           >
             Current Workspace State
           </button>
+        </div>
+
+        <div className="mb-6">
+          <label className="block text-sm font-bold text-st-text mb-2">Simulate Forward By (Arch Levels):</label>
+          <input 
+            type="number" 
+            min="1" 
+            max="150"
+            value={targetLevelAdd}
+            onChange={(e) => setTargetLevelAdd(parseInt(e.target.value) || 1)}
+            className="w-full bg-[#0E1117] border border-st-border rounded p-2 text-st-text focus:border-st-orange outline-none"
+          />
         </div>
 
         <div className="bg-[#0E1117] p-3 rounded border border-st-border text-xs font-mono text-st-text-light mb-6">
