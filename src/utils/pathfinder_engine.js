@@ -171,8 +171,25 @@ export async function runPathfinderSimulation(startState, pool, onProgress) {
     const MAX_EVENTS = 2000;
 
     // Define the core Internal Upgrades to track for "Goal 2: Max Internal Upgrades"
-    // Added 3, 4, 5 to track Gem Upgrades!
-    const upgradeTargets =[ 3, 4, 5, 9, 10, 11, 13, 14, 15, 16 ]; 
+    // CRITICAL: Added 8 (Abilities) and 12 (Stat Points)!
+    const upgradeTargets =[ 3, 4, 5, 8, 9, 10, 11, 12, 13, 14, 15, 16 ]; 
+
+    // --- STARTUP STAT BUDGET SYNC ---
+    // If the template starts at Level 1, it has 0 points. We must inject the Level 1 base point!
+    const getSum = (build) => getAvailableStatKeys(state).reduce((sum, s) => sum + (build[s] || 0), 0);
+    const expectedBudget = state.arch_level + (state.upgrade_levels[12] || 0);
+    const startupPoints = Math.max(0, expectedBudget - getSum(state.base_stats));
+
+    if (startupPoints > 0) {
+        const optFarm = await smartRespec(pool, state, 'xp_per_min', state.base_stats, startupPoints);
+        state.base_stats = optFarm.bestBuild;
+        
+        const optPush = await smartRespec(pool, state, 'highest_floor', state.push_stats, startupPoints);
+        state.push_stats = optPush.bestBuild;
+    }
+
+    const farmStr = formatBuildStr(state.base_stats, state);
+    const pushStr = formatBuildStr(state.push_stats, state);
 
     history.push({
         type: "system",
@@ -180,7 +197,7 @@ export async function runPathfinderSimulation(startState, pool, onProgress) {
         arch_sec: cumulativeArchSecs,
         level: state.arch_level,
         floor: state.current_max_floor,
-        desc: "Beginning Asc2 Journey",
+        desc: `Beginning Asc2 Journey. Initialized Budget (${expectedBudget} pts) -> Farm: ${farmStr} | Push: ${pushStr}`,
         frags: { ...frags }
     });
 
@@ -325,6 +342,19 @@ export async function runPathfinderSimulation(startState, pool, onProgress) {
             const upgName = UPGRADE_NAMES[ nextUpgradeId ] || `Upgrade ${nextUpgradeId}`;
             const fragUI = FRAG_NAMES_UI[ nextUpgradeCost.currency ] || nextUpgradeCost.currency;
 
+            let upgDesc = `Cost: ${nextUpgradeCost.amount} ${fragUI}`;
+
+            // If we just bought "Stat Points" (Upgrade 12), immediately optimize and apply the +1 Point!
+            if (nextUpgradeId === 12) {
+                const optFarm = await smartRespec(pool, state, 'xp_per_min', state.base_stats, 1);
+                state.base_stats = optFarm.bestBuild;
+
+                const optPush = await smartRespec(pool, state, 'highest_floor', state.push_stats, 1);
+                state.push_stats = optPush.bestBuild;
+                
+                upgDesc += `. Gained +1 Stat Point -> Farm: ${formatBuildStr(state.base_stats, state)} | Push: ${formatBuildStr(state.push_stats, state)}`;
+            }
+
             // Recalculate yields after the upgrade is applied
             postEventYields = await pool.runTask(state.base_stats, state.upgrade_levels, state.external_levels, state.cards);
 
@@ -334,7 +364,7 @@ export async function runPathfinderSimulation(startState, pool, onProgress) {
                 arch_sec: cumulativeArchSecs,
                 level: state.arch_level,
                 floor: state.current_max_floor,
-                desc: `Cost: ${nextUpgradeCost.amount} ${fragUI}`,
+                desc: upgDesc,
                 yields: { ...postEventYields },
                 frags: { ...frags }
             });
