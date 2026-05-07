@@ -58,6 +58,7 @@ export async function runPathfinderSimulation(startState, pool, onProgress) {
         event: "Simulation Started",
         time_mins: 0,
         level: state.arch_level,
+        floor: state.current_max_floor,
         desc: "Beginning Asc2 Journey"
     });
 
@@ -141,6 +142,7 @@ export async function runPathfinderSimulation(startState, pool, onProgress) {
                 event: "Engine Stalled",
                 time_mins: timeElapsedMins,
                 level: state.arch_level,
+                floor: state.current_max_floor,
                 desc: "Yields dropped to 0. Cannot progress time."
             });
             break;
@@ -160,16 +162,6 @@ export async function runPathfinderSimulation(startState, pool, onProgress) {
             currentExp = 0; // Reset exp
             unspentPoints++;
             
-            // Calculate newly unlocked upgrades
-            const newUpgs = Object.entries(UPGRADE_LEVEL_REQS)
-                .filter(([id, reqLvl]) => reqLvl === state.arch_level)
-                .map(([id]) => UPGRADE_NAMES[id] || `Upg ${id}`);
-            
-            let levelDesc = `Dumped stat point into Str.`;
-            if (newUpgs.length > 0) {
-                levelDesc += ` Unlocked: ${newUpgs.join(', ')}.`;
-            }
-
             // Phase 2 Dummy Logic: Just dump points into Strength to keep growing
             state.base_stats = { ...state.base_stats, Str: (state.base_stats.Str || 0) + unspentPoints };
             unspentPoints = 0;
@@ -179,14 +171,20 @@ export async function runPathfinderSimulation(startState, pool, onProgress) {
                 event: `🎉 Level Up: Arch ${state.arch_level}`,
                 time_mins: timeElapsedMins,
                 level: state.arch_level,
-                desc: levelDesc,
+                floor: state.current_max_floor,
+                desc: `Dumped stat point into Str. Unlocked new ceiling for Gem Upgrades.`,
                 yields: { ...yields }
             });
 
             // Phase 2 Dummy Logic: Immediately trigger a Max Floor Push after Leveling Up
             state.current_max_floor++;
             
-            // Calculate newly spawning blocks
+            // Calculate newly unlocked upgrades based on Floor!
+            const newUpgs = Object.entries(UPGRADE_LEVEL_REQS)
+                .filter(([id, reqFlr]) => reqFlr === state.current_max_floor)
+                .map(([id]) => UPGRADE_NAMES[id] || `Upg ${id}`);
+
+            // Calculate newly spawning blocks based on Floor!
             const newBlocks = Object.entries(BLOCK_MIN_FLOORS)
                 .filter(([id, minFlr]) => minFlr === state.current_max_floor)
                 .map(([id]) => {
@@ -196,15 +194,15 @@ export async function runPathfinderSimulation(startState, pool, onProgress) {
                 });
             
             let floorDesc = `Ceiling increased.`;
-            if (newBlocks.length > 0) {
-                floorDesc += ` New Blocks Spawning: ${newBlocks.join(', ')}.`;
-            }
+            if (newUpgs.length > 0) floorDesc += ` Unlocked Upgrades: ${newUpgs.join(', ')}.`;
+            if (newBlocks.length > 0) floorDesc += ` New Blocks: ${newBlocks.join(', ')}.`;
 
             history.push({
                 type: "floor",
                 event: `🚀 Max Floor Pushed to ${state.current_max_floor}`,
                 time_mins: timeElapsedMins,
                 level: state.arch_level,
+                floor: state.current_max_floor,
                 desc: floorDesc,
                 yields: { ...yields }
             });
@@ -226,6 +224,7 @@ export async function runPathfinderSimulation(startState, pool, onProgress) {
                 event: `🛒 Bought ${upgName} (Lvl ${newLvl})`,
                 time_mins: timeElapsedMins,
                 level: state.arch_level,
+                floor: state.current_max_floor,
                 desc: `Cost: ${nextUpgradeCost.amount} ${fragUI}`,
                 yields: { ...yields }
             });
@@ -241,9 +240,11 @@ export async function runPathfinderSimulation(startState, pool, onProgress) {
     }
 
     history.push({
+        type: "system",
         event: "Simulation Complete",
         time_mins: timeElapsedMins,
         level: state.arch_level,
+        floor: state.current_max_floor,
         desc: "Reached testing limits."
     });
 
