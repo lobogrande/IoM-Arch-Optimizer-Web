@@ -279,9 +279,9 @@ export default function PathfinderTab() {
                                   {/* Bank */}
                                   <div>
                                     <strong className="text-st-text-light border-b border-st-border pb-0.5 mb-1 block">Fragment Bank</strong>
-                                    C: {(finalEvent.frags?.com || 0).toFixed(1)} | R: {(finalEvent.frags?.rare || 0).toFixed(1)}<br/>
-                                    E: {(finalEvent.frags?.epic || 0).toFixed(1)} | L: {(finalEvent.frags?.leg || 0).toFixed(1)}<br/>
-                                    M: {(finalEvent.frags?.myth || 0).toFixed(1)} | D: {(finalEvent.frags?.div || 0).toFixed(1)}
+                                    C: {(finalEvent.frags?.com || 0).toFixed(2)} | R: {(finalEvent.frags?.rare || 0).toFixed(2)}<br/>
+                                    E: {(finalEvent.frags?.epic || 0).toFixed(2)} | L: {(finalEvent.frags?.leg || 0).toFixed(2)}<br/>
+                                    M: {(finalEvent.frags?.myth || 0).toFixed(2)} | D: {(finalEvent.frags?.div || 0).toFixed(2)}
                                   </div>
 
                                 </div>
