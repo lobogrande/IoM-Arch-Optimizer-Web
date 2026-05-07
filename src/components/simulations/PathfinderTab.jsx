@@ -217,9 +217,9 @@ export default function PathfinderTab() {
                             </summary>
                             <div className="pl-2 pt-1 mt-1 border-l border-st-border grid grid-cols-1 md:grid-cols-2 gap-2">
                               <div>
-                                <strong className="text-st-text-light">Yields / min:</strong><br/>
-                                XP: {formatNum(node.yields.xp_per_min)}<br/>
-                                C: {node.yields.frag_1_per_min?.toFixed(3) || "0.000"} | R: {node.yields.frag_2_per_min?.toFixed(3) || "0.000"} | E: {node.yields.frag_3_per_min?.toFixed(3) || "0.000"}
+                                <strong className="text-st-text-light">Yields / Arch Sec:</strong><br/>
+                                XP: {formatNum((node.yields.xp_per_min || 0) / 60)}<br/>
+                                C: {((node.yields.frag_1_per_min || 0) / 60).toFixed(4)} | R: {((node.yields.frag_2_per_min || 0) / 60).toFixed(4)} | E: {((node.yields.frag_3_per_min || 0) / 60).toFixed(4)}
                               </div>
                               <div>
                                 <strong className="text-st-text-light">Fragment Bank:</strong><br/>
