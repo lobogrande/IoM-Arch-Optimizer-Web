@@ -1,7 +1,7 @@
 // src/utils/pathfinder_engine.js
 
 import { calculateUpgradeCost, UPGRADE_NAMES, UPGRADE_LEVEL_REQS, BLOCK_MIN_FLOORS, INTERNAL_UPGRADE_CAPS, ASC1_LOCKED_UPGS, ASC2_LOCKED_UPGS } from '../game_data';
-import { generateDistributions, topUpBuild } from './optimizer';
+import { generateDistributions } from './optimizer';
 
 // XP Math deduced from player telemetry
 export const getExpRequired = (level) => {
@@ -78,23 +78,56 @@ async function getSmoothedYields(pool, state, stats, samples = 3) {
     return avgYields;
 }
 
+// Strict budget enforcer to strip cheating/over-budget builds and fill under-budget builds
+const enforceBudget = (build, statsList, budget, caps) => {
+    const b = { ...build };
+    let sum = statsList.reduce((acc, s) => acc + (b[s] || 0), 0);
+    
+    // Strip excess points if over budget
+    if (sum > budget) {
+        const sorted = [...statsList].sort((s1, s2) => (b[s2] || 0) - (b[s1] || 0));
+        for (const s of sorted) {
+            while (b[s] > 0 && sum > budget) {
+                b[s]--;
+                sum--;
+            }
+        }
+    }
+    
+    // Top up missing points if under budget
+    if (sum < budget) {
+        const sorted =[...statsList].sort((s1, s2) => (b[s2] || 0) - (b[s1] || 0));
+        for (const s of sorted) {
+            const maxAllowed = Math.min(caps[s] || 0, budget);
+            while ((b[s] || 0) < maxAllowed && sum < budget) {
+                b[s] = (b[s] || 0) + 1;
+                sum++;
+            }
+        }
+    }
+    return b;
+};
+
 // Runs a lightning-fast Successive Halving Grid Search to completely escape local minima
 async function runFastOptimizer(pool, state, targetMetric, budget, previousBuild, samples = 5) {
     await pool.syncState(state);
     const stats = getAvailableStatKeys(state);
     const caps = getEffectiveStatCaps(state);
-    const candidates = [ previousBuild ];
+    
+    // Ensure the baseline isn't cheating the math!
+    const safePrevious = enforceBudget(previousBuild, stats, budget, caps);
+    const candidates = [ safePrevious ];
 
     const bounds = {};
     stats.forEach(s => bounds[s] = [0, Math.min(budget, caps[s])]);
     
     // 1. Inject Micro-Neighbors: Guarantee we test precise +1 breakpoints from the previous build!
-    // We explicitly restrict neighbors to respect the effective caps.
     if (budget > 0) {
         stats.forEach(s => {
-            if ((previousBuild[s] || 0) < bounds[s][1]) {
-                const neighbor = { ...previousBuild, [s]: (previousBuild[s] || 0) + 1 };
-                candidates.push(topUpBuild(neighbor, stats, budget, caps, bounds));
+            if ((safePrevious[s] || 0) < bounds[s][1]) {
+                const neighbor = { ...safePrevious, [s]: (safePrevious[s] || 0) + 1 };
+                // The +1 neighbor is instantly stripped back down to budget size to swap the stats organically
+                candidates.push(enforceBudget(neighbor, stats, budget, caps));
             }
         });
     }
@@ -117,7 +150,7 @@ async function runFastOptimizer(pool, state, targetMetric, budget, previousBuild
         grid = generateDistributions(stats, alignBudget, step, bounds);
     }
     
-    grid.forEach(d => candidates.push(topUpBuild(d, stats, budget, caps, bounds)));
+    grid.forEach(d => candidates.push(enforceBudget(d, stats, budget, caps)));
 
     // 3. Deduplicate
     const unique = new Map();
