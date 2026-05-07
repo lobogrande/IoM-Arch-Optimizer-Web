@@ -6,11 +6,11 @@ import { runPathfinderSimulation } from '../../utils/pathfinder_engine';
 
 export default function PathfinderTab() {
   const store = useStore();
-  const[startMode, setStartMode] =[ useState('template') ];
-  const [isSimulating, setIsSimulating] =[ useState(false) ];
-  const [pathData, setPathData] =[ useState(null) ];
-  const[simStatus, setSimStatus] =[ useState('') ];
-  const [simProgress, setSimProgress] =[ useState(0) ];
+  const [startMode, setStartMode] = useState('template');
+  const [isSimulating, setIsSimulating] = useState(false);
+  const [pathData, setPathData] = useState(null);
+  const [simStatus, setSimStatus] = useState('');
+  const [simProgress, setSimProgress] = useState(0);
 
   // Hardcoded Ascension 2 Starting Template Baseline
   const asc2Template = {
