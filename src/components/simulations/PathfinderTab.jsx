@@ -143,24 +143,43 @@ export default function PathfinderTab() {
         </button>
       </div>
 
-      {/* RESULTS AREA (Phase 2 Simple Log) */}
+      {/* RESULTS AREA (Phase 2 Grouped Log) */}
       {pathData && (
         <div className="bg-st-bg border border-st-border rounded p-4 shadow-sm animate-fade-in">
           <h3 className="text-lg font-bold text-st-text mb-4 border-b border-st-border pb-2">Phase 2 Event Log</h3>
-          <div className="space-y-2 max-h-96 overflow-y-auto font-mono text-xs">
-            {pathData.history.map((node, idx) => (
-              <div key={idx} className="p-2 border border-st-border rounded bg-st-secondary/10 flex gap-4 items-center">
-                <div className="w-24 text-st-orange">
-                  Day {(node.time_mins / 1440).toFixed(1)}
+          <div className="space-y-3 max-h-[600px] overflow-y-auto pr-2">
+            {Object.entries(
+              pathData.history.reduce((acc, node) => {
+                if (!acc[ node.level ]) acc[ node.level ] =[ ];
+                acc[ node.level ].push(node);
+                return acc;
+              }, { })
+            ).map(([ level, nodes ]) => (
+              <details 
+                key={level} 
+                className="bg-st-secondary/10 border border-st-border rounded overflow-hidden" 
+                open={level === "1" || level === "30"}
+              >
+                <summary className="p-3 bg-st-secondary/20 font-bold cursor-pointer hover:bg-st-secondary/30 transition-colors flex justify-between items-center text-sm text-st-text outline-none">
+                  <span>Arch Level {level} Progression</span>
+                  <span className="text-xs text-st-text-light">{nodes.length} Events</span>
+                </summary>
+                <div className="p-3 space-y-2 text-xs font-mono">
+                  {nodes.map((node, idx) => (
+                    <div key={idx} className="flex gap-4 items-start border-b border-st-border/50 pb-2 last:border-0 last:pb-0">
+                      <div className="w-20 text-st-orange shrink-0">
+                        Day {(node.time_mins / 1440).toFixed(1)}
+                      </div>
+                      <div className="flex-1">
+                        <strong className={`block ${node.type === 'level' ? 'text-green-400' : node.type === 'floor' ? 'text-purple-400' : 'text-st-text'}`}>
+                          {node.event}
+                        </strong>
+                        <span className="text-st-text-light">{node.desc}</span>
+                      </div>
+                    </div>
+                  ))}
                 </div>
-                <div className="w-24 text-gray-400">
-                  Lvl {node.level}
-                </div>
-                <div className="flex-1">
-                  <strong className="text-st-text block">{node.event}</strong>
-                  <span className="text-st-text-light">{node.desc}</span>
-                </div>
-              </div>
+              </details>
             ))}
           </div>
         </div>
