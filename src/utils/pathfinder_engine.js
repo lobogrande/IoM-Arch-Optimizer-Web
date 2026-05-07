@@ -464,7 +464,7 @@ export async function runPathfinderSimulation(startState, targetLevel, initialFr
                 currentFarmYields = optFarm.bestYields;
 
                 const pushTestState = { ...state, current_max_floor: 200 };
-                const optPush = await runFastOptimizer(pool, pushTestState, 'highest_floor', totalBudget, state.push_stats, 8);
+                const optPush = await runFastOptimizer(pool, pushTestState, 'highest_floor', totalBudget, state.push_stats, 12); // Bumped to 12
                 state.push_stats = optPush.bestBuild;
                 
                 const pushActualTargetState = { ...state, current_max_floor: state.current_max_floor + 1 };
