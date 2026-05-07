@@ -13,6 +13,15 @@ export default function PathfinderTab() {
   const [simProgress, setSimProgress] = useState(0);
   const [groupBy, setGroupBy] = useState('level'); // 'level' or 'floor'
 
+  // Formatter for Arch Seconds to keep the UI clean
+  const formatAS = (val) => {
+    if (val == null) return "0 AS";
+    if (val >= 1000000000) return (val / 1000000000).toFixed(2) + "b AS";
+    if (val >= 1000000) return (val / 1000000).toFixed(2) + "m AS";
+    if (val >= 1000) return (val / 1000).toFixed(1) + "k AS";
+    return Math.floor(val) + " AS";
+  };
+
   // Hardcoded Ascension 2 Starting Template Baseline
   const asc2Template = {
     arch_level: 1,
@@ -191,8 +200,8 @@ export default function PathfinderTab() {
                 <div className="p-3 space-y-2 text-xs font-mono">
                   {nodes.map((node, idx) => (
                     <div key={idx} className="flex gap-4 items-start border-b border-st-border/50 pb-2 last:border-0 last:pb-0">
-                      <div className="w-20 text-st-orange shrink-0">
-                        Day {(node.time_mins / 1440).toFixed(1)}
+                      <div className="w-24 text-st-orange shrink-0 font-bold">
+                        {formatAS(node.arch_sec)}
                       </div>
                       <div className="flex-1">
                         <strong className={`block ${node.type === 'level' ? 'text-green-400' : node.type === 'floor' ? 'text-purple-400' : 'text-st-text'}`}>
