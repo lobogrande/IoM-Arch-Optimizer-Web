@@ -1,6 +1,6 @@
 // src/utils/pathfinder_engine.js
 
-import { calculateUpgradeCost, UPGRADE_NAMES, UPGRADE_LEVEL_REQS, BLOCK_MIN_FLOORS, INTERNAL_UPGRADE_CAPS } from '../game_data';
+import { calculateUpgradeCost, UPGRADE_NAMES, UPGRADE_LEVEL_REQS, BLOCK_MIN_FLOORS, INTERNAL_UPGRADE_CAPS, ASC1_LOCKED_UPGS, ASC2_LOCKED_UPGS } from '../game_data';
 import { generateDistributions, topUpBuild } from './optimizer';
 
 // XP Math deduced from player telemetry
@@ -236,8 +236,11 @@ export async function runPathfinderSimulation(startState, targetLevel, initialFr
     let eventCount = 0;
     const MAX_EVENTS = 3000;
 
-    // Define the core Internal Upgrades to track
-    const upgradeTargets =[ 3, 4, 5, 8, 9, 10, 11, 12, 13, 14, 15, 16 ]; 
+    // Dynamically generate the full list of available upgrades for the current Ascension
+    const lockedUpgs = state.asc2_unlocked ? ASC2_LOCKED_UPGS : ASC1_LOCKED_UPGS;
+    const upgradeTargets = Object.keys(UPGRADE_NAMES)
+        .map(Number)
+        .filter(id => !lockedUpgs.includes(id));
 
     // --- STARTUP STAT BUDGET SYNC & RE-OPTIMIZATION ---
     // We forcefully re-optimize BOTH builds using the total expected budget at startup. 
