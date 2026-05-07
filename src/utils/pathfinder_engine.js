@@ -206,7 +206,7 @@ async function attemptFloorPush(pool, state, samples = 50) {
     }
 }
 
-export async function runPathfinderSimulation(startState, pool, onProgress) {
+export async function runPathfinderSimulation(startState, targetLevel, pool, onProgress) {
     // 1. Initialize Tracked State (Dual-Track the base stats!)
     let state = { 
         ...startState, 
@@ -217,55 +217,44 @@ export async function runPathfinderSimulation(startState, pool, onProgress) {
     let currentExp = 0;
     let unspentPoints = 0;
     
-    // Fragment Banks
+    // Fragment Banks (Always starts at 0 for pathfinder projections)
     let frags = { dirt: 0, com: 0, rare: 0, epic: 0, leg: 0, myth: 0, div: 0 };
     
     let history = [ ];
     let lastFarmStr = "";
     let lastPushStr = "";
     
-    // Safety limit for Phase 2 testing (Stop at Arch 30 or 2000 events)
-    const TARGET_LEVEL = 30;
+    // Dynamic event limit to prevent browser crashing if bounds are too high
     let eventCount = 0;
-    const MAX_EVENTS = 2000;
+    const MAX_EVENTS = 3000;
 
-    // Define the core Internal Upgrades to track for "Goal 2: Max Internal Upgrades"
-    // CRITICAL: Added 8 (Abilities) and 12 (Stat Points)!
+    // Define the core Internal Upgrades to track
     const upgradeTargets =[ 3, 4, 5, 8, 9, 10, 11, 12, 13, 14, 15, 16 ]; 
 
-    // --- STARTUP STAT BUDGET SYNC ---
-    // If the template starts at Level 1, it has 0 points. We must inject the Level 1 base point!
-    const getSum = (build) => getAvailableStatKeys(state).reduce((sum, s) => sum + (build[s] || 0), 0);
+    // --- STARTUP STAT BUDGET SYNC & RE-OPTIMIZATION ---
+    // We forcefully re-optimize BOTH builds using the total expected budget at startup. 
+    // This ensures that even if the user loads a garbage "Current Workspace" build, 
+    // the timeline establishes a mathematically perfect baseline moving forward.
     const expectedBudget = state.arch_level + (state.upgrade_levels[12] || 0);
-    const startupPoints = Math.max(0, expectedBudget - getSum(state.base_stats));
 
     let currentFarmYields = null;
     let currentPushYields = null;
 
-    if (startupPoints > 0) {
-        const expectedBudget = state.arch_level + (state.upgrade_levels[12] || 0);
-
-        const optFarm = await runFastOptimizer(pool, state, 'xp_per_min', expectedBudget, state.base_stats, 3);
-        state.base_stats = optFarm.bestBuild;
-        currentFarmYields = optFarm.bestYields;
-        
-        // CRITICAL GRADIENT FIX: Uncap the ceiling so the optimizer can map the true max floor!
-        const pushTestState = { ...state, current_max_floor: 200 };
-        const optPush = await runFastOptimizer(pool, pushTestState, 'highest_floor', expectedBudget, state.push_stats, 8);
-        state.push_stats = optPush.bestBuild;
-        
-        // Sync to the actual target floor to generate accurate UI yields
-        const pushActualTargetState = { ...state, current_max_floor: state.current_max_floor + 1 };
-        currentPushYields = await getSmoothedYields(pool, pushActualTargetState, state.push_stats, 5);
-        
-        await pool.syncState(state);
-    } else {
-        currentFarmYields = await getSmoothedYields(pool, state, state.base_stats, 3);
-        const pushTestState = { ...state, current_max_floor: state.current_max_floor + 1 };
-        await pool.syncState(pushTestState);
-        currentPushYields = await getSmoothedYields(pool, pushTestState, state.push_stats, 3);
-        await pool.syncState(state);
-    }
+    // 1. Establish perfect Farm Build
+    const optFarm = await runFastOptimizer(pool, state, 'xp_per_min', expectedBudget, state.base_stats, 3);
+    state.base_stats = optFarm.bestBuild;
+    currentFarmYields = optFarm.bestYields;
+    
+    // 2. Establish perfect Push Build (Against uncapped gradient!)
+    const pushTestState = { ...state, current_max_floor: 200 };
+    const optPush = await runFastOptimizer(pool, pushTestState, 'highest_floor', expectedBudget, state.push_stats, 8);
+    state.push_stats = optPush.bestBuild;
+    
+    // 3. Generate baseline UI Push Yields against actual target floor
+    const pushActualTargetState = { ...state, current_max_floor: state.current_max_floor + 1 };
+    currentPushYields = await getSmoothedYields(pool, pushActualTargetState, state.push_stats, 5);
+    
+    await pool.syncState(state);
 
     const farmStr = formatBuildStr(state.base_stats, state);
     const pushStr = formatBuildStr(state.push_stats, state);
@@ -287,7 +276,8 @@ export async function runPathfinderSimulation(startState, pool, onProgress) {
         frags: { ...frags }
     });
 
-    while (state.arch_level < TARGET_LEVEL && eventCount < MAX_EVENTS) {
+    const startLvl = state.arch_level;
+    while (state.arch_level < targetLevel && eventCount < MAX_EVENTS) {
         eventCount++;
 
         // 1. SENSOR: Exclusively use the globally smoothed Farm Yields
@@ -602,9 +592,10 @@ export async function runPathfinderSimulation(startState, pool, onProgress) {
 
         // Send UI Progress
         if (onProgress) {
+            const progressPct = ((state.arch_level - startLvl) / (targetLevel - startLvl)) * 100;
             onProgress({
-                progress: (state.arch_level / TARGET_LEVEL) * 100,
-                status: `Simulating... (Level ${state.arch_level})`
+                progress: Math.min(100, Math.max(0, progressPct)),
+                status: `Simulating... (Level ${state.arch_level} / ${targetLevel})`
             });
         }
     }
