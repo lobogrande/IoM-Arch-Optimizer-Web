@@ -172,6 +172,7 @@ export async function runPathfinderSimulation(startState, pool, onProgress) {
         push_stats: { ...startState.base_stats } 
     };
     let cumulativeArchSecs = 0;
+    let lastEventTime = 0;
     let currentExp = 0;
     let unspentPoints = 0;
     
@@ -195,16 +196,28 @@ export async function runPathfinderSimulation(startState, pool, onProgress) {
     const expectedBudget = state.arch_level + (state.upgrade_levels[12] || 0);
     const startupPoints = Math.max(0, expectedBudget - getSum(state.base_stats));
 
+    let currentFarmYields = null;
+    let currentPushYields = null;
+
     if (startupPoints > 0) {
         const optFarm = await smartRespec(pool, state, 'xp_per_min', state.base_stats, startupPoints);
         state.base_stats = optFarm.bestBuild;
+        currentFarmYields = optFarm.bestYields;
         
         // CRITICAL: Push Build must be evaluated against the NEXT floor to detect gradient!
         const pushTestState = { ...state, current_max_floor: state.current_max_floor + 1 };
         const optPush = await smartRespec(pool, pushTestState, 'highest_floor', state.push_stats, startupPoints);
         state.push_stats = optPush.bestBuild;
+        currentPushYields = optPush.bestYields;
         
         // Restore sync to current floor
+        await pool.syncState(state);
+    } else {
+        // If starting from an advanced template, just evaluate the current builds
+        currentFarmYields = await pool.runTask(state.base_stats, state.upgrade_levels, state.external_levels, state.cards);
+        const pushTestState = { ...state, current_max_floor: state.current_max_floor + 1 };
+        await pool.syncState(pushTestState);
+        currentPushYields = await pool.runTask(state.push_stats, testState.upgrade_levels, testState.external_levels, testState.cards);
         await pool.syncState(state);
     }
 
@@ -215,9 +228,12 @@ export async function runPathfinderSimulation(startState, pool, onProgress) {
         type: "system",
         event: "Simulation Started",
         arch_sec: cumulativeArchSecs,
+        time_delta: 0,
+        active_build: "None",
         level: state.arch_level,
         floor: state.current_max_floor,
         desc: `Beginning Asc2 Journey. Initialized Budget (${expectedBudget} pts) -> Farm: ${farmStr} | Push: ${pushStr}`,
+        yields: { farm: currentFarmYields, push: currentPushYields },
         frags: { ...frags }
     });
 
@@ -317,7 +333,7 @@ export async function runPathfinderSimulation(startState, pool, onProgress) {
         });
 
         // 4. RESOLVE EVENT
-        let postEventYields = yields; // Track the latest yields after the event resolves
+        let timeGap = cumulativeArchSecs - lastEventTime;
 
         if (eventType === 'level') {
             state.arch_level++;
@@ -328,18 +344,16 @@ export async function runPathfinderSimulation(startState, pool, onProgress) {
             // 1. Farm Build (Maximizes xp_per_min)
             const optFarm = await smartRespec(pool, state, 'xp_per_min', state.base_stats, unspentPoints);
             state.base_stats = optFarm.bestBuild;
-            postEventYields = optFarm.bestYields;
+            currentFarmYields = optFarm.bestYields;
 
             // 2. Push Build (Maximizes highest_floor)
-            // CRITICAL: Push Build must be evaluated against the NEXT floor to detect gradient!
             const pushTestState = { ...state, current_max_floor: state.current_max_floor + 1 };
             const optPush = await smartRespec(pool, pushTestState, 'highest_floor', state.push_stats, unspentPoints);
             state.push_stats = optPush.bestBuild;
+            currentPushYields = optPush.bestYields;
             
-            // Restore sync to current farming floor before resuming!
             await pool.syncState(state);
-
-            unspentPoints = 0; // Points have been consumed
+            unspentPoints = 0; 
 
             const farmStr = formatBuildStr(state.base_stats, state);
             const pushStr = formatBuildStr(state.push_stats, state);
@@ -348,12 +362,15 @@ export async function runPathfinderSimulation(startState, pool, onProgress) {
                 type: "level",
                 event: `🎉 Level Up: Arch ${state.arch_level}`,
                 arch_sec: cumulativeArchSecs,
+                time_delta: timeGap,
+                active_build: "Farm",
                 level: state.arch_level,
                 floor: state.current_max_floor,
                 desc: `Farm: ${farmStr} | Push: ${pushStr}`,
-                yields: { ...postEventYields },
+                yields: { farm: currentFarmYields, push: currentPushYields },
                 frags: { ...frags }
             });
+            lastEventTime = cumulativeArchSecs;
 
         } else if (eventType === 'upgrade') {
             // Buy Upgrade (Don't deduct if it's gems since we aren't tracking the gem bank perfectly yet)
@@ -383,19 +400,27 @@ export async function runPathfinderSimulation(startState, pool, onProgress) {
                 upgDesc += `. Gained +1 Stat Point -> Farm: ${formatBuildStr(state.base_stats, state)} | Push: ${formatBuildStr(state.push_stats, state)}`;
             }
 
-            // Recalculate yields after the upgrade is applied
-            postEventYields = await pool.runTask(state.base_stats, state.upgrade_levels, state.external_levels, state.cards);
+            // Recalculate BOTH yields after the upgrade is applied
+            currentFarmYields = await pool.runTask(state.base_stats, state.upgrade_levels, state.external_levels, state.cards);
+            
+            const pushTestState = { ...state, current_max_floor: state.current_max_floor + 1 };
+            await pool.syncState(pushTestState);
+            currentPushYields = await pool.runTask(state.push_stats, state.upgrade_levels, state.external_levels, state.cards);
+            await pool.syncState(state);
 
             history.push({
                 type: "upgrade",
                 event: `🛒 Bought ${upgName} (Lvl ${newLvl})`,
                 arch_sec: cumulativeArchSecs,
+                time_delta: timeGap,
+                active_build: "Farm",
                 level: state.arch_level,
                 floor: state.current_max_floor,
                 desc: upgDesc,
-                yields: { ...postEventYields },
+                yields: { farm: currentFarmYields, push: currentPushYields },
                 frags: { ...frags }
             });
+            lastEventTime = cumulativeArchSecs;
         }
 
         // 5. ORGANIC FLOOR PUSH LOOP
@@ -432,12 +457,16 @@ export async function runPathfinderSimulation(startState, pool, onProgress) {
                         if (pushResult.pushYields[rKey]) frags[k] += pushResult.pushYields[rKey] * penaltyMins;
                     });
                     
-                    // CRITICAL: We pushed the floor! Now we must re-sync the engine to this new ceiling
-                    // and recalculate the FARMING yields, simulating the player respeccing back to farm!
+                    // We pushed the floor! Recalculate ALL yields against the new reality.
                     await pool.syncState(state);
-                postEventYields = await pool.runTask(state.base_stats, state.upgrade_levels, state.external_levels, state.cards);
+                    currentFarmYields = await pool.runTask(state.base_stats, state.upgrade_levels, state.external_levels, state.cards);
+                    
+                    const pushTestState = { ...state, current_max_floor: state.current_max_floor + 1 };
+                    await pool.syncState(pushTestState);
+                    currentPushYields = await pool.runTask(state.push_stats, state.upgrade_levels, state.external_levels, state.cards);
+                    await pool.syncState(state);
 
-                // Calculate newly unlocked upgrades based on Floor!
+                    // Calculate newly unlocked upgrades based on Floor!
                 const newUpgs = Object.entries(UPGRADE_LEVEL_REQS)
                     .filter(([id, reqFlr]) => reqFlr === state.current_max_floor)
                     .map(([id]) => UPGRADE_NAMES[id] || `Upg ${id}`);
@@ -459,20 +488,25 @@ export async function runPathfinderSimulation(startState, pool, onProgress) {
                 else if (pushResult.timePenaltySecs >= 1000) timeCostStr = (pushResult.timePenaltySecs / 1000).toFixed(1) + "k";
                 else timeCostStr = Math.floor(pushResult.timePenaltySecs).toString();
                 
-                let floorDesc = `Brute-forced ceiling with ${winRateStr}% win rate. (Cost: ${timeCostStr} Arch Sec).`;
+                let floorDesc = `Brute-forced ceiling with ${winRateStr}% win rate.`;
                 if (newUpgs.length > 0) floorDesc += ` Unlocks: ${newUpgs.join(', ')}.`;
                 if (newBlocks.length > 0) floorDesc += ` New Blocks: ${newBlocks.join(', ')}.`;
 
+                let timeGapPush = cumulativeArchSecs - lastEventTime;
+                
                 history.push({
                     type: "floor",
                     event: `🚀 Max Floor Pushed to ${state.current_max_floor}`,
                     arch_sec: cumulativeArchSecs,
+                    time_delta: timeGapPush,
+                    active_build: "Push",
                     level: state.arch_level,
                     floor: state.current_max_floor,
                     desc: floorDesc,
-                    yields: { ...postEventYields },
+                    yields: { farm: currentFarmYields, push: currentPushYields },
                     frags: { ...frags }
                 });
+                lastEventTime = cumulativeArchSecs;
             } else {
                 break; // Build is mathematically incapable of surviving the next floor yet
             }
