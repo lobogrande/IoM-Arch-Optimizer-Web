@@ -3,7 +3,10 @@ import React, { useState, useMemo } from 'react';
 import useStore from '../../store';
 import { EngineWorkerPool } from '../../utils/optimizer';
 import { runPathfinderSimulation } from '../../utils/pathfinder_engine';
-import Plot from 'react-plotly.js';
+import PlotComponent from 'react-plotly.js';
+
+// Vite/CommonJS Interop Fix: Extract the component if Vite wrapped it in a Module object
+const Plot = PlotComponent.default || PlotComponent;
 
 export default function PathfinderTab() {
   const store = useStore();
