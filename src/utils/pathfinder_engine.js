@@ -180,6 +180,8 @@ export async function runPathfinderSimulation(startState, pool, onProgress) {
     let frags = { dirt: 0, com: 0, rare: 0, epic: 0, leg: 0, myth: 0, div: 0 };
     
     let history = [ ];
+    let lastFarmStr = "";
+    let lastPushStr = "";
     
     // Safety limit for Phase 2 testing (Stop at Arch 30 or 2000 events)
     const TARGET_LEVEL = 30;
@@ -223,6 +225,9 @@ export async function runPathfinderSimulation(startState, pool, onProgress) {
 
     const farmStr = formatBuildStr(state.base_stats, state);
     const pushStr = formatBuildStr(state.push_stats, state);
+    
+    lastFarmStr = farmStr;
+    lastPushStr = pushStr;
 
     history.push({
         type: "system",
@@ -230,6 +235,7 @@ export async function runPathfinderSimulation(startState, pool, onProgress) {
         arch_sec: cumulativeArchSecs,
         time_delta: 0,
         active_build: "None",
+        active_build_str: "",
         level: state.arch_level,
         floor: state.current_max_floor,
         desc: `Beginning Asc2 Journey. Initialized Budget (${expectedBudget} pts) -> Farm: ${farmStr} | Push: ${pushStr}`,
@@ -364,6 +370,7 @@ export async function runPathfinderSimulation(startState, pool, onProgress) {
                 arch_sec: cumulativeArchSecs,
                 time_delta: timeGap,
                 active_build: "Farm",
+                active_build_str: lastFarmStr,
                 level: state.arch_level,
                 floor: state.current_max_floor,
                 desc: `Farm: ${farmStr} | Push: ${pushStr}`,
@@ -371,6 +378,8 @@ export async function runPathfinderSimulation(startState, pool, onProgress) {
                 frags: { ...frags }
             });
             lastEventTime = cumulativeArchSecs;
+            lastFarmStr = farmStr;
+            lastPushStr = pushStr;
 
         } else if (eventType === 'upgrade') {
             // Buy Upgrade (Don't deduct if it's gems since we aren't tracking the gem bank perfectly yet)
@@ -407,6 +416,9 @@ export async function runPathfinderSimulation(startState, pool, onProgress) {
             await pool.syncState(pushTestState);
             currentPushYields = await pool.runTask(state.push_stats, state.upgrade_levels, state.external_levels, state.cards);
             await pool.syncState(state);
+            
+            const farmStr = formatBuildStr(state.base_stats, state);
+            const pushStr = formatBuildStr(state.push_stats, state);
 
             history.push({
                 type: "upgrade",
@@ -414,6 +426,7 @@ export async function runPathfinderSimulation(startState, pool, onProgress) {
                 arch_sec: cumulativeArchSecs,
                 time_delta: timeGap,
                 active_build: "Farm",
+                active_build_str: lastFarmStr,
                 level: state.arch_level,
                 floor: state.current_max_floor,
                 desc: upgDesc,
@@ -421,6 +434,8 @@ export async function runPathfinderSimulation(startState, pool, onProgress) {
                 frags: { ...frags }
             });
             lastEventTime = cumulativeArchSecs;
+            lastFarmStr = farmStr;
+            lastPushStr = pushStr;
         }
 
         // 5. ORGANIC FLOOR PUSH LOOP
@@ -500,6 +515,7 @@ export async function runPathfinderSimulation(startState, pool, onProgress) {
                     arch_sec: cumulativeArchSecs,
                     time_delta: timeGapPush,
                     active_build: "Push",
+                    active_build_str: lastPushStr,
                     level: state.arch_level,
                     floor: state.current_max_floor,
                     desc: floorDesc,
