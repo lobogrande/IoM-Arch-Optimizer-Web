@@ -134,19 +134,30 @@ async function attemptFloorPush(pool, state, samples = 25) {
     let successes = 0;
     let totalTimeSec = 0;
     
+    // Track the true average yields of the Push Build during these attempts
+    let pushYields = { xp_per_min: 0, frag_0_per_min: 0, frag_1_per_min: 0, frag_2_per_min: 0, frag_3_per_min: 0, frag_4_per_min: 0, frag_5_per_min: 0, frag_6_per_min: 0 };
+    
     batchResults.forEach(res => {
         totalTimeSec += res.total_time;
         if (res.highest_floor >= nextFloor) successes++;
+        
+        pushYields.xp_per_min += res.xp_per_min || 0;
+        for (let i = 0; i <= 6; i++) {
+            pushYields[`frag_${i}_per_min`] += res[`frag_${i}_per_min`] || 0;
+        }
     });
+
+    // Average the yields across the samples
+    Object.keys(pushYields).forEach(k => pushYields[k] /= samples);
 
     if (successes > 0) {
         // Calculate probabilistic time penalty!
         const winRate = successes / samples;
         const expectedRuns = 1.0 / winRate;
-        const avgRunTimeSecs = (totalTimeSec / samples); // totalTimeSec is natively Arch Seconds from the engine
+        const avgRunTimeSecs = (totalTimeSec / samples); // natively Arch Seconds
         const timePenaltySecs = expectedRuns * avgRunTimeSecs;
         
-        return { success: true, timePenaltySecs, winRate };
+        return { success: true, timePenaltySecs, winRate, pushYields };
     } else {
         // Revert the engine back to current reality
         await pool.syncState(state); 
@@ -413,12 +424,12 @@ export async function runPathfinderSimulation(startState, pool, onProgress) {
                     cumulativeArchSecs += pushResult.timePenaltySecs;
                     
                     // CRITICAL FIX: Accrue resources for the time spent grinding those brute-force attempts!
-                    // We use the yields from the current floor, because that is where they were grinding.
+                    // We MUST use the yields from the PUSH BUILD, because that is what they were running!
                     const penaltyMins = pushResult.timePenaltySecs / 60.0;
-                    currentExp += (postEventYields.xp_per_min || 0) * penaltyMins;
+                    currentExp += (pushResult.pushYields.xp_per_min || 0) * penaltyMins;
                     Object.keys(frags).forEach(k => {
                         const rKey = FRAG_RATE_KEYS[k];
-                        if (postEventYields[rKey]) frags[k] += postEventYields[rKey] * penaltyMins;
+                        if (pushResult.pushYields[rKey]) frags[k] += pushResult.pushYields[rKey] * penaltyMins;
                     });
                     
                     // CRITICAL: We pushed the floor! Now we must re-sync the engine to this new ceiling
