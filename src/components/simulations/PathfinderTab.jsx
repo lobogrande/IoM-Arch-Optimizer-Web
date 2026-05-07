@@ -26,6 +26,8 @@ export default function PathfinderTab() {
   const asc2Template = {
     arch_level: 1,
     current_max_floor: 1,
+    arch_ability_infernal_bonus: parseFloat(store.arch_ability_infernal_bonus || "0") / 100.0,
+    total_infernal_cards: store.total_infernal_cards || 0,
     base_stats: { Str: 0, Agi: 0, Per: 0, Int: 0, Luck: 0, Div: 0, Corr: 0 },
     // Only keeping external upgrades that persist across Ascensions
     external_levels: { 4: 0, 5: store.external_levels[5] || 0, 6: store.external_levels[6] || 0, 8: store.geoduck_unlocked ? (store.external_levels[8] || 0) : 0, 21: store.external_levels[21] || 0 },
