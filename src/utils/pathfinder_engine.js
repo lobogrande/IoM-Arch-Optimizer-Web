@@ -68,51 +68,75 @@ async function getSmoothedYields(pool, state, stats, samples = 3) {
 async function runFastOptimizer(pool, state, targetMetric, budget, previousBuild, samples = 5) {
     await pool.syncState(state);
     const stats = getAvailableStatKeys(state);
+    const candidates = [ previousBuild ];
     
-    // Dynamic Step Sizing (Targets ~50-150 builds)
+    // 1. Inject Micro-Neighbors: Guarantee we test precise +1 breakpoints from the previous build!
+    if (budget > 0) {
+        stats.forEach(s => {
+            const neighbor = { ...previousBuild, [s]: (previousBuild[s] || 0) + 1 };
+            candidates.push(topUpBuild(neighbor, stats, budget, {}, {})); // Top up or constrain to budget
+        });
+    }
+
+    // 2. Coarse Grid Search
     let step = 1;
     if (stats.length >= 6) {
         if (budget >= 8) step = 2;
         if (budget >= 16) step = 3;
-        if (budget >= 25) step = 4;
-        if (budget >= 40) step = 5;
-    } else {
-        if (budget >= 15) step = 2;
-        if (budget >= 30) step = 3;
+        if (budget >= 30) step = 4;
     }
-    
-    const alignBudget = budget - (budget % step);
+
     const bounds = {};
     stats.forEach(s => bounds[s] = [0, budget]);
+
+    let alignBudget = budget - (budget % step);
+    let grid = generateDistributions(stats, alignBudget, step, bounds);
     
-    let dists = generateDistributions(stats, alignBudget, step, bounds);
-    dists = dists.map(d => topUpBuild(d, stats, budget, {}, bounds));
-    dists.push(previousBuild); // Guarantee no regression
+    // Protect against browser lag spikes by expanding step size if combinatorial space explodes
+    while (grid.length > 150 && step < budget) {
+        step++;
+        alignBudget = budget - (budget % step);
+        grid = generateDistributions(stats, alignBudget, step, bounds);
+    }
+    
+    grid.forEach(d => candidates.push(topUpBuild(d, stats, budget, {}, bounds)));
 
+    // 3. Deduplicate
     const unique = new Map();
-    dists.forEach(d => unique.set(stats.map(s => d[s] || 0).join(','), d));
-    const candidates = Array.from(unique.values());
+    candidates.forEach(d => unique.set(stats.map(s => d[s] || 0).join(','), d));
+    const finalCandidates = Array.from(unique.values());
 
-    // Round 1: Fast Filter (1 run per build)
-    const r1Promises = candidates.map(async (testStats) => {
-        const res = await pool.runTask(testStats, state.upgrade_levels, state.external_levels, state.cards);
-        return { build: testStats, val: res[targetMetric] || 0 };
+    // 4. Round 1 Filter (Mini-batch for Push Builds, with Secondary Tie-Breaker)
+    const r1Samples = targetMetric === 'highest_floor' ? 2 : 1;
+    const r1Promises = finalCandidates.map(async (testStats) => {
+        const avgYields = await getSmoothedYields(pool, state, testStats, r1Samples);
+        return { build: testStats, val: avgYields[targetMetric] || 0, secondary: avgYields.xp_per_min || 0 };
     });
+    
     const r1Results = await Promise.all(r1Promises);
-    r1Results.sort((a, b) => b.val - a.val);
+    
+    // CRITICAL FIX: Break integer ties using combat efficiency (xp_per_min) as a proxy for survivability!
+    r1Results.sort((a, b) => {
+        if (b.val !== a.val) return b.val - a.val;
+        return b.secondary - a.secondary;
+    });
     
     // Keep Top 15% (min 5 builds)
-    const keepCount = Math.max(5, Math.floor(candidates.length * 0.15));
+    const keepCount = Math.max(5, Math.floor(finalCandidates.length * 0.15));
     const r2Candidates = r1Results.slice(0, keepCount).map(r => r.build);
     
-    // Round 2: Monte Carlo Validation
+    // 5. Round 2: Monte Carlo Validation
     const r2Promises = r2Candidates.map(async (testStats) => {
         const avgYields = await getSmoothedYields(pool, state, testStats, samples);
-        return { build: testStats, val: avgYields[targetMetric], yields: avgYields };
+        return { build: testStats, val: avgYields[targetMetric] || 0, secondary: avgYields.xp_per_min || 0, yields: avgYields };
     });
     
     const r2Results = await Promise.all(r2Promises);
-    r2Results.sort((a, b) => b.val - a.val);
+    
+    r2Results.sort((a, b) => {
+        if (b.val !== a.val) return b.val - a.val;
+        return b.secondary - a.secondary;
+    });
     
     return { bestBuild: r2Results[0].build, bestYields: r2Results[0].yields };
 }
