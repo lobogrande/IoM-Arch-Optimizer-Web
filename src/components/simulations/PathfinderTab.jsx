@@ -217,7 +217,7 @@ export default function PathfinderTab() {
                             </summary>
                             <div className="pl-2 pt-1 mt-1 border-l border-st-border grid grid-cols-1 md:grid-cols-2 gap-2">
                               <div>
-                                <strong className="text-st-text-light">Yields / 1k Arch Sec:</strong><br/>
+                                <strong className="text-st-text-light">New Farm Yields / 1k Arch Sec:</strong><br/>
                                 XP: {formatNum(((node.yields.xp_per_min || 0) / 60) * 1000)}<br/>
                                 C: {(((node.yields.frag_1_per_min || 0) / 60) * 1000).toFixed(2)} | R: {(((node.yields.frag_2_per_min || 0) / 60) * 1000).toFixed(2)} | E: {(((node.yields.frag_3_per_min || 0) / 60) * 1000).toFixed(2)}
                               </div>
