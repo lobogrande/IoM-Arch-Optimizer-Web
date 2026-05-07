@@ -44,11 +44,11 @@ const getAvailableStatKeys = (state) => {
 const getEffectiveStatCaps = (state) => {
     const capBonus = (state.upgrade_levels[45] || 0) * 5;
     return {
-        Str: 30 + capBonus,
-        Agi: 30 + capBonus,
-        Per: 30 + capBonus,
-        Int: 30 + capBonus,
-        Luck: 30 + capBonus,
+        Str: 50 + capBonus,
+        Agi: 50 + capBonus,
+        Per: 25 + capBonus,
+        Int: 25 + capBonus,
+        Luck: 25 + capBonus,
         Div: 10 + capBonus,
         Corr: 10 + capBonus
     };
