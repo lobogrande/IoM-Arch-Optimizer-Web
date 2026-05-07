@@ -406,15 +406,24 @@ export async function runPathfinderSimulation(startState, pool, onProgress) {
         if (!hasInstantUpgrade) {
             while (true) {
                 const pushResult = await attemptFloorPush(pool, state);
-            if (pushResult.success) {
-                state.current_max_floor++;
-                
-                // Add the expected time it took to probabilistically brute-force the run!
-                cumulativeArchSecs += pushResult.timePenaltySecs;
-                
-                // CRITICAL: We pushed the floor! Now we must re-sync the engine to this new ceiling
-                // and recalculate the FARMING yields, simulating the player respeccing back to farm!
-                await pool.syncState(state);
+                if (pushResult.success) {
+                    state.current_max_floor++;
+                    
+                    // Add the expected time it took to probabilistically brute-force the run!
+                    cumulativeArchSecs += pushResult.timePenaltySecs;
+                    
+                    // CRITICAL FIX: Accrue resources for the time spent grinding those brute-force attempts!
+                    // We use the yields from the current floor, because that is where they were grinding.
+                    const penaltyMins = pushResult.timePenaltySecs / 60.0;
+                    currentExp += (postEventYields.xp_per_min || 0) * penaltyMins;
+                    Object.keys(frags).forEach(k => {
+                        const rKey = FRAG_RATE_KEYS[k];
+                        if (postEventYields[rKey]) frags[k] += postEventYields[rKey] * penaltyMins;
+                    });
+                    
+                    // CRITICAL: We pushed the floor! Now we must re-sync the engine to this new ceiling
+                    // and recalculate the FARMING yields, simulating the player respeccing back to farm!
+                    await pool.syncState(state);
                 postEventYields = await pool.runTask(state.base_stats, state.upgrade_levels, state.external_levels, state.cards);
 
                 // Calculate newly unlocked upgrades based on Floor!
