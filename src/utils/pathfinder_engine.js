@@ -350,7 +350,7 @@ export async function runPathfinderSimulation(startState, pool, onProgress) {
                 else if (pushResult.timePenaltySecs >= 1000) timeCostStr = (pushResult.timePenaltySecs / 1000).toFixed(1) + "k";
                 else timeCostStr = Math.floor(pushResult.timePenaltySecs).toString();
                 
-                let floorDesc = `Brute-forced ceiling with ${winRateStr}% win rate. (Cost: ${timeCostStr} AS).`;
+                let floorDesc = `Brute-forced ceiling with ${winRateStr}% win rate. (Cost: ${timeCostStr} Arch Sec).`;
                 if (newUpgs.length > 0) floorDesc += ` Unlocks: ${newUpgs.join(', ')}.`;
                 if (newBlocks.length > 0) floorDesc += ` New Blocks: ${newBlocks.join(', ')}.`;
 
