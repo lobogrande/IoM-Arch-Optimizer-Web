@@ -230,7 +230,7 @@ export default function PathfinderTab() {
                               <span>⏳ +{formatNum(group.time_delta)} AS</span>
                               <span>•</span>
                               <span className={group.active_build === 'Push' ? 'text-purple-400' : 'text-green-400'}>
-                                Running {group.active_build} Build
+                                Running {group.active_build} Build: {group.events[0].active_build_str}
                               </span>
                             </div>
                           </div>
