@@ -62,27 +62,31 @@ async function incrementalOptimize(pool, state, targetMetric) {
     return { bestStat, bestYields };
 }
 
-// Tests if the current build is mathematically capable of surviving 1 floor higher
+// Tests if the specialized Push Build is mathematically capable of surviving 1 floor higher
 async function attemptFloorPush(pool, state) {
     const nextFloor = state.current_max_floor + 1;
     const testState = { ...state, current_max_floor: nextFloor };
     
     // Briefly sync the engine to the new ceiling
     await pool.syncState(testState);
-    const yields = await pool.runTask(testState.base_stats, testState.upgrade_levels, testState.external_levels, testState.cards);
+    // CRITICAL: We pass state.push_stats here, simulating a temporary respec!
+    const yields = await pool.runTask(state.push_stats, testState.upgrade_levels, testState.external_levels, testState.cards);
     
     if (yields.highest_floor >= nextFloor) {
-        return { success: true, yields };
+        return { success: true };
     } else {
         // Revert the engine back to current reality
         await pool.syncState(state); 
-        return { success: false, yields: null };
+        return { success: false };
     }
 }
 
 export async function runPathfinderSimulation(startState, pool, onProgress) {
-    // 1. Initialize Tracked State
-    let state = { ...startState };
+    // 1. Initialize Tracked State (Dual-Track the base stats!)
+    let state = { 
+        ...startState, 
+        push_stats: { ...startState.base_stats } 
+    };
     let timeElapsedMins = 0;
     let currentExp = 0;
     let unspentPoints = 0;
@@ -211,11 +215,15 @@ export async function runPathfinderSimulation(startState, pool, onProgress) {
             state.arch_level++;
             currentExp = 0; // Reset exp
             
-            // PHASE 3: Micro-Optimizer! 
-            // Concurrently test distributing the 1 gained point to maximize xp_per_min
-            const optResult = await incrementalOptimize(pool, state, 'xp_per_min');
-            state.base_stats = { ...state.base_stats, [optResult.bestStat]: (state.base_stats[optResult.bestStat] || 0) + 1 };
-            postEventYields = optResult.bestYields;
+            // PHASE 3.5: Dual-Track Micro-Optimizer!
+            // 1. Test where the new point goes for the Farming Build (xp_per_min)
+            const optFarm = await incrementalOptimize(pool, { ...state, base_stats: state.base_stats }, 'xp_per_min');
+            state.base_stats = { ...state.base_stats, [optFarm.bestStat]: (state.base_stats[optFarm.bestStat] || 0) + 1 };
+            postEventYields = optFarm.bestYields;
+
+            // 2. Test where the new point goes for the Push Build (highest_floor)
+            const optPush = await incrementalOptimize(pool, { ...state, base_stats: state.push_stats }, 'highest_floor');
+            state.push_stats = { ...state.push_stats, [optPush.bestStat]: (state.push_stats[optPush.bestStat] || 0) + 1 };
 
             history.push({
                 type: "level",
@@ -223,7 +231,7 @@ export async function runPathfinderSimulation(startState, pool, onProgress) {
                 time_mins: timeElapsedMins,
                 level: state.arch_level,
                 floor: state.current_max_floor,
-                desc: `Optimizer placed +1 stat point into ${optResult.bestStat}. Unlocked new ceiling for Gem Upgrades.`,
+                desc: `Farm Build placed point in ${optFarm.bestStat}. Push Build placed point in ${optPush.bestStat}.`,
                 yields: { ...postEventYields }
             });
 
@@ -254,12 +262,16 @@ export async function runPathfinderSimulation(startState, pool, onProgress) {
         }
 
         // 5. ORGANIC FLOOR PUSH LOOP
-        // After every event, keep attempting to push the floor as long as the new build can survive it!
+        // After every event, keep attempting to push the floor using the secret PUSH build!
         while (true) {
             const pushResult = await attemptFloorPush(pool, state);
             if (pushResult.success) {
                 state.current_max_floor++;
-                postEventYields = pushResult.yields;
+                
+                // CRITICAL: We pushed the floor! Now we must re-sync the engine to this new ceiling
+                // and recalculate the FARMING yields, simulating the player respeccing back to farm!
+                await pool.syncState(state);
+                postEventYields = await pool.runTask(state.base_stats, state.upgrade_levels, state.external_levels, state.cards);
 
                 // Calculate newly unlocked upgrades based on Floor!
                 const newUpgs = Object.entries(UPGRADE_LEVEL_REQS)
@@ -275,7 +287,7 @@ export async function runPathfinderSimulation(startState, pool, onProgress) {
                         return `${FRAG_NAMES_UI[type] || type} T${tier}`;
                     });
                 
-                let floorDesc = `Ceiling mathematically breached!`;
+                let floorDesc = `Temporarily respecced to Push Build to breach ceiling!`;
                 if (newUpgs.length > 0) floorDesc += ` Unlocks: ${newUpgs.join(', ')}.`;
                 if (newBlocks.length > 0) floorDesc += ` New Blocks: ${newBlocks.join(', ')}.`;
 
