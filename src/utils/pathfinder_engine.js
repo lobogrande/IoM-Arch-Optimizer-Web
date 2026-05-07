@@ -206,7 +206,7 @@ async function attemptFloorPush(pool, state, samples = 50) {
     }
 }
 
-export async function runPathfinderSimulation(startState, targetLevel, pool, onProgress) {
+export async function runPathfinderSimulation(startState, targetLevel, initialFrags, pool, onProgress) {
     // 1. Initialize Tracked State (Dual-Track the base stats!)
     let state = { 
         ...startState, 
@@ -217,8 +217,16 @@ export async function runPathfinderSimulation(startState, targetLevel, pool, onP
     let currentExp = 0;
     let unspentPoints = 0;
     
-    // Fragment Banks (Always starts at 0 for pathfinder projections)
-    let frags = { dirt: 0, com: 0, rare: 0, epic: 0, leg: 0, myth: 0, div: 0 };
+    // Fragment Banks (Initialized from UI input)
+    let frags = { 
+        dirt: initialFrags?.dirt || 0, 
+        com: initialFrags?.com || 0, 
+        rare: initialFrags?.rare || 0, 
+        epic: initialFrags?.epic || 0, 
+        leg: initialFrags?.leg || 0, 
+        myth: initialFrags?.myth || 0, 
+        div: initialFrags?.div || 0 
+    };
     
     let history = [ ];
     let lastFarmStr = "";
