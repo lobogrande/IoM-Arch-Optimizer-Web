@@ -158,7 +158,7 @@ async function runFastOptimizer(pool, state, targetMetric, budget, previousBuild
     const finalCandidates = Array.from(unique.values());
 
     // 4. Round 1 Filter (Mini-batch for Push Builds, with Secondary Tie-Breaker)
-    const r1Samples = targetMetric === 'highest_floor' ? 2 : 1;
+    const r1Samples = targetMetric === 'highest_floor' ? 3 : 1; // Bumped to 3 to prevent godly builds failing from early RNG
     const r1Promises = finalCandidates.map(async (testStats) => {
         const avgYields = await getSmoothedYields(pool, state, testStats, r1Samples);
         return { build: testStats, val: avgYields[targetMetric] || 0, secondary: avgYields.xp_per_min || 0 };
@@ -336,7 +336,8 @@ export async function runPathfinderSimulation(startState, targetLevel, initialFr
         // 2. TIMERS: Calculate Time To Next Milestone (TTNM)
         let t_next_level = Infinity;
         if (yields.xp_per_min > 0) {
-            const expNeeded = getExpRequired(state.arch_level) - currentExp;
+            // CRITICAL FIX: Math.max(0) prevents negative time requirements if XP overfilled during a floor push!
+            const expNeeded = Math.max(0, getExpRequired(state.arch_level) - currentExp);
             t_next_level = expNeeded / yields.xp_per_min;
         }
 
@@ -401,10 +402,10 @@ export async function runPathfinderSimulation(startState, targetLevel, initialFr
 
         // Prioritize Upgrades if they trigger at the exact same moment as a Level Up
         if (t_next_upgrade <= t_next_level && t_next_upgrade !== Infinity) {
-            t_step = t_next_upgrade;
+            t_step = Math.max(0, t_next_upgrade); // Double safeguard against time travel
             eventType = 'upgrade';
         } else if (t_next_level !== Infinity) {
-            t_step = t_next_level;
+            t_step = Math.max(0, t_next_level);
             eventType = 'level';
         } else {
             // Failsafe for soft-locks (e.g. 0 yields)
@@ -567,9 +568,12 @@ export async function runPathfinderSimulation(startState, targetLevel, initialFr
         if (!hasInstantUpgrade) {
             while (true) {
                 // Calculate the Temporal Paradox Guard limit (How many seconds until next level?)
-                const expNeeded = getExpRequired(state.arch_level) - currentExp;
+                const expNeeded = Math.max(0, getExpRequired(state.arch_level) - currentExp);
                 const currentXpRate = currentFarmYields?.xp_per_min || 1;
                 const timeToNextLevelSecs = (expNeeded / currentXpRate) * 60;
+
+                // Only attempt a push if we actually have time before the next level up!
+                if (timeToNextLevelSecs <= 0) break;
 
                 const pushResult = await attemptFloorPush(pool, state, timeToNextLevelSecs, 50);
                 if (pushResult.success) {
