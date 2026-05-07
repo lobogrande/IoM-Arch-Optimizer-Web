@@ -169,9 +169,9 @@ export default function PathfinderTab() {
               
               <div className="mt-4 border-t border-st-border pt-4">
                 <label className="block text-sm font-bold text-[#FAFAFA] mb-2">Starting Fragment Bank (Millions):</label>
-                <div className="grid grid-cols-4 gap-3">
+                <div className="grid grid-cols-3 md:grid-cols-6 gap-3">
                   {[
-                    { id: 'dirt', label: 'Dirt' }, { id: 'com', label: 'Common' }, { id: 'rare', label: 'Rare' }, 
+                    { id: 'com', label: 'Common' }, { id: 'rare', label: 'Rare' }, 
                     { id: 'epic', label: 'Epic' }, { id: 'leg', label: 'Legendary' }, { id: 'myth', label: 'Mythic' }, 
                     { id: 'div', label: 'Divine' }
                   ].map(f => (
