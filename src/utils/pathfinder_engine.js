@@ -144,7 +144,8 @@ export async function runPathfinderSimulation(startState, pool, onProgress) {
         arch_sec: cumulativeArchSecs,
         level: state.arch_level,
         floor: state.current_max_floor,
-        desc: "Beginning Asc2 Journey"
+        desc: "Beginning Asc2 Journey",
+        frags: { ...frags }
     });
 
     while (state.arch_level < TARGET_LEVEL && eventCount < MAX_EVENTS) {
@@ -225,10 +226,11 @@ export async function runPathfinderSimulation(startState, pool, onProgress) {
             history.push({
                 type: "system",
                 event: "Engine Stalled",
-                time_mins: timeElapsedMins,
+                arch_sec: cumulativeArchSecs,
                 level: state.arch_level,
                 floor: state.current_max_floor,
-                desc: "Yields dropped to 0. Cannot progress time."
+                desc: "Yields dropped to 0. Cannot progress time.",
+                frags: { ...frags }
             });
             break;
         }
@@ -265,7 +267,8 @@ export async function runPathfinderSimulation(startState, pool, onProgress) {
                 level: state.arch_level,
                 floor: state.current_max_floor,
                 desc: `Farm Build placed point in ${optFarm.bestStat}. Push Build placed point in ${optPush.bestStat}.`,
-                yields: { ...postEventYields }
+                yields: { ...postEventYields },
+                frags: { ...frags }
             });
 
         } else if (eventType === 'upgrade') {
@@ -290,14 +293,30 @@ export async function runPathfinderSimulation(startState, pool, onProgress) {
                 level: state.arch_level,
                 floor: state.current_max_floor,
                 desc: `Cost: ${nextUpgradeCost.amount} ${fragUI}`,
-                yields: { ...postEventYields }
+                yields: { ...postEventYields },
+                frags: { ...frags }
             });
         }
 
         // 5. ORGANIC FLOOR PUSH LOOP
-        // After every event, keep attempting to push the floor using the secret PUSH build!
-        while (true) {
-            const pushResult = await attemptFloorPush(pool, state);
+        // Check if there are more instantly affordable upgrades. If so, defer the floor push until they are bought!
+        let hasInstantUpgrade = false;
+        for (const upgId of upgradeTargets) {
+            const currentLvl = state.upgrade_levels[ upgId ] || 0;
+            if ((upgId === 3 || upgId === 4 || upgId === 5) && currentLvl >= state.arch_level) continue;
+            
+            const cost = calculateUpgradeCost(upgId, currentLvl + 1, 2);
+            if (cost) {
+                if (cost.currency === 'gems' || (frags[ cost.currency ] || 0) >= cost.amount) {
+                    hasInstantUpgrade = true;
+                    break;
+                }
+            }
+        }
+
+        if (!hasInstantUpgrade) {
+            while (true) {
+                const pushResult = await attemptFloorPush(pool, state);
             if (pushResult.success) {
                 state.current_max_floor++;
                 
@@ -342,12 +361,14 @@ export async function runPathfinderSimulation(startState, pool, onProgress) {
                     level: state.arch_level,
                     floor: state.current_max_floor,
                     desc: floorDesc,
-                    yields: { ...postEventYields }
+                    yields: { ...postEventYields },
+                    frags: { ...frags }
                 });
             } else {
                 break; // Build is mathematically incapable of surviving the next floor yet
             }
         }
+        } // End of !hasInstantUpgrade block
 
         // Send UI Progress
         if (onProgress) {
