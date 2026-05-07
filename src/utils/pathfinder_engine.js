@@ -1,7 +1,7 @@
 // src/utils/pathfinder_engine.js
 
 import { calculateUpgradeCost, UPGRADE_NAMES, UPGRADE_LEVEL_REQS, BLOCK_MIN_FLOORS } from '../game_data';
-import { generateDistributions } from './optimizer';
+import { generateDistributions, topUpBuild } from './optimizer';
 
 // XP Math deduced from player telemetry
 export const getExpRequired = (level) => {
@@ -64,54 +64,57 @@ async function getSmoothedYields(pool, state, stats, samples = 3) {
     return avgYields;
 }
 
-// Tests a dynamic coarse grid of full redistributions + immediate neighbors to jump over breakpoints!
-async function smartRespec(pool, state, targetMetric, currentBuild, addedPoints = 1, samples = 3) {
+// Runs a lightning-fast Successive Halving Grid Search to completely escape local minima
+async function runFastOptimizer(pool, state, targetMetric, budget, previousBuild, samples = 5) {
     await pool.syncState(state);
-    
     const stats = getAvailableStatKeys(state);
-    const budget = stats.reduce((sum, s) => sum + (currentBuild[s] || 0), 0) + addedPoints;
-
-    const candidates = [ ];
-    stats.forEach(s => candidates.push({ ...currentBuild, [s]: (currentBuild[s] || 0) + addedPoints }));
-
-    let step = Math.max(1, Math.ceil(budget / 3));
-    let grid = generateDistributions(stats, budget, step, null);
-    while (grid.length > 100 && step < budget) {
-        step++;
-        grid = generateDistributions(stats, budget, step, null);
+    
+    // Dynamic Step Sizing (Targets ~50-150 builds)
+    let step = 1;
+    if (stats.length >= 6) {
+        if (budget >= 8) step = 2;
+        if (budget >= 16) step = 3;
+        if (budget >= 25) step = 4;
+        if (budget >= 40) step = 5;
+    } else {
+        if (budget >= 15) step = 2;
+        if (budget >= 30) step = 3;
     }
-    candidates.push(...grid);
+    
+    const alignBudget = budget - (budget % step);
+    const bounds = {};
+    stats.forEach(s => bounds[s] = [0, budget]);
+    
+    let dists = generateDistributions(stats, alignBudget, step, bounds);
+    dists = dists.map(d => topUpBuild(d, stats, budget, {}, bounds));
+    dists.push(previousBuild); // Guarantee no regression
 
-    const uniqueKeys = new Set();
-    const finalCandidates = [ ];
-    for (const c of candidates) {
-        const key = stats.map(s => c[s] || 0).join(',');
-        if (!uniqueKeys.has(key)) {
-            uniqueKeys.add(key);
-            finalCandidates.push(c);
-        }
-    }
+    const unique = new Map();
+    dists.forEach(d => unique.set(stats.map(s => d[s] || 0).join(','), d));
+    const candidates = Array.from(unique.values());
 
-    const promises = finalCandidates.map(async (testStats) => {
+    // Round 1: Fast Filter (1 run per build)
+    const r1Promises = candidates.map(async (testStats) => {
+        const res = await pool.runTask(testStats, state.upgrade_levels, state.external_levels, state.cards);
+        return { build: testStats, val: res[targetMetric] || 0 };
+    });
+    const r1Results = await Promise.all(r1Promises);
+    r1Results.sort((a, b) => b.val - a.val);
+    
+    // Keep Top 15% (min 5 builds)
+    const keepCount = Math.max(5, Math.floor(candidates.length * 0.15));
+    const r2Candidates = r1Results.slice(0, keepCount).map(r => r.build);
+    
+    // Round 2: Monte Carlo Validation
+    const r2Promises = r2Candidates.map(async (testStats) => {
         const avgYields = await getSmoothedYields(pool, state, testStats, samples);
         return { build: testStats, val: avgYields[targetMetric], yields: avgYields };
     });
-
-    const results = await Promise.all(promises);
     
-    let bestBuild = currentBuild;
-    let bestVal = -1;
-    let bestYields = null;
-
-    for (const res of results) {
-        if (res.val > bestVal) {
-            bestVal = res.val;
-            bestBuild = res.build;
-            bestYields = res.yields;
-        }
-    }
+    const r2Results = await Promise.all(r2Promises);
+    r2Results.sort((a, b) => b.val - a.val);
     
-    return { bestBuild, bestYields };
+    return { bestBuild: r2Results[0].build, bestYields: r2Results[0].yields };
 }
 
 // Tests if the specialized Push Build is mathematically capable of surviving 1 floor higher
@@ -198,14 +201,20 @@ export async function runPathfinderSimulation(startState, pool, onProgress) {
     let currentPushYields = null;
 
     if (startupPoints > 0) {
-        const optFarm = await smartRespec(pool, state, 'xp_per_min', state.base_stats, startupPoints, 3);
+        const expectedBudget = state.arch_level + (state.upgrade_levels[12] || 0);
+
+        const optFarm = await runFastOptimizer(pool, state, 'xp_per_min', expectedBudget, state.base_stats, 3);
         state.base_stats = optFarm.bestBuild;
         currentFarmYields = optFarm.bestYields;
         
-        const pushTestState = { ...state, current_max_floor: state.current_max_floor + 1 };
-        const optPush = await smartRespec(pool, pushTestState, 'highest_floor', state.push_stats, startupPoints, 8); // 8 samples captures low-chance early push gradients!
+        // CRITICAL GRADIENT FIX: Uncap the ceiling so the optimizer can map the true max floor!
+        const pushTestState = { ...state, current_max_floor: 200 };
+        const optPush = await runFastOptimizer(pool, pushTestState, 'highest_floor', expectedBudget, state.push_stats, 8);
         state.push_stats = optPush.bestBuild;
-        currentPushYields = optPush.bestYields;
+        
+        // Sync to the actual target floor to generate accurate UI yields
+        const pushActualTargetState = { ...state, current_max_floor: state.current_max_floor + 1 };
+        currentPushYields = await getSmoothedYields(pool, pushActualTargetState, state.push_stats, 5);
         
         await pool.syncState(state);
     } else {
@@ -338,20 +347,25 @@ export async function runPathfinderSimulation(startState, pool, onProgress) {
         if (eventType === 'level') {
             state.arch_level++;
             currentExp = 0; // Reset exp
-            unspentPoints++; // Track points to distribute
             
-            // PHASE 3.5: Dual-Track Smart Redistribution!
-            const optFarm = await smartRespec(pool, state, 'xp_per_min', state.base_stats, unspentPoints, 3);
+            const totalBudget = state.arch_level + (state.upgrade_levels[12] || 0);
+
+            // PHASE 3.5: Dual-Track Full Redistribution Optimizer!
+            const optFarm = await runFastOptimizer(pool, state, 'xp_per_min', totalBudget, state.base_stats, 3);
             state.base_stats = optFarm.bestBuild;
             currentFarmYields = optFarm.bestYields;
 
-            const pushTestState = { ...state, current_max_floor: state.current_max_floor + 1 };
-            const optPush = await smartRespec(pool, pushTestState, 'highest_floor', state.push_stats, unspentPoints, 8);
+            // CRITICAL GRADIENT FIX: Uncap the ceiling so the optimizer can map the true max floor!
+            const pushTestState = { ...state, current_max_floor: 200 };
+            const optPush = await runFastOptimizer(pool, pushTestState, 'highest_floor', totalBudget, state.push_stats, 8);
             state.push_stats = optPush.bestBuild;
-            currentPushYields = optPush.bestYields;
             
+            // Sync to the actual target floor to generate accurate UI yields
+            const pushActualTargetState = { ...state, current_max_floor: state.current_max_floor + 1 };
+            currentPushYields = await getSmoothedYields(pool, pushActualTargetState, state.push_stats, 5);
+
             await pool.syncState(state);
-            unspentPoints = 0; 
+            unspentPoints = 0;
 
             const farmStr = formatBuildStr(state.base_stats, state);
             const pushStr = formatBuildStr(state.push_stats, state);
@@ -387,27 +401,38 @@ export async function runPathfinderSimulation(startState, pool, onProgress) {
 
             let upgDesc = `Cost: ${nextUpgradeCost.amount} ${fragUI}`;
 
-            // If we just bought "Stat Points" (Upgrade 12), immediately optimize and apply the +1 Point!
-            if (nextUpgradeId === 12) {
-                const optFarm = await smartRespec(pool, state, 'xp_per_min', state.base_stats, 1, 3);
-                state.base_stats = optFarm.bestBuild;
+            // RE-OPTIMIZE AFTER FRAGMENT UPGRADES (Because stats synergize with new unlocked limits!)
+            if (nextUpgradeId >= 8) {
+                const totalBudget = state.arch_level + (state.upgrade_levels[12] || 0);
 
-                const pushTestState = { ...state, current_max_floor: state.current_max_floor + 1 };
-                const optPush = await smartRespec(pool, pushTestState, 'highest_floor', state.push_stats, 1, 8);
+                const optFarm = await runFastOptimizer(pool, state, 'xp_per_min', totalBudget, state.base_stats, 3);
+                state.base_stats = optFarm.bestBuild;
+                currentFarmYields = optFarm.bestYields;
+
+                const pushTestState = { ...state, current_max_floor: 200 };
+                const optPush = await runFastOptimizer(pool, pushTestState, 'highest_floor', totalBudget, state.push_stats, 8);
                 state.push_stats = optPush.bestBuild;
                 
-                await pool.syncState(state);
-                
-                upgDesc += `. Gained +1 Stat Point -> Farm: ${formatBuildStr(state.base_stats, state)} | Push: ${formatBuildStr(state.push_stats, state)}`;
-            }
+                const pushActualTargetState = { ...state, current_max_floor: state.current_max_floor + 1 };
+                currentPushYields = await getSmoothedYields(pool, pushActualTargetState, state.push_stats, 5);
 
-            // Recalculate BOTH yields using smoothed averages!
-            currentFarmYields = await getSmoothedYields(pool, state, state.base_stats, 3);
-            
-            const pushTestState = { ...state, current_max_floor: state.current_max_floor + 1 };
-            await pool.syncState(pushTestState);
-            currentPushYields = await getSmoothedYields(pool, pushTestState, state.push_stats, 3);
-            await pool.syncState(state);
+                await pool.syncState(state);
+
+                if (nextUpgradeId === 12) {
+                    upgDesc += `. Gained +1 Stat Point -> Farm: ${formatBuildStr(state.base_stats, state)} | Push: ${formatBuildStr(state.push_stats, state)}`;
+                } else {
+                    upgDesc += `. Respecced -> Farm: ${formatBuildStr(state.base_stats, state)} | Push: ${formatBuildStr(state.push_stats, state)}`;
+                }
+            } else {
+                // Gem Upgrades don't alter base breakpoints, just recalculate yields instantly
+                await pool.syncState(state);
+                currentFarmYields = await getSmoothedYields(pool, state, state.base_stats, 3);
+                
+                const pushActualTargetState = { ...state, current_max_floor: state.current_max_floor + 1 };
+                await pool.syncState(pushActualTargetState);
+                currentPushYields = await getSmoothedYields(pool, pushActualTargetState, state.push_stats, 3);
+                await pool.syncState(state);
+            }
             
             const farmStr = formatBuildStr(state.base_stats, state);
             const pushStr = formatBuildStr(state.push_stats, state);
