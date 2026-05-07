@@ -1,10 +1,21 @@
 // src/utils/pathfinder_engine.js
 
-import { calculateUpgradeCost } from '../game_data';
+import { calculateUpgradeCost, UPGRADE_NAMES } from '../game_data';
 
 // XP Math deduced from player telemetry
 export const getExpRequired = (level) => {
     return 10 * Math.pow(1.2, level + 1);
+};
+
+const FRAG_NAMES_UI = {
+    'gems': 'Gems',
+    'dirt': 'Dirt',
+    'com': 'Common',
+    'rare': 'Rare',
+    'epic': 'Epic',
+    'leg': 'Legendary',
+    'myth': 'Mythic',
+    'div': 'Divine'
 };
 
 // Maps fragment currency names to the exact result keys output by Pyodide
@@ -39,10 +50,11 @@ export async function runPathfinderSimulation(startState, pool, onProgress) {
     const MAX_EVENTS = 100;
 
     // Define the core Internal Upgrades to track for "Goal 2: Max Internal Upgrades"
-    // Using a few early ones to test the logic
-    const upgradeTargets =[ 9, 10, 11, 13, 14, 15, 16 ]; 
+    // Added 3, 4, 5 to track Gem Upgrades!
+    const upgradeTargets =[ 3, 4, 5, 9, 10, 11, 13, 14, 15, 16 ]; 
 
     history.push({
+        type: "system",
         event: "Simulation Started",
         time_mins: 0,
         level: state.arch_level,
@@ -69,11 +81,24 @@ export async function runPathfinderSimulation(startState, pool, onProgress) {
         // Scan upgrades to find the first one we can logically save for
         for (const upgId of upgradeTargets) {
             const currentLvl = state.upgrade_levels[ upgId ] || 0;
+            
+            // Gem Upgrades are strictly capped by Current Max Floor
+            if ((upgId === 3 || upgId === 4 || upgId === 5) && currentLvl >= state.current_max_floor) {
+                continue;
+            }
+
             const cost = calculateUpgradeCost(upgId, currentLvl + 1, 2); // AscTier 2
             
             if (cost) {
                 const currency = cost.currency;
-                if (currency === 'gems') continue; // Skip gem upgrades for now
+                
+                if (currency === 'gems') {
+                    // For Phase 2, we assume Gems are plentiful enough to instantly buy when unlocked
+                    t_next_upgrade = 0;
+                    nextUpgradeId = upgId;
+                    nextUpgradeCost = cost;
+                    break;
+                }
                 
                 const currentBank = frags[ currency ] || 0;
                 const needed = Math.max(0, cost.amount - currentBank);
@@ -123,26 +148,43 @@ export async function runPathfinderSimulation(startState, pool, onProgress) {
             unspentPoints = 0;
 
             history.push({
-                event: "Level Up",
+                type: "level",
+                event: `🎉 Level Up: Arch ${state.arch_level}`,
                 time_mins: timeElapsedMins,
                 level: state.arch_level,
-                desc: `Reached Arch Level ${state.arch_level}. Dumped stat point into Str.`,
+                desc: `Dumped stat point into Str.`,
+                yields: { ...yields }
+            });
+
+            // Phase 2 Dummy Logic: Immediately trigger a Max Floor Push after Leveling Up
+            state.current_max_floor++;
+            history.push({
+                type: "floor",
+                event: `🚀 Max Floor Pushed to ${state.current_max_floor}`,
+                time_mins: timeElapsedMins,
+                level: state.arch_level,
+                desc: `Unlocked new ceiling for Gem Upgrades.`,
                 yields: { ...yields }
             });
             
         } else if (t_step === t_next_upgrade) {
-            // Buy Upgrade
-            frags[ nextUpgradeCost.currency ] -= nextUpgradeCost.amount;
-            state.upgrade_levels = {
-                ...state.upgrade_levels,
-                [ nextUpgradeId ]: (state.upgrade_levels[ nextUpgradeId ] || 0) + 1
-            };
+            // Buy Upgrade (Don't deduct if it's gems since we aren't tracking the gem bank perfectly yet)
+            if (nextUpgradeCost.currency !== 'gems') {
+                frags[ nextUpgradeCost.currency ] -= nextUpgradeCost.amount;
+            }
+            
+            const newLvl = (state.upgrade_levels[ nextUpgradeId ] || 0) + 1;
+            state.upgrade_levels = { ...state.upgrade_levels, [ nextUpgradeId ]: newLvl };
+
+            const upgName = UPGRADE_NAMES[ nextUpgradeId ] || `Upgrade ${nextUpgradeId}`;
+            const fragUI = FRAG_NAMES_UI[ nextUpgradeCost.currency ] || nextUpgradeCost.currency;
 
             history.push({
-                event: "Upgrade Purchased",
+                type: "upgrade",
+                event: `🛒 Bought ${upgName} (Lvl ${newLvl})`,
                 time_mins: timeElapsedMins,
                 level: state.arch_level,
-                desc: `Bought Upgrade ID ${nextUpgradeId} Lvl ${state.upgrade_levels[ nextUpgradeId ]} for ${nextUpgradeCost.amount} ${nextUpgradeCost.currency} frags.`,
+                desc: `Cost: ${nextUpgradeCost.amount} ${fragUI}`,
                 yields: { ...yields }
             });
         }
