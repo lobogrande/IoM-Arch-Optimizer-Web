@@ -40,6 +40,20 @@ const getAvailableStatKeys = (state) => {
     return keys;
 };
 
+// Dynamic Cap Resolver (Handles base limits and Upgrade 45 limit breaks)
+const getEffectiveStatCaps = (state) => {
+    const capBonus = (state.upgrade_levels[45] || 0) * 5;
+    return {
+        Str: 30 + capBonus,
+        Agi: 30 + capBonus,
+        Per: 30 + capBonus,
+        Int: 30 + capBonus,
+        Luck: 30 + capBonus,
+        Div: 10 + capBonus,
+        Corr: 10 + capBonus
+    };
+};
+
 // Formatter for logs
 const formatBuildStr = (build, state) => {
     const stats = getAvailableStatKeys(state);
@@ -68,13 +82,20 @@ async function getSmoothedYields(pool, state, stats, samples = 3) {
 async function runFastOptimizer(pool, state, targetMetric, budget, previousBuild, samples = 5) {
     await pool.syncState(state);
     const stats = getAvailableStatKeys(state);
+    const caps = getEffectiveStatCaps(state);
     const candidates = [ previousBuild ];
+
+    const bounds = {};
+    stats.forEach(s => bounds[s] = [0, Math.min(budget, caps[s])]);
     
     // 1. Inject Micro-Neighbors: Guarantee we test precise +1 breakpoints from the previous build!
+    // We explicitly restrict neighbors to respect the effective caps.
     if (budget > 0) {
         stats.forEach(s => {
-            const neighbor = { ...previousBuild, [s]: (previousBuild[s] || 0) + 1 };
-            candidates.push(topUpBuild(neighbor, stats, budget, {}, {})); // Top up or constrain to budget
+            if ((previousBuild[s] || 0) < bounds[s][1]) {
+                const neighbor = { ...previousBuild, [s]: (previousBuild[s] || 0) + 1 };
+                candidates.push(topUpBuild(neighbor, stats, budget, caps, bounds));
+            }
         });
     }
 
@@ -86,9 +107,6 @@ async function runFastOptimizer(pool, state, targetMetric, budget, previousBuild
         if (budget >= 30) step = 4;
     }
 
-    const bounds = {};
-    stats.forEach(s => bounds[s] = [0, budget]);
-
     let alignBudget = budget - (budget % step);
     let grid = generateDistributions(stats, alignBudget, step, bounds);
     
@@ -99,7 +117,7 @@ async function runFastOptimizer(pool, state, targetMetric, budget, previousBuild
         grid = generateDistributions(stats, alignBudget, step, bounds);
     }
     
-    grid.forEach(d => candidates.push(topUpBuild(d, stats, budget, {}, bounds)));
+    grid.forEach(d => candidates.push(topUpBuild(d, stats, budget, caps, bounds)));
 
     // 3. Deduplicate
     const unique = new Map();
@@ -142,8 +160,8 @@ async function runFastOptimizer(pool, state, targetMetric, budget, previousBuild
 }
 
 // Tests if the specialized Push Build is mathematically capable of surviving 1 floor higher
-// Runs a batch of 25 to accurately detect the 5-10% lucky/miracle runs!
-async function attemptFloorPush(pool, state, samples = 25) {
+// Runs a batch of 50 to massively smooth out the RNG and accurately measure the Win Rate
+async function attemptFloorPush(pool, state, samples = 50) {
     const nextFloor = state.current_max_floor + 1;
     const testState = { ...state, current_max_floor: nextFloor };
     
