@@ -32,6 +32,54 @@ const FRAG_RATE_KEYS = {
 /**
  * The Macro-Stepper Engine for Ascension 2
  */
+const getAvailableStatKeys = (state) => {
+    const keys =['Str', 'Agi', 'Per', 'Int', 'Luck'];
+    if (state.asc2_unlocked) keys.push('Corr');
+    return keys;
+};
+
+// Tests +1 point in every stat concurrently, returning the one that maximizes the target metric
+async function incrementalOptimize(pool, state, targetMetric) {
+    const stats = getAvailableStatKeys(state);
+    let bestStat = 'Str';
+    let bestVal = -1;
+    let bestYields = null;
+
+    const promises = stats.map(async (stat) => {
+        const testStats = { ...state.base_stats, [stat]: (state.base_stats[stat] || 0) + 1 };
+        const yields = await pool.runTask(testStats, state.upgrade_levels, state.external_levels, state.cards);
+        return { stat, val: yields[targetMetric] || 0, yields };
+    });
+
+    const results = await Promise.all(promises);
+    for (const res of results) {
+        if (res.val > bestVal) {
+            bestVal = res.val;
+            bestStat = res.stat;
+            bestYields = res.yields;
+        }
+    }
+    return { bestStat, bestYields };
+}
+
+// Tests if the current build is mathematically capable of surviving 1 floor higher
+async function attemptFloorPush(pool, state) {
+    const nextFloor = state.current_max_floor + 1;
+    const testState = { ...state, current_max_floor: nextFloor };
+    
+    // Briefly sync the engine to the new ceiling
+    await pool.syncState(testState);
+    const yields = await pool.runTask(testState.base_stats, testState.upgrade_levels, testState.external_levels, testState.cards);
+    
+    if (yields.highest_floor >= nextFloor) {
+        return { success: true, yields };
+    } else {
+        // Revert the engine back to current reality
+        await pool.syncState(state); 
+        return { success: false, yields: null };
+    }
+}
+
 export async function runPathfinderSimulation(startState, pool, onProgress) {
     // 1. Initialize Tracked State
     let state = { ...startState };
@@ -157,14 +205,17 @@ export async function runPathfinderSimulation(startState, pool, onProgress) {
         });
 
         // 4. RESOLVE EVENT
+        let postEventYields = yields; // Track the latest yields after the event resolves
+
         if (eventType === 'level') {
             state.arch_level++;
             currentExp = 0; // Reset exp
-            unspentPoints++;
             
-            // Phase 2 Dummy Logic: Just dump points into Strength to keep growing
-            state.base_stats = { ...state.base_stats, Str: (state.base_stats.Str || 0) + unspentPoints };
-            unspentPoints = 0;
+            // PHASE 3: Micro-Optimizer! 
+            // Concurrently test distributing the 1 gained point to maximize xp_per_min
+            const optResult = await incrementalOptimize(pool, state, 'xp_per_min');
+            state.base_stats = { ...state.base_stats, [optResult.bestStat]: (state.base_stats[optResult.bestStat] || 0) + 1 };
+            postEventYields = optResult.bestYields;
 
             history.push({
                 type: "level",
@@ -172,41 +223,10 @@ export async function runPathfinderSimulation(startState, pool, onProgress) {
                 time_mins: timeElapsedMins,
                 level: state.arch_level,
                 floor: state.current_max_floor,
-                desc: `Dumped stat point into Str. Unlocked new ceiling for Gem Upgrades.`,
-                yields: { ...yields }
+                desc: `Optimizer placed +1 stat point into ${optResult.bestStat}. Unlocked new ceiling for Gem Upgrades.`,
+                yields: { ...postEventYields }
             });
 
-            // Phase 2 Dummy Logic: Immediately trigger a Max Floor Push after Leveling Up
-            state.current_max_floor++;
-            
-            // Calculate newly unlocked upgrades based on Floor!
-            const newUpgs = Object.entries(UPGRADE_LEVEL_REQS)
-                .filter(([id, reqFlr]) => reqFlr === state.current_max_floor)
-                .map(([id]) => UPGRADE_NAMES[id] || `Upg ${id}`);
-
-            // Calculate newly spawning blocks based on Floor!
-            const newBlocks = Object.entries(BLOCK_MIN_FLOORS)
-                .filter(([id, minFlr]) => minFlr === state.current_max_floor)
-                .map(([id]) => {
-                    const type = id.replace(/[0-9]/g, '');
-                    const tier = id.replace(/[^0-9]/g, '');
-                    return `${FRAG_NAMES_UI[type] || type} T${tier}`;
-                });
-            
-            let floorDesc = `Ceiling increased.`;
-            if (newUpgs.length > 0) floorDesc += ` Unlocked Upgrades: ${newUpgs.join(', ')}.`;
-            if (newBlocks.length > 0) floorDesc += ` New Blocks: ${newBlocks.join(', ')}.`;
-
-            history.push({
-                type: "floor",
-                event: `🚀 Max Floor Pushed to ${state.current_max_floor}`,
-                time_mins: timeElapsedMins,
-                level: state.arch_level,
-                floor: state.current_max_floor,
-                desc: floorDesc,
-                yields: { ...yields }
-            });
-            
         } else if (eventType === 'upgrade') {
             // Buy Upgrade (Don't deduct if it's gems since we aren't tracking the gem bank perfectly yet)
             if (nextUpgradeCost.currency !== 'gems') {
@@ -219,6 +239,9 @@ export async function runPathfinderSimulation(startState, pool, onProgress) {
             const upgName = UPGRADE_NAMES[ nextUpgradeId ] || `Upgrade ${nextUpgradeId}`;
             const fragUI = FRAG_NAMES_UI[ nextUpgradeCost.currency ] || nextUpgradeCost.currency;
 
+            // Recalculate yields after the upgrade is applied
+            postEventYields = await pool.runTask(state.base_stats, state.upgrade_levels, state.external_levels, state.cards);
+
             history.push({
                 type: "upgrade",
                 event: `🛒 Bought ${upgName} (Lvl ${newLvl})`,
@@ -226,8 +249,48 @@ export async function runPathfinderSimulation(startState, pool, onProgress) {
                 level: state.arch_level,
                 floor: state.current_max_floor,
                 desc: `Cost: ${nextUpgradeCost.amount} ${fragUI}`,
-                yields: { ...yields }
+                yields: { ...postEventYields }
             });
+        }
+
+        // 5. ORGANIC FLOOR PUSH LOOP
+        // After every event, keep attempting to push the floor as long as the new build can survive it!
+        while (true) {
+            const pushResult = await attemptFloorPush(pool, state);
+            if (pushResult.success) {
+                state.current_max_floor++;
+                postEventYields = pushResult.yields;
+
+                // Calculate newly unlocked upgrades based on Floor!
+                const newUpgs = Object.entries(UPGRADE_LEVEL_REQS)
+                    .filter(([id, reqFlr]) => reqFlr === state.current_max_floor)
+                    .map(([id]) => UPGRADE_NAMES[id] || `Upg ${id}`);
+
+                // Calculate newly spawning blocks based on Floor!
+                const newBlocks = Object.entries(BLOCK_MIN_FLOORS)
+                    .filter(([id, minFlr]) => minFlr === state.current_max_floor)
+                    .map(([id]) => {
+                        const type = id.replace(/[0-9]/g, '');
+                        const tier = id.replace(/[^0-9]/g, '');
+                        return `${FRAG_NAMES_UI[type] || type} T${tier}`;
+                    });
+                
+                let floorDesc = `Ceiling mathematically breached!`;
+                if (newUpgs.length > 0) floorDesc += ` Unlocks: ${newUpgs.join(', ')}.`;
+                if (newBlocks.length > 0) floorDesc += ` New Blocks: ${newBlocks.join(', ')}.`;
+
+                history.push({
+                    type: "floor",
+                    event: `🚀 Max Floor Pushed to ${state.current_max_floor}`,
+                    time_mins: timeElapsedMins,
+                    level: state.arch_level,
+                    floor: state.current_max_floor,
+                    desc: floorDesc,
+                    yields: { ...postEventYields }
+                });
+            } else {
+                break; // Build is mathematically incapable of surviving the next floor yet
+            }
         }
 
         // Send UI Progress
