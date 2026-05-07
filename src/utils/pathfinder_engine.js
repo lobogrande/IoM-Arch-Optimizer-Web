@@ -1,6 +1,6 @@
 // src/utils/pathfinder_engine.js
 
-import { calculateUpgradeCost, UPGRADE_NAMES, UPGRADE_LEVEL_REQS, BLOCK_MIN_FLOORS } from '../game_data';
+import { calculateUpgradeCost, UPGRADE_NAMES, UPGRADE_LEVEL_REQS, BLOCK_MIN_FLOORS, INTERNAL_UPGRADE_CAPS } from '../game_data';
 import { generateDistributions, topUpBuild } from './optimizer';
 
 // XP Math deduced from player telemetry
@@ -268,9 +268,15 @@ export async function runPathfinderSimulation(startState, pool, onProgress) {
             const currentLvl = state.upgrade_levels[ upgId ] || 0;
             
             // Gem Upgrades are strictly capped by Arch Level
-            if ((upgId === 3 || upgId === 4 || upgId === 5) && currentLvl >= state.arch_level) {
-                continue;
-            }
+            if ((upgId === 3 || upgId === 4 || upgId === 5) && currentLvl >= state.arch_level) continue;
+
+            // Enforce Max Level Caps
+            const cap = INTERNAL_UPGRADE_CAPS[upgId];
+            if (cap !== undefined && currentLvl >= cap) continue;
+
+            // Enforce Max Floor Unlock Requirements
+            const reqFlr = UPGRADE_LEVEL_REQS[upgId] || 0;
+            if (state.current_max_floor < reqFlr) continue;
 
             const cost = calculateUpgradeCost(upgId, currentLvl + 1, 2); // AscTier 2
             
@@ -462,6 +468,12 @@ export async function runPathfinderSimulation(startState, pool, onProgress) {
             const currentLvl = state.upgrade_levels[ upgId ] || 0;
             if ((upgId === 3 || upgId === 4 || upgId === 5) && currentLvl >= state.arch_level) continue;
             
+            const cap = INTERNAL_UPGRADE_CAPS[upgId];
+            if (cap !== undefined && currentLvl >= cap) continue;
+
+            const reqFlr = UPGRADE_LEVEL_REQS[upgId] || 0;
+            if (state.current_max_floor < reqFlr) continue;
+
             const cost = calculateUpgradeCost(upgId, currentLvl + 1, 2);
             if (cost) {
                 if (cost.currency === 'gems' || (frags[ cost.currency ] || 0) >= cost.amount) {
