@@ -6,11 +6,12 @@ import { runPathfinderSimulation } from '../../utils/pathfinder_engine';
 
 export default function PathfinderTab() {
   const store = useStore();
-  const [startMode, setStartMode] = useState('template');
+  const[startMode, setStartMode] = useState('template');
   const [isSimulating, setIsSimulating] = useState(false);
   const [pathData, setPathData] = useState(null);
-  const [simStatus, setSimStatus] = useState('');
+  const[simStatus, setSimStatus] = useState('');
   const [simProgress, setSimProgress] = useState(0);
+  const [groupBy, setGroupBy] = useState('level'); // 'level' or 'floor'
 
   // Hardcoded Ascension 2 Starting Template Baseline
   const asc2Template = {
@@ -146,26 +147,44 @@ export default function PathfinderTab() {
       {/* RESULTS AREA (Phase 2 Grouped Log) */}
       {pathData && (
         <div className="bg-st-bg border border-st-border rounded p-4 shadow-sm animate-fade-in">
-          <h3 className="text-lg font-bold text-st-text mb-4 border-b border-st-border pb-2">Phase 2 Event Log</h3>
+          <div className="flex justify-between items-center mb-4 border-b border-st-border pb-2">
+            <h3 className="text-lg font-bold text-st-text">Phase 2 Event Log</h3>
+            <div className="flex bg-st-secondary/50 rounded border border-st-border text-xs font-bold overflow-hidden">
+              <button 
+                onClick={() => setGroupBy('level')}
+                className={`px-3 py-1.5 transition-colors ${groupBy === 'level' ? 'bg-st-orange text-st-bg' : 'text-st-text hover:bg-st-secondary'}`}
+              >
+                Group by Arch Level
+              </button>
+              <button 
+                onClick={() => setGroupBy('floor')}
+                className={`px-3 py-1.5 transition-colors border-l border-st-border ${groupBy === 'floor' ? 'bg-st-orange text-st-bg' : 'text-st-text hover:bg-st-secondary'}`}
+              >
+                Group by Max Floor
+              </button>
+            </div>
+          </div>
+          
           <div className="space-y-3 max-h-[600px] overflow-y-auto pr-2">
             {Object.entries(
               pathData.history.reduce((acc, node) => {
-                if (!acc[ node.level ]) acc[ node.level ] =[ ];
-                acc[ node.level ].push(node);
+                const key = groupBy === 'level' ? node.level : node.floor;
+                if (!acc[ key ]) acc[ key ] =[ ];
+                acc[ key ].push(node);
                 return acc;
               }, { })
-            ).map(([ level, nodes ]) => (
+            ).map(([ groupKey, nodes ]) => (
               <details 
-                key={level} 
+                key={groupKey} 
                 className="bg-st-secondary/10 border border-st-border rounded overflow-hidden" 
-                open={level === "1" || level === "30"}
+                open={groupKey === "1" || groupKey === "30"}
               >
                 <summary className="p-3 bg-st-secondary/20 font-bold cursor-pointer hover:bg-st-secondary/30 transition-colors flex justify-between items-center text-sm text-st-text outline-none select-none group">
                   <div className="flex items-center gap-2">
                     <svg className="w-4 h-4 text-st-text-light transform transition-transform group-open:rotate-90" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                     </svg>
-                    <span>Arch Level {level} Progression</span>
+                    <span>{groupBy === 'level' ? 'Arch Level' : 'Max Floor'} {groupKey} Progression</span>
                   </div>
                   <span className="text-xs text-st-text-light">{nodes.length} Events</span>
                 </summary>
