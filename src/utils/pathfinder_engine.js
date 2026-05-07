@@ -82,8 +82,8 @@ export async function runPathfinderSimulation(startState, pool, onProgress) {
         for (const upgId of upgradeTargets) {
             const currentLvl = state.upgrade_levels[ upgId ] || 0;
             
-            // Gem Upgrades are strictly capped by Current Max Floor
-            if ((upgId === 3 || upgId === 4 || upgId === 5) && currentLvl >= state.current_max_floor) {
+            // Gem Upgrades are strictly capped by Arch Level
+            if ((upgId === 3 || upgId === 4 || upgId === 5) && currentLvl >= state.arch_level) {
                 continue;
             }
 
@@ -152,7 +152,7 @@ export async function runPathfinderSimulation(startState, pool, onProgress) {
                 event: `🎉 Level Up: Arch ${state.arch_level}`,
                 time_mins: timeElapsedMins,
                 level: state.arch_level,
-                desc: `Dumped stat point into Str.`,
+                desc: `Dumped stat point into Str. Unlocked new ceiling for Gem Upgrades.`,
                 yields: { ...yields }
             });
 
@@ -163,7 +163,7 @@ export async function runPathfinderSimulation(startState, pool, onProgress) {
                 event: `🚀 Max Floor Pushed to ${state.current_max_floor}`,
                 time_mins: timeElapsedMins,
                 level: state.arch_level,
-                desc: `Unlocked new ceiling for Gem Upgrades.`,
+                desc: `Unlocked potentially higher tier blocks and fragments.`,
                 yields: { ...yields }
             });
             
