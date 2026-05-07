@@ -13,6 +13,11 @@ export default function PathfinderTab() {
   const [simProgress, setSimProgress] = useState(0);
   const [groupBy, setGroupBy] = useState('level'); // 'level' or 'floor'
   const [targetLevelAdd, setTargetLevelAdd] = useState(30); // How many levels to simulate
+  const [startFrags, setStartFrags] = useState({ dirt: 0, com: 0, rare: 0, epic: 0, leg: 0, myth: 0, div: 0 });
+
+  const handleFragChange = (key, val) => {
+    setStartFrags(prev => ({ ...prev, [key]: parseFloat(val) || 0 }));
+  };
 
   // Generic Number Formatter to keep the UI clean
   const formatNum = (val) => {
@@ -65,8 +70,13 @@ export default function PathfinderTab() {
       await pool.syncState(activeState);
 
       const targetArch = activeState.arch_level + targetLevelAdd;
+      
+      // Pass the user's manual fragments if using current workspace, otherwise start at 0
+      const initialFrags = startMode === 'template' 
+        ? { dirt: 0, com: 0, rare: 0, epic: 0, leg: 0, myth: 0, div: 0 } 
+        : startFrags;
 
-      const result = await runPathfinderSimulation(activeState, targetArch, pool, (prog) => {
+      const result = await runPathfinderSimulation(activeState, targetArch, initialFrags, pool, (prog) => {
         setSimProgress(prog.progress);
         setSimStatus(prog.status);
       });
@@ -152,6 +162,30 @@ export default function PathfinderTab() {
               <p>Arch Level: {store.arch_level}</p>
               <p>Max Floor: {store.current_max_floor}</p>
               <p>Targeting remaining goals based on current state...</p>
+              
+              <div className="mt-4 border-t border-st-border pt-4">
+                <label className="block text-sm font-bold text-[#FAFAFA] mb-2">Starting Fragment Bank (Millions):</label>
+                <div className="grid grid-cols-4 gap-3">
+                  {[
+                    { id: 'dirt', label: 'Dirt' }, { id: 'com', label: 'Common' }, { id: 'rare', label: 'Rare' }, 
+                    { id: 'epic', label: 'Epic' }, { id: 'leg', label: 'Legendary' }, { id: 'myth', label: 'Mythic' }, 
+                    { id: 'div', label: 'Divine' }
+                  ].map(f => (
+                    <div key={f.id} className="flex flex-col">
+                      <label className="text-[10px] text-st-text-light mb-1">{f.label}</label>
+                      <input 
+                        type="number" 
+                        step="0.1" 
+                        min="0" 
+                        value={startFrags[f.id] === 0 ? '' : startFrags[f.id]} 
+                        onChange={(e) => handleFragChange(f.id, e.target.value)} 
+                        className="bg-st-bg border border-st-border rounded px-2 py-1 text-st-text focus:border-st-orange outline-none text-xs"
+                        placeholder="0.0"
+                      />
+                    </div>
+                  ))}
+                </div>
+              </div>
             </div>
           )}
         </div>
