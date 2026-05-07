@@ -13,13 +13,13 @@ export default function PathfinderTab() {
   const [simProgress, setSimProgress] = useState(0);
   const [groupBy, setGroupBy] = useState('level'); // 'level' or 'floor'
 
-  // Formatter for Arch Seconds to keep the UI clean
-  const formatAS = (val) => {
-    if (val == null) return "0 AS";
-    if (val >= 1000000000) return (val / 1000000000).toFixed(2) + "b AS";
-    if (val >= 1000000) return (val / 1000000).toFixed(2) + "m AS";
-    if (val >= 1000) return (val / 1000).toFixed(1) + "k AS";
-    return Math.floor(val) + " AS";
+  // Generic Number Formatter to keep the UI clean
+  const formatNum = (val) => {
+    if (val == null) return "0";
+    if (val >= 1000000000) return (val / 1000000000).toFixed(2) + "b";
+    if (val >= 1000000) return (val / 1000000).toFixed(2) + "m";
+    if (val >= 1000) return (val / 1000).toFixed(1) + "k";
+    return Math.floor(val).toString();
   };
 
   // Hardcoded Ascension 2 Starting Template Baseline
@@ -201,13 +201,34 @@ export default function PathfinderTab() {
                   {nodes.map((node, idx) => (
                     <div key={idx} className="flex gap-4 items-start border-b border-st-border/50 pb-2 last:border-0 last:pb-0">
                       <div className="w-24 text-st-orange shrink-0 font-bold">
-                        {formatAS(node.arch_sec)}
+                        {formatNum(node.arch_sec)} Arch Sec
                       </div>
                       <div className="flex-1">
                         <strong className={`block ${node.type === 'level' ? 'text-green-400' : node.type === 'floor' ? 'text-purple-400' : 'text-st-text'}`}>
                           {node.event}
                         </strong>
                         <span className="text-st-text-light">{node.desc}</span>
+                        
+                        {/* DEBUG SNAPSHOT */}
+                        {node.yields && node.frags && (
+                          <details className="mt-1 group/debug text-[10px] text-gray-500">
+                            <summary className="cursor-pointer hover:text-gray-300 w-max select-none">
+                              🔍 View Snapshot
+                            </summary>
+                            <div className="pl-2 pt-1 mt-1 border-l border-st-border grid grid-cols-1 md:grid-cols-2 gap-2">
+                              <div>
+                                <strong className="text-st-text-light">Yields / min:</strong><br/>
+                                XP: {formatNum(node.yields.xp_per_min)}<br/>
+                                C: {node.yields.frag_1_per_min?.toFixed(1) || 0} | R: {node.yields.frag_2_per_min?.toFixed(1) || 0} | E: {node.yields.frag_3_per_min?.toFixed(1) || 0}
+                              </div>
+                              <div>
+                                <strong className="text-st-text-light">Fragment Bank:</strong><br/>
+                                C: {Math.floor(node.frags?.com || 0)} | R: {Math.floor(node.frags?.rare || 0)}<br/>
+                                E: {Math.floor(node.frags?.epic || 0)} | L: {Math.floor(node.frags?.leg || 0)}
+                              </div>
+                            </div>
+                          </details>
+                        )}
                       </div>
                     </div>
                   ))}
