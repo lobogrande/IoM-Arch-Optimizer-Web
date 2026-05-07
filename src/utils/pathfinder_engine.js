@@ -177,8 +177,10 @@ async function runFastOptimizer(pool, state, targetMetric, budget, previousBuild
     const r2Candidates = r1Results.slice(0, keepCount).map(r => r.build);
     
     // 5. Round 2: Monte Carlo Validation
+    // STRICT FIX: Force a much larger sample size specifically for Push Builds to mathematically prevent Optimizer Bias (overfitting to RNG noise)
+    const r2Samples = targetMetric === 'highest_floor' ? Math.max(25, samples) : samples;
     const r2Promises = r2Candidates.map(async (testStats) => {
-        const avgYields = await getSmoothedYields(pool, state, testStats, samples);
+        const avgYields = await getSmoothedYields(pool, state, testStats, r2Samples);
         return { build: testStats, val: avgYields[targetMetric] || 0, secondary: avgYields.xp_per_min || 0, yields: avgYields };
     });
     
@@ -216,32 +218,52 @@ async function attemptFloorPush(pool, state, maxTimePenaltySecs, samples = 50) {
         for (let i = 0; i <= 6; i++) pushYields[`frag_${i}_per_min`] += res[`frag_${i}_per_min`] || 0;
     });
 
-    Object.keys(pushYields).forEach(k => pushYields[k] /= samples);
+    let winRate = successes / samples;
 
-    if (successes > 0) {
-        const winRate = successes / samples;
-        
-        // REJECT 1: Minimum Reliability Guard. If Win Rate is < 5%, it's too volatile. Wait for stats!
-        if (winRate < 0.05) {
-            await pool.syncState(state); 
-            return { success: false };
-        }
-
-        const expectedRuns = 1.0 / winRate;
-        const avgRunTimeSecs = (totalTimeSec / samples); 
-        const timePenaltySecs = expectedRuns * avgRunTimeSecs;
-        
-        // REJECT 2: Temporal Paradox Guard. If the brute-force grind takes longer than just waiting for a Level Up, wait for the Level Up!
-        if (timePenaltySecs > maxTimePenaltySecs) {
-            await pool.syncState(state); 
-            return { success: false };
-        }
-
-        return { success: true, timePenaltySecs, winRate, pushYields };
-    } else {
+    // FAST REJECT: If it couldn't even hit 5% on a fast 50-sample scan, discard it immediately.
+    if (winRate < 0.05) {
         await pool.syncState(state); 
         return { success: false };
     }
+
+    // DEEP VERIFICATION GUARD:
+    // A 50-sample test is susceptible to statistical flukes (e.g. 3 successes on a 1% true probability).
+    // Since this decides massive Time Penalties and bypasses the Temporal Guard, we MUST confirm it!
+    const deepSamples = 150;
+    const deepTasks = Array.from({ length: deepSamples }, () => pool.runTask(state.push_stats, testState.upgrade_levels, testState.external_levels, testState.cards));
+    const deepResults = await Promise.all(deepTasks);
+
+    deepResults.forEach(res => {
+        totalTimeSec += res.total_time;
+        if (res.highest_floor >= nextFloor) successes++;
+        
+        pushYields.xp_per_min += res.xp_per_min || 0;
+        for (let i = 0; i <= 6; i++) pushYields[`frag_${i}_per_min`] += res[`frag_${i}_per_min`] || 0;
+    });
+
+    const totalSamples = samples + deepSamples;
+    winRate = successes / totalSamples;
+
+    // STRICT REJECT: The fluke was exposed. The true win rate is garbage.
+    if (winRate < 0.05) {
+        await pool.syncState(state); 
+        return { success: false };
+    }
+
+    // Normalize yields against the massive true sample size
+    Object.keys(pushYields).forEach(k => pushYields[k] /= totalSamples);
+
+    const expectedRuns = 1.0 / winRate;
+    const avgRunTimeSecs = (totalTimeSec / totalSamples); 
+    const timePenaltySecs = expectedRuns * avgRunTimeSecs;
+    
+    // TEMPORAL PARADOX GUARD: Now verified against the true massive-sample win rate!
+    if (timePenaltySecs > maxTimePenaltySecs) {
+        await pool.syncState(state); 
+        return { success: false };
+    }
+
+    return { success: true, timePenaltySecs, winRate, pushYields };
 }
 
 export async function runPathfinderSimulation(startState, targetLevel, initialFrags, pool, shiftFloor, onProgress) {
