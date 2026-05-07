@@ -411,7 +411,7 @@ export async function runPathfinderSimulation(startState, targetLevel, initialFr
 
             // CRITICAL GRADIENT FIX: Uncap the ceiling so the optimizer can map the true max floor!
             const pushTestState = { ...state, current_max_floor: 200 };
-            const optPush = await runFastOptimizer(pool, pushTestState, 'highest_floor', totalBudget, state.push_stats, 8);
+            const optPush = await runFastOptimizer(pool, pushTestState, 'highest_floor', totalBudget, state.push_stats, 12); // Bumped to 12
             state.push_stats = optPush.bestBuild;
             
             // Sync to the actual target floor to generate accurate UI yields
