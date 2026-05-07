@@ -223,8 +223,8 @@ export default function PathfinderTab() {
                               </div>
                               <div>
                                 <strong className="text-st-text-light">Fragment Bank:</strong><br/>
-                                C: {Math.floor(node.frags?.com || 0)} | R: {Math.floor(node.frags?.rare || 0)}<br/>
-                                E: {Math.floor(node.frags?.epic || 0)} | L: {Math.floor(node.frags?.leg || 0)}
+                                C: {(node.frags?.com || 0).toFixed(1)} | R: {(node.frags?.rare || 0).toFixed(1)}<br/>
+                                E: {(node.frags?.epic || 0).toFixed(1)} | L: {(node.frags?.leg || 0).toFixed(1)}
                               </div>
                             </div>
                           </details>
