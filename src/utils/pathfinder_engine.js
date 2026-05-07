@@ -47,7 +47,11 @@ const formatBuildStr = (build, state) => {
 };
 
 // Tests a dynamic coarse grid of full redistributions + immediate neighbors to jump over breakpoints!
-async function smartRespec(pool, state, targetMetric, currentBuild, addedPoints = 1, samples = 2) {
+async function smartRespec(pool, state, targetMetric, currentBuild, addedPoints = 1, samples = 3) {
+    // CRITICAL FIX: Ensure the worker pool ceiling actually matches the target state ceiling!
+    // Without this, the python engine stays capped at the old floor, blinding the optimizer.
+    await pool.syncState(state);
+    
     const stats = getAvailableStatKeys(state);
     const budget = stats.reduce((sum, s) => sum + (currentBuild[s] || 0), 0) + addedPoints;
 
@@ -115,8 +119,8 @@ async function smartRespec(pool, state, targetMetric, currentBuild, addedPoints 
 }
 
 // Tests if the specialized Push Build is mathematically capable of surviving 1 floor higher
-// Runs a batch of 10 to detect low-probability brute-force victories
-async function attemptFloorPush(pool, state, samples = 10) {
+// Runs a batch of 25 to accurately detect the 5-10% lucky/miracle runs!
+async function attemptFloorPush(pool, state, samples = 25) {
     const nextFloor = state.current_max_floor + 1;
     const testState = { ...state, current_max_floor: nextFloor };
     
@@ -184,8 +188,13 @@ export async function runPathfinderSimulation(startState, pool, onProgress) {
         const optFarm = await smartRespec(pool, state, 'xp_per_min', state.base_stats, startupPoints);
         state.base_stats = optFarm.bestBuild;
         
-        const optPush = await smartRespec(pool, state, 'highest_floor', state.push_stats, startupPoints);
+        // CRITICAL: Push Build must be evaluated against the NEXT floor to detect gradient!
+        const pushTestState = { ...state, current_max_floor: state.current_max_floor + 1 };
+        const optPush = await smartRespec(pool, pushTestState, 'highest_floor', state.push_stats, startupPoints);
         state.push_stats = optPush.bestBuild;
+        
+        // Restore sync to current floor
+        await pool.syncState(state);
     }
 
     const farmStr = formatBuildStr(state.base_stats, state);
@@ -311,8 +320,13 @@ export async function runPathfinderSimulation(startState, pool, onProgress) {
             postEventYields = optFarm.bestYields;
 
             // 2. Push Build (Maximizes highest_floor)
-            const optPush = await smartRespec(pool, state, 'highest_floor', state.push_stats, unspentPoints);
+            // CRITICAL: Push Build must be evaluated against the NEXT floor to detect gradient!
+            const pushTestState = { ...state, current_max_floor: state.current_max_floor + 1 };
+            const optPush = await smartRespec(pool, pushTestState, 'highest_floor', state.push_stats, unspentPoints);
             state.push_stats = optPush.bestBuild;
+            
+            // Restore sync to current farming floor before resuming!
+            await pool.syncState(state);
 
             unspentPoints = 0; // Points have been consumed
 
@@ -349,8 +363,11 @@ export async function runPathfinderSimulation(startState, pool, onProgress) {
                 const optFarm = await smartRespec(pool, state, 'xp_per_min', state.base_stats, 1);
                 state.base_stats = optFarm.bestBuild;
 
-                const optPush = await smartRespec(pool, state, 'highest_floor', state.push_stats, 1);
+                const pushTestState = { ...state, current_max_floor: state.current_max_floor + 1 };
+                const optPush = await smartRespec(pool, pushTestState, 'highest_floor', state.push_stats, 1);
                 state.push_stats = optPush.bestBuild;
+                
+                await pool.syncState(state);
                 
                 upgDesc += `. Gained +1 Stat Point -> Farm: ${formatBuildStr(state.base_stats, state)} | Push: ${formatBuildStr(state.push_stats, state)}`;
             }
