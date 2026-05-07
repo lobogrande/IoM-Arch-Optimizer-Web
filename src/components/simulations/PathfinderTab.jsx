@@ -34,6 +34,7 @@ export default function PathfinderTab() {
 
   // Hardcoded Ascension 2 Starting Template Baseline
   const[shiftFloor, setShiftFloor] = useState("100");
+  const [minWinRate, setMinWinRate] = useState("20");
 
   const getFarmCorr = (desc) => {
     if (!desc) return null;
@@ -119,7 +120,8 @@ export default function PathfinderTab() {
         : startFrags;
 
       const parsedShift = parseInt(shiftFloor) || 100;
-      const result = await runPathfinderSimulation(activeState, targetArch, initialFrags, pool, parsedShift, (prog) => {
+      const parsedMinWinRate = parseFloat(minWinRate) || 20;
+      const result = await runPathfinderSimulation(activeState, targetArch, initialFrags, pool, parsedShift, parsedMinWinRate, (prog) => {
         setSimProgress(prog.progress);
         setSimStatus(prog.status);
       });
@@ -174,7 +176,7 @@ export default function PathfinderTab() {
           </button>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
           <div>
             <label className="block text-sm font-bold text-st-text mb-2">Target Arch Level (Stopping Point):</label>
             <input 
@@ -196,7 +198,20 @@ export default function PathfinderTab() {
               className="w-full bg-[#0E1117] border border-st-border rounded p-2 text-st-text focus:border-st-orange outline-none"
               placeholder="e.g. 100"
             />
-            <span className="text-[10px] text-st-text-light block mt-1">Shifts Farm Build priority to Divine Frags.</span>
+            <span className="text-[10px] text-st-text-light block mt-1">Shifts Farm priority to Divine Frags.</span>
+          </div>
+          <div>
+            <label className="block text-sm font-bold text-st-text mb-2">Push Confidence Threshold (%):</label>
+            <input 
+              type="number" 
+              min="1"
+              max="100"
+              value={minWinRate}
+              onChange={(e) => setMinWinRate(e.target.value)}
+              className="w-full bg-[#0E1117] border border-st-border rounded p-2 text-st-text focus:border-st-orange outline-none"
+              placeholder="e.g. 20"
+            />
+            <span className="text-[10px] text-st-text-light block mt-1">Min. Win Rate to attempt max floor push.</span>
           </div>
         </div>
 

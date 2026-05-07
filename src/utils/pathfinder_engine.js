@@ -196,7 +196,7 @@ async function runFastOptimizer(pool, state, targetMetric, budget, previousBuild
 
 // Tests if the specialized Push Build is mathematically capable of surviving 1 floor higher
 // Runs a batch of 50 to massively smooth out the RNG and accurately measure the Win Rate
-async function attemptFloorPush(pool, state, maxTimePenaltySecs, samples = 50) {
+async function attemptFloorPush(pool, state, maxTimePenaltySecs, minWinRateReq = 0.05, samples = 50) {
     const nextFloor = state.current_max_floor + 1;
     const testState = { ...state, current_max_floor: nextFloor };
     
@@ -220,8 +220,8 @@ async function attemptFloorPush(pool, state, maxTimePenaltySecs, samples = 50) {
 
     let winRate = successes / samples;
 
-    // FAST REJECT: If it couldn't even hit 5% on a fast 50-sample scan, discard it immediately.
-    if (winRate < 0.05) {
+    // FAST REJECT: Discard if it fails the user's requested minimum reliability threshold
+    if (winRate < minWinRateReq) {
         await pool.syncState(state); 
         return { success: false };
     }
@@ -244,8 +244,8 @@ async function attemptFloorPush(pool, state, maxTimePenaltySecs, samples = 50) {
     const totalSamples = samples + deepSamples;
     winRate = successes / totalSamples;
 
-    // STRICT REJECT: The fluke was exposed. The true win rate is garbage.
-    if (winRate < 0.05) {
+    // STRICT REJECT: The fluke was exposed. The true win rate doesn't meet the threshold.
+    if (winRate < minWinRateReq) {
         await pool.syncState(state); 
         return { success: false };
     }
@@ -253,11 +253,14 @@ async function attemptFloorPush(pool, state, maxTimePenaltySecs, samples = 50) {
     // Normalize yields against the massive true sample size
     Object.keys(pushYields).forEach(k => pushYields[k] /= totalSamples);
 
-    const expectedRuns = 1.0 / winRate;
+    // CALCULATE SAFE BUDGET (90% Confidence Interval)
+    // Using Geometric Distribution CDF: P = 1 - (1 - p)^k -> k = ln(1 - P) / ln(1 - p)
+    const safeWinRate = Math.min(0.999, winRate);
+    const safeBudgetRuns = Math.max(1, Math.ceil(Math.log(1 - 0.90) / Math.log(1 - safeWinRate)));
     const avgRunTimeSecs = (totalTimeSec / totalSamples); 
-    const timePenaltySecs = expectedRuns * avgRunTimeSecs;
+    const timePenaltySecs = safeBudgetRuns * avgRunTimeSecs;
     
-    // TEMPORAL PARADOX GUARD: Now verified against the true massive-sample win rate!
+    // TEMPORAL PARADOX GUARD: Now verified against the 90% Safe Budget time penalty!
     if (timePenaltySecs > maxTimePenaltySecs) {
         await pool.syncState(state); 
         return { success: false };
@@ -266,7 +269,7 @@ async function attemptFloorPush(pool, state, maxTimePenaltySecs, samples = 50) {
     return { success: true, timePenaltySecs, winRate, pushYields };
 }
 
-export async function runPathfinderSimulation(startState, targetLevel, initialFrags, pool, shiftFloor, onProgress) {
+export async function runPathfinderSimulation(startState, targetLevel, initialFrags, pool, shiftFloor, minWinRate, onProgress) {
     // 1. Initialize Tracked State (Dual-Track the base stats!)
     let state = { 
         ...startState, 
@@ -600,7 +603,7 @@ export async function runPathfinderSimulation(startState, targetLevel, initialFr
                 // Only attempt a push if we actually have time before the next level up!
                 if (timeToNextLevelSecs <= 0) break;
 
-                const pushResult = await attemptFloorPush(pool, state, timeToNextLevelSecs, 50);
+                const pushResult = await attemptFloorPush(pool, state, timeToNextLevelSecs, minWinRate / 100.0, 50);
                 if (pushResult.success) {
                     state.current_max_floor++;
                     
