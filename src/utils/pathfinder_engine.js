@@ -144,7 +144,8 @@ async function runFastOptimizer(pool, state, targetMetric, budget, previousBuild
     let grid = generateDistributions(stats, alignBudget, step, bounds);
     
     // Protect against browser lag spikes by expanding step size if combinatorial space explodes
-    while (grid.length > 150 && step < budget) {
+    // Limit bumped to 300 to prevent step sizes expanding too aggressively early on
+    while (grid.length > 300 && step < budget) {
         step++;
         alignBudget = budget - (budget % step);
         grid = generateDistributions(stats, alignBudget, step, bounds);
@@ -158,8 +159,8 @@ async function runFastOptimizer(pool, state, targetMetric, budget, previousBuild
     const finalCandidates = Array.from(unique.values());
 
     // 4. Round 1 Filter (Mini-batch for Push Builds, with Secondary Tie-Breaker)
-    // Bumped to 8 specifically to break extreme quantization ties (1/3 averages) that hide optimal sub-paths!
-    const r1Samples = targetMetric === 'highest_floor' ? 8 : 1; 
+    // Bumped to 10 specifically to break extreme quantization ties that hide optimal sub-paths!
+    const r1Samples = targetMetric === 'highest_floor' ? 10 : 2; 
     const r1Promises = finalCandidates.map(async (testStats) => {
         const avgYields = await getSmoothedYields(pool, state, testStats, r1Samples);
         return { build: testStats, val: avgYields[targetMetric] || 0, secondary: avgYields.xp_per_min || 0 };
@@ -194,20 +195,20 @@ async function runFastOptimizer(pool, state, targetMetric, budget, previousBuild
     
     const bestR2 = r2Results[0].build;
 
-    // 6. Phase 3: Micro-Refinement (Steepest Ascent off the Coarse Grid)
-    // Generates neighbors by transferring 1 and 2 points between all stats to find the true peak
+    // 6. Phase 3: Simulated Annealing (Deep Random Walk)
+    // Coarse step gaps can be huge (e.g. step=6). 1/2 point swaps miss the true peak.
+    // We combine structured 1/2 point swaps with 200 random deep walks to completely map the local valley.
     const p3CandidatesMap = new Map();
     p3CandidatesMap.set(stats.map(s => bestR2[s] || 0).join(','), bestR2);
 
+    // A) Structured Micro-Swaps (1 and 2 points)
     stats.forEach(sFrom => {
         stats.forEach(sTo => {
             if (sFrom !== sTo) {
-                // Try 1-point swap
                 if ((bestR2[sFrom] || 0) >= 1 && (bestR2[sTo] || 0) < caps[sTo]) {
                     const n1 = { ...bestR2, [sFrom]: bestR2[sFrom] - 1,[sTo]: (bestR2[sTo] || 0) + 1 };
                     p3CandidatesMap.set(stats.map(s => n1[s] || 0).join(','), enforceBudget(n1, stats, budget, caps));
                 }
-                // Try 2-point swap
                 if ((bestR2[sFrom] || 0) >= 2 && (bestR2[sTo] || 0) < caps[sTo] - 1) {
                     const n2 = { ...bestR2, [sFrom]: bestR2[sFrom] - 2, [sTo]: (bestR2[sTo] || 0) + 2 };
                     p3CandidatesMap.set(stats.map(s => n2[s] || 0).join(','), enforceBudget(n2, stats, budget, caps));
@@ -216,8 +217,30 @@ async function runFastOptimizer(pool, state, targetMetric, budget, previousBuild
         });
     });
 
+    // B) Deep Random Walks (Dynamic to the coarse step size)
+    const maxWalk = Math.max(3, step + 1); 
+    for (let i = 0; i < 200; i++) {
+        const mut = { ...bestR2 };
+        const walkDist = 1 + Math.floor(Math.random() * maxWalk);
+        
+        for (let w = 0; w < walkDist; w++) {
+            const fromCandidates = stats.filter(s => (mut[s] || 0) > 0);
+            const toCandidates = stats.filter(s => (mut[s] || 0) < caps[s]);
+            
+            if (fromCandidates.length > 0 && toCandidates.length > 0) {
+                const sFrom = fromCandidates[Math.floor(Math.random() * fromCandidates.length)];
+                const sTo = toCandidates[Math.floor(Math.random() * toCandidates.length)];
+                if (sFrom !== sTo) {
+                    mut[sFrom]--;
+                    mut[sTo]++;
+                }
+            }
+        }
+        p3CandidatesMap.set(stats.map(s => mut[s] || 0).join(','), enforceBudget(mut, stats, budget, caps));
+    }
+
     const p3Candidates = Array.from(p3CandidatesMap.values());
-    const p3Samples = targetMetric === 'highest_floor' ? 12 : 5;
+    const p3Samples = targetMetric === 'highest_floor' ? 20 : 5;
     
     const p3Promises = p3Candidates.map(async (testStats) => {
         const avgYields = await getSmoothedYields(pool, state, testStats, p3Samples);
@@ -284,9 +307,17 @@ async function attemptFloorPush(pool, state, maxTimePenaltySecs, minWinRateReq =
     const totalSamples = samples + deepSamples;
     winRate = successes / totalSamples;
 
-    // STRICT REJECT: The fluke was exposed. 
-    // We add a tiny 5% relative buffer (e.g. 20% needs 21% result) to shield against Monte Carlo margin-of-error flukes passing.
-    if (winRate < (minWinRateReq * 1.05)) {
+    // WILSON SCORE INTERVAL: The ultimate defense against Monte Carlo flukes!
+    // Instead of trusting the raw win rate, we calculate the 95% Confidence Interval LOWER BOUND.
+    // If you ask for 20%, we MUST be 95% certain the TRUE win rate is >= 20%. 
+    // A 23% win rate on 200 samples has a lower bound of ~17.6%, which correctly FAILS a 20% threshold!
+    const z = 1.96; // 95% confidence
+    const denominator = 1 + (z * z) / totalSamples;
+    const center = winRate + (z * z) / (2 * totalSamples);
+    const spread = z * Math.sqrt((winRate * (1 - winRate) + (z * z) / (4 * totalSamples)) / totalSamples);
+    const lowerBound = (center - spread) / denominator;
+
+    if (lowerBound < minWinRateReq) {
         await pool.syncState(state); 
         return { success: false };
     }
