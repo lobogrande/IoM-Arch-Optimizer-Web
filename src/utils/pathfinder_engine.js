@@ -218,8 +218,11 @@ async function runFastOptimizer(pool, state, targetMetric, budget, previousBuild
     });
 
     // B) Deep Random Walks (Dynamic to the coarse step size)
+    // Farm yields have a very smooth gradient, so they only need a light 25-pass annealing.
+    // Push builds (highest_floor) are extremely rugged and require the full 200-pass deep search.
     const maxWalk = Math.max(3, step + 1); 
-    for (let i = 0; i < 200; i++) {
+    const annealingPasses = targetMetric === 'highest_floor' ? 200 : 25;
+    for (let i = 0; i < annealingPasses; i++) {
         const mut = { ...bestR2 };
         const walkDist = 1 + Math.floor(Math.random() * maxWalk);
         
@@ -544,21 +547,17 @@ export async function runPathfinderSimulation(startState, targetLevel, initialFr
             
             const totalBudget = state.arch_level + (state.upgrade_levels[12] || 0);
 
-            // PHASE 3.5: Dual-Track Full Redistribution Optimizer!
+            // PHASE 3.5: Lazy Dual-Track Optimizer!
             const farmMetric = state.current_max_floor >= shiftFloor ? 'frag_6_per_min' : 'xp_per_min';
             const optFarm = await runFastOptimizer(pool, state, farmMetric, totalBudget, state.base_stats, 3);
             state.base_stats = optFarm.bestBuild;
             currentFarmYields = optFarm.bestYields;
 
-            // CRITICAL GRADIENT FIX: Uncap the ceiling so the optimizer can map the true max floor!
-            const pushTestState = { ...state, current_max_floor: 200 };
-            const optPush = await runFastOptimizer(pool, pushTestState, 'highest_floor', totalBudget, state.push_stats, 12); // Bumped to 12
-            state.push_stats = optPush.bestBuild;
-            
-            // Sync to the actual target floor to generate accurate UI yields
+            // LAZY OPTIMIZATION: Defer Push build re-optimization until a floor push is actually attempted.
+            // We just sync the yields of the stale push build here so the UI snapshot isn't broken.
             const pushActualTargetState = { ...state, current_max_floor: state.current_max_floor + 1 };
-            currentPushYields = await getSmoothedYields(pool, pushActualTargetState, state.push_stats, 5);
-
+            await pool.syncState(pushActualTargetState);
+            currentPushYields = await getSmoothedYields(pool, pushActualTargetState, state.push_stats, 3);
             await pool.syncState(state);
             unspentPoints = 0;
 
@@ -606,13 +605,10 @@ export async function runPathfinderSimulation(startState, targetLevel, initialFr
                 state.base_stats = optFarm.bestBuild;
                 currentFarmYields = optFarm.bestYields;
 
-                const pushTestState = { ...state, current_max_floor: 200 };
-                const optPush = await runFastOptimizer(pool, pushTestState, 'highest_floor', totalBudget, state.push_stats, 12); // Bumped to 12
-                state.push_stats = optPush.bestBuild;
-                
+                // LAZY OPTIMIZATION: Defer Push build re-optimization until a floor push is actually attempted.
                 const pushActualTargetState = { ...state, current_max_floor: state.current_max_floor + 1 };
-                currentPushYields = await getSmoothedYields(pool, pushActualTargetState, state.push_stats, 5);
-
+                await pool.syncState(pushActualTargetState);
+                currentPushYields = await getSmoothedYields(pool, pushActualTargetState, state.push_stats, 3);
                 await pool.syncState(state);
 
                 if (nextUpgradeId === 12) {
@@ -684,6 +680,14 @@ export async function runPathfinderSimulation(startState, targetLevel, initialFr
 
                 // Only attempt a push if we actually have time before the next level up!
                 if (timeToNextLevelSecs <= 0) break;
+
+                // JIT (Just-In-Time) PUSH OPTIMIZATION
+                // We finally calculate the perfect Push build only when we are mathematically ready to test a push
+                const pushBudget = state.arch_level + (state.upgrade_levels[12] || 0);
+                const pushTestState = { ...state, current_max_floor: 200 };
+                const optPush = await runFastOptimizer(pool, pushTestState, 'highest_floor', pushBudget, state.push_stats, 12);
+                state.push_stats = optPush.bestBuild;
+                lastPushStr = formatBuildStr(state.push_stats, state);
 
                 const pushResult = await attemptFloorPush(pool, state, timeToNextLevelSecs, minWinRate / 100.0, 50);
                 if (pushResult.success) {
