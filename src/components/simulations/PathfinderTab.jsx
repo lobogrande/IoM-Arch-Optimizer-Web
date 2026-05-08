@@ -90,7 +90,7 @@ export default function PathfinderTab() {
 
   const templates = {
     founder: {
-      name: "Founder_Asc2_start",
+      name: "Founder_Asc2_Start",
       arch_level: 1,
       current_max_floor: 1,
       geoduck_unlocked: true,
@@ -262,7 +262,7 @@ export default function PathfinderTab() {
                   onChange={(e) => setTemplateType(e.target.value)}
                   className="bg-st-bg border border-st-border rounded px-3 py-1.5 text-st-text focus:border-st-orange outline-none font-bold"
                 >
-                  <option value="founder">Founder_Asc2_start</option>
+                  <option value="founder">Founder_Asc2_Start</option>
                   <option value="f2p">F2p_Asc2_Start</option>
                 </select>
               </div>
