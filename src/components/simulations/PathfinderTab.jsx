@@ -34,7 +34,20 @@ export default function PathfinderTab() {
 
   // Hardcoded Ascension 2 Starting Template Baseline
   const[shiftFloor, setShiftFloor] = useState("100");
-  const [minWinRate, setMinWinRate] = useState("20");
+  const[minWinRate, setMinWinRate] = useState("20");
+
+  const handleApplySnapshot = (snap) => {
+    if (!snap) return;
+    // Inject directly into the Zustand workspace!
+    useStore.setState({
+      arch_level: snap.arch_level,
+      current_max_floor: snap.current_max_floor,
+      base_stats: { ...snap.base_stats },
+      upgrade_levels: { ...snap.upgrade_levels }
+    });
+    setSimStatus(`Workspace updated to Level ${snap.arch_level} / Floor ${snap.current_max_floor}!`);
+    setTimeout(() => setSimStatus(''), 3000);
+  };
 
   const chartData = useMemo(() => {
     if (!pathData) return null;
