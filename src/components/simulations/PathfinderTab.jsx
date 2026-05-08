@@ -36,36 +36,42 @@ export default function PathfinderTab() {
   const[shiftFloor, setShiftFloor] = useState("100");
   const [minWinRate, setMinWinRate] = useState("20");
 
-  const getFarmCorr = (desc) => {
-    if (!desc) return null;
-    const match = desc.match(/Farm:\s*\[(.*?)]/);
-    if (match) {
-      const parts = match[1].split('/');
-      if (parts.length >= 7) return parseInt(parts[ 6 ]);
-    }
-    return null;
-  };
-
   const chartData = useMemo(() => {
     if (!pathData) return null;
     const xVals =[ ];
     const xpVals =[ ];
     const divVals =[ ];
-    const corrVals =[ ];
-
-    let lastCorr = 0;
 
     pathData.history.forEach(ev => {
       xVals.push(ev.arch_sec);
       xpVals.push((ev.yields?.farm?.xp_per_min || 0));
       divVals.push(ev.yields?.farm?.frag_6_per_min || 0);
-      
-      const parsedCorr = getFarmCorr(ev.desc);
-      if (parsedCorr !== null) lastCorr = parsedCorr;
-      corrVals.push(lastCorr);
     });
 
-    return { xVals, xpVals, divVals, corrVals };
+    return { xVals, xpVals, divVals };
+  },[pathData]);
+
+  const pushChartData = useMemo(() => {
+    if (!pathData) return null;
+    const floors =[ ];
+    const stats = { Str:[ ], Agi:[ ], Per:[ ], Int:[ ], Luck:[ ], Div:[ ], Corr:[ ] };
+    const statKeys =['Str', 'Agi', 'Per', 'Int', 'Luck', 'Div', 'Corr'];
+
+    pathData.history.forEach(ev => {
+      if (ev.type === 'floor' && ev.active_build_str) {
+        floors.push(ev.floor);
+        // Extract the array from "[1/7/0/0/1/9/0]"
+        const match = ev.active_build_str.match(/\[(.*?)\]/);
+        if (match) {
+          const parts = match[1].split('/');
+          statKeys.forEach((key, idx) => {
+            stats[key].push(parseInt(parts[idx]) || 0);
+          });
+        }
+      }
+    });
+
+    return { floors, stats };
   },[pathData]);
 
   const asc2Template = {
@@ -279,58 +285,76 @@ export default function PathfinderTab() {
       {/* VISUALIZATIONS & RESULTS AREA */}
       {pathData && (
         <>
-          <div className="bg-[#0E1117] border border-st-border rounded p-4 shadow-sm animate-fade-in mb-6">
-            <h3 className="text-lg font-bold text-st-text mb-4 border-b border-st-border pb-2">Strategic Crossover Analysis</h3>
-            <div className="h-[400px] w-full">
-              <Plot
-                data={[
-                  {
-                    x: chartData.xVals,
-                    y: chartData.xpVals,
-                    type: 'scatter',
-                    mode: 'lines',
-                    name: 'XP / Min',
-                    line: { color: '#4ade80', shape: 'hv', width: 2 },
-                    yaxis: 'y'
-                  },
-                  {
-                    x: chartData.xVals,
-                    y: chartData.divVals,
-                    type: 'scatter',
-                    mode: 'lines',
-                    name: 'Divine Frags / Min',
-                    line: { color: '#facc15', shape: 'hv', width: 2 },
-                    yaxis: 'y2'
-                  },
-                  {
-                    x: chartData.xVals,
-                    y: chartData.corrVals,
-                    type: 'scatter',
-                    mode: 'lines',
-                    name: 'Corruption (Farm)',
-                    line: { color: '#a855f7', dash: 'dot', shape: 'hv', width: 2 },
-                    yaxis: 'y3'
-                  }
-                ]}
-                layout={{
-                  paper_bgcolor: 'transparent',
-                  plot_bgcolor: 'transparent',
-                  font: { color: '#FAFAFA' },
-                  margin: { l: 50, r: 50, t: 10, b: 40 },
-                  xaxis: { title: 'Timeline (Arch Seconds)', gridcolor: '#333' },
-                  yaxis: { title: 'XP/Min', titlefont: { color: '#4ade80' }, tickfont: { color: '#4ade80' }, gridcolor: '#333' },
-                  yaxis2: { title: 'Div Frags/Min', titlefont: { color: '#facc15' }, tickfont: { color: '#facc15' }, overlaying: 'y', side: 'right', showgrid: false },
-                  yaxis3: { title: 'Corruption Points', titlefont: { color: '#a855f7' }, tickfont: { color: '#a855f7' }, overlaying: 'y', side: 'left', position: 0.1, showgrid: false, dtick: 2 },
-                  legend: { orientation: 'h', y: -0.2, x: 0.5, xanchor: 'center' },
-                  autosize: true
-                }}
-                useResizeHandler={true}
-                style={{ width: '100%', height: '100%' }}
-              />
+          <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 mb-6">
+            <div className="bg-[#0E1117] border border-st-border rounded p-4 shadow-sm animate-fade-in">
+              <h3 className="text-lg font-bold text-st-text mb-4 border-b border-st-border pb-2">Farm Yields over Time</h3>
+              <div className="h-[400px] w-full">
+                <Plot
+                  data={[
+                    {
+                      x: chartData.xVals,
+                      y: chartData.xpVals,
+                      type: 'scatter',
+                      mode: 'lines',
+                      name: 'XP / Min',
+                      line: { color: '#4ade80', shape: 'hv', width: 2 },
+                      yaxis: 'y'
+                    },
+                    {
+                      x: chartData.xVals,
+                      y: chartData.divVals,
+                      type: 'scatter',
+                      mode: 'lines',
+                      name: 'Divine Frags / Min',
+                      line: { color: '#facc15', shape: 'hv', width: 2 },
+                      yaxis: 'y2'
+                    }
+                  ]}
+                  layout={{
+                    paper_bgcolor: 'transparent',
+                    plot_bgcolor: 'transparent',
+                    font: { color: '#FAFAFA' },
+                    margin: { l: 50, r: 50, t: 10, b: 40 },
+                    xaxis: { title: 'Timeline (Arch Seconds)', gridcolor: '#333' },
+                    yaxis: { title: 'XP/Min', titlefont: { color: '#4ade80' }, tickfont: { color: '#4ade80' }, gridcolor: '#333' },
+                    yaxis2: { title: 'Div Frags/Min', titlefont: { color: '#facc15' }, tickfont: { color: '#facc15' }, overlaying: 'y', side: 'right', showgrid: false },
+                    legend: { orientation: 'h', y: -0.2, x: 0.5, xanchor: 'center' },
+                    autosize: true
+                  }}
+                  useResizeHandler={true}
+                  style={{ width: '100%', height: '100%' }}
+                />
+              </div>
             </div>
-            <p className="text-xs text-st-text-light mt-2 italic text-center">
-              Watch for the "Corruption Crossover" — where an increase in Corruption (purple) momentarily tanks Exp/Min before scaling higher due to synergistic multipliers.
-            </p>
+
+            <div className="bg-[#0E1117] border border-st-border rounded p-4 shadow-sm animate-fade-in">
+              <h3 className="text-lg font-bold text-st-text mb-4 border-b border-st-border pb-2">Push Build Stat Distribution</h3>
+              <div className="h-[400px] w-full">
+                <Plot
+                  data={[
+                    { x: pushChartData.floors, y: pushChartData.stats.Str, type: 'scatter', mode: 'lines+markers', name: 'Str', line: { color: '#ef4444', width: 2 } },
+                    { x: pushChartData.floors, y: pushChartData.stats.Agi, type: 'scatter', mode: 'lines+markers', name: 'Agi', line: { color: '#3b82f6', width: 2 } },
+                    { x: pushChartData.floors, y: pushChartData.stats.Per, type: 'scatter', mode: 'lines+markers', name: 'Per', line: { color: '#eab308', width: 2 } },
+                    { x: pushChartData.floors, y: pushChartData.stats.Int, type: 'scatter', mode: 'lines+markers', name: 'Int', line: { color: '#06b6d4', width: 2 } },
+                    { x: pushChartData.floors, y: pushChartData.stats.Luck, type: 'scatter', mode: 'lines+markers', name: 'Luck', line: { color: '#22c55e', width: 2 } },
+                    { x: pushChartData.floors, y: pushChartData.stats.Div, type: 'scatter', mode: 'lines+markers', name: 'Div', line: { color: '#f9a8d4', width: 2 } },
+                    { x: pushChartData.floors, y: pushChartData.stats.Corr, type: 'scatter', mode: 'lines+markers', name: 'Corr', line: { color: '#a855f7', width: 2, dash: 'dot' } }
+                  ]}
+                  layout={{
+                    paper_bgcolor: 'transparent',
+                    plot_bgcolor: 'transparent',
+                    font: { color: '#FAFAFA' },
+                    margin: { l: 40, r: 20, t: 10, b: 40 },
+                    xaxis: { title: 'Max Floor Pushed', gridcolor: '#333' },
+                    yaxis: { title: 'Stat Points Allocated', gridcolor: '#333' },
+                    legend: { orientation: 'h', y: -0.2, x: 0.5, xanchor: 'center' },
+                    autosize: true
+                  }}
+                  useResizeHandler={true}
+                  style={{ width: '100%', height: '100%' }}
+                />
+              </div>
+            </div>
           </div>
 
           <div className="bg-st-bg border border-st-border rounded p-4 shadow-sm animate-fade-in">
