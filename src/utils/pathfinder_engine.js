@@ -347,6 +347,13 @@ export async function runPathfinderSimulation(startState, targetLevel, initialFr
         ...startState, 
         push_stats: { ...startState.base_stats } 
     };
+
+    const captureSnapshot = (s) => ({
+        arch_level: s.arch_level,
+        current_max_floor: s.current_max_floor,
+        base_stats: { ...s.base_stats },
+        upgrade_levels: { ...s.upgrade_levels }
+    });
     let cumulativeArchSecs = 0;
     let lastEventTime = 0;
     let currentExp = 0;
@@ -420,7 +427,8 @@ export async function runPathfinderSimulation(startState, targetLevel, initialFr
         floor: state.current_max_floor,
         desc: `Beginning Asc2 Journey. Initialized Budget (${expectedBudget} pts) -> Farm: ${farmStr} | Push: ${pushStr}`,
         yields: { farm: currentFarmYields, push: currentPushYields },
-        frags: { ...frags }
+        frags: { ...frags },
+        state_snapshot: captureSnapshot(state)
     });
 
     const startLvl = state.arch_level;
@@ -568,7 +576,8 @@ export async function runPathfinderSimulation(startState, targetLevel, initialFr
                 floor: state.current_max_floor,
                 desc: `Farm: ${farmStr} | Push: ${pushStr}`,
                 yields: { farm: currentFarmYields, push: currentPushYields },
-                frags: { ...frags }
+                frags: { ...frags },
+                state_snapshot: captureSnapshot(state)
             });
             lastEventTime = cumulativeArchSecs;
             lastFarmStr = farmStr;
@@ -636,7 +645,8 @@ export async function runPathfinderSimulation(startState, targetLevel, initialFr
                 floor: state.current_max_floor,
                 desc: upgDesc,
                 yields: { farm: currentFarmYields, push: currentPushYields },
-                frags: { ...frags }
+                frags: { ...frags },
+                state_snapshot: captureSnapshot(state)
             });
             lastEventTime = cumulativeArchSecs;
             lastFarmStr = farmStr;
@@ -750,7 +760,8 @@ export async function runPathfinderSimulation(startState, targetLevel, initialFr
                     floor: state.current_max_floor,
                     desc: floorDesc,
                     yields: { farm: currentFarmYields, push: currentPushYields },
-                    frags: { ...frags }
+                    frags: { ...frags },
+                    state_snapshot: captureSnapshot(state)
                 });
                 lastEventTime = cumulativeArchSecs;
             } else {

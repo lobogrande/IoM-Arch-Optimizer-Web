@@ -456,7 +456,21 @@ export default function PathfinderTab() {
                           <div className="w-3 h-3 rounded-full bg-st-bg border-2 border-st-orange mt-1.5 shrink-0 z-10" />
 
                           {/* EVENTS BUBBLE */}
-                          <div className="flex-1 bg-st-secondary/20 border border-st-border rounded p-3 shadow-sm hover:bg-st-secondary/30 transition-colors">
+                          <div className="flex-1 bg-st-secondary/20 border border-st-border rounded p-3 shadow-sm hover:bg-st-secondary/30 transition-colors relative group/event">
+                            
+                            {/* APPLY WORKSPACE BUTTON */}
+                            {finalEvent.state_snapshot && (
+                              <button 
+                                onClick={(e) => { e.stopPropagation(); handleApplySnapshot(finalEvent.state_snapshot); }}
+                                className="absolute top-3 right-3 p-1.5 bg-st-bg border border-st-border rounded text-st-text-light hover:text-st-orange hover:border-st-orange transition-all opacity-0 group-hover/event:opacity-100 z-20"
+                                title="Apply Player State to Workspace"
+                              >
+                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" />
+                                </svg>
+                              </button>
+                            )}
+
                             <div className="space-y-3">
                               {group.events.map((node, evIdx) => {
                                 let evColor = 'text-st-text';
