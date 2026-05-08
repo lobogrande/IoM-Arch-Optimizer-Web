@@ -15,7 +15,7 @@ export default function PathfinderTab() {
   const [pathData, setPathData] = useState(null);
   const[simStatus, setSimStatus] = useState('');
   const [simProgress, setSimProgress] = useState(0);
-  const [groupBy, setGroupBy] = useState('level'); // 'level' or 'floor'
+  const [groupBy, setGroupBy] = useState('floor'); // 'floor' or 'level'
   const [targetLevel, setTargetLevel] = useState("30"); // Absolute target level
   const [startFrags, setStartFrags] = useState({ com: 0, rare: 0, epic: 0, leg: 0, myth: 0, div: 0 });
 
@@ -362,16 +362,16 @@ export default function PathfinderTab() {
               <h3 className="text-lg font-bold text-st-text">Node-Graph Timeline</h3>
               <div className="flex bg-st-secondary/50 rounded border border-st-border text-xs font-bold overflow-hidden">
                 <button 
-                  onClick={() => setGroupBy('level')}
-                  className={`px-3 py-1.5 transition-colors ${groupBy === 'level' ? 'bg-st-orange text-st-bg' : 'text-st-text hover:bg-st-secondary'}`}
-                >
-                  Group by Arch Level
-                </button>
-                <button 
                   onClick={() => setGroupBy('floor')}
-                  className={`px-3 py-1.5 transition-colors border-l border-st-border ${groupBy === 'floor' ? 'bg-st-orange text-st-bg' : 'text-st-text hover:bg-st-secondary'}`}
+                  className={`px-3 py-1.5 transition-colors ${groupBy === 'floor' ? 'bg-st-orange text-st-bg' : 'text-st-text hover:bg-st-secondary'}`}
                 >
                   Group by Max Floor
+                </button>
+                <button 
+                  onClick={() => setGroupBy('level')}
+                  className={`px-3 py-1.5 transition-colors border-l border-st-border ${groupBy === 'level' ? 'bg-st-orange text-st-bg' : 'text-st-text hover:bg-st-secondary'}`}
+                >
+                  Group by Arch Level
                 </button>
               </div>
             </div>
