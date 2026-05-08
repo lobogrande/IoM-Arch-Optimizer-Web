@@ -117,16 +117,29 @@ export default function PathfinderTab() {
     const divVals =[ ];
     const levelVals =[ ];
     const floorVals =[ ];
+    const ttnlVals =[ ];
+    const ttfVals =[ ];
 
     pathData.history.forEach(ev => {
       xVals.push(ev.arch_sec);
-      xpVals.push((ev.yields?.farm?.xp_per_min || 0));
+      
+      const xpRate = ev.yields?.farm?.xp_per_min || 0;
+      const comRate = ev.yields?.farm?.frag_1_per_min || 0;
+      
+      xpVals.push(xpRate);
       divVals.push(ev.yields?.farm?.frag_6_per_min || 0);
       levelVals.push(ev.level || 1);
       floorVals.push(ev.floor || 1);
+
+      // Opportunity Cost Math (Minutes)
+      const expNeeded = 10 * Math.pow(1.2, (ev.level || 1) + 1);
+      ttnlVals.push(xpRate > 0 ? expNeeded / xpRate : 0);
+      
+      // Time to farm 100k Common Fragments (Proxy for major mid-game upgrades)
+      ttfVals.push(comRate > 0 ? 100000 / comRate : 999999);
     });
 
-    return { xVals, xpVals, divVals, levelVals, floorVals };
+    return { xVals, xpVals, divVals, levelVals, floorVals, ttnlVals, ttfVals };
   },[pathData]);
 
   const pushChartData = useMemo(() => {
@@ -433,27 +446,53 @@ export default function PathfinderTab() {
       {/* VISUALIZATIONS & RESULTS AREA */}
       {pathData && (
         <>
-          <div className="bg-[#0E1117] border border-st-border rounded p-4 shadow-sm animate-fade-in mb-6">
-            <h3 className="text-lg font-bold text-st-text mb-4 border-b border-st-border pb-2">Progression Trends (Level & Floor)</h3>
-            <div className="h-[300px] w-full">
-              <Plot
-                data={[
-                  { x: chartData.xVals, y: chartData.levelVals, type: 'scatter', mode: 'lines', name: 'Arch Level', line: { color: '#3b82f6', shape: 'hv', width: 2 } },
-                  { x: chartData.xVals, y: chartData.floorVals, type: 'scatter', mode: 'lines', name: 'Max Floor', line: { color: '#ef4444', shape: 'hv', width: 2 } }
-                ]}
-                layout={{
-                  paper_bgcolor: 'transparent',
-                  plot_bgcolor: 'transparent',
-                  font: { color: '#FAFAFA' },
-                  margin: { l: 60, r: 20, t: 10, b: 80 },
-                  xaxis: { title: { text: 'Timeline (Arch Seconds)', standoff: 15 }, gridcolor: '#333' },
-                  yaxis: { title: { text: 'Progression Milestone', standoff: 10 }, gridcolor: '#333' },
-                  legend: { orientation: 'h', y: -0.3, x: 0.5, xanchor: 'center' },
-                  autosize: true
-                }}
-                useResizeHandler={true}
-                style={{ width: '100%', height: '100%' }}
-              />
+          <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 mb-6">
+            <div className="bg-[#0E1117] border border-st-border rounded p-4 shadow-sm animate-fade-in">
+              <h3 className="text-lg font-bold text-st-text mb-4 border-b border-st-border pb-2">Progression Trends</h3>
+              <div className="h-[300px] w-full">
+                <Plot
+                  data={[
+                    { x: chartData.xVals, y: chartData.levelVals, type: 'scatter', mode: 'lines', name: 'Arch Level', line: { color: '#3b82f6', shape: 'hv', width: 2 } },
+                    { x: chartData.xVals, y: chartData.floorVals, type: 'scatter', mode: 'lines', name: 'Max Floor', line: { color: '#ef4444', shape: 'hv', width: 2 } }
+                  ]}
+                  layout={{
+                    paper_bgcolor: 'transparent',
+                    plot_bgcolor: 'transparent',
+                    font: { color: '#FAFAFA' },
+                    margin: { l: 60, r: 20, t: 10, b: 80 },
+                    xaxis: { title: { text: 'Timeline (Arch Secs)', standoff: 15 }, gridcolor: '#333' },
+                    yaxis: { title: { text: 'Milestone', standoff: 10 }, gridcolor: '#333' },
+                    legend: { orientation: 'h', y: -0.3, x: 0.5, xanchor: 'center' },
+                    autosize: true
+                  }}
+                  useResizeHandler={true}
+                  style={{ width: '100%', height: '100%' }}
+                />
+              </div>
+            </div>
+
+            <div className="bg-[#0E1117] border border-st-border rounded p-4 shadow-sm animate-fade-in">
+              <h3 className="text-lg font-bold text-st-text mb-4 border-b border-st-border pb-2">Opportunity Cost Crossover</h3>
+              <div className="h-[300px] w-full">
+                <Plot
+                  data={[
+                    { x: chartData.xVals, y: chartData.ttnlVals, type: 'scatter', mode: 'lines', name: 'Mins to Next Level', line: { color: '#f87171', shape: 'hv', width: 2 } },
+                    { x: chartData.xVals, y: chartData.ttfVals, type: 'scatter', mode: 'lines', name: 'Mins to 100k Common Frags', line: { color: '#a3e635', shape: 'hv', width: 2 } }
+                  ]}
+                  layout={{
+                    paper_bgcolor: 'transparent',
+                    plot_bgcolor: 'transparent',
+                    font: { color: '#FAFAFA' },
+                    margin: { l: 60, r: 20, t: 10, b: 80 },
+                    xaxis: { title: { text: 'Timeline (Arch Secs)', standoff: 15 }, gridcolor: '#333' },
+                    yaxis: { title: { text: 'Time Cost (Minutes)', standoff: 10 }, type: 'log', gridcolor: '#333' },
+                    legend: { orientation: 'h', y: -0.3, x: 0.5, xanchor: 'center' },
+                    autosize: true
+                  }}
+                  useResizeHandler={true}
+                  style={{ width: '100%', height: '100%' }}
+                />
+              </div>
             </div>
           </div>
 
