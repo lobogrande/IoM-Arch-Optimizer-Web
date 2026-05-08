@@ -204,11 +204,13 @@ export default function PathfinderTab() {
     
     try {
       await new Promise(r => setTimeout(r, 50)); // Yield to allow React to paint the status
-      
-      const pool = new EngineWorkerPool();
-      await pool.init();
-      
-      setSimStatus('Syncing Engine State...');
+              
+              const pool = new EngineWorkerPool();
+              await pool.init(undefined, (ready, total) => {
+                  setSimStatus(`Booting Engine Workers (${ready}/${total})...`);
+              });
+              
+              setSimStatus('Syncing Engine State...');
       await new Promise(r => setTimeout(r, 50));
       
       // Force Asc2 Unlocked for the template start!

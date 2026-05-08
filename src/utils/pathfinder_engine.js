@@ -135,11 +135,10 @@ async function runFastOptimizer(pool, state, targetMetric, budget, previousBuild
 
     // 2. Coarse Grid Search
     let step = 1;
-    if (stats.length >= 6) {
-        if (budget >= 8) step = 2;
-        if (budget >= 16) step = 3;
-        if (budget >= 30) step = 4;
-    }
+    if (budget >= 8) step = 2;
+    if (budget >= 16) step = 3;
+    if (budget >= 30) step = 4;
+    if (budget >= 60) step = 5;
 
     let alignBudget = budget - (budget % step);
     
