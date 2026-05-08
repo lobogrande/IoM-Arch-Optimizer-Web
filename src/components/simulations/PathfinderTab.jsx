@@ -477,7 +477,7 @@ export default function PathfinderTab() {
                 <Plot
                   data={[
                     { x: chartData.xVals, y: chartData.ttnlVals, type: 'scatter', mode: 'lines', name: 'Mins to Next Level', line: { color: '#f87171', shape: 'hv', width: 2 } },
-                    { x: chartData.xVals, y: chartData.ttfVals, type: 'scatter', mode: 'lines', name: 'Mins to 100k Common Frags', line: { color: '#a3e635', shape: 'hv', width: 2 } }
+                    { x: chartData.xVals, y: chartData.ttfVals, type: 'scatter', mode: 'lines', name: 'Mins to 100k Com Frags (Passive)', line: { color: '#a3e635', shape: 'hv', width: 2 } }
                   ]}
                   layout={{
                     paper_bgcolor: 'transparent',
