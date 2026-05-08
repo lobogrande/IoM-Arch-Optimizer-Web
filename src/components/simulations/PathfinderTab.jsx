@@ -37,6 +37,7 @@ export default function PathfinderTab() {
   const[minWinRate, setMinWinRate] = useState("20");
   const[templateType, setTemplateType] = useState('founder');
   const[startingArchSecs, setStartingArchSecs] = useState("0");
+  const[searchFilter, setSearchFilter] = useState("");
 
   const handleApplySnapshot = (snap) => {
     if (!snap) return;
@@ -496,21 +497,38 @@ export default function PathfinderTab() {
           </div>
 
           <div className="bg-st-bg border border-st-border rounded p-4 shadow-sm animate-fade-in">
-            <div className="flex justify-between items-center mb-4 border-b border-st-border pb-2">
-              <h3 className="text-lg font-bold text-st-text">Node-Graph Timeline</h3>
-              <div className="flex bg-st-secondary/50 rounded border border-st-border text-xs font-bold overflow-hidden">
-                <button 
-                  onClick={() => setGroupBy('floor')}
-                  className={`px-3 py-1.5 transition-colors ${groupBy === 'floor' ? 'bg-st-orange text-st-bg' : 'text-st-text hover:bg-st-secondary'}`}
-                >
-                  Group by Max Floor
-                </button>
-                <button 
-                  onClick={() => setGroupBy('level')}
-                  className={`px-3 py-1.5 transition-colors border-l border-st-border ${groupBy === 'level' ? 'bg-st-orange text-st-bg' : 'text-st-text hover:bg-st-secondary'}`}
-                >
-                  Group by Arch Level
-                </button>
+            <div className="flex flex-col md:flex-row justify-between items-center mb-4 border-b border-st-border pb-2 gap-3">
+              <h3 className="text-lg font-bold text-st-text shrink-0">Node-Graph Timeline</h3>
+              
+              <div className="flex flex-col md:flex-row items-center gap-3 w-full md:w-auto">
+                <div className="relative w-full md:w-64">
+                  <div className="absolute inset-y-0 left-0 pl-2 flex items-center pointer-events-none">
+                    <svg className="h-4 w-4 text-st-text-light" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                    </svg>
+                  </div>
+                  <input 
+                    type="text" 
+                    value={searchFilter}
+                    onChange={(e) => setSearchFilter(e.target.value)}
+                    placeholder="Search logs (e.g. 'Gleaming')..." 
+                    className="w-full bg-st-secondary/30 border border-st-border rounded py-1.5 pl-8 pr-2 text-xs text-st-text focus:border-st-orange outline-none"
+                  />
+                </div>
+                <div className="flex bg-st-secondary/50 rounded border border-st-border text-xs font-bold overflow-hidden shrink-0">
+                  <button 
+                    onClick={() => setGroupBy('floor')}
+                    className={`px-3 py-1.5 transition-colors ${groupBy === 'floor' ? 'bg-st-orange text-st-bg' : 'text-st-text hover:bg-st-secondary'}`}
+                  >
+                    Group by Max Floor
+                  </button>
+                  <button 
+                    onClick={() => setGroupBy('level')}
+                    className={`px-3 py-1.5 transition-colors border-l border-st-border ${groupBy === 'level' ? 'bg-st-orange text-st-bg' : 'text-st-text hover:bg-st-secondary'}`}
+                  >
+                    Group by Arch Level
+                  </button>
+                </div>
               </div>
             </div>
             
@@ -522,46 +540,60 @@ export default function PathfinderTab() {
                   acc[ key ].push(node);
                   return acc;
                 }, { })
-              ).map(([ groupKey, nodes ]) => (
-                <details 
-                  key={groupKey} 
-                  className="bg-[#0E1117] border border-st-border rounded mb-3 overflow-hidden shadow-sm" 
-                  open={groupKey === "1" || groupKey === "30" || groupKey === "2"}
-                >
-                  <summary className="p-3 bg-st-secondary/20 font-bold cursor-pointer hover:bg-st-secondary/40 transition-colors flex justify-between items-center text-sm text-st-text outline-none select-none group sticky top-0 z-10 backdrop-blur-md">
-                    <div className="flex items-center gap-2">
-                      <svg className="w-4 h-4 text-st-text-light transform transition-transform group-open:rotate-90" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                      </svg>
-                      <span className="text-st-orange">{groupBy === 'level' ? 'Arch Level' : 'Max Floor'} {groupKey} Progression</span>
-                    </div>
-                    <span className="text-xs bg-st-bg px-2 py-1 rounded-full border border-st-border text-st-text-light">{nodes.length} Events</span>
-                  </summary>
-                  
-                  <div className="p-4 text-xs font-mono relative">
-                    {/* The Timeline Spine */}
-                    <div className="absolute left-[39px] top-4 bottom-4 w-px bg-st-border" />
-                    
-                    {nodes.reduce((acc, node) => {
-                    // Group events that occur at the exact same Arch Sec timestamp
-                    if (acc.length === 0 || acc[acc.length - 1].arch_sec !== node.arch_sec) {
-                      acc.push({
-                        arch_sec: node.arch_sec,
-                        time_delta: node.time_delta,
-                        active_build: node.active_build,
-                        events:[ node ]
-                      });
-                    } else {
-                      // Grab the time gap annotation if it was recorded on the first event in the batch
-                      if (node.time_delta > 0 && !acc[acc.length - 1].time_delta) {
-                        acc[acc.length - 1].time_delta = node.time_delta;
-                        acc[acc.length - 1].active_build = node.active_build;
-                      }
-                      acc[acc.length - 1].events.push(node);
+              ).map(([ groupKey, nodes ]) => {
+                
+                // 1. Pre-batch the events to group timestamps
+                const batches = nodes.reduce((acc, node) => {
+                  if (acc.length === 0 || acc[acc.length - 1].arch_sec !== node.arch_sec) {
+                    acc.push({ arch_sec: node.arch_sec, time_delta: node.time_delta, active_build: node.active_build, events:[ node ] });
+                  } else {
+                    if (node.time_delta > 0 && !acc[acc.length - 1].time_delta) {
+                      acc[acc.length - 1].time_delta = node.time_delta;
+                      acc[acc.length - 1].active_build = node.active_build;
                     }
-                    return acc;
-                  },[ ]).map((group, idx) => {
-                    const finalEvent = group.events[group.events.length - 1];
+                    acc[acc.length - 1].events.push(node);
+                  }
+                  return acc;
+                },[ ]);
+
+                // 2. Apply Search Filter
+                const lowerFilter = searchFilter.toLowerCase();
+                const filteredBatches = searchFilter ? batches.filter(batch => {
+                  return batch.events.some(n => 
+                    (n.event && n.event.toLowerCase().includes(lowerFilter)) ||
+                    (n.desc && n.desc.toLowerCase().includes(lowerFilter)) ||
+                    (n.active_build_str && n.active_build_str.toLowerCase().includes(lowerFilter))
+                  );
+                }) : batches;
+
+                // 3. Hide the entire structural group if no events inside it match the search
+                if (filteredBatches.length === 0) return null;
+
+                // 4. Auto-expand the accordion if actively searching, otherwise use default logic
+                const isGroupOpen = searchFilter ? true : (groupKey === "1" || groupKey === "30" || groupKey === "2");
+
+                return (
+                  <details 
+                    key={groupKey} 
+                    className="bg-[#0E1117] border border-st-border rounded mb-3 overflow-hidden shadow-sm" 
+                    open={isGroupOpen}
+                  >
+                    <summary className="p-3 bg-st-secondary/20 font-bold cursor-pointer hover:bg-st-secondary/40 transition-colors flex justify-between items-center text-sm text-st-text outline-none select-none group sticky top-0 z-10 backdrop-blur-md">
+                      <div className="flex items-center gap-2">
+                        <svg className="w-4 h-4 text-st-text-light transform transition-transform group-open:rotate-90" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                        </svg>
+                        <span className="text-st-orange">{groupBy === 'level' ? 'Arch Level' : 'Max Floor'} {groupKey} Progression</span>
+                      </div>
+                      <span className="text-xs bg-st-bg px-2 py-1 rounded-full border border-st-border text-st-text-light">{filteredBatches.length} Events</span>
+                    </summary>
+                    
+                    <div className="p-4 text-xs font-mono relative">
+                      {/* The Timeline Spine */}
+                      <div className="absolute left-[39px] top-4 bottom-4 w-px bg-st-border" />
+                      
+                      {filteredBatches.map((group, idx) => {
+                        const finalEvent = group.events[group.events.length - 1];
 
                     return (
                       <div key={idx} className="relative mb-8 last:mb-0">
