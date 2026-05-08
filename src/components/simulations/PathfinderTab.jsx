@@ -707,7 +707,8 @@ export default function PathfinderTab() {
                   })}
                 </div>
               </details>
-            ))}
+            );
+          })}
           </div>
         </div>
         </>
