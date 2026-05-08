@@ -46,7 +46,9 @@ export default function PathfinderTab() {
       arch_level: snap.arch_level,
       current_max_floor: snap.current_max_floor,
       base_stats: { ...snap.base_stats },
-      upgrade_levels: { ...snap.upgrade_levels }
+      upgrade_levels: { ...snap.upgrade_levels },
+      cards: snap.cards ? { ...snap.cards } : useStore.getState().cards,
+      total_infernal_cards: snap.total_infernal_cards !== undefined ? snap.total_infernal_cards : useStore.getState().total_infernal_cards
     });
     
     // Auto-update the initial time for chunked simulations
@@ -472,7 +474,7 @@ export default function PathfinderTab() {
             </div>
 
             <div className="bg-[#0E1117] border border-st-border rounded p-4 shadow-sm animate-fade-in">
-              <h3 className="text-lg font-bold text-st-text mb-4 border-b border-st-border pb-2">Opportunity Cost Crossover</h3>
+              <h3 className="text-lg font-bold text-st-text mb-4 border-b border-st-border pb-2">Opportunity Cost Crossover (When to Begin Farming for Poly Card Upgrade)</h3>
               <div className="h-[300px] w-full">
                 <Plot
                   data={[
@@ -719,6 +721,7 @@ export default function PathfinderTab() {
                                 if (node.type === 'level') evColor = 'text-green-400';
                                 else if (node.type === 'floor') evColor = 'text-purple-400';
                                 else if (node.type === 'upgrade') evColor = 'text-blue-400';
+                                else if (node.type === 'card') evColor = 'text-yellow-400';
 
                                 return (
                                   <div key={evIdx}>

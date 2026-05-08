@@ -129,11 +129,21 @@ def execute_simulation(test_stats_proxy, test_upgrades_proxy, test_external_prox
         metrics[f"frag_{frag_tier}_per_min"] = amt / arch_mins
         
     if hasattr(result, 'specific_blocks_mined'):
-        for block_id, count in result.specific_blocks_mined.items():
-            metrics[f"block_{block_id}_per_min"] = count / arch_mins
-            metrics[f"raw_block_{block_id}"] = count
-            
-    if hasattr(result, 'specific_blocks_frags'):
+                for block_id, count in result.specific_blocks_mined.items():
+                    b_pm = count / arch_mins
+                    metrics[f"block_{block_id}_per_min"] = b_pm
+                    metrics[f"raw_block_{block_id}"] = count
+                    
+                    is_t4 = block_id.endswith('4')
+                    base_odds = 15000 if is_t4 else 1500
+                    poly_odds = 75000 if is_t4 else 7500
+                    inf_odds  = 200000 # Infernal is universally 1/200k for all Tiers
+                    
+                    metrics[f"card_base_{block_id}_per_min"] = b_pm / base_odds
+                    metrics[f"card_poly_{block_id}_per_min"] = b_pm / poly_odds
+                    metrics[f"card_inf_{block_id}_per_min"] = b_pm / inf_odds
+                    
+            if hasattr(result, 'specific_blocks_frags'):
         for block_id, frags in result.specific_blocks_frags.items():
             metrics[f"raw_frag_{block_id}"] = frags
             

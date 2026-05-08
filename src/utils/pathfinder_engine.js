@@ -65,16 +65,17 @@ async function getSmoothedYields(pool, state, stats, samples = 3) {
     const tasks = Array.from({ length: samples }, () => pool.runTask(stats, state.upgrade_levels, state.external_levels, state.cards));
     const batchResults = await Promise.all(tasks);
     
-    let avgYields = { xp_per_min: 0, highest_floor: 0 };
-    for (let i = 0; i <= 6; i++) avgYields[`frag_${i}_per_min`] = 0;
+    let avgYields = { };
 
     batchResults.forEach(res => {
-        avgYields.xp_per_min += res.xp_per_min || 0;
-        avgYields.highest_floor += res.highest_floor || 0;
-        for (let i = 0; i <= 6; i++) avgYields[`frag_${i}_per_min`] += res[`frag_${i}_per_min`] || 0;
+        for (const[ key, val ] of Object.entries(res)) {
+            if (typeof val === 'number') {
+                avgYields[ key ] = (avgYields[ key ] || 0) + val;
+            }
+        }
     });
 
-    Object.keys(avgYields).forEach(k => avgYields[k] /= samples);
+    Object.keys(avgYields).forEach(k => avgYields[ k ] /= samples);
     return avgYields;
 }
 
@@ -274,14 +275,17 @@ async function attemptFloorPush(pool, state, maxTimePenaltySecs, minWinRateReq =
     let successes = 0;
     let totalTimeSec = 0;
     
-    let pushYields = { xp_per_min: 0, frag_0_per_min: 0, frag_1_per_min: 0, frag_2_per_min: 0, frag_3_per_min: 0, frag_4_per_min: 0, frag_5_per_min: 0, frag_6_per_min: 0 };
+    let pushYields = { };
     
     batchResults.forEach(res => {
         totalTimeSec += res.total_time;
         if (res.highest_floor >= nextFloor) successes++;
         
-        pushYields.xp_per_min += res.xp_per_min || 0;
-        for (let i = 0; i <= 6; i++) pushYields[`frag_${i}_per_min`] += res[`frag_${i}_per_min`] || 0;
+        for (const [ key, val ] of Object.entries(res)) {
+            if (typeof val === 'number' && key.includes('_per_min')) {
+                pushYields[ key ] = (pushYields[ key ] || 0) + val;
+            }
+        }
     });
 
     let winRate = successes / samples;
@@ -303,8 +307,11 @@ async function attemptFloorPush(pool, state, maxTimePenaltySecs, minWinRateReq =
         totalTimeSec += res.total_time;
         if (res.highest_floor >= nextFloor) successes++;
         
-        pushYields.xp_per_min += res.xp_per_min || 0;
-        for (let i = 0; i <= 6; i++) pushYields[`frag_${i}_per_min`] += res[`frag_${i}_per_min`] || 0;
+        for (const [ key, val ] of Object.entries(res)) {
+            if (typeof val === 'number' && key.includes('_per_min')) {
+                pushYields[ key ] = (pushYields[ key ] || 0) + val;
+            }
+        }
     });
 
     const totalSamples = samples + deepSamples;
@@ -359,6 +366,8 @@ export async function runPathfinderSimulation(startState, targetLevel, initialFr
         current_max_floor: s.current_max_floor,
         base_stats: { ...s.base_stats },
         upgrade_levels: { ...s.upgrade_levels },
+        cards: { ...s.cards },
+        total_infernal_cards: s.total_infernal_cards || 0,
         arch_sec: cumulativeArchSecs
     });
     let currentExp = 0;
@@ -374,6 +383,9 @@ export async function runPathfinderSimulation(startState, targetLevel, initialFr
         myth: initialFrags?.myth || 0, 
         div: initialFrags?.div || 0 
     };
+
+    // Tracks internal progress towards drops using Gamma 50% expectations
+    let card_progress = { };
     
     let history = [ ];
     let lastFarmStr = "";
@@ -452,6 +464,53 @@ export async function runPathfinderSimulation(startState, targetLevel, initialFr
             t_next_level = expNeeded / yields.xp_per_min;
         }
 
+        let t_next_card = Infinity;
+        let nextCardId = null;
+        let nextCardTargetLevel = null;
+
+        // Scan the block cards to see if an expected drop is approaching
+        for (const blockId of Object.keys(BLOCK_MIN_FLOORS)) {
+            if (!state.asc1_unlocked && (blockId.startsWith('div') || blockId.endsWith('4'))) continue;
+            if (!state.asc2_unlocked && blockId.endsWith('4')) continue;
+            if (state.current_max_floor < BLOCK_MIN_FLOORS[ blockId ]) continue;
+
+            const currentLvl = state.cards[ blockId ] || 0;
+            if (currentLvl >= 4) continue; // Maxed
+
+            const isT4 = blockId.endsWith('4');
+            let rate = 0;
+            let targetAmount = 0;
+            let targetLvl = currentLvl + 1;
+
+            if (isT4 && currentLvl === 0) {
+                rate = yields[ `card_base_${blockId}_per_min` ] || 0;
+                targetAmount = 0.693; // Gamma 50% Median for 1 Drop
+                targetLvl = 2; // T4 immediately skips to Gilded (Level 2)
+            } else if (isT4 && currentLvl === 2) {
+                rate = yields[ `card_poly_${blockId}_per_min` ] || 0;
+                targetAmount = 9.669; // Gamma 50% Median for 10 Drops
+                targetLvl = 3; // Poly
+            } else if (currentLvl === 3) {
+                rate = yields[ `card_inf_${blockId}_per_min` ] || 0;
+                targetAmount = 9.669; // Gamma 50% Median for 10 Drops
+                targetLvl = 4; // Infernal
+            } else {
+                continue; // Ignore level 1 or others for T1-T3 as templates already assume Poly
+            }
+
+            if (rate > 0) {
+                const bank = card_progress[ blockId ] || 0;
+                const needed = Math.max(0, targetAmount - bank);
+                const timeNeeded = needed / rate;
+                
+                if (timeNeeded < t_next_card) {
+                    t_next_card = timeNeeded;
+                    nextCardId = blockId;
+                    nextCardTargetLevel = targetLvl;
+                }
+            }
+        }
+
         let t_next_upgrade = Infinity;
         let nextUpgradeId = null;
         let nextUpgradeCost = null;
@@ -511,8 +570,11 @@ export async function runPathfinderSimulation(startState, targetLevel, initialFr
         let t_step = 0;
         let eventType = null;
 
-        // Prioritize Upgrades if they trigger at the exact same moment as a Level Up
-        if (t_next_upgrade <= t_next_level && t_next_upgrade !== Infinity) {
+        // Prioritize Cards & Upgrades if they trigger at the exact same moment as a Level Up
+        if (t_next_card <= t_next_level && t_next_card <= t_next_upgrade && t_next_card !== Infinity) {
+            t_step = Math.max(0, t_next_card);
+            eventType = 'card';
+        } else if (t_next_upgrade <= t_next_level && t_next_upgrade !== Infinity) {
             t_step = Math.max(0, t_next_upgrade); // Double safeguard against time travel
             eventType = 'upgrade';
         } else if (t_next_level !== Infinity) {
@@ -539,6 +601,19 @@ export async function runPathfinderSimulation(startState, targetLevel, initialFr
             const rKey = FRAG_RATE_KEYS[ k ];
             if (yields[ rKey ]) frags[ k ] += yields[ rKey ] * t_step;
         });
+
+        for (const blockId of Object.keys(BLOCK_MIN_FLOORS)) {
+            const currentLvl = state.cards[ blockId ] || 0;
+            const isT4 = blockId.endsWith('4');
+            let rate = 0;
+            if (isT4 && currentLvl === 0) rate = yields[ `card_base_${blockId}_per_min` ] || 0;
+            else if (isT4 && currentLvl === 2) rate = yields[ `card_poly_${blockId}_per_min` ] || 0;
+            else if (currentLvl === 3) rate = yields[ `card_inf_${blockId}_per_min` ] || 0;
+            
+            if (rate > 0) {
+                card_progress[ blockId ] = (card_progress[ blockId ] || 0) + rate * t_step;
+            }
+        }
 
         // 4. RESOLVE EVENT
         let timeGap = cumulativeArchSecs - lastEventTime;
@@ -659,6 +734,59 @@ export async function runPathfinderSimulation(startState, targetLevel, initialFr
             lastEventTime = cumulativeArchSecs;
             lastFarmStr = farmStr;
             lastPushStr = pushStr;
+        } else if (eventType === 'card') {
+            card_progress[ nextCardId ] = 0; // Reset progress for next tier
+            state.cards = { ...state.cards, [ nextCardId ]: nextCardTargetLevel };
+            
+            let evtName = "Card Drop";
+            if (nextCardTargetLevel === 2) evtName = `🃏 Base Card Dropped & Auto-Gilded: ${nextCardId}`;
+            else if (nextCardTargetLevel === 3) evtName = `🔮 Poly Card Crafted: ${nextCardId}`;
+            else if (nextCardTargetLevel === 4) evtName = `🔥 Infernal Card Crafted: ${nextCardId}`;
+
+            // Infernal compounding kicks in!
+            if (nextCardTargetLevel === 4) {
+                state.total_infernal_cards = (state.total_infernal_cards || 0) + 1;
+            }
+
+            const totalBudget = state.arch_level + (state.upgrade_levels[ 12 ] || 0);
+
+            // Re-map the mathematically optimal baseline since multipliers shifted
+            const farmMetric = state.current_max_floor >= shiftFloor ? 'frag_6_per_min' : 'xp_per_min';
+            const optFarm = await runFastOptimizer(pool, state, farmMetric, totalBudget, state.base_stats, 3);
+            state.base_stats = optFarm.bestBuild;
+            currentFarmYields = optFarm.bestYields;
+
+            // Top-up Push Build mathematically
+            const statsKeys = getAvailableStatKeys(state);
+            const effectiveCaps = getEffectiveStatCaps(state);
+            state.push_stats = enforceBudget(state.push_stats, statsKeys, totalBudget, effectiveCaps);
+
+            const pushActualTargetState = { ...state, current_max_floor: state.current_max_floor + 1 };
+            await pool.syncState(pushActualTargetState);
+            currentPushYields = await getSmoothedYields(pool, pushActualTargetState, state.push_stats, 3);
+            await pool.syncState(state);
+
+            const farmStr = formatBuildStr(state.base_stats, state);
+            const pushStr = formatBuildStr(state.push_stats, state);
+
+            history.push({
+                type: "card",
+                event: evtName,
+                arch_sec: cumulativeArchSecs,
+                time_delta: timeGap,
+                active_build: "Farm",
+                active_build_str: lastFarmStr,
+                level: state.arch_level,
+                floor: state.current_max_floor,
+                desc: `Card leveled up to ${nextCardTargetLevel}. Respecced -> Farm: ${farmStr} | Push: ${pushStr}`,
+                yields: { farm: currentFarmYields, push: currentPushYields },
+                frags: { ...frags },
+                state_snapshot: captureSnapshot(state)
+            });
+            
+            lastEventTime = cumulativeArchSecs;
+            lastFarmStr = farmStr;
+            lastPushStr = pushStr;
         }
 
         // 5. ORGANIC FLOOR PUSH LOOP
@@ -716,6 +844,19 @@ export async function runPathfinderSimulation(startState, targetLevel, initialFr
                         const rKey = FRAG_RATE_KEYS[k];
                         if (pushResult.pushYields[rKey]) frags[k] += pushResult.pushYields[rKey] * penaltyMins;
                     });
+                    
+                    for (const blockId of Object.keys(BLOCK_MIN_FLOORS)) {
+                        const currentLvl = state.cards[ blockId ] || 0;
+                        const isT4 = blockId.endsWith('4');
+                        let rate = 0;
+                        if (isT4 && currentLvl === 0) rate = pushResult.pushYields[ `card_base_${blockId}_per_min` ] || 0;
+                        else if (isT4 && currentLvl === 2) rate = pushResult.pushYields[ `card_poly_${blockId}_per_min` ] || 0;
+                        else if (currentLvl === 3) rate = pushResult.pushYields[ `card_inf_${blockId}_per_min` ] || 0;
+                        
+                        if (rate > 0) {
+                            card_progress[ blockId ] = (card_progress[ blockId ] || 0) + rate * penaltyMins;
+                        }
+                    }
                     
                     // We pushed the floor! Recalculate ALL yields against the new reality using smoothed averages!
                     let didShift = false;
