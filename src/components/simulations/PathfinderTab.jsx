@@ -397,33 +397,38 @@ export default function PathfinderTab() {
         </button>
       </div>
 
+      {/* TIMELINE TOOLS (ALWAYS VISIBLE) */}
+      <div className="flex flex-col md:flex-row justify-between items-center bg-[#0E1117] border border-st-border rounded p-3 shadow-sm">
+        <div className="text-st-text font-bold text-sm mb-3 md:mb-0">
+          Timeline Data Tools
+        </div>
+        <div className="flex flex-wrap gap-3">
+          {pathData && (
+            <button 
+              onClick={handleExportTimeline}
+              className="px-3 py-1.5 bg-st-secondary text-st-text rounded text-xs font-bold hover:bg-st-orange transition-colors border border-st-border flex items-center gap-1"
+            >
+              💾 Export Chunk
+            </button>
+          )}
+          <label className="px-3 py-1.5 bg-st-secondary text-st-text rounded text-xs font-bold hover:text-purple-400 transition-colors cursor-pointer border border-st-border flex items-center gap-1">
+            <span>{pathData ? '🔗 Stitch Chunks' : '📂 Load Timeline (JSON)'}</span>
+            <input type="file" multiple accept=".json" className="hidden" onChange={handleImportTimelines} />
+          </label>
+          {pathData && (
+            <button 
+              onClick={() => setPathData(null)}
+              className="px-3 py-1.5 bg-st-secondary text-st-text rounded text-xs font-bold hover:text-red-400 transition-colors border border-st-border"
+            >
+              🗑️ Clear Data
+            </button>
+          )}
+        </div>
+      </div>
+
       {/* VISUALIZATIONS & RESULTS AREA */}
       {pathData && (
         <>
-          <div className="flex flex-col md:flex-row justify-between items-center bg-[#0E1117] border border-st-border rounded p-3 mb-6 shadow-sm">
-            <div className="text-st-text font-bold text-sm mb-3 md:mb-0">
-              Timeline Stitching & Data Tools
-            </div>
-            <div className="flex flex-wrap gap-3">
-              <button 
-                onClick={handleExportTimeline}
-                className="px-3 py-1.5 bg-st-secondary text-st-text rounded text-xs font-bold hover:bg-st-orange transition-colors border border-st-border flex items-center gap-1"
-              >
-                💾 Export Chunk
-              </button>
-              <label className="px-3 py-1.5 bg-st-secondary text-st-text rounded text-xs font-bold hover:text-purple-400 transition-colors cursor-pointer border border-st-border flex items-center gap-1">
-                <span>🔗 Stitch Chunks</span>
-                <input type="file" multiple accept=".json" className="hidden" onChange={handleImportTimelines} />
-              </label>
-              <button 
-                onClick={() => setPathData(null)}
-                className="px-3 py-1.5 bg-st-secondary text-st-text rounded text-xs font-bold hover:text-red-400 transition-colors border border-st-border"
-              >
-                🗑️ Clear Data
-              </button>
-            </div>
-          </div>
-
           <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 mb-6">
             <div className="bg-[#0E1117] border border-st-border rounded p-4 shadow-sm animate-fade-in">
               <h3 className="text-lg font-bold text-st-text mb-4 border-b border-st-border pb-2">Farm Yields over Time</h3>
