@@ -445,10 +445,10 @@ export default function PathfinderTab() {
                   paper_bgcolor: 'transparent',
                   plot_bgcolor: 'transparent',
                   font: { color: '#FAFAFA' },
-                  margin: { l: 50, r: 20, t: 10, b: 40 },
-                  xaxis: { title: 'Timeline (Arch Seconds)', gridcolor: '#333' },
-                  yaxis: { title: 'Progression Milestone', gridcolor: '#333' },
-                  legend: { orientation: 'h', y: -0.2, x: 0.5, xanchor: 'center' },
+                  margin: { l: 60, r: 20, t: 10, b: 80 },
+                  xaxis: { title: { text: 'Timeline (Arch Seconds)', standoff: 15 }, gridcolor: '#333' },
+                  yaxis: { title: { text: 'Progression Milestone', standoff: 10 }, gridcolor: '#333' },
+                  legend: { orientation: 'h', y: -0.3, x: 0.5, xanchor: 'center' },
                   autosize: true
                 }}
                 useResizeHandler={true}
@@ -486,11 +486,11 @@ export default function PathfinderTab() {
                     paper_bgcolor: 'transparent',
                     plot_bgcolor: 'transparent',
                     font: { color: '#FAFAFA' },
-                    margin: { l: 50, r: 50, t: 10, b: 40 },
-                    xaxis: { title: 'Timeline (Arch Seconds)', gridcolor: '#333' },
-                    yaxis: { title: 'XP/Min', titlefont: { color: '#4ade80' }, tickfont: { color: '#4ade80' }, gridcolor: '#333' },
-                    yaxis2: { title: 'Div Frags/Min', titlefont: { color: '#facc15' }, tickfont: { color: '#facc15' }, overlaying: 'y', side: 'right', showgrid: false },
-                    legend: { orientation: 'h', y: -0.2, x: 0.5, xanchor: 'center' },
+                    margin: { l: 60, r: 60, t: 10, b: 80 },
+                    xaxis: { title: { text: 'Timeline (Arch Seconds)', standoff: 15 }, gridcolor: '#333' },
+                    yaxis: { title: { text: 'XP / Min', standoff: 10 }, titlefont: { color: '#4ade80' }, tickfont: { color: '#4ade80' }, gridcolor: '#333' },
+                    yaxis2: { title: { text: 'Div Frags / Min', standoff: 10 }, titlefont: { color: '#facc15' }, tickfont: { color: '#facc15' }, overlaying: 'y', side: 'right', showgrid: false },
+                    legend: { orientation: 'h', y: -0.3, x: 0.5, xanchor: 'center' },
                     autosize: true
                   }}
                   useResizeHandler={true}
@@ -516,10 +516,10 @@ export default function PathfinderTab() {
                     paper_bgcolor: 'transparent',
                     plot_bgcolor: 'transparent',
                     font: { color: '#FAFAFA' },
-                    margin: { l: 40, r: 20, t: 10, b: 40 },
-                    xaxis: { title: 'Max Floor Pushed', gridcolor: '#333' },
-                    yaxis: { title: 'Stat Points Allocated', gridcolor: '#333' },
-                    legend: { orientation: 'h', y: -0.2, x: 0.5, xanchor: 'center' },
+                    margin: { l: 60, r: 20, t: 10, b: 80 },
+                    xaxis: { title: { text: 'Max Floor Pushed', standoff: 15 }, gridcolor: '#333' },
+                    yaxis: { title: { text: 'Stat Points Allocated', standoff: 10 }, gridcolor: '#333' },
+                    legend: { orientation: 'h', y: -0.3, x: 0.5, xanchor: 'center' },
                     autosize: true
                   }}
                   useResizeHandler={true}
