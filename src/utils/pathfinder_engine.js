@@ -792,7 +792,10 @@ export async function runPathfinderSimulation(startState, targetLevel, initialFr
         arch_sec: cumulativeArchSecs,
         level: state.arch_level,
         floor: state.current_max_floor,
-        desc: "Reached testing limits."
+        desc: "Reached testing limits.",
+        yields: { farm: currentFarmYields, push: currentPushYields },
+        frags: { ...frags },
+        state_snapshot: captureSnapshot(state)
     });
 
     return { history, final_state: state };
