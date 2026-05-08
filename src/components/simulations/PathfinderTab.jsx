@@ -35,6 +35,7 @@ export default function PathfinderTab() {
   // Hardcoded Ascension 2 Starting Template Baseline
   const[shiftFloor, setShiftFloor] = useState("100");
   const[minWinRate, setMinWinRate] = useState("20");
+  const[templateType, setTemplateType] = useState('founder');
 
   const handleApplySnapshot = (snap) => {
     if (!snap) return;
@@ -87,17 +88,34 @@ export default function PathfinderTab() {
     return { floors, stats };
   },[pathData]);
 
-  const asc2Template = {
-    arch_level: 1,
-    current_max_floor: 1,
-    arch_ability_infernal_bonus: parseFloat(store.arch_ability_infernal_bonus || "0") / 100.0,
-    total_infernal_cards: store.total_infernal_cards || 0,
-    base_stats: { Str: 0, Agi: 0, Per: 0, Int: 0, Luck: 0, Div: 0, Corr: 0 },
-    // Only keeping external upgrades that persist across Ascensions
-    external_levels: { 4: 0, 5: store.external_levels[5] || 0, 6: store.external_levels[6] || 0, 8: store.geoduck_unlocked ? (store.external_levels[8] || 0) : 0, 21: store.external_levels[21] || 0 },
-    upgrade_levels: { },
-    cards: { } 
+  const templates = {
+    founder: {
+      name: "Founder_Asc2_start",
+      arch_level: 1,
+      current_max_floor: 1,
+      geoduck_unlocked: true,
+      arch_ability_infernal_bonus: -0.14,
+      total_infernal_cards: 299,
+      base_stats: { Str: 0, Agi: 0, Per: 0, Int: 0, Luck: 0, Div: 0, Corr: 0 },
+      upgrade_levels: { },
+      external_levels: { 4: 2500, 5: 11, 6: 10, 7: 10, 8: 100, 9: 1, 10: 1, 11: 1, 12: 1, 13: 1, 14: 1, 15: 1, 16: 1, 17: 1, 18: 1, 19: 1, 20: 4, 21: 250 },
+      cards: { dirt1: 3, dirt2: 3, dirt3: 4, com1: 3, com2: 3, com3: 4, rare1: 3, rare2: 3, rare3: 4, epic1: 3, epic2: 3, epic3: 4, leg1: 3, leg2: 3, leg3: 4, myth1: 3, myth2: 3, myth3: 3, div1: 3, div2: 3, div3: 3 }
+    },
+    f2p: {
+      name: "F2p_Asc2_Start",
+      arch_level: 1,
+      current_max_floor: 1,
+      geoduck_unlocked: true,
+      arch_ability_infernal_bonus: -0.14,
+      total_infernal_cards: 299,
+      base_stats: { Str: 0, Agi: 0, Per: 0, Int: 0, Luck: 0, Div: 0, Corr: 0 },
+      upgrade_levels: { },
+      external_levels: { 4: 2500, 5: 11, 6: 9, 7: 9, 8: 50, 9: 1, 10: 1, 11: 1, 12: 1, 13: 1, 14: 1, 20: 4, 21: 250 },
+      cards: { dirt1: 3, dirt2: 3, dirt3: 4, com1: 3, com2: 3, com3: 4, rare1: 3, rare2: 3, rare3: 4, epic1: 3, epic2: 3, epic3: 4, leg1: 3, leg2: 3, leg3: 4, myth1: 3, myth2: 3, myth3: 3, div1: 3, div2: 3, div3: 3 }
+    }
   };
+
+  const asc2Template = templates[templateType];
 
   const handleStartPathfinder = async () => {
     setIsSimulating(true);
@@ -237,9 +255,20 @@ export default function PathfinderTab() {
         <div className="bg-[#0E1117] p-3 rounded border border-st-border text-xs font-mono text-st-text-light mb-6">
           {startMode === 'template' ? (
             <div>
-              <p>Arch Level: {asc2Template.arch_level}</p>
-              <p>Max Floor: {asc2Template.current_max_floor}</p>
-              <p>Upgrades: None</p>
+              <div className="mb-4 pb-4 border-b border-st-border flex flex-col md:flex-row md:items-center gap-3">
+                <label className="font-bold text-[#FAFAFA]">Select Template Profile:</label>
+                <select 
+                  value={templateType} 
+                  onChange={(e) => setTemplateType(e.target.value)}
+                  className="bg-st-bg border border-st-border rounded px-3 py-1.5 text-st-text focus:border-st-orange outline-none font-bold"
+                >
+                  <option value="founder">Founder_Asc2_start</option>
+                  <option value="f2p">F2p_Asc2_Start</option>
+                </select>
+              </div>
+              <p>Loaded Profile: <span className="text-st-orange font-bold">{asc2Template.name}</span></p>
+              <p>Arch Level: {asc2Template.arch_level} | Max Floor: {asc2Template.current_max_floor}</p>
+              <p>Total Cards: {asc2Template.total_infernal_cards} | Hades Lvl: {asc2Template.external_levels[21]}</p>
               <p className="mt-2 text-[#FAFAFA]">Goal Director Logic:</p>
               <ul className="list-disc ml-4 opacity-80 mt-1">
                 <li>Priority 1: Push Floor 200</li>
