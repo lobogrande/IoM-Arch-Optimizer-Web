@@ -115,14 +115,18 @@ export default function PathfinderTab() {
     const xVals =[ ];
     const xpVals =[ ];
     const divVals =[ ];
+    const levelVals =[ ];
+    const floorVals =[ ];
 
     pathData.history.forEach(ev => {
       xVals.push(ev.arch_sec);
       xpVals.push((ev.yields?.farm?.xp_per_min || 0));
       divVals.push(ev.yields?.farm?.frag_6_per_min || 0);
+      levelVals.push(ev.level || 1);
+      floorVals.push(ev.floor || 1);
     });
 
-    return { xVals, xpVals, divVals };
+    return { xVals, xpVals, divVals, levelVals, floorVals };
   },[pathData]);
 
   const pushChartData = useMemo(() => {
@@ -429,6 +433,30 @@ export default function PathfinderTab() {
       {/* VISUALIZATIONS & RESULTS AREA */}
       {pathData && (
         <>
+          <div className="bg-[#0E1117] border border-st-border rounded p-4 shadow-sm animate-fade-in mb-6">
+            <h3 className="text-lg font-bold text-st-text mb-4 border-b border-st-border pb-2">Progression Trends (Level & Floor)</h3>
+            <div className="h-[300px] w-full">
+              <Plot
+                data={[
+                  { x: chartData.xVals, y: chartData.levelVals, type: 'scatter', mode: 'lines', name: 'Arch Level', line: { color: '#3b82f6', shape: 'hv', width: 2 } },
+                  { x: chartData.xVals, y: chartData.floorVals, type: 'scatter', mode: 'lines', name: 'Max Floor', line: { color: '#ef4444', shape: 'hv', width: 2 } }
+                ]}
+                layout={{
+                  paper_bgcolor: 'transparent',
+                  plot_bgcolor: 'transparent',
+                  font: { color: '#FAFAFA' },
+                  margin: { l: 50, r: 20, t: 10, b: 40 },
+                  xaxis: { title: 'Timeline (Arch Seconds)', gridcolor: '#333' },
+                  yaxis: { title: 'Progression Milestone', gridcolor: '#333' },
+                  legend: { orientation: 'h', y: -0.2, x: 0.5, xanchor: 'center' },
+                  autosize: true
+                }}
+                useResizeHandler={true}
+                style={{ width: '100%', height: '100%' }}
+              />
+            </div>
+          </div>
+
           <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 mb-6">
             <div className="bg-[#0E1117] border border-st-border rounded p-4 shadow-sm animate-fade-in">
               <h3 className="text-lg font-bold text-st-text mb-4 border-b border-st-border pb-2">Farm Yields over Time</h3>
