@@ -556,7 +556,12 @@ export async function runPathfinderSimulation(startState, targetLevel, initialFr
             currentFarmYields = optFarm.bestYields;
 
             // LAZY OPTIMIZATION: Defer Push build re-optimization until a floor push is actually attempted.
-            // We just sync the yields of the stale push build here so the UI snapshot isn't broken.
+            // FIX: Top-up the stale push build so logs and yield snapshots have the mathematically correct stat point total!
+            const statsKeys = getAvailableStatKeys(state);
+            const effectiveCaps = getEffectiveStatCaps(state);
+            state.push_stats = enforceBudget(state.push_stats, statsKeys, totalBudget, effectiveCaps);
+
+            // We just sync the yields of the topped-up push build here so the UI snapshot isn't broken.
             const pushActualTargetState = { ...state, current_max_floor: state.current_max_floor + 1 };
             await pool.syncState(pushActualTargetState);
             currentPushYields = await getSmoothedYields(pool, pushActualTargetState, state.push_stats, 3);
@@ -608,6 +613,11 @@ export async function runPathfinderSimulation(startState, targetLevel, initialFr
                 currentFarmYields = optFarm.bestYields;
 
                 // LAZY OPTIMIZATION: Defer Push build re-optimization until a floor push is actually attempted.
+                // FIX: Top-up the stale push build!
+                const statsKeys = getAvailableStatKeys(state);
+                const effectiveCaps = getEffectiveStatCaps(state);
+                state.push_stats = enforceBudget(state.push_stats, statsKeys, totalBudget, effectiveCaps);
+
                 const pushActualTargetState = { ...state, current_max_floor: state.current_max_floor + 1 };
                 await pool.syncState(pushActualTargetState);
                 currentPushYields = await getSmoothedYields(pool, pushActualTargetState, state.push_stats, 3);
