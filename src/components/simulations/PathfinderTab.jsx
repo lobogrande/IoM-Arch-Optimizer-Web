@@ -36,6 +36,7 @@ export default function PathfinderTab() {
   const[shiftFloor, setShiftFloor] = useState("100");
   const[minWinRate, setMinWinRate] = useState("20");
   const[templateType, setTemplateType] = useState('founder');
+  const[startingArchSecs, setStartingArchSecs] = useState("0");
 
   const handleApplySnapshot = (snap) => {
     if (!snap) return;
@@ -46,8 +47,66 @@ export default function PathfinderTab() {
       base_stats: { ...snap.base_stats },
       upgrade_levels: { ...snap.upgrade_levels }
     });
+    
+    // Auto-update the initial time for chunked simulations
+    if (snap.arch_sec !== undefined) {
+      setStartingArchSecs(Math.floor(snap.arch_sec).toString());
+    }
+
     setSimStatus(`Workspace updated to Level ${snap.arch_level} / Floor ${snap.current_max_floor}!`);
     setTimeout(() => setSimStatus(''), 3000);
+  };
+
+  const handleExportTimeline = () => {
+    if (!pathData) return;
+    const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(pathData.history, null, 2));
+    const downloadAnchorNode = document.createElement('a');
+    downloadAnchorNode.setAttribute("href", dataStr);
+    downloadAnchorNode.setAttribute("download", `pathfinder_chunk_lvl${pathData.history[0]?.level || 1}_to_${targetLevel}.json`);
+    document.body.appendChild(downloadAnchorNode);
+    downloadAnchorNode.click();
+    downloadAnchorNode.remove();
+  };
+
+  const handleImportTimelines = (e) => {
+    const files = Array.from(e.target.files);
+    if (files.length === 0) return;
+    
+    let combinedHistory = pathData ? [ ...pathData.history ] :[ ];
+    let processed = 0;
+
+    files.forEach(file => {
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        try {
+          const parsed = JSON.parse(event.target.result);
+          if (Array.isArray(parsed)) combinedHistory = combinedHistory.concat(parsed);
+        } catch (err) {
+          console.error("Failed to parse timeline file", err);
+        }
+        
+        processed++;
+        if (processed === files.length) {
+          // Sort by Arch Sec and Deduplicate by timestamp + event name
+          combinedHistory.sort((a, b) => a.arch_sec - b.arch_sec);
+          
+          const unique = [ ];
+          const seen = new Set();
+          combinedHistory.forEach(ev => {
+            const key = `${ev.arch_sec}_${ev.event}`;
+            if (!seen.has(key)) {
+              seen.add(key);
+              unique.push(ev);
+            }
+          });
+
+          setPathData({ history: unique });
+          setSimStatus(`Successfully stitched ${files.length} chunk(s) into the timeline!`);
+          setTimeout(() => setSimStatus(''), 4000);
+        }
+      };
+      reader.readAsText(file);
+    });
   };
 
   const chartData = useMemo(() => {
@@ -158,7 +217,8 @@ export default function PathfinderTab() {
 
       const parsedShift = parseInt(shiftFloor) || 100;
       const parsedMinWinRate = parseFloat(minWinRate) || 20;
-      const result = await runPathfinderSimulation(activeState, targetArch, initialFrags, pool, parsedShift, parsedMinWinRate, (prog) => {
+      const parsedArchSecs = parseFloat(startingArchSecs) || 0;
+      const result = await runPathfinderSimulation(activeState, targetArch, initialFrags, pool, parsedShift, parsedMinWinRate, parsedArchSecs, (prog) => {
         setSimProgress(prog.progress);
         setSimStatus(prog.status);
       });
@@ -213,7 +273,7 @@ export default function PathfinderTab() {
           </button>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
           <div>
             <label className="block text-sm font-bold text-st-text mb-2">Target Arch Level (Stopping Point):</label>
             <input 
@@ -249,6 +309,18 @@ export default function PathfinderTab() {
               placeholder="e.g. 20"
             />
             <span className="text-[10px] text-st-text-light block mt-1">Min. Win Rate to attempt max floor push.</span>
+          </div>
+          <div>
+            <label className="block text-sm font-bold text-st-text mb-2">Initial Time (Arch Secs):</label>
+            <input 
+              type="number" 
+              min="0"
+              value={startingArchSecs}
+              onChange={(e) => setStartingArchSecs(e.target.value)}
+              className="w-full bg-[#0E1117] border border-st-border rounded p-2 text-st-text focus:border-st-orange outline-none"
+              placeholder="e.g. 0"
+            />
+            <span className="text-[10px] text-st-text-light block mt-1">Offset for chunked simulations.</span>
           </div>
         </div>
 
@@ -327,6 +399,30 @@ export default function PathfinderTab() {
       {/* VISUALIZATIONS & RESULTS AREA */}
       {pathData && (
         <>
+          <div className="flex flex-col md:flex-row justify-between items-center bg-[#0E1117] border border-st-border rounded p-3 mb-6 shadow-sm">
+            <div className="text-st-text font-bold text-sm mb-3 md:mb-0">
+              Timeline Stitching & Data Tools
+            </div>
+            <div className="flex flex-wrap gap-3">
+              <button 
+                onClick={handleExportTimeline}
+                className="px-3 py-1.5 bg-st-secondary text-st-text rounded text-xs font-bold hover:bg-st-orange transition-colors border border-st-border flex items-center gap-1"
+              >
+                💾 Export Chunk
+              </button>
+              <label className="px-3 py-1.5 bg-st-secondary text-st-text rounded text-xs font-bold hover:text-purple-400 transition-colors cursor-pointer border border-st-border flex items-center gap-1">
+                <span>🔗 Stitch Chunks</span>
+                <input type="file" multiple accept=".json" className="hidden" onChange={handleImportTimelines} />
+              </label>
+              <button 
+                onClick={() => setPathData(null)}
+                className="px-3 py-1.5 bg-st-secondary text-st-text rounded text-xs font-bold hover:text-red-400 transition-colors border border-st-border"
+              >
+                🗑️ Clear Data
+              </button>
+            </div>
+          </div>
+
           <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 mb-6">
             <div className="bg-[#0E1117] border border-st-border rounded p-4 shadow-sm animate-fade-in">
               <h3 className="text-lg font-bold text-st-text mb-4 border-b border-st-border pb-2">Farm Yields over Time</h3>

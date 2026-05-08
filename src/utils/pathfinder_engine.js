@@ -344,21 +344,23 @@ async function attemptFloorPush(pool, state, maxTimePenaltySecs, minWinRateReq =
     return { success: true, timePenaltySecs, winRate, pushYields };
 }
 
-export async function runPathfinderSimulation(startState, targetLevel, initialFrags, pool, shiftFloor, minWinRate, onProgress) {
+export async function runPathfinderSimulation(startState, targetLevel, initialFrags, pool, shiftFloor, minWinRate, initialArchSecs = 0, onProgress) {
     // 1. Initialize Tracked State (Dual-Track the base stats!)
     let state = { 
         ...startState, 
         push_stats: { ...startState.base_stats } 
     };
 
+    let cumulativeArchSecs = initialArchSecs;
+    let lastEventTime = initialArchSecs;
+    
     const captureSnapshot = (s) => ({
         arch_level: s.arch_level,
         current_max_floor: s.current_max_floor,
         base_stats: { ...s.base_stats },
-        upgrade_levels: { ...s.upgrade_levels }
+        upgrade_levels: { ...s.upgrade_levels },
+        arch_sec: cumulativeArchSecs
     });
-    let cumulativeArchSecs = 0;
-    let lastEventTime = 0;
     let currentExp = 0;
     let unspentPoints = 0;
     
