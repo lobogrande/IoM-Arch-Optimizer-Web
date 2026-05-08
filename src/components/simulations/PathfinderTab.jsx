@@ -361,7 +361,7 @@ export default function PathfinderTab() {
               <p>Targeting remaining goals based on current state...</p>
               
               <div className="mt-4 border-t border-st-border pt-4">
-                <label className="block text-sm font-bold text-[#FAFAFA] mb-2">Starting Fragment Bank (Millions):</label>
+                <label className="block text-sm font-bold text-[#FAFAFA] mb-2">Starting Fragment Bank (Raw Amounts):</label>
                 <div className="grid grid-cols-3 md:grid-cols-6 gap-3">
                   {[
                     { id: 'com', label: 'Common' }, { id: 'rare', label: 'Rare' }, 
