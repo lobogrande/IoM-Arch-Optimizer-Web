@@ -158,7 +158,8 @@ async function runFastOptimizer(pool, state, targetMetric, budget, previousBuild
     const finalCandidates = Array.from(unique.values());
 
     // 4. Round 1 Filter (Mini-batch for Push Builds, with Secondary Tie-Breaker)
-    const r1Samples = targetMetric === 'highest_floor' ? 3 : 1; // Bumped to 3 to prevent godly builds failing from early RNG
+    // Bumped to 8 specifically to break extreme quantization ties (1/3 averages) that hide optimal sub-paths!
+    const r1Samples = targetMetric === 'highest_floor' ? 8 : 1; 
     const r1Promises = finalCandidates.map(async (testStats) => {
         const avgYields = await getSmoothedYields(pool, state, testStats, r1Samples);
         return { build: testStats, val: avgYields[targetMetric] || 0, secondary: avgYields.xp_per_min || 0 };
@@ -191,7 +192,46 @@ async function runFastOptimizer(pool, state, targetMetric, budget, previousBuild
         return b.secondary - a.secondary;
     });
     
-    return { bestBuild: r2Results[0].build, bestYields: r2Results[0].yields };
+    const bestR2 = r2Results[0].build;
+
+    // 6. Phase 3: Micro-Refinement (Steepest Ascent off the Coarse Grid)
+    // Generates neighbors by transferring 1 and 2 points between all stats to find the true peak
+    const p3CandidatesMap = new Map();
+    p3CandidatesMap.set(stats.map(s => bestR2[s] || 0).join(','), bestR2);
+
+    stats.forEach(sFrom => {
+        stats.forEach(sTo => {
+            if (sFrom !== sTo) {
+                // Try 1-point swap
+                if ((bestR2[sFrom] || 0) >= 1 && (bestR2[sTo] || 0) < caps[sTo]) {
+                    const n1 = { ...bestR2, [sFrom]: bestR2[sFrom] - 1,[sTo]: (bestR2[sTo] || 0) + 1 };
+                    p3CandidatesMap.set(stats.map(s => n1[s] || 0).join(','), enforceBudget(n1, stats, budget, caps));
+                }
+                // Try 2-point swap
+                if ((bestR2[sFrom] || 0) >= 2 && (bestR2[sTo] || 0) < caps[sTo] - 1) {
+                    const n2 = { ...bestR2, [sFrom]: bestR2[sFrom] - 2, [sTo]: (bestR2[sTo] || 0) + 2 };
+                    p3CandidatesMap.set(stats.map(s => n2[s] || 0).join(','), enforceBudget(n2, stats, budget, caps));
+                }
+            }
+        });
+    });
+
+    const p3Candidates = Array.from(p3CandidatesMap.values());
+    const p3Samples = targetMetric === 'highest_floor' ? 12 : 5;
+    
+    const p3Promises = p3Candidates.map(async (testStats) => {
+        const avgYields = await getSmoothedYields(pool, state, testStats, p3Samples);
+        return { build: testStats, val: avgYields[targetMetric] || 0, secondary: avgYields.xp_per_min || 0, yields: avgYields };
+    });
+
+    const p3Results = await Promise.all(p3Promises);
+    
+    p3Results.sort((a, b) => {
+        if (b.val !== a.val) return b.val - a.val;
+        return b.secondary - a.secondary;
+    });
+
+    return { bestBuild: p3Results[0].build, bestYields: p3Results[0].yields };
 }
 
 // Tests if the specialized Push Build is mathematically capable of surviving 1 floor higher
@@ -244,8 +284,9 @@ async function attemptFloorPush(pool, state, maxTimePenaltySecs, minWinRateReq =
     const totalSamples = samples + deepSamples;
     winRate = successes / totalSamples;
 
-    // STRICT REJECT: The fluke was exposed. The true win rate doesn't meet the threshold.
-    if (winRate < minWinRateReq) {
+    // STRICT REJECT: The fluke was exposed. 
+    // We add a tiny 5% relative buffer (e.g. 20% needs 21% result) to shield against Monte Carlo margin-of-error flukes passing.
+    if (winRate < (minWinRateReq * 1.05)) {
         await pool.syncState(state); 
         return { success: false };
     }
