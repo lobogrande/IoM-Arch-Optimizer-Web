@@ -1,7 +1,7 @@
 // src/utils/pathfinder_engine.js
 
 import { calculateUpgradeCost, UPGRADE_NAMES, UPGRADE_LEVEL_REQS, BLOCK_MIN_FLOORS, INTERNAL_UPGRADE_CAPS, ASC1_LOCKED_UPGS, ASC2_LOCKED_UPGS } from '../game_data';
-import { generateDistributions } from './optimizer';
+import { generateDistributions, countDistributions } from './optimizer';
 
 // XP Math deduced from player telemetry
 export const getExpRequired = (level) => {
@@ -142,15 +142,19 @@ async function runFastOptimizer(pool, state, targetMetric, budget, previousBuild
     }
 
     let alignBudget = budget - (budget % step);
-    let grid = generateDistributions(stats, alignBudget, step, bounds);
+    
+    // CRITICAL FIX: Use memory-safe counter first to prevent browser OOM lockups during Asc 2 deep calculations!
+    let count = countDistributions(stats, alignBudget, step, bounds);
     
     // Protect against browser lag spikes by expanding step size if combinatorial space explodes
     // Limit bumped to 300 to prevent step sizes expanding too aggressively early on
-    while (grid.length > 300 && step < budget) {
+    while (count > 300 && step < budget) {
         step++;
         alignBudget = budget - (budget % step);
-        grid = generateDistributions(stats, alignBudget, step, bounds);
+        count = countDistributions(stats, alignBudget, step, bounds);
     }
+    
+    let grid = generateDistributions(stats, alignBudget, step, bounds);
     
     grid.forEach(d => candidates.push(enforceBudget(d, stats, budget, caps)));
 
@@ -410,12 +414,18 @@ export async function runPathfinderSimulation(startState, targetLevel, initialFr
     let currentFarmYields = null;
     let currentPushYields = null;
 
+    if (onProgress) onProgress({ progress: 0, status: `Establishing Baseline Farm Build...` });
+    await new Promise(r => setTimeout(r, 10)); // Force UI Paint
+
     // 1. Establish perfect Farm Build
     const farmMetric = state.current_max_floor >= shiftFloor ? 'frag_6_per_min' : 'xp_per_min';
     const optFarm = await runFastOptimizer(pool, state, farmMetric, expectedBudget, state.base_stats, 3);
     state.base_stats = optFarm.bestBuild;
     currentFarmYields = optFarm.bestYields;
     
+    if (onProgress) onProgress({ progress: 0, status: `Establishing Baseline Push Build...` });
+    await new Promise(r => setTimeout(r, 10)); // Force UI Paint
+
     // 2. Establish perfect Push Build (Against uncapped gradient!)
     const pushTestState = { ...state, current_max_floor: 200 };
     const optPush = await runFastOptimizer(pool, pushTestState, 'highest_floor', expectedBudget, state.push_stats, 12); // Bumped validation samples to reliably catch 5-10% win rates
@@ -486,6 +496,14 @@ export async function runPathfinderSimulation(startState, targetLevel, initialFr
                 rate = yields[ `card_base_${blockId}_per_min` ] || 0;
                 targetAmount = 0.693; // Gamma 50% Median for 1 Drop
                 targetLvl = 2; // T4 immediately skips to Gilded (Level 2)
+            } else if (!isT4 && currentLvl === 0) {
+                rate = yields[ `card_base_${blockId}_per_min` ] || 0;
+                targetAmount = 0.693; // Gamma 50% Median for 1 Drop
+                targetLvl = 1; // Base Card
+            } else if (!isT4 && (currentLvl === 1 || currentLvl === 2)) {
+                rate = yields[ `card_poly_${blockId}_per_min` ] || 0;
+                targetAmount = 9.669; // Gamma 50% Median for 10 Drops
+                targetLvl = 3; // Poly (Skipping Gilded logically)
             } else if (isT4 && currentLvl === 2) {
                 rate = yields[ `card_poly_${blockId}_per_min` ] || 0;
                 targetAmount = 9.669; // Gamma 50% Median for 10 Drops
@@ -495,7 +513,7 @@ export async function runPathfinderSimulation(startState, targetLevel, initialFr
                 targetAmount = 9.669; // Gamma 50% Median for 10 Drops
                 targetLvl = 4; // Infernal
             } else {
-                continue; // Ignore level 1 or others for T1-T3 as templates already assume Poly
+                continue;
             }
 
             if (rate > 0) {
@@ -607,6 +625,8 @@ export async function runPathfinderSimulation(startState, targetLevel, initialFr
             const isT4 = blockId.endsWith('4');
             let rate = 0;
             if (isT4 && currentLvl === 0) rate = yields[ `card_base_${blockId}_per_min` ] || 0;
+            else if (!isT4 && currentLvl === 0) rate = yields[ `card_base_${blockId}_per_min` ] || 0;
+            else if (!isT4 && (currentLvl === 1 || currentLvl === 2)) rate = yields[ `card_poly_${blockId}_per_min` ] || 0;
             else if (isT4 && currentLvl === 2) rate = yields[ `card_poly_${blockId}_per_min` ] || 0;
             else if (currentLvl === 3) rate = yields[ `card_inf_${blockId}_per_min` ] || 0;
             
@@ -850,6 +870,8 @@ export async function runPathfinderSimulation(startState, targetLevel, initialFr
                         const isT4 = blockId.endsWith('4');
                         let rate = 0;
                         if (isT4 && currentLvl === 0) rate = pushResult.pushYields[ `card_base_${blockId}_per_min` ] || 0;
+                        else if (!isT4 && currentLvl === 0) rate = pushResult.pushYields[ `card_base_${blockId}_per_min` ] || 0;
+                        else if (!isT4 && (currentLvl === 1 || currentLvl === 2)) rate = pushResult.pushYields[ `card_poly_${blockId}_per_min` ] || 0;
                         else if (isT4 && currentLvl === 2) rate = pushResult.pushYields[ `card_poly_${blockId}_per_min` ] || 0;
                         else if (currentLvl === 3) rate = pushResult.pushYields[ `card_inf_${blockId}_per_min` ] || 0;
                         
