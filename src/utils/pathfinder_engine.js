@@ -168,7 +168,22 @@ const getShadowFragYields = async (pool, state, budget, caps, shiftFloor) => {
     }
 
     // Evaluate all candidates using a fast 2-sample batch
-    const metric = state.current_max_floor >= shiftFloor ? 'frag_6_per_min' : 'frag_1_per_min';
+    // DYNAMIC TARGETING: Seek the fragment type of the NEXT unpurchased major upgrade!
+    let metric = 'frag_1_per_min';
+    if (state.current_max_floor >= shiftFloor) {
+        metric = 'frag_6_per_min';
+    } else if (!(state.upgrade_levels[41] > 0)) {
+        metric = 'frag_1_per_min';
+    } else if (!(state.upgrade_levels[42] > 0)) {
+        metric = 'frag_2_per_min';
+    } else if (!(state.upgrade_levels[43] > 0)) {
+        metric = 'frag_3_per_min';
+    } else if (!(state.upgrade_levels[45] > 0)) {
+        metric = 'frag_5_per_min';
+    } else {
+        metric = 'frag_6_per_min'; // Fallback if all are bought
+    }
+
     const promises = unique.map(testStats => getSmoothedYields(pool, state, testStats, 2));
     const results = await Promise.all(promises);
     
