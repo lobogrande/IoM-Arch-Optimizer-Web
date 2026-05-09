@@ -1013,6 +1013,12 @@ export async function runPathfinderSimulation(startState, targetLevel, initialFr
             const farmStr = formatBuildStr(state.base_stats, state);
             const pushStr = formatBuildStr(state.push_stats, state);
 
+            let cardDesc = `Card leveled up to ${nextCardTargetLevel}.`;
+            if (nextCardTargetLevel === 4) {
+                cardDesc += ` Total Infernals is now ${state.total_infernal_cards}.`;
+            }
+            cardDesc += ` Respecced -> Farm: ${farmStr} | Push: ${pushStr}`;
+
             history.push({
                 type: "card",
                 event: evtName,
@@ -1022,7 +1028,7 @@ export async function runPathfinderSimulation(startState, targetLevel, initialFr
                 active_build_str: lastFarmStr,
                 level: state.arch_level,
                 floor: state.current_max_floor,
-                desc: `Card leveled up to ${nextCardTargetLevel}. Respecced -> Farm: ${farmStr} | Push: ${pushStr}`,
+                desc: cardDesc,
                 yields: { farm: currentFarmYields, push: currentPushYields, frag_potential: currentFragPotential },
                 frags: { ...frags },
                 card_progress: { ...card_progress },
