@@ -483,7 +483,13 @@ export async function runPathfinderSimulation(startState, targetLevel, initialFr
     const MAX_EVENTS = 3000;
 
     // Dynamically generate the full list of available upgrades for the current Ascension
-    const lockedUpgs = state.asc2_unlocked ? ASC2_LOCKED_UPGS : ASC1_LOCKED_UPGS;
+    let lockedUpgs =[ ];
+    if (!state.asc1_unlocked) {
+        lockedUpgs =[ ...ASC1_LOCKED_UPGS, ...ASC2_LOCKED_UPGS ];
+    } else if (!state.asc2_unlocked) {
+        lockedUpgs = ASC2_LOCKED_UPGS;
+    }
+
     const upgradeTargets = Object.keys(UPGRADE_NAMES)
         .map(Number)
         .filter(id => !lockedUpgs.includes(id));
