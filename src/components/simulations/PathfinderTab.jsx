@@ -137,21 +137,32 @@ export default function PathfinderTab() {
       ttnlVals.push(xpRate > 0 ? expNeeded / xpRate : 0);
       
       // SHADOW BUILD MATH: Calculate time to afford the 5 Late-Game Upgrades using the optimal frag potential
-      const shadowYields = ev.yields?.frag_potential || ev.yields?.farm || {};
+      const shadowYields = ev.yields?.frag_potential || ev.yields?.farm || { };
       const cRate = shadowYields.frag_1_per_min || 0;
       const rRate = shadowYields.frag_2_per_min || 0;
       const eRate = shadowYields.frag_3_per_min || 0;
       const mRate = shadowYields.frag_5_per_min || 0;
+
+      // Extract current banked fragments
+      const cBank = ev.frags?.com || 0;
+      const rBank = ev.frags?.rare || 0;
+      const eBank = ev.frags?.epic || 0;
+      const mBank = ev.frags?.myth || 0;
+
+      // Ignore milestones that are already purchased
+      const upgs = ev.state_snapshot?.upgrade_levels || { };
       
-      // Asc 2 base costs for Upgrades 41, 42, 43, 45 (Leg is skipped as Epic/Myth are usually the raw bottlenecks)
-      const t41 = cRate > 0 ? 100000 / cRate : 999999;
-      const t42 = rRate > 0 ? 90000 / rRate : 999999;
-      const t43 = eRate > 0 ? 80000 / eRate : 999999;
-      const t45 = mRate > 0 ? 50000 / mRate : 999999;
+      // Asc 2 base costs for Upgrades 41, 42, 43, 45, adjusted for the actual fragments we have already banked!
+      const t41 = (upgs[ 41 ] > 0 || cRate <= 0) ? 999999 : Math.max(0, 100000 - cBank) / cRate;
+      const t42 = (upgs[ 42 ] > 0 || rRate <= 0) ? 999999 : Math.max(0, 90000 - rBank) / rRate;
+      const t43 = (upgs[ 43 ] > 0 || eRate <= 0) ? 999999 : Math.max(0, 80000 - eBank) / eRate;
+      const t45 = (upgs[ 45 ] > 0 || mRate <= 0) ? 999999 : Math.max(0, 50000 - mBank) / mRate;
       
-      // The true bottleneck is whichever fragment takes the longest!
-      const maxTimeForBigUpg = Math.max(t41, t42, t43, t45);
-      ttfVals.push(maxTimeForBigUpg);
+      // The true opportunity pivot is whichever milestone we can reach the FASTEST!
+      let minTimeForBigUpg = Math.min(t41, t42, t43, t45);
+      
+      // Prevent Plotly log-scale crash by pushing null if all major upgrades are purchased
+      ttfVals.push(minTimeForBigUpg === 999999 ? null : minTimeForBigUpg);
     });
 
     return { xVals, xpVals, divVals, levelVals, floorVals, ttnlVals, ttfVals };
