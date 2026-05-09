@@ -627,6 +627,41 @@ export async function runPathfinderSimulation(startState, targetLevel, initialFr
             
             if (cost) {
                 const currency = cost.currency;
+
+                // --- DYNAMIC ROI TRAP FILTER ---
+                // Protects major Ascension 2 investments from exponential fragment sinks
+                const majorMilestones = {
+                    'com': { id: 41, cost: 100000 },
+                    'rare': { id: 42, cost: 90000 },
+                    'epic': { id: 43, cost: 80000 },
+                    'leg': { id: 44, cost: 70000 },
+                    'myth': { id: 45, cost: 50000 }
+                };
+
+                if (majorMilestones[ currency ] && upgId < 41) {
+                    const milestone = majorMilestones[ currency ];
+                    const milestoneReqFloor = UPGRADE_LEVEL_REQS[ milestone.id ] || 0;
+                    
+                    // Only apply the hoarding lock if the major milestone is unlocked or imminent (within 10 floors)
+                    if (state.current_max_floor >= milestoneReqFloor - 10) {
+                        const currentYield = yields[ FRAG_RATE_KEYS[ currency ] ] || 0;
+                        if (currentYield > 0) {
+                            const bank = frags[ currency ] || 0;
+                            
+                            // Time to afford the major milestone if we DO NOT buy this upgrade
+                            const timeToMilestoneHoard = Math.max(0, milestone.cost - bank) / currentYield;
+                            
+                            // Time to afford the major milestone if we DO buy it
+                            // Generous assumption: This upgrade magically boosts our fragment yield by 5%
+                            const optimisticNewYield = currentYield * 1.05;
+                            const timeToMilestoneSpend = Math.max(0, milestone.cost - (bank - cost.amount)) / optimisticNewYield;
+                            
+                            if (timeToMilestoneSpend > timeToMilestoneHoard) {
+                                continue; // 🚨 TRAP DETECTED: Buying this mathematically delays the major milestone!
+                            }
+                        }
+                    }
+                }
                 
                 if (currency === 'gems') {
                     // For Phase 2, we assume Gems are plentiful enough to instantly buy when unlocked
