@@ -498,11 +498,40 @@ export async function runPathfinderSimulation(startState, targetLevel, initialFr
     let currentPushYields = null;
     let currentFragPotential = null;
 
+    // --- AUTOMATED PIVOT LOGIC ---
+    // Evaluates Opportunity Cost and dynamically swaps the active optimizer target
+    const determineFarmMetric = (expNeededCheck) => {
+        if (state.current_max_floor >= shiftFloor) return 'frag_6_per_min';
+
+        let target = null;
+        if (!(state.upgrade_levels[41] > 0)) target = { id: 41, frag: 'com', cost: 100000, key: 'frag_1_per_min' };
+        else if (!(state.upgrade_levels[42] > 0)) target = { id: 42, frag: 'rare', cost: 90000, key: 'frag_2_per_min' };
+        else if (!(state.upgrade_levels[43] > 0)) target = { id: 43, frag: 'epic', cost: 80000, key: 'frag_3_per_min' };
+        else if (!(state.upgrade_levels[45] > 0)) target = { id: 45, frag: 'myth', cost: 50000, key: 'frag_5_per_min' };
+
+        if (!target) return 'xp_per_min';
+
+        const reqFloor = UPGRADE_LEVEL_REQS[target.id] || 0;
+        if (state.current_max_floor >= reqFloor - 10) {
+            // Use a safe baseline to prevent XP crashes during frag builds from artificially inflating the XP time
+            const safeXpYield = Math.max(currentFarmYields?.xp_per_min || 1, currentFragPotential?.xp_per_min || 1);
+            const ttnl = expNeededCheck / safeXpYield;
+            const bank = frags[target.frag] || 0;
+            const fragRate = currentFragPotential?.[target.key] || 0;
+            
+            if (fragRate > 0) {
+                const ttf = Math.max(0, target.cost - bank) / fragRate;
+                if (ttf < ttnl) return target.key; // 🚨 Crossover hit! Pivot to Fragment Build!
+            }
+        }
+        return 'xp_per_min';
+    };
+
     if (onProgress) onProgress({ progress: 0, status: `Establishing Baseline Farm Build...` });
     await new Promise(r => setTimeout(r, 10)); // Force UI Paint
 
     // 1. Establish perfect Farm Build
-    const farmMetric = state.current_max_floor >= shiftFloor ? 'frag_6_per_min' : 'xp_per_min';
+    const farmMetric = determineFarmMetric(Math.max(0, getExpRequired(state.arch_level) - currentExp));
     const optFarm = await runFastOptimizer(pool, state, farmMetric, expectedBudget, state.base_stats, 3);
     state.base_stats = optFarm.bestBuild;
     currentFarmYields = optFarm.bestYields;
@@ -760,6 +789,49 @@ export async function runPathfinderSimulation(startState, targetLevel, initialFr
             }
         }
 
+        // --- HESTIA IDOL AUTO-TRIBUTE ---
+        // Sweeps excess Common Fragments into Idol Levels once the tech tree is fully exhausted
+        if ((state.upgrade_levels[41] || 0) > 0 && frags.com >= 999 && (state.external_levels[4] || 0) < 3000) {
+            const comUpgs =[ 9, 10, 11, 12, 13, 19, 25, 41 ];
+            let comMaxed = true;
+            for (const id of comUpgs) {
+                const cap = INTERNAL_UPGRADE_CAPS[id] || 1;
+                const reqFlr = UPGRADE_LEVEL_REQS[id] || 0;
+                if ((state.upgrade_levels[id] || 0) < cap && state.current_max_floor >= reqFlr) {
+                    comMaxed = false; 
+                    break;
+                }
+            }
+            if ((state.upgrade_levels[8] || 0) < 1) comMaxed = false; // Check the Custom Ability Unlock (Level 1 is Com)
+
+            if (comMaxed) {
+                let bought = 0;
+                while (frags.com >= 999 && (state.external_levels[4] || 0) < 3000) {
+                    frags.com -= 999;
+                    bought++;
+                }
+                
+                if (bought > 0) {
+                    state.external_levels = { ...state.external_levels, 4: (state.external_levels[4] || 0) + bought };
+                    history.push({
+                        type: "system",
+                        event: `🔥 Hestia Idol Tributed (+${bought} Levels)`,
+                        arch_sec: cumulativeArchSecs,
+                        time_delta: 0,
+                        active_build: "Farm",
+                        active_build_str: lastFarmStr,
+                        level: state.arch_level,
+                        floor: state.current_max_floor,
+                        desc: `Auto-spent excess Common Fragments. Hestia is now Level ${state.external_levels[4]}.`,
+                        yields: { farm: currentFarmYields, push: currentPushYields, frag_potential: currentFragPotential },
+                        frags: { ...frags },
+                        card_progress: { ...card_progress },
+                        state_snapshot: captureSnapshot(state)
+                    });
+                }
+            }
+        }
+
         // 4. RESOLVE EVENT
         let timeGap = cumulativeArchSecs - lastEventTime;
 
@@ -770,7 +842,7 @@ export async function runPathfinderSimulation(startState, targetLevel, initialFr
             const totalBudget = state.arch_level + (state.upgrade_levels[12] || 0);
 
             // PHASE 3.5: Lazy Dual-Track Optimizer!
-            const farmMetric = state.current_max_floor >= shiftFloor ? 'frag_6_per_min' : 'xp_per_min';
+            const farmMetric = determineFarmMetric(Math.max(0, getExpRequired(state.arch_level) - currentExp));
             const optFarm = await runFastOptimizer(pool, state, farmMetric, totalBudget, state.base_stats, 3);
             state.base_stats = optFarm.bestBuild;
             currentFarmYields = optFarm.bestYields;
@@ -834,7 +906,7 @@ export async function runPathfinderSimulation(startState, targetLevel, initialFr
             if (nextUpgradeId >= 8) {
                 const totalBudget = state.arch_level + (state.upgrade_levels[12] || 0);
 
-                const farmMetric = state.current_max_floor >= shiftFloor ? 'frag_6_per_min' : 'xp_per_min';
+                const farmMetric = determineFarmMetric(Math.max(0, getExpRequired(state.arch_level) - currentExp));
                 const optFarm = await runFastOptimizer(pool, state, farmMetric, totalBudget, state.base_stats, 3);
                 state.base_stats = optFarm.bestBuild;
                 currentFarmYields = optFarm.bestYields;
@@ -917,7 +989,7 @@ export async function runPathfinderSimulation(startState, targetLevel, initialFr
             const totalBudget = state.arch_level + (state.upgrade_levels[ 12 ] || 0);
 
             // Re-map the mathematically optimal baseline since multipliers shifted
-            const farmMetric = state.current_max_floor >= shiftFloor ? 'frag_6_per_min' : 'xp_per_min';
+            const farmMetric = determineFarmMetric(Math.max(0, getExpRequired(state.arch_level) - currentExp));
             const optFarm = await runFastOptimizer(pool, state, farmMetric, totalBudget, state.base_stats, 3);
             state.base_stats = optFarm.bestBuild;
             currentFarmYields = optFarm.bestYields;
