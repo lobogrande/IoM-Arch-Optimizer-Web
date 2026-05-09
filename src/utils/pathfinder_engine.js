@@ -500,6 +500,14 @@ export async function runPathfinderSimulation(startState, targetLevel, initialFr
     // the timeline establishes a mathematically perfect baseline moving forward.
     const expectedBudget = state.arch_level + (state.upgrade_levels[12] || 0);
 
+    const startLvl = startState.arch_level;
+    const report = (msg) => {
+        if (onProgress) {
+            const progressPct = ((state.arch_level - startLvl) / (targetLevel - startLvl)) * 100;
+            onProgress({ progress: Math.min(100, Math.max(0, progressPct)), status: msg });
+        }
+    };
+
     let currentFarmYields = null;
     let currentPushYields = null;
     let currentFragPotential = null;
@@ -533,7 +541,7 @@ export async function runPathfinderSimulation(startState, targetLevel, initialFr
         return 'xp_per_min';
     };
 
-    if (onProgress) onProgress({ progress: 0, status: `Establishing Baseline Farm Build...` });
+    report(`Establishing Baseline Farm Build...`);
     await new Promise(r => setTimeout(r, 10)); // Force UI Paint
 
     // 1. Establish perfect Farm Build
@@ -548,7 +556,7 @@ export async function runPathfinderSimulation(startState, targetLevel, initialFr
         currentFragPotential = await getShadowFragYields(pool, state, expectedBudget, getEffectiveStatCaps(state), shiftFloor);
     }
     
-    if (onProgress) onProgress({ progress: 0, status: `Establishing Baseline Push Build...` });
+    report(`Establishing Baseline Push Build...`);
     await new Promise(r => setTimeout(r, 10)); // Force UI Paint
 
     // 2. Establish perfect Push Build (Against uncapped gradient!)
@@ -568,6 +576,8 @@ export async function runPathfinderSimulation(startState, targetLevel, initialFr
     lastFarmStr = farmStr;
     lastPushStr = pushStr;
 
+    // Ensure startLvl definition is removed here since we hoisted it to the top!
+    
     history.push({
         type: "system",
         event: "Simulation Started",
@@ -583,7 +593,6 @@ export async function runPathfinderSimulation(startState, targetLevel, initialFr
         state_snapshot: captureSnapshot(state)
     });
 
-    const startLvl = state.arch_level;
     while (state.arch_level < targetLevel && eventCount < MAX_EVENTS) {
         eventCount++;
 
@@ -852,6 +861,9 @@ export async function runPathfinderSimulation(startState, targetLevel, initialFr
             const totalBudget = state.arch_level + (state.upgrade_levels[12] || 0);
 
             // PHASE 3.5: Lazy Dual-Track Optimizer!
+            report(`Lvl ${state.arch_level}: Optimizing Farm Build...`);
+            await new Promise(r => setTimeout(r, 10)); // Force UI Paint
+            
             const farmMetric = determineFarmMetric(Math.max(0, getExpRequired(state.arch_level) - currentExp));
             const optFarm = await runFastOptimizer(pool, state, farmMetric, totalBudget, state.base_stats, 3);
             state.base_stats = optFarm.bestBuild;
@@ -915,6 +927,9 @@ export async function runPathfinderSimulation(startState, targetLevel, initialFr
             // RE-OPTIMIZE AFTER FRAGMENT UPGRADES (Because stats synergize with new unlocked limits!)
             if (nextUpgradeId >= 8) {
                 const totalBudget = state.arch_level + (state.upgrade_levels[12] || 0);
+
+                report(`Lvl ${state.arch_level}: Re-optimizing Farm after buying Upg ${nextUpgradeId}...`);
+                await new Promise(r => setTimeout(r, 10));
 
                 const farmMetric = determineFarmMetric(Math.max(0, getExpRequired(state.arch_level) - currentExp));
                 const optFarm = await runFastOptimizer(pool, state, farmMetric, totalBudget, state.base_stats, 3);
@@ -997,6 +1012,9 @@ export async function runPathfinderSimulation(startState, targetLevel, initialFr
             }
 
             const totalBudget = state.arch_level + (state.upgrade_levels[ 12 ] || 0);
+
+            report(`Lvl ${state.arch_level}: Re-optimizing Farm after ${nextCardId} drop...`);
+            await new Promise(r => setTimeout(r, 10));
 
             // Re-map the mathematically optimal baseline since multipliers shifted
             const farmMetric = determineFarmMetric(Math.max(0, getExpRequired(state.arch_level) - currentExp));
@@ -1085,10 +1103,17 @@ export async function runPathfinderSimulation(startState, targetLevel, initialFr
                 // JIT (Just-In-Time) PUSH OPTIMIZATION
                 // We finally calculate the perfect Push build only when we are mathematically ready to test a push
                 const pushBudget = state.arch_level + (state.upgrade_levels[12] || 0);
+                
+                report(`Lvl ${state.arch_level}: Generating exact Push Build for Flr ${state.current_max_floor + 1}...`);
+                await new Promise(r => setTimeout(r, 10));
+                
                 const pushTestState = { ...state, current_max_floor: 200 };
                 const optPush = await runFastOptimizer(pool, pushTestState, 'highest_floor', pushBudget, state.push_stats, 12);
                 state.push_stats = optPush.bestBuild;
                 lastPushStr = formatBuildStr(state.push_stats, state);
+
+                report(`Lvl ${state.arch_level}: Proving Win Rate for Flr ${state.current_max_floor + 1}...`);
+                await new Promise(r => setTimeout(r, 10));
 
                 const pushResult = await attemptFloorPush(pool, state, timeToNextLevelSecs, minWinRate / 100.0, 50);
                 if (pushResult.success) {
@@ -1203,13 +1228,7 @@ export async function runPathfinderSimulation(startState, targetLevel, initialFr
         } // End of !hasInstantUpgrade block
 
         // Send UI Progress
-        if (onProgress) {
-            const progressPct = ((state.arch_level - startLvl) / (targetLevel - startLvl)) * 100;
-            onProgress({
-                progress: Math.min(100, Math.max(0, progressPct)),
-                status: `Simulating... (Level ${state.arch_level} / ${targetLevel})`
-            });
-        }
+        report(`Simulating Timeline (Level ${state.arch_level} / ${targetLevel})...`);
     }
 
     history.push({
