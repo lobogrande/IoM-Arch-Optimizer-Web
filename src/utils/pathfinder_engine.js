@@ -684,10 +684,11 @@ export async function runPathfinderSimulation(startState, targetLevel, initialFr
 
                 if (majorMilestones[ currency ] && upgId < 41) {
                     const milestone = majorMilestones[ currency ];
+                    const isMilestoneBought = (state.upgrade_levels[milestone.id] || 0) > 0;
                     const milestoneReqFloor = UPGRADE_LEVEL_REQS[ milestone.id ] || 0;
                     
-                    // Only apply the hoarding lock if the major milestone is unlocked or imminent (within 10 floors)
-                    if (state.current_max_floor >= milestoneReqFloor - 10) {
+                    // Only apply the hoarding lock if we haven't bought it yet, and it's imminent (within 10 floors)
+                    if (!isMilestoneBought && state.current_max_floor >= milestoneReqFloor - 10) {
                         const currentYield = yields[ FRAG_RATE_KEYS[ currency ] ] || 0;
                         if (currentYield > 0) {
                             const bank = frags[ currency ] || 0;
