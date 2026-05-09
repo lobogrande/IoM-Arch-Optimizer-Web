@@ -109,16 +109,72 @@ const enforceBudget = (build, statsList, budget, caps) => {
     return b;
 };
 
-// Fast Heuristic for Frag Farming (Saves 99% compute time vs Full Optimizer for Shadow Builds)
-const getHeuristicFragBuild = (budget, caps) => {
-    const b = { Str: 0, Agi: 0, Per: 0, Int: 0, Luck: 0, Div: 0, Corr: 0 };
-    let rem = budget;
-    b.Per = Math.min(rem, caps.Per || 0); rem -= b.Per;
-    b.Agi = Math.min(rem, caps.Agi || 0); rem -= b.Agi;
-    b.Str = Math.min(rem, caps.Str || 0); rem -= b.Str;
-    b.Luck = Math.min(rem, caps.Luck || 0); rem -= b.Luck;
-    b.Int = Math.min(rem, caps.Int || 0); rem -= b.Int;
-    return b;
+// Fast Multi-Heuristic for Frag Farming (Saves 99% compute time vs Full Optimizer)
+// Tests 4 targeted distributions of remaining points after maxing Perception
+const getShadowFragYields = async (pool, state, budget, caps, shiftFloor) => {
+    const perAmt = Math.min(budget, caps.Per || 0);
+    const rem = budget - perAmt;
+    
+    const candidates =[];
+    const base = { Str: 0, Agi: 0, Per: perAmt, Int: 0, Luck: 0, Div: 0, Corr: 0 };
+    
+    // 1. Max Agi -> Str
+    let b1 = { ...base };
+    let r1 = rem;
+    b1.Agi = Math.min(r1, caps.Agi || 0); r1 -= b1.Agi;
+    b1.Str = Math.min(r1, caps.Str || 0); r1 -= b1.Str;
+    b1.Luck = Math.min(r1, caps.Luck || 0);
+    candidates.push(b1);
+    
+    // 2. Max Str -> Agi
+    let b2 = { ...base };
+    let r2 = rem;
+    b2.Str = Math.min(r2, caps.Str || 0); r2 -= b2.Str;
+    b2.Agi = Math.min(r2, caps.Agi || 0); r2 -= b2.Agi;
+    b2.Luck = Math.min(r2, caps.Luck || 0);
+    candidates.push(b2);
+    
+    // 3. Balanced Str/Agi
+    let b3 = { ...base };
+    let r3 = rem;
+    let half = Math.floor(r3 / 2);
+    b3.Str = Math.min(half, caps.Str || 0); r3 -= b3.Str;
+    b3.Agi = Math.min(half, caps.Agi || 0); r3 -= b3.Agi;
+    b3.Luck = Math.min(r3, caps.Luck || 0);
+    candidates.push(b3);
+
+    // 4. Balanced Str/Agi/Luck
+    let b4 = { ...base };
+    let r4 = rem;
+    let third = Math.floor(r4 / 3);
+    b4.Str = Math.min(third, caps.Str || 0); r4 -= b4.Str;
+    b4.Agi = Math.min(third, caps.Agi || 0); r4 -= b4.Agi;
+    b4.Luck = Math.min(third, caps.Luck || 0); r4 -= b4.Luck;
+    if (r4 > 0) {
+        let addStr = Math.min(r4, (caps.Str || 0) - b4.Str); b4.Str += addStr; r4 -= addStr;
+        let addAgi = Math.min(r4, (caps.Agi || 0) - b4.Agi); b4.Agi += addAgi; r4 -= addAgi;
+    }
+    candidates.push(b4);
+
+    // Deduplicate candidates
+    const unique =[];
+    const seen = new Set();
+    for (const c of candidates) {
+        const key = `${c.Str},${c.Agi},${c.Luck}`;
+        if (!seen.has(key)) {
+            seen.add(key);
+            unique.push(c);
+        }
+    }
+
+    // Evaluate all candidates using a fast 2-sample batch
+    const metric = state.current_max_floor >= shiftFloor ? 'frag_6_per_min' : 'frag_1_per_min';
+    const promises = unique.map(testStats => getSmoothedYields(pool, state, testStats, 2));
+    const results = await Promise.all(promises);
+    
+    // Return the yields of the best performing heuristic build
+    results.sort((a, b) => (b[metric] || 0) - (a[metric] || 0));
+    return results[0];
 };
 
 // Runs a lightning-fast Successive Halving Grid Search to completely escape local minima
@@ -673,8 +729,7 @@ export async function runPathfinderSimulation(startState, targetLevel, initialFr
             if (farmMetric === 'frag_6_per_min') {
                 currentFragPotential = currentFarmYields;
             } else {
-                const shadowBuild = getHeuristicFragBuild(totalBudget, getEffectiveStatCaps(state));
-                currentFragPotential = await getSmoothedYields(pool, state, shadowBuild, 3);
+                currentFragPotential = await getShadowFragYields(pool, state, expectedBudget, getEffectiveStatCaps(state), shiftFloor);
             }
 
             // LAZY OPTIMIZATION: Defer Push build re-optimization until a floor push is actually attempted.
@@ -823,8 +878,7 @@ export async function runPathfinderSimulation(startState, targetLevel, initialFr
             if (farmMetric === 'frag_6_per_min') {
                 currentFragPotential = currentFarmYields;
             } else {
-                const shadowBuild = getHeuristicFragBuild(totalBudget, getEffectiveStatCaps(state));
-                currentFragPotential = await getSmoothedYields(pool, state, shadowBuild, 3);
+                currentFragPotential = await getShadowFragYields(pool, state, totalBudget, getEffectiveStatCaps(state), shiftFloor);
             }
 
             // Top-up Push Build mathematically
@@ -957,8 +1011,7 @@ export async function runPathfinderSimulation(startState, targetLevel, initialFr
                             currentFragPotential = currentFarmYields;
                         } else {
                             const currentBudget = state.arch_level + (state.upgrade_levels[12] || 0);
-                            const shadowBuild = getHeuristicFragBuild(currentBudget, getEffectiveStatCaps(state));
-                            currentFragPotential = await getSmoothedYields(pool, state, shadowBuild, 3);
+                            currentFragPotential = await getShadowFragYields(pool, state, currentBudget, getEffectiveStatCaps(state), shiftFloor);
                         }
                     }
                     
