@@ -801,7 +801,10 @@ export async function runPathfinderSimulation(startState, targetLevel, initialFr
         if ((state.upgrade_levels[41] || 0) > 0 && frags.com >= 999 && (state.external_levels[4] || 0) < 3000) {
             const comUpgs =[ 9, 10, 11, 12, 13, 19, 25, 41 ];
             let comMaxed = true;
+            
             for (const id of comUpgs) {
+                if (lockedUpgs.includes(id)) continue; // Ignore upgrades strictly locked by current Ascension tier
+                
                 const cap = INTERNAL_UPGRADE_CAPS[id] || 1;
                 const reqFlr = UPGRADE_LEVEL_REQS[id] || 0;
                 if ((state.upgrade_levels[id] || 0) < cap && state.current_max_floor >= reqFlr) {
