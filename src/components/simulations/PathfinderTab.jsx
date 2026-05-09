@@ -126,7 +126,6 @@ export default function PathfinderTab() {
       xVals.push(ev.arch_sec);
       
       const xpRate = ev.yields?.farm?.xp_per_min || 0;
-      const comRate = ev.yields?.farm?.frag_1_per_min || 0;
       
       xpVals.push(xpRate);
       divVals.push(ev.yields?.farm?.frag_6_per_min || 0);
@@ -137,8 +136,22 @@ export default function PathfinderTab() {
       const expNeeded = 10 * Math.pow(1.2, (ev.level || 1) + 1);
       ttnlVals.push(xpRate > 0 ? expNeeded / xpRate : 0);
       
-      // Time to farm 100k Common Fragments (Proxy for major mid-game upgrades)
-      ttfVals.push(comRate > 0 ? 100000 / comRate : 999999);
+      // SHADOW BUILD MATH: Calculate time to afford the 5 Late-Game Upgrades using the optimal frag potential
+      const shadowYields = ev.yields?.frag_potential || ev.yields?.farm || {};
+      const cRate = shadowYields.frag_1_per_min || 0;
+      const rRate = shadowYields.frag_2_per_min || 0;
+      const eRate = shadowYields.frag_3_per_min || 0;
+      const mRate = shadowYields.frag_5_per_min || 0;
+      
+      // Asc 2 base costs for Upgrades 41, 42, 43, 45 (Leg is skipped as Epic/Myth are usually the raw bottlenecks)
+      const t41 = cRate > 0 ? 100000 / cRate : 999999;
+      const t42 = rRate > 0 ? 90000 / rRate : 999999;
+      const t43 = eRate > 0 ? 80000 / eRate : 999999;
+      const t45 = mRate > 0 ? 50000 / mRate : 999999;
+      
+      // The true bottleneck is whichever fragment takes the longest!
+      const maxTimeForBigUpg = Math.max(t41, t42, t43, t45);
+      ttfVals.push(maxTimeForBigUpg);
     });
 
     return { xVals, xpVals, divVals, levelVals, floorVals, ttnlVals, ttfVals };
@@ -479,15 +492,15 @@ export default function PathfinderTab() {
             </div>
 
             <div className="bg-[#0E1117] border border-st-border rounded p-4 shadow-sm animate-fade-in">
-              <h3 className="text-lg font-bold text-st-text mb-1">Opportunity Cost Crossover</h3>
+              <h3 className="text-lg font-bold text-st-text mb-1">Strategic Pivot Point (Opportunity Cost)</h3>
               <p className="text-[10px] text-st-text-light mb-4 border-b border-st-border pb-2">
-                <strong>Note:</strong> The green line tracks passive fragments from your <b>Active Farm Build</b>. If you are optimizing for XP, your build allocates 0 Perception, making fragment farming appear artificially slow. The true crossover occurs when you actively engage the "Strategic Shift" floor toggle to spawn a Perception build!
+                <strong>How to use this:</strong> The engine is running a hidden "Shadow Build" in the background optimized for fragments. The exact moment the Green Line (Time to afford an expensive upgrade using the shadow build) drops below the Red Line (Time to grind out another Arch Level), <b>that is the Floor you should set as your Strategic Shift!</b>
               </p>
               <div className="h-[300px] w-full">
                 <Plot
                   data={[
-                    { x: chartData.xVals, y: chartData.ttnlVals, type: 'scatter', mode: 'lines', name: 'Mins to Next Level', line: { color: '#f87171', shape: 'hv', width: 2 } },
-                    { x: chartData.xVals, y: chartData.ttfVals, type: 'scatter', mode: 'lines', name: 'Mins to 100k Com Frags (Passive)', line: { color: '#a3e635', shape: 'hv', width: 2 } }
+                    { x: chartData.xVals, y: chartData.ttnlVals, type: 'scatter', mode: 'lines', name: 'Mins to Level (XP Build)', line: { color: '#f87171', shape: 'hv', width: 2 } },
+                    { x: chartData.xVals, y: chartData.ttfVals, type: 'scatter', mode: 'lines', name: 'Mins to Major Upgrade (Frag Build)', line: { color: '#a3e635', shape: 'hv', width: 2 } }
                   ]}
                   layout={{
                     paper_bgcolor: 'transparent',

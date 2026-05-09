@@ -109,6 +109,18 @@ const enforceBudget = (build, statsList, budget, caps) => {
     return b;
 };
 
+// Fast Heuristic for Frag Farming (Saves 99% compute time vs Full Optimizer for Shadow Builds)
+const getHeuristicFragBuild = (budget, caps) => {
+    const b = { Str: 0, Agi: 0, Per: 0, Int: 0, Luck: 0, Div: 0, Corr: 0 };
+    let rem = budget;
+    b.Per = Math.min(rem, caps.Per || 0); rem -= b.Per;
+    b.Agi = Math.min(rem, caps.Agi || 0); rem -= b.Agi;
+    b.Str = Math.min(rem, caps.Str || 0); rem -= b.Str;
+    b.Luck = Math.min(rem, caps.Luck || 0); rem -= b.Luck;
+    b.Int = Math.min(rem, caps.Int || 0); rem -= b.Int;
+    return b;
+};
+
 // Runs a lightning-fast Successive Halving Grid Search to completely escape local minima
 async function runFastOptimizer(pool, state, targetMetric, budget, previousBuild, samples = 5) {
     await pool.syncState(state);
@@ -413,6 +425,7 @@ export async function runPathfinderSimulation(startState, targetLevel, initialFr
 
     let currentFarmYields = null;
     let currentPushYields = null;
+    let currentFragPotential = null;
 
     if (onProgress) onProgress({ progress: 0, status: `Establishing Baseline Farm Build...` });
     await new Promise(r => setTimeout(r, 10)); // Force UI Paint
@@ -422,6 +435,13 @@ export async function runPathfinderSimulation(startState, targetLevel, initialFr
     const optFarm = await runFastOptimizer(pool, state, farmMetric, expectedBudget, state.base_stats, 3);
     state.base_stats = optFarm.bestBuild;
     currentFarmYields = optFarm.bestYields;
+
+    if (farmMetric === 'frag_6_per_min') {
+        currentFragPotential = currentFarmYields;
+    } else {
+        const optFrag = await runFastOptimizer(pool, state, 'frag_6_per_min', totalBudget, state.base_stats, 3);
+        currentFragPotential = optFrag.bestYields;
+    }
     
     if (onProgress) onProgress({ progress: 0, status: `Establishing Baseline Push Build...` });
     await new Promise(r => setTimeout(r, 10)); // Force UI Paint
@@ -650,6 +670,13 @@ export async function runPathfinderSimulation(startState, targetLevel, initialFr
             state.base_stats = optFarm.bestBuild;
             currentFarmYields = optFarm.bestYields;
 
+            if (farmMetric === 'frag_6_per_min') {
+                currentFragPotential = currentFarmYields;
+            } else {
+                const shadowBuild = getHeuristicFragBuild(totalBudget, getEffectiveStatCaps(state));
+                currentFragPotential = await getSmoothedYields(pool, state, shadowBuild, 3);
+            }
+
             // LAZY OPTIMIZATION: Defer Push build re-optimization until a floor push is actually attempted.
             // FIX: Top-up the stale push build so logs and yield snapshots have the mathematically correct stat point total!
             const statsKeys = getAvailableStatKeys(state);
@@ -708,6 +735,13 @@ export async function runPathfinderSimulation(startState, targetLevel, initialFr
                 state.base_stats = optFarm.bestBuild;
                 currentFarmYields = optFarm.bestYields;
 
+                if (farmMetric === 'frag_6_per_min') {
+                    currentFragPotential = currentFarmYields;
+                } else {
+                    const optFrag = await runFastOptimizer(pool, state, 'frag_6_per_min', totalBudget, state.base_stats, 3);
+                    currentFragPotential = optFrag.bestYields;
+                }
+
                 // LAZY OPTIMIZATION: Defer Push build re-optimization until a floor push is actually attempted.
                 // FIX: Top-up the stale push build!
                 const statsKeys = getAvailableStatKeys(state);
@@ -729,6 +763,14 @@ export async function runPathfinderSimulation(startState, targetLevel, initialFr
                 await pool.syncState(state);
                 currentFarmYields = await getSmoothedYields(pool, state, state.base_stats, 3);
                 
+                if (state.current_max_floor >= shiftFloor) {
+                    currentFragPotential = currentFarmYields;
+                } else {
+                    const currentBudget = state.arch_level + (state.upgrade_levels[12] || 0);
+                    const optFrag = await runFastOptimizer(pool, state, 'frag_6_per_min', currentBudget, state.base_stats, 3);
+                    currentFragPotential = optFrag.bestYields;
+                }
+                
                 const pushActualTargetState = { ...state, current_max_floor: state.current_max_floor + 1 };
                 await pool.syncState(pushActualTargetState);
                 currentPushYields = await getSmoothedYields(pool, pushActualTargetState, state.push_stats, 3);
@@ -748,7 +790,7 @@ export async function runPathfinderSimulation(startState, targetLevel, initialFr
                 level: state.arch_level,
                 floor: state.current_max_floor,
                 desc: upgDesc,
-                yields: { farm: currentFarmYields, push: currentPushYields },
+                yields: { farm: currentFarmYields, push: currentPushYields, frag_potential: currentFragPotential },
                 frags: { ...frags },
                 card_progress: { ...card_progress },
                 state_snapshot: captureSnapshot(state)
@@ -777,6 +819,13 @@ export async function runPathfinderSimulation(startState, targetLevel, initialFr
             const optFarm = await runFastOptimizer(pool, state, farmMetric, totalBudget, state.base_stats, 3);
             state.base_stats = optFarm.bestBuild;
             currentFarmYields = optFarm.bestYields;
+
+            if (farmMetric === 'frag_6_per_min') {
+                currentFragPotential = currentFarmYields;
+            } else {
+                const shadowBuild = getHeuristicFragBuild(totalBudget, getEffectiveStatCaps(state));
+                currentFragPotential = await getSmoothedYields(pool, state, shadowBuild, 3);
+            }
 
             // Top-up Push Build mathematically
             const statsKeys = getAvailableStatKeys(state);
@@ -891,10 +940,26 @@ export async function runPathfinderSimulation(startState, targetLevel, initialFr
                         const optFarm = await runFastOptimizer(pool, state, 'frag_6_per_min', totalBudget, state.base_stats, 3);
                         state.base_stats = optFarm.bestBuild;
                         currentFarmYields = optFarm.bestYields;
+
+                        if (farmMetric === 'frag_6_per_min') {
+                            currentFragPotential = currentFarmYields;
+                        } else {
+                            const optFrag = await runFastOptimizer(pool, state, 'frag_6_per_min', totalBudget, state.base_stats, 3);
+                            currentFragPotential = optFrag.bestYields;
+                        }
+
                         lastFarmStr = formatBuildStr(state.base_stats, state);
                     } else {
                         await pool.syncState(state);
                         currentFarmYields = await getSmoothedYields(pool, state, state.base_stats, 3);
+                        
+                        if (state.current_max_floor >= shiftFloor) {
+                            currentFragPotential = currentFarmYields;
+                        } else {
+                            const currentBudget = state.arch_level + (state.upgrade_levels[12] || 0);
+                            const shadowBuild = getHeuristicFragBuild(currentBudget, getEffectiveStatCaps(state));
+                            currentFragPotential = await getSmoothedYields(pool, state, shadowBuild, 3);
+                        }
                     }
                     
                     const pushTestState = { ...state, current_max_floor: state.current_max_floor + 1 };
