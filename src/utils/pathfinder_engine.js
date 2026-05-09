@@ -504,7 +504,7 @@ export async function runPathfinderSimulation(startState, targetLevel, initialFr
                 rate = yields[ `card_poly_${blockId}_per_min` ] || 0;
                 targetAmount = 9.669; // Gamma 50% Median for 10 Drops
                 targetLvl = 3; // Poly (Skipping Gilded logically)
-            } else if (isT4 && currentLvl === 2) {
+            } else if (isT4 && (currentLvl === 1 || currentLvl === 2)) {
                 rate = yields[ `card_poly_${blockId}_per_min` ] || 0;
                 targetAmount = 9.669; // Gamma 50% Median for 10 Drops
                 targetLvl = 3; // Poly
@@ -627,7 +627,7 @@ export async function runPathfinderSimulation(startState, targetLevel, initialFr
             if (isT4 && currentLvl === 0) rate = yields[ `card_base_${blockId}_per_min` ] || 0;
             else if (!isT4 && currentLvl === 0) rate = yields[ `card_base_${blockId}_per_min` ] || 0;
             else if (!isT4 && (currentLvl === 1 || currentLvl === 2)) rate = yields[ `card_poly_${blockId}_per_min` ] || 0;
-            else if (isT4 && currentLvl === 2) rate = yields[ `card_poly_${blockId}_per_min` ] || 0;
+            else if (isT4 && (currentLvl === 1 || currentLvl === 2)) rate = yields[ `card_poly_${blockId}_per_min` ] || 0;
             else if (currentLvl === 3) rate = yields[ `card_inf_${blockId}_per_min` ] || 0;
             
             if (rate > 0) {
@@ -875,7 +875,7 @@ export async function runPathfinderSimulation(startState, targetLevel, initialFr
                         if (isT4 && currentLvl === 0) rate = pushResult.pushYields[ `card_base_${blockId}_per_min` ] || 0;
                         else if (!isT4 && currentLvl === 0) rate = pushResult.pushYields[ `card_base_${blockId}_per_min` ] || 0;
                         else if (!isT4 && (currentLvl === 1 || currentLvl === 2)) rate = pushResult.pushYields[ `card_poly_${blockId}_per_min` ] || 0;
-                        else if (isT4 && currentLvl === 2) rate = pushResult.pushYields[ `card_poly_${blockId}_per_min` ] || 0;
+                        else if (isT4 && (currentLvl === 1 || currentLvl === 2)) rate = pushResult.pushYields[ `card_poly_${blockId}_per_min` ] || 0;
                         else if (currentLvl === 3) rate = pushResult.pushYields[ `card_inf_${blockId}_per_min` ] || 0;
                         
                         if (rate > 0) {
