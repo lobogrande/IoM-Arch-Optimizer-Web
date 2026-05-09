@@ -371,7 +371,8 @@ export async function runPathfinderSimulation(startState, targetLevel, initialFr
         upgrade_levels: { ...s.upgrade_levels },
         cards: { ...s.cards },
         total_infernal_cards: s.total_infernal_cards || 0,
-        arch_sec: cumulativeArchSecs
+        arch_sec: cumulativeArchSecs,
+        card_progress: { ...card_progress }
     });
     let currentExp = 0;
     let unspentPoints = 0;
@@ -677,6 +678,7 @@ export async function runPathfinderSimulation(startState, targetLevel, initialFr
                 desc: `Farm: ${farmStr} | Push: ${pushStr}`,
                 yields: { farm: currentFarmYields, push: currentPushYields },
                 frags: { ...frags },
+                card_progress: { ...card_progress },
                 state_snapshot: captureSnapshot(state)
             });
             lastEventTime = cumulativeArchSecs;
@@ -748,6 +750,7 @@ export async function runPathfinderSimulation(startState, targetLevel, initialFr
                 desc: upgDesc,
                 yields: { farm: currentFarmYields, push: currentPushYields },
                 frags: { ...frags },
+                card_progress: { ...card_progress },
                 state_snapshot: captureSnapshot(state)
             });
             lastEventTime = cumulativeArchSecs;
@@ -800,6 +803,7 @@ export async function runPathfinderSimulation(startState, targetLevel, initialFr
                 desc: `Card leveled up to ${nextCardTargetLevel}. Respecced -> Farm: ${farmStr} | Push: ${pushStr}`,
                 yields: { farm: currentFarmYields, push: currentPushYields },
                 frags: { ...frags },
+                card_progress: { ...card_progress },
                 state_snapshot: captureSnapshot(state)
             });
             
@@ -939,6 +943,7 @@ export async function runPathfinderSimulation(startState, targetLevel, initialFr
                     desc: floorDesc,
                     yields: { farm: currentFarmYields, push: currentPushYields },
                     frags: { ...frags },
+                    card_progress: { ...card_progress },
                     state_snapshot: captureSnapshot(state)
                 });
                 lastEventTime = cumulativeArchSecs;

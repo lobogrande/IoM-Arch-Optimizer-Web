@@ -479,7 +479,10 @@ export default function PathfinderTab() {
             </div>
 
             <div className="bg-[#0E1117] border border-st-border rounded p-4 shadow-sm animate-fade-in">
-              <h3 className="text-lg font-bold text-st-text mb-4 border-b border-st-border pb-2">Opportunity Cost Crossover (When to Begin Farming for Poly Card Upgrade)</h3>
+              <h3 className="text-lg font-bold text-st-text mb-1">Opportunity Cost Crossover</h3>
+              <p className="text-[10px] text-st-text-light mb-4 border-b border-st-border pb-2">
+                <strong>Note:</strong> The green line tracks passive fragments from your <b>Active Farm Build</b>. If you are optimizing for XP, your build allocates 0 Perception, making fragment farming appear artificially slow. The true crossover occurs when you actively engage the "Strategic Shift" floor toggle to spawn a Perception build!
+              </p>
               <div className="h-[300px] w-full">
                 <Plot
                   data={[
@@ -778,6 +781,33 @@ export default function PathfinderTab() {
                                   </div>
 
                                 </div>
+
+                                {/* PENDING CARD DROPS (DIAGNOSTIC) */}
+                                {finalEvent.card_progress && Object.keys(finalEvent.card_progress).length > 0 && (
+                                  <div className="mt-3 border-t border-st-border pt-2">
+                                    <strong className="text-yellow-400 border-b border-st-border pb-0.5 mb-2 block">Pending Card Drops (Hidden Engine Progress)</strong>
+                                    <div className="flex flex-wrap gap-2">
+                                      {Object.entries(finalEvent.card_progress).filter(([k,v]) => v > 0).map(([k, v]) => {
+                                        const isT4 = k.endsWith('4');
+                                        const currentLvl = finalEvent.state_snapshot?.cards?.[k] || 0;
+                                        let target = 9.669; // Poly/Inf requirement
+                                        let label = 'to Poly';
+                                        
+                                        if (currentLvl === 0) { target = 0.693; label = isT4 ? 'to Gild' : 'to Base'; }
+                                        else if (currentLvl === 3) { label = 'to Inf'; }
+                                        
+                                        const pct = Math.min(100, (v / target) * 100).toFixed(1);
+                                        if (pct < 1) return null; // hide negligible progress
+                                        
+                                        return (
+                                          <div key={k} className="bg-[#1e1e1e] border border-st-border px-2 py-1 rounded text-[10px]">
+                                            <span className="capitalize text-st-text">{k}:</span> <span className="text-st-orange font-bold">{pct}%</span> <span className="text-st-text-light">{label}</span>
+                                          </div>
+                                        );
+                                      })}
+                                    </div>
+                                  </div>
+                                )}
                               </details>
                             )}
                           </div>
