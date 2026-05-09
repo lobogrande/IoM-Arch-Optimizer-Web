@@ -495,8 +495,7 @@ export async function runPathfinderSimulation(startState, targetLevel, initialFr
     if (farmMetric === 'frag_6_per_min') {
         currentFragPotential = currentFarmYields;
     } else {
-        const optFrag = await runFastOptimizer(pool, state, 'frag_6_per_min', totalBudget, state.base_stats, 3);
-        currentFragPotential = optFrag.bestYields;
+        currentFragPotential = await getShadowFragYields(pool, state, expectedBudget, getEffectiveStatCaps(state), shiftFloor);
     }
     
     if (onProgress) onProgress({ progress: 0, status: `Establishing Baseline Push Build...` });
@@ -529,7 +528,7 @@ export async function runPathfinderSimulation(startState, targetLevel, initialFr
         level: state.arch_level,
         floor: state.current_max_floor,
         desc: `Beginning Asc2 Journey. Initialized Budget (${expectedBudget} pts) -> Farm: ${farmStr} | Push: ${pushStr}`,
-        yields: { farm: currentFarmYields, push: currentPushYields },
+        yields: { farm: currentFarmYields, push: currentPushYields, frag_potential: currentFragPotential },
         frags: { ...frags },
         state_snapshot: captureSnapshot(state)
     });
@@ -729,7 +728,7 @@ export async function runPathfinderSimulation(startState, targetLevel, initialFr
             if (farmMetric === 'frag_6_per_min') {
                 currentFragPotential = currentFarmYields;
             } else {
-                currentFragPotential = await getShadowFragYields(pool, state, expectedBudget, getEffectiveStatCaps(state), shiftFloor);
+                currentFragPotential = await getShadowFragYields(pool, state, totalBudget, getEffectiveStatCaps(state), shiftFloor);
             }
 
             // LAZY OPTIMIZATION: Defer Push build re-optimization until a floor push is actually attempted.
@@ -758,7 +757,7 @@ export async function runPathfinderSimulation(startState, targetLevel, initialFr
                 level: state.arch_level,
                 floor: state.current_max_floor,
                 desc: `Farm: ${farmStr} | Push: ${pushStr}`,
-                yields: { farm: currentFarmYields, push: currentPushYields },
+                yields: { farm: currentFarmYields, push: currentPushYields, frag_potential: currentFragPotential },
                 frags: { ...frags },
                 card_progress: { ...card_progress },
                 state_snapshot: captureSnapshot(state)
@@ -793,8 +792,7 @@ export async function runPathfinderSimulation(startState, targetLevel, initialFr
                 if (farmMetric === 'frag_6_per_min') {
                     currentFragPotential = currentFarmYields;
                 } else {
-                    const optFrag = await runFastOptimizer(pool, state, 'frag_6_per_min', totalBudget, state.base_stats, 3);
-                    currentFragPotential = optFrag.bestYields;
+                    currentFragPotential = await getShadowFragYields(pool, state, totalBudget, getEffectiveStatCaps(state), shiftFloor);
                 }
 
                 // LAZY OPTIMIZATION: Defer Push build re-optimization until a floor push is actually attempted.
@@ -822,8 +820,7 @@ export async function runPathfinderSimulation(startState, targetLevel, initialFr
                     currentFragPotential = currentFarmYields;
                 } else {
                     const currentBudget = state.arch_level + (state.upgrade_levels[12] || 0);
-                    const optFrag = await runFastOptimizer(pool, state, 'frag_6_per_min', currentBudget, state.base_stats, 3);
-                    currentFragPotential = optFrag.bestYields;
+                    currentFragPotential = await getShadowFragYields(pool, state, currentBudget, getEffectiveStatCaps(state), shiftFloor);
                 }
                 
                 const pushActualTargetState = { ...state, current_max_floor: state.current_max_floor + 1 };
@@ -904,7 +901,7 @@ export async function runPathfinderSimulation(startState, targetLevel, initialFr
                 level: state.arch_level,
                 floor: state.current_max_floor,
                 desc: `Card leveled up to ${nextCardTargetLevel}. Respecced -> Farm: ${farmStr} | Push: ${pushStr}`,
-                yields: { farm: currentFarmYields, push: currentPushYields },
+                yields: { farm: currentFarmYields, push: currentPushYields, frag_potential: currentFragPotential },
                 frags: { ...frags },
                 card_progress: { ...card_progress },
                 state_snapshot: captureSnapshot(state)
@@ -995,12 +992,8 @@ export async function runPathfinderSimulation(startState, targetLevel, initialFr
                         state.base_stats = optFarm.bestBuild;
                         currentFarmYields = optFarm.bestYields;
 
-                        if (farmMetric === 'frag_6_per_min') {
-                            currentFragPotential = currentFarmYields;
-                        } else {
-                            const optFrag = await runFastOptimizer(pool, state, 'frag_6_per_min', totalBudget, state.base_stats, 3);
-                            currentFragPotential = optFrag.bestYields;
-                        }
+                        // Because the floor shift just occurred, the active farm build IS the optimized frag build!
+                        currentFragPotential = currentFarmYields;
 
                         lastFarmStr = formatBuildStr(state.base_stats, state);
                     } else {
@@ -1059,7 +1052,7 @@ export async function runPathfinderSimulation(startState, targetLevel, initialFr
                     level: state.arch_level,
                     floor: state.current_max_floor,
                     desc: floorDesc,
-                    yields: { farm: currentFarmYields, push: currentPushYields },
+                    yields: { farm: currentFarmYields, push: currentPushYields, frag_potential: currentFragPotential },
                     frags: { ...frags },
                     card_progress: { ...card_progress },
                     state_snapshot: captureSnapshot(state)
@@ -1088,7 +1081,7 @@ export async function runPathfinderSimulation(startState, targetLevel, initialFr
         level: state.arch_level,
         floor: state.current_max_floor,
         desc: "Reached testing limits.",
-        yields: { farm: currentFarmYields, push: currentPushYields },
+        yields: { farm: currentFarmYields, push: currentPushYields, frag_potential: currentFragPotential },
         frags: { ...frags },
         state_snapshot: captureSnapshot(state)
     });
