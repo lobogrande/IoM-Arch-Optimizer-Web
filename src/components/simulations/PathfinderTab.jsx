@@ -137,10 +137,6 @@ const [simProgress, setSimProgress] = useState(0);
       divVals.push(ev.yields?.farm?.frag_6_per_min || 0);
       levelVals.push(ev.level || 1);
       floorVals.push(ev.floor || 1);
-
-      // Opportunity Cost Math (Minutes)
-      const expNeeded = 10 * Math.pow(1.2, (ev.level || 1) + 1);
-      ttnlVals.push(xpRate > 0 ? expNeeded / xpRate : 0);
       
       // SHADOW BUILD MATH: Calculate time to afford the 5 Late-Game Upgrades using the optimal frag potential
       const shadowYields = ev.yields?.frag_potential || ev.yields?.farm || { };
@@ -164,19 +160,17 @@ const [simProgress, setSimProgress] = useState(0);
       const t43 = (upgs[ 43 ] > 0 || eRate <= 0) ? 999999 : Math.max(0, 80000 - eBank) / eRate;
       const t45 = (upgs[ 45 ] > 0 || mRate <= 0) ? 999999 : Math.max(0, 50000 - mBank) / mRate;
       
-      // The true opportunity pivot is whichever milestone we can reach the FASTEST!
       let minTimeForBigUpg = Math.min(t41, t42, t43, t45);
       
       // Prevent Plotly log-scale crash by pushing null if all major upgrades are purchased
       const ttf = minTimeForBigUpg === 999999 ? null : minTimeForBigUpg;
       
       pivotXVals.push(ev.arch_sec);
-      ttnlVals.push(ttnlVals.length > 0 ? ttnlVals[ttnlVals.length - 1] : 0); // Placeholder to be overwritten
-      ttfVals.push(ttf);
       
       // Calculate true TTNL here
       const expNeeded = 10 * Math.pow(1.2, (ev.level || 1) + 1);
-      ttnlVals[currentIndex] = xpRate > 0 ? expNeeded / xpRate : 0;
+      ttnlVals.push(xpRate > 0 ? expNeeded / xpRate : 0);
+      ttfVals.push(ttf);
 
       if (ttf !== null) {
           lastValidPivotIndex = currentIndex;
