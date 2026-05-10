@@ -441,8 +441,12 @@ export async function runPathfinderSimulation(startState, targetLevel, initialFr
     // 1. Initialize Tracked State (Dual-Track the base stats!)
     let state = { 
         ...startState, 
-        push_stats: { ...startState.base_stats } 
+        push_stats: { ...startState.base_stats },
+        prometheus_level: startState.prometheus_level || 0,
+        sisyphus_level: startState.sisyphus_level || 0
     };
+
+    let hadesLevelsSinceLastReopt = 0;
 
     let cumulativeArchSecs = initialArchSecs;
     let lastEventTime = initialArchSecs;
@@ -455,7 +459,9 @@ export async function runPathfinderSimulation(startState, targetLevel, initialFr
         cards: { ...s.cards },
         total_infernal_cards: s.total_infernal_cards || 0,
         arch_sec: cumulativeArchSecs,
-        card_progress: { ...card_progress }
+        card_progress: { ...card_progress },
+        prometheus_level: s.prometheus_level || 0,
+        sisyphus_level: s.sisyphus_level || 0
     });
     let currentExp = 0;
     let unspentPoints = 0;
@@ -842,6 +848,110 @@ export async function runPathfinderSimulation(startState, targetLevel, initialFr
                         level: state.arch_level,
                         floor: state.current_max_floor,
                         desc: `Auto-spent excess Common Fragments. Hestia is now Level ${state.external_levels[4]}.`,
+                        yields: { farm: currentFarmYields, push: currentPushYields, frag_potential: currentFragPotential },
+                        frags: { ...frags },
+                        card_progress: { ...card_progress },
+                        state_snapshot: captureSnapshot(state)
+                    });
+                }
+            }
+        }
+
+        // --- DIVINE IDOLS AUTO-TRIBUTE ---
+        // Sweeps excess Divine Fragments into the RNG Idol pool once tech tree is exhausted
+        if (frags.div >= 999) {
+            const divUpgs =[47, 48, 49, 50, 51, 55];
+            let divMaxed = true;
+            
+            for (const id of divUpgs) {
+                if (lockedUpgs.includes(id)) continue; 
+                
+                const cap = INTERNAL_UPGRADE_CAPS[id] || 1;
+                const reqFlr = UPGRADE_LEVEL_REQS[id] || 0;
+                if ((state.upgrade_levels[id] || 0) < cap && state.current_max_floor >= reqFlr) {
+                    divMaxed = false; 
+                    break;
+                }
+            }
+
+            if (divMaxed) {
+                let boughtHades = 0;
+                let boughtProm = 0;
+                let boughtSis = 0;
+                
+                while (frags.div >= 999) {
+                    const pool =[];
+                    if ((state.external_levels[21] || 0) < 6666) pool.push('hades');
+                    if ((state.prometheus_level || 0) < 1000) pool.push('prometheus');
+                    
+                    const totalBaseIdols = (state.external_levels[21] || 0) + (state.prometheus_level || 0);
+                    if (totalBaseIdols >= 777) pool.push('sisyphus');
+                    
+                    if (pool.length === 0) break;
+                    
+                    const pick = pool[Math.floor(Math.random() * pool.length)];
+                    if (pick === 'hades') {
+                        state.external_levels = { ...state.external_levels, 21: (state.external_levels[21] || 0) + 1 };
+                        boughtHades++;
+                    } else if (pick === 'prometheus') {
+                        state.prometheus_level = (state.prometheus_level || 0) + 1;
+                        boughtProm++;
+                    } else if (pick === 'sisyphus') {
+                        state.sisyphus_level = (state.sisyphus_level || 0) + 1;
+                        boughtSis++;
+                    }
+                    
+                    frags.div -= 999;
+                }
+                
+                if (boughtHades > 0 || boughtProm > 0 || boughtSis > 0) {
+                    hadesLevelsSinceLastReopt += boughtHades;
+                    let reoptMsg = "";
+                    
+                    if (hadesLevelsSinceLastReopt >= 100) {
+                        reoptMsg = " Triggered build re-optimization.";
+                        await pool.syncState(state);
+                        
+                        const totalBudget = state.arch_level + (state.upgrade_levels[12] || 0);
+                        report(`Lvl ${state.arch_level}: Re-optimizing Farm after +${hadesLevelsSinceLastReopt} Hades levels...`);
+                        await new Promise(r => setTimeout(r, 10));
+
+                        const farmMetric = determineFarmMetric(Math.max(0, getExpRequired(state.arch_level) - currentExp));
+                        const optFarm = await runFastOptimizer(pool, state, farmMetric, totalBudget, state.base_stats, 3);
+                        state.base_stats = optFarm.bestBuild;
+                        currentFarmYields = optFarm.bestYields;
+
+                        if (farmMetric === 'frag_6_per_min') {
+                            currentFragPotential = currentFarmYields;
+                        } else {
+                            currentFragPotential = await getShadowFragYields(pool, state, totalBudget, getEffectiveStatCaps(state), shiftFloor);
+                        }
+
+                        const statsKeys = getAvailableStatKeys(state);
+                        const effectiveCaps = getEffectiveStatCaps(state);
+                        state.push_stats = enforceBudget(state.push_stats, statsKeys, totalBudget, effectiveCaps);
+
+                        const pushActualTargetState = { ...state, current_max_floor: state.current_max_floor + 1 };
+                        await pool.syncState(pushActualTargetState);
+                        currentPushYields = await getSmoothedYields(pool, pushActualTargetState, state.push_stats, 3);
+                        await pool.syncState(state);
+                        
+                        lastFarmStr = formatBuildStr(state.base_stats, state);
+                        lastPushStr = formatBuildStr(state.push_stats, state);
+                        
+                        hadesLevelsSinceLastReopt = 0;
+                    }
+                    
+                    history.push({
+                        type: "system",
+                        event: `💀 Divine Idols Tributed (+${boughtHades} Hades, +${boughtProm} Prom, +${boughtSis} Sis)`,
+                        arch_sec: cumulativeArchSecs,
+                        time_delta: 0,
+                        active_build: "Farm",
+                        active_build_str: lastFarmStr,
+                        level: state.arch_level,
+                        floor: state.current_max_floor,
+                        desc: `Auto-spent Divine Fragments. Hades: ${state.external_levels[21]}, Prom: ${state.prometheus_level}, Sis: ${state.sisyphus_level}.${reoptMsg}`,
                         yields: { farm: currentFarmYields, push: currentPushYields, frag_potential: currentFragPotential },
                         frags: { ...frags },
                         card_progress: { ...card_progress },
