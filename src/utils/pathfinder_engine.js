@@ -468,6 +468,9 @@ export async function runPathfinderSimulation(startState, targetLevel, initialFr
     let lastFarmStr = "";
     let lastPushStr = "";
     
+    // Hoisted flag to track if combat power changed (skips expensive Pyodide recalculations for economy-only upgrades!)
+    let pushBuildIsStale = true; 
+    
     // Dynamic event limit to prevent browser crashing if bounds are too high
     let eventCount = 0;
     const MAX_EVENTS = 3000;
@@ -977,6 +980,7 @@ export async function runPathfinderSimulation(startState, targetLevel, initialFr
                         lastPushStr = formatBuildStr(state.push_stats, state);
                         
                         hadesLevelsSinceLastReopt = 0;
+                        pushBuildIsStale = true; // Hades gives combat power!
                     }
                     
                     history.push({
@@ -1060,6 +1064,7 @@ export async function runPathfinderSimulation(startState, targetLevel, initialFr
             currentPushYields = await getSmoothedYields(pool, pushActualTargetState, state.push_stats, 3);
             await pool.syncState(state);
             unspentPoints = 0;
+            pushBuildIsStale = true; // Stat points added!
 
             const farmStr = formatBuildStr(state.base_stats, state);
             const pushStr = formatBuildStr(state.push_stats, state);
@@ -1091,6 +1096,12 @@ export async function runPathfinderSimulation(startState, targetLevel, initialFr
             
             const newLvl = (state.upgrade_levels[ nextUpgradeId ] || 0) + 1;
             state.upgrade_levels = { ...state.upgrade_levels, [ nextUpgradeId ]: newLvl };
+
+            // ECONOMY SKIP: If the upgrade strictly affects economy, skip the massive Push Build re-optimization!
+            const ECONOMY_UPGRADES =[ 4, 5, 11, 16, 19, 21, 27, 35, 38, 42, 46 ];
+            if (!ECONOMY_UPGRADES.includes(nextUpgradeId)) {
+                pushBuildIsStale = true;
+            }
 
             const upgName = UPGRADE_NAMES[ nextUpgradeId ] || `Upgrade ${nextUpgradeId}`;
             const fragUI = FRAG_NAMES_UI[ nextUpgradeCost.currency ] || nextUpgradeCost.currency;
@@ -1210,6 +1221,8 @@ export async function runPathfinderSimulation(startState, targetLevel, initialFr
             await pool.syncState(pushActualTargetState);
             currentPushYields = await getSmoothedYields(pool, pushActualTargetState, state.push_stats, 3);
             await pool.syncState(state);
+            
+            pushBuildIsStale = true; // Cards always confer combat power
 
             const farmStr = formatBuildStr(state.base_stats, state);
             const pushStr = formatBuildStr(state.push_stats, state);
@@ -1265,7 +1278,7 @@ export async function runPathfinderSimulation(startState, targetLevel, initialFr
 
         // Floor Pushing permanently disables itself once Floor 200 is reached
         if (!hasInstantUpgrade && state.current_max_floor < 200) {
-            let pushBuildIsStale = true;
+            // Note: pushBuildIsStale is now controlled globally by combat events!
 
             while (true) {
                 const expNeeded = Math.max(0, getExpRequired(state.arch_level) - currentExp);
