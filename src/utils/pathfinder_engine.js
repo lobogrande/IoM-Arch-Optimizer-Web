@@ -560,7 +560,7 @@ export async function runPathfinderSimulation(startState, targetLevel, initialFr
     if (farmMetric === 'frag_6_per_min') {
         currentFragPotential = currentFarmYields;
     } else {
-        currentFragPotential = await getShadowFragYields(pool, state, expectedBudget, getEffectiveStatCaps(state), shiftFloor);
+        currentFragPotential = await getShadowFragYields(pool, state, expectedBudget, getEffectiveStatCaps(state));
     }
     
     report(`Establishing Baseline Push Build...`);
@@ -1045,7 +1045,7 @@ export async function runPathfinderSimulation(startState, targetLevel, initialFr
             if (farmMetric === 'frag_6_per_min') {
                 currentFragPotential = currentFarmYields;
             } else {
-                currentFragPotential = await getShadowFragYields(pool, state, totalBudget, getEffectiveStatCaps(state), shiftFloor);
+                currentFragPotential = await getShadowFragYields(pool, state, totalBudget, getEffectiveStatCaps(state));
             }
 
             // LAZY OPTIMIZATION: Defer Push build re-optimization until a floor push is actually attempted.
@@ -1136,11 +1136,11 @@ export async function runPathfinderSimulation(startState, targetLevel, initialFr
                 await pool.syncState(state);
                 currentFarmYields = await getSmoothedYields(pool, state, state.base_stats, 3);
                 
-                if (state.current_max_floor >= shiftFloor) {
+                if ((state.external_levels[4] || 0) >= 3000) {
                     currentFragPotential = currentFarmYields;
                 } else {
                     const currentBudget = state.arch_level + (state.upgrade_levels[12] || 0);
-                    currentFragPotential = await getShadowFragYields(pool, state, currentBudget, getEffectiveStatCaps(state), shiftFloor);
+                    currentFragPotential = await getShadowFragYields(pool, state, currentBudget, getEffectiveStatCaps(state));
                 }
                 
                 const pushActualTargetState = { ...state, current_max_floor: state.current_max_floor + 1 };
