@@ -938,29 +938,31 @@ export async function runPathfinderSimulation(startState, targetLevel, initialFr
                 let boughtProm = 0;
                 let boughtSis = 0;
                 
-                const idolsWereMaxed = (state.external_levels[21] || 0) >= 6666 && 
-                                       (state.prometheus_level || 0) >= 1000 && 
-                                       (state.sisyphus_level || 0) >= 7777;
+                let curHades = state.external_levels[21] || 0;
+                let curProm = state.prometheus_level || 0;
+                let curSis = state.sisyphus_level || 0;
+                
+                const idolsWereMaxed = curHades >= 6666 && curProm >= 1000 && curSis >= 7777;
                 
                 while (frags.div >= 999) {
                     const pool =[];
-                    if ((state.external_levels[21] || 0) < 6666) pool.push('hades');
-                    if ((state.prometheus_level || 0) < 1000) pool.push('prometheus');
+                    if (curHades < 6666) pool.push('hades');
+                    if (curProm < 1000) pool.push('prometheus');
                     
-                    const totalBaseIdols = (state.external_levels[21] || 0) + (state.prometheus_level || 0);
-                    if (totalBaseIdols >= 777) pool.push('sisyphus');
+                    const totalBaseIdols = curHades + curProm;
+                    if (totalBaseIdols >= 777 && curSis < 7777) pool.push('sisyphus'); // Sisyphus cap enforced!
                     
                     if (pool.length === 0) break;
                     
                     const pick = pool[Math.floor(Math.random() * pool.length)];
                     if (pick === 'hades') {
-                        state.external_levels = { ...state.external_levels, 21: (state.external_levels[21] || 0) + 1 };
+                        curHades++;
                         boughtHades++;
                     } else if (pick === 'prometheus') {
-                        state.prometheus_level = (state.prometheus_level || 0) + 1;
+                        curProm++;
                         boughtProm++;
                     } else if (pick === 'sisyphus') {
-                        state.sisyphus_level = (state.sisyphus_level || 0) + 1;
+                        curSis++;
                         boughtSis++;
                     }
                     
@@ -968,6 +970,9 @@ export async function runPathfinderSimulation(startState, targetLevel, initialFr
                 }
                 
                 if (boughtHades > 0 || boughtProm > 0 || boughtSis > 0) {
+                    if (boughtHades > 0) state.external_levels = { ...state.external_levels, 21: curHades };
+                    if (boughtProm > 0) state.prometheus_level = curProm;
+                    if (boughtSis > 0) state.sisyphus_level = curSis;
                     const idolsAreMaxed = (state.external_levels[21] || 0) >= 6666 && 
                                           (state.prometheus_level || 0) >= 1000 && 
                                           (state.sisyphus_level || 0) >= 7777;
