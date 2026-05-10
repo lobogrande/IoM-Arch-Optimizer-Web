@@ -12,7 +12,7 @@ export default function PathfinderTab() {
   const store = useStore();
   const[startMode, setStartMode] = useState('template');
   const [isSimulating, setIsSimulating] = useState(false);
-  const [pathData, setPathData] = useState(null);
+  const[pathData, setPathData] = useState(null);
   const[simStatus, setSimStatus] = useState('');
   const [simProgress, setSimProgress] = useState(0);
   const [groupBy, setGroupBy] = useState('floor'); // 'floor' or 'level'
@@ -74,7 +74,7 @@ export default function PathfinderTab() {
     const files = Array.from(e.target.files);
     if (files.length === 0) return;
     
-    let combinedHistory = pathData ? [ ...pathData.history ] :[ ];
+    let combinedHistory = pathData ?[ ...pathData.history ] :[ ];
     let processed = 0;
 
     files.forEach(file => {
@@ -92,7 +92,7 @@ export default function PathfinderTab() {
           // Sort by Arch Sec and Deduplicate by timestamp + event name
           combinedHistory.sort((a, b) => a.arch_sec - b.arch_sec);
           
-          const unique = [ ];
+          const unique =[ ];
           const seen = new Set();
           combinedHistory.forEach(ev => {
             const key = `${ev.arch_sec}_${ev.event}`;
@@ -320,7 +320,7 @@ export default function PathfinderTab() {
           </button>
         </div>
 
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
           <div>
             <label className="block text-sm font-bold text-st-text mb-2">Target Arch Level (Stopping Point):</label>
             <input 
@@ -332,7 +332,7 @@ export default function PathfinderTab() {
               placeholder="e.g. 50"
             />
           </div>
-          
+          <div>
             <label className="block text-sm font-bold text-st-text mb-2">Push Confidence Threshold (%):</label>
             <input 
               type="number" 
@@ -376,12 +376,12 @@ export default function PathfinderTab() {
               <p>Loaded Profile: <span className="text-st-orange font-bold">{asc2Template.name}</span></p>
               <p>Arch Level: {asc2Template.arch_level} | Max Floor: {asc2Template.current_max_floor}</p>
               <p>Total Cards: {asc2Template.total_infernal_cards} | Hades Lvl: {asc2Template.external_levels[21]}</p>
-              <p className="mt-2 text-[#FAFAFA]">Goal Director Logic:</p>
+              <p className="mt-2 text-[#FAFAFA]">Autonomous Endgame Director:</p>
               <ul className="list-disc ml-4 opacity-80 mt-1">
-                <li>Priority 1: Push Floor 200</li>
-                <li>Priority 2: Max Internal Upgrades via Fragment Farming</li>
-                <li>Priority 3: Farm Divine Fragments (Hades Idol)</li>
-                <li>Priority 4: Div4 Farming / Infernal Completion</li>
+                <li>Automated Pivot 1: Pure Fragment builds for Upgrades 41-45</li>
+                <li>Automated Pivot 2: Hestia Idol auto-tribute logic (Caps at 3000)</li>
+                <li>Automated Pivot 3: Post-Hestia transition to Divine Idol auto-tribute pool</li>
+                <li>Automated Pivot 4: Post-Idol transition to Tier 4 Block Hunting</li>
               </ul>
             </div>
           ) : (

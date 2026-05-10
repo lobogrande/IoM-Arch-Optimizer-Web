@@ -502,8 +502,27 @@ export async function runPathfinderSimulation(startState, targetLevel, initialFr
     // --- AUTOMATED PIVOT LOGIC ---
     // Evaluates Opportunity Cost and dynamically swaps the active optimizer target
     const determineFarmMetric = (expNeededCheck) => {
-        // Endgame Phase 1: Hestia is maxed. Permanently abandon XP farming to hunt Divine/Infernal Cards
-        if ((state.external_levels[4] || 0) >= 3000) return 'frag_6_per_min';
+        // Endgame Phase 2: All Divine Idols are maxed. Pivot to explicit Block hunting!
+        const idolsMaxed = (state.external_levels[21] || 0) >= 6666 && 
+                           (state.prometheus_level || 0) >= 1000 && 
+                           (state.sisyphus_level || 0) >= 7777;
+                           
+        if ((state.external_levels[4] || 0) >= 3000) {
+            if (idolsMaxed) {
+                // Hunt remaining un-maxed cards, strictly prioritizing highest tiers first
+                const targetCards =[
+                    'div4', 'myth4', 'leg4', 'epic4', 'rare4', 'com4', 'dirt4',
+                    'div3', 'myth3', 'leg3', 'epic3', 'rare3', 'com3', 'dirt3',
+                    'div2', 'myth2', 'leg2', 'epic2', 'rare2', 'com2', 'dirt2',
+                    'div1', 'myth1', 'leg1', 'epic1', 'rare1', 'com1', 'dirt1'
+                ];
+                for (const c of targetCards) {
+                    if ((state.cards[c] || 0) < 4) return `block_${c}_per_min`;
+                }
+                return 'block_div4_per_min'; // Absolute final fallback if 100% complete
+            }
+            return 'frag_6_per_min'; // Phase 1: Divine Idols
+        }
 
         let target = null;
         if (!(state.upgrade_levels[41] > 0)) target = { id: 41, frag: 'com', cost: 100000, key: 'frag_1_per_min' };
@@ -889,6 +908,10 @@ export async function runPathfinderSimulation(startState, targetLevel, initialFr
                 let boughtProm = 0;
                 let boughtSis = 0;
                 
+                const idolsWereMaxed = (state.external_levels[21] || 0) >= 6666 && 
+                                       (state.prometheus_level || 0) >= 1000 && 
+                                       (state.sisyphus_level || 0) >= 7777;
+                
                 while (frags.div >= 999) {
                     const pool =[];
                     if ((state.external_levels[21] || 0) < 6666) pool.push('hades');
@@ -915,15 +938,19 @@ export async function runPathfinderSimulation(startState, targetLevel, initialFr
                 }
                 
                 if (boughtHades > 0 || boughtProm > 0 || boughtSis > 0) {
+                    const idolsAreMaxed = (state.external_levels[21] || 0) >= 6666 && 
+                                          (state.prometheus_level || 0) >= 1000 && 
+                                          (state.sisyphus_level || 0) >= 7777;
+
                     hadesLevelsSinceLastReopt += boughtHades;
                     let reoptMsg = "";
                     
-                    if (hadesLevelsSinceLastReopt >= 100) {
-                        reoptMsg = " Triggered build re-optimization.";
+                    if (hadesLevelsSinceLastReopt >= 100 || (!idolsWereMaxed && idolsAreMaxed)) {
+                        reoptMsg = idolsAreMaxed ? " All Divine Idols Maxed!" : " Triggered build re-optimization.";
                         await pool.syncState(state);
                         
                         const totalBudget = state.arch_level + (state.upgrade_levels[12] || 0);
-                        report(`Lvl ${state.arch_level}: Re-optimizing Farm after +${hadesLevelsSinceLastReopt} Hades levels...`);
+                        report(`Lvl ${state.arch_level}: Re-optimizing Farm...`);
                         await new Promise(r => setTimeout(r, 10));
 
                         const farmMetric = determineFarmMetric(Math.max(0, getExpRequired(state.arch_level) - currentExp));
@@ -967,6 +994,32 @@ export async function runPathfinderSimulation(startState, targetLevel, initialFr
                         card_progress: { ...card_progress },
                         state_snapshot: captureSnapshot(state)
                     });
+
+                    if (!idolsWereMaxed && idolsAreMaxed) {
+                        // Immediately trigger the Phase 2 Pivot metric
+                        const totalBudget = state.arch_level + (state.upgrade_levels[12] || 0);
+                        const farmMetric = determineFarmMetric(0);
+                        const optFarm = await runFastOptimizer(pool, state, farmMetric, totalBudget, state.base_stats, 3);
+                        state.base_stats = optFarm.bestBuild;
+                        currentFarmYields = optFarm.bestYields;
+                        lastFarmStr = formatBuildStr(state.base_stats, state);
+
+                        history.push({
+                            type: "system",
+                            event: `⚔️ Endgame Phase 2: Card Hunting Pivot`,
+                            arch_sec: cumulativeArchSecs,
+                            time_delta: 0,
+                            active_build: "Farm",
+                            active_build_str: lastFarmStr,
+                            level: state.arch_level,
+                            floor: state.current_max_floor,
+                            desc: `Divine Idols maxed. Fragment farming abandoned. Build permanently optimized to brute-force highest unmaxed block tiers.`,
+                            yields: { farm: currentFarmYields, push: currentPushYields, frag_potential: currentFragPotential },
+                            frags: { ...frags },
+                            card_progress: { ...card_progress },
+                            state_snapshot: captureSnapshot(state)
+                        });
+                    }
                 }
             }
         }
