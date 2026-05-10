@@ -347,26 +347,23 @@ async function runFastOptimizer(pool, state, targetMetric, budget, previousBuild
     return { bestBuild: p3Results[0].build, bestYields: p3Results[0].yields };
 }
 
-// Tests if the specialized Push Build is mathematically capable of surviving 1 floor higher
-// Runs a batch of 50 to massively smooth out the RNG and accurately measure the Win Rate
-async function attemptFloorPush(pool, state, maxTimePenaltySecs, minWinRateReq = 0.05, samples = 50) {
-    const nextFloor = state.current_max_floor + 1;
-    const testState = { ...state, current_max_floor: nextFloor };
-    
+// Multi-Floor Fast Lane: Evaluates the absolute maximum limit of the current build
+// and collapses all intermediate floor pushes into a single O(1) jump calculation!
+async function attemptMultiFloorPush(pool, state, maxTimePenaltySecs, minWinRateReq = 0.05, samples = 150) {
+    // Uncap the test state so the engine runs stamina to absolute failure
+    const testState = { ...state, current_max_floor: 200 };
     await pool.syncState(testState);
     
     const tasks = Array.from({ length: samples }, () => pool.runTask(state.push_stats, testState.upgrade_levels, testState.external_levels, testState.cards));
     const batchResults = await Promise.all(tasks);
     
-    let successes = 0;
     let totalTimeSec = 0;
-    
     let pushYields = { };
+    let highestFloors = [ ];
     
     batchResults.forEach(res => {
         totalTimeSec += res.total_time;
-        if (res.highest_floor >= nextFloor) successes++;
-        
+        highestFloors.push(res.highest_floor);
         for (const [ key, val ] of Object.entries(res)) {
             if (typeof val === 'number' && key.includes('_per_min')) {
                 pushYields[ key ] = (pushYields[ key ] || 0) + val;
@@ -374,67 +371,54 @@ async function attemptFloorPush(pool, state, maxTimePenaltySecs, minWinRateReq =
         }
     });
 
-    let winRate = successes / samples;
+    Object.keys(pushYields).forEach(k => pushYields[k] /= samples);
+    const avgRunTimeSecs = totalTimeSec / samples;
+    highestFloors.sort((a, b) => b - a); // Sort descending
 
-    // FAST REJECT: Discard if it fails the user's requested minimum reliability threshold
-    if (winRate < minWinRateReq) {
-        await pool.syncState(state); 
-        return { success: false };
-    }
+    const currentFloor = state.current_max_floor;
+    let bestFloor = currentFloor;
+    let totalTimePenalty = 0;
+    let finalWinRate = 0;
 
-    // DEEP VERIFICATION GUARD:
-    // A 50-sample test is susceptible to statistical flukes (e.g. 3 successes on a 1% true probability).
-    // Since this decides massive Time Penalties and bypasses the Temporal Guard, we MUST confirm it!
-    const deepSamples = 150;
-    const deepTasks = Array.from({ length: deepSamples }, () => pool.runTask(state.push_stats, testState.upgrade_levels, testState.external_levels, testState.cards));
-    const deepResults = await Promise.all(deepTasks);
-
-    deepResults.forEach(res => {
-        totalTimeSec += res.total_time;
-        if (res.highest_floor >= nextFloor) successes++;
+    // Evaluate each step cumulatively to safely measure the penalty required to reach the ceiling
+    for (let f = currentFloor + 1; f <= highestFloors[0]; f++) {
+        const successes = highestFloors.filter(hf => hf >= f).length;
+        const winRate = successes / samples;
         
-        for (const [ key, val ] of Object.entries(res)) {
-            if (typeof val === 'number' && key.includes('_per_min')) {
-                pushYields[ key ] = (pushYields[ key ] || 0) + val;
-            }
-        }
-    });
+        // Wilson Score Interval Lower Bound
+        const z = 1.96;
+        const denominator = 1 + (z * z) / samples;
+        const center = winRate + (z * z) / (2 * samples);
+        const spread = z * Math.sqrt((winRate * (1 - winRate) + (z * z) / (4 * samples)) / samples);
+        const lowerBound = (center - spread) / denominator;
 
-    const totalSamples = samples + deepSamples;
-    winRate = successes / totalSamples;
+        if (lowerBound < minWinRateReq) break; // Hard mathematical wall hit
 
-    // WILSON SCORE INTERVAL: The ultimate defense against Monte Carlo flukes!
-    // Instead of trusting the raw win rate, we calculate the 95% Confidence Interval LOWER BOUND.
-    // If you ask for 20%, we MUST be 95% certain the TRUE win rate is >= 20%. 
-    // A 23% win rate on 200 samples has a lower bound of ~17.6%, which correctly FAILS a 20% threshold!
-    const z = 1.96; // 95% confidence
-    const denominator = 1 + (z * z) / totalSamples;
-    const center = winRate + (z * z) / (2 * totalSamples);
-    const spread = z * Math.sqrt((winRate * (1 - winRate) + (z * z) / (4 * totalSamples)) / totalSamples);
-    const lowerBound = (center - spread) / denominator;
+        const safeWinRate = Math.min(0.999, winRate);
+        const safeBudgetRuns = Math.max(1, Math.ceil(Math.log(1 - 0.90) / Math.log(1 - safeWinRate)));
+        const stepTimePenalty = safeBudgetRuns * avgRunTimeSecs;
 
-    if (lowerBound < minWinRateReq) {
-        await pool.syncState(state); 
-        return { success: false };
+        if (totalTimePenalty + stepTimePenalty > maxTimePenaltySecs) break; // Out of time before next level
+
+        bestFloor = f;
+        totalTimePenalty += stepTimePenalty;
+        finalWinRate = winRate;
     }
 
-    // Normalize yields against the massive true sample size
-    Object.keys(pushYields).forEach(k => pushYields[k] /= totalSamples);
+    await pool.syncState(state);
 
-    // CALCULATE SAFE BUDGET (90% Confidence Interval)
-    // Using Geometric Distribution CDF: P = 1 - (1 - p)^k -> k = ln(1 - P) / ln(1 - p)
-    const safeWinRate = Math.min(0.999, winRate);
-    const safeBudgetRuns = Math.max(1, Math.ceil(Math.log(1 - 0.90) / Math.log(1 - safeWinRate)));
-    const avgRunTimeSecs = (totalTimeSec / totalSamples); 
-    const timePenaltySecs = safeBudgetRuns * avgRunTimeSecs;
-    
-    // TEMPORAL PARADOX GUARD: Now verified against the 90% Safe Budget time penalty!
-    if (timePenaltySecs > maxTimePenaltySecs) {
-        await pool.syncState(state); 
+    if (bestFloor > currentFloor) {
+        return {
+            success: true,
+            floorsGained: bestFloor - currentFloor,
+            newMaxFloor: bestFloor,
+            timePenaltySecs: totalTimePenalty,
+            winRate: finalWinRate,
+            pushYields
+        };
+    } else {
         return { success: false };
     }
-
-    return { success: true, timePenaltySecs, winRate, pushYields };
 }
 
 export async function runPathfinderSimulation(startState, targetLevel, initialFrags, pool, shiftFloor, minWinRate, initialArchSecs = 0, onProgress) {
@@ -1194,39 +1178,38 @@ export async function runPathfinderSimulation(startState, targetLevel, initialFr
         }
 
         if (!hasInstantUpgrade) {
+            let pushBuildIsStale = true;
+
             while (true) {
-                // Calculate the Temporal Paradox Guard limit (How many seconds until next level?)
                 const expNeeded = Math.max(0, getExpRequired(state.arch_level) - currentExp);
                 const currentXpRate = currentFarmYields?.xp_per_min || 1;
                 const timeToNextLevelSecs = (expNeeded / currentXpRate) * 60;
 
-                // Only attempt a push if we actually have time before the next level up!
                 if (timeToNextLevelSecs <= 0) break;
 
-                // JIT (Just-In-Time) PUSH OPTIMIZATION
-                // We finally calculate the perfect Push build only when we are mathematically ready to test a push
-                const pushBudget = state.arch_level + (state.upgrade_levels[12] || 0);
-                
-                report(`Lvl ${state.arch_level}: Generating exact Push Build for Flr ${state.current_max_floor + 1}...`);
-                await new Promise(r => setTimeout(r, 10));
-                
-                const pushTestState = { ...state, current_max_floor: 200 };
-                const optPush = await runFastOptimizer(pool, pushTestState, 'highest_floor', pushBudget, state.push_stats, 12);
-                state.push_stats = optPush.bestBuild;
-                lastPushStr = formatBuildStr(state.push_stats, state);
-
-                report(`Lvl ${state.arch_level}: Proving Win Rate for Flr ${state.current_max_floor + 1}...`);
-                await new Promise(r => setTimeout(r, 10));
-
-                const pushResult = await attemptFloorPush(pool, state, timeToNextLevelSecs, minWinRate / 100.0, 50);
-                if (pushResult.success) {
-                    state.current_max_floor++;
+                if (pushBuildIsStale) {
+                    report(`Lvl ${state.arch_level}: Generating exact Push Build for Flr ${state.current_max_floor + 1}...`);
+                    await new Promise(r => setTimeout(r, 10));
                     
-                    // Add the expected time it took to probabilistically brute-force the run!
+                    const pushBudget = state.arch_level + (state.upgrade_levels[12] || 0);
+                    const pushTestState = { ...state, current_max_floor: 200 };
+                    const optPush = await runFastOptimizer(pool, pushTestState, 'highest_floor', pushBudget, state.push_stats, 12);
+                    state.push_stats = optPush.bestBuild;
+                    lastPushStr = formatBuildStr(state.push_stats, state);
+                    pushBuildIsStale = false;
+                }
+
+                report(`Lvl ${state.arch_level}: Proving Win Rate for multi-floor jump...`);
+                await new Promise(r => setTimeout(r, 10));
+
+                const pushResult = await attemptMultiFloorPush(pool, state, timeToNextLevelSecs, minWinRate / 100.0, 150);
+                
+                if (pushResult.success) {
+                    const oldFloor = state.current_max_floor;
+                    state.current_max_floor = pushResult.newMaxFloor;
+                    
                     cumulativeArchSecs += pushResult.timePenaltySecs;
                     
-                    // CRITICAL FIX: Accrue resources for the time spent grinding those brute-force attempts!
-                    // We MUST use the yields from the PUSH BUILD, because that is what they were running!
                     const penaltyMins = pushResult.timePenaltySecs / 60.0;
                     currentExp += (pushResult.pushYields.xp_per_min || 0) * penaltyMins;
                     Object.keys(frags).forEach(k => {
@@ -1249,9 +1232,8 @@ export async function runPathfinderSimulation(startState, targetLevel, initialFr
                         }
                     }
                     
-                    // We pushed the floor! Recalculate ALL yields against the new reality using smoothed averages!
                     let didShift = false;
-                    if (state.current_max_floor === shiftFloor) {
+                    if (oldFloor < shiftFloor && state.current_max_floor >= shiftFloor) {
                         didShift = true;
                         const totalBudget = state.arch_level + (state.upgrade_levels[12] || 0);
                         const optFarm = await runFastOptimizer(pool, state, 'frag_6_per_min', totalBudget, state.base_stats, 3);
@@ -1279,14 +1261,14 @@ export async function runPathfinderSimulation(startState, targetLevel, initialFr
                     currentPushYields = await getSmoothedYields(pool, pushTestState, state.push_stats, 3);
                     await pool.syncState(state);
 
-                    // Calculate newly unlocked upgrades based on Floor!
+                    // Calculate newly unlocked upgrades across ALL floors gained in the jump!
                 const newUpgs = Object.entries(UPGRADE_LEVEL_REQS)
-                    .filter(([id, reqFlr]) => reqFlr === state.current_max_floor)
+                    .filter(([id, reqFlr]) => reqFlr > oldFloor && reqFlr <= state.current_max_floor)
                     .map(([id]) => UPGRADE_NAMES[id] || `Upg ${id}`);
 
-                // Calculate newly spawning blocks based on Floor!
+                // Calculate newly spawning blocks across ALL floors gained!
                 const newBlocks = Object.entries(BLOCK_MIN_FLOORS)
-                    .filter(([id, minFlr]) => minFlr === state.current_max_floor)
+                    .filter(([id, minFlr]) => minFlr > oldFloor && minFlr <= state.current_max_floor)
                     .map(([id]) => {
                         const type = id.replace(/[0-9]/g, '');
                         const tier = id.replace(/[^0-9]/g, '');
@@ -1295,13 +1277,12 @@ export async function runPathfinderSimulation(startState, targetLevel, initialFr
                 
                 const winRateStr = (pushResult.winRate * 100).toFixed(0);
                 
-                // Format the Arch Seconds penalty cleanly for the description
                 let timeCostStr = "";
                 if (pushResult.timePenaltySecs >= 1000000) timeCostStr = (pushResult.timePenaltySecs / 1000000).toFixed(2) + "m";
                 else if (pushResult.timePenaltySecs >= 1000) timeCostStr = (pushResult.timePenaltySecs / 1000).toFixed(1) + "k";
                 else timeCostStr = Math.floor(pushResult.timePenaltySecs).toString();
                 
-                let floorDesc = `Brute-forced ceiling with ${winRateStr}% win rate.`;
+                let floorDesc = `Brute-forced ceiling with ${winRateStr}% win rate. (Jumped from ${oldFloor} to ${state.current_max_floor}!)`;
                 if (newUpgs.length > 0) floorDesc += ` Unlocks: ${newUpgs.join(', ')}.`;
                 if (newBlocks.length > 0) floorDesc += ` New Blocks: ${newBlocks.join(', ')}.`;
                 if (didShift) floorDesc += ` STRATEGIC SHIFT: Farm Build now optimizing for Divine Fragments!`;
@@ -1325,7 +1306,15 @@ export async function runPathfinderSimulation(startState, targetLevel, initialFr
                 });
                 lastEventTime = cumulativeArchSecs;
             } else {
-                break; // Build is mathematically incapable of surviving the next floor yet
+                // The current build failed the wall. 
+                if (!pushBuildIsStale) {
+                    // It failed with a FRESH build. This is an absolute ceiling. Stop pushing.
+                    break; 
+                } else {
+                    // It failed with an OLD build. Try re-optimizing the stats ONE time to see if we can break it!
+                    pushBuildIsStale = true;
+                    continue;
+                }
             }
         }
         } // End of !hasInstantUpgrade block
