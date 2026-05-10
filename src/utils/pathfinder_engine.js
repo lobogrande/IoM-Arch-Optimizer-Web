@@ -557,7 +557,7 @@ export async function runPathfinderSimulation(startState, targetLevel, initialFr
     state.base_stats = optFarm.bestBuild;
     currentFarmYields = optFarm.bestYields;
 
-    if (farmMetric === 'frag_6_per_min') {
+    if ((state.external_levels[4] || 0) >= 3000) {
         currentFragPotential = currentFarmYields;
     } else {
         currentFragPotential = await getShadowFragYields(pool, state, expectedBudget, getEffectiveStatCaps(state));
@@ -1042,7 +1042,7 @@ export async function runPathfinderSimulation(startState, targetLevel, initialFr
             state.base_stats = optFarm.bestBuild;
             currentFarmYields = optFarm.bestYields;
 
-            if (farmMetric === 'frag_6_per_min') {
+            if ((state.external_levels[4] || 0) >= 3000) {
                 currentFragPotential = currentFarmYields;
             } else {
                 currentFragPotential = await getShadowFragYields(pool, state, totalBudget, getEffectiveStatCaps(state));
@@ -1109,10 +1109,10 @@ export async function runPathfinderSimulation(startState, targetLevel, initialFr
                 state.base_stats = optFarm.bestBuild;
                 currentFarmYields = optFarm.bestYields;
 
-                if (farmMetric === 'frag_6_per_min') {
+                if ((state.external_levels[4] || 0) >= 3000) {
                     currentFragPotential = currentFarmYields;
                 } else {
-                    currentFragPotential = await getShadowFragYields(pool, state, totalBudget, getEffectiveStatCaps(state), shiftFloor);
+                    currentFragPotential = await getShadowFragYields(pool, state, totalBudget, getEffectiveStatCaps(state));
                 }
 
                 // LAZY OPTIMIZATION: Defer Push build re-optimization until a floor push is actually attempted.
@@ -1195,10 +1195,10 @@ export async function runPathfinderSimulation(startState, targetLevel, initialFr
             state.base_stats = optFarm.bestBuild;
             currentFarmYields = optFarm.bestYields;
 
-            if (farmMetric === 'frag_6_per_min') {
+            if ((state.external_levels[4] || 0) >= 3000) {
                 currentFragPotential = currentFarmYields;
             } else {
-                currentFragPotential = await getShadowFragYields(pool, state, totalBudget, getEffectiveStatCaps(state), shiftFloor);
+                currentFragPotential = await getShadowFragYields(pool, state, totalBudget, getEffectiveStatCaps(state));
             }
 
             // Top-up Push Build mathematically
