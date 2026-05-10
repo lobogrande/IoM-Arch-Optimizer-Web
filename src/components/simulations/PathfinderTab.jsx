@@ -120,8 +120,13 @@ const [simProgress, setSimProgress] = useState(0);
     const divVals =[ ];
     const levelVals =[ ];
     const floorVals =[ ];
+    
+    // Decouple the Pivot X-axis so we can truncate it without breaking the Progression chart
+    const pivotXVals =[ ];
     const ttnlVals =[ ];
     const ttfVals =[ ];
+    let lastValidPivotIndex = -1;
+    let currentIndex = 0;
 
     pathData.history.forEach(ev => {
       xVals.push(ev.arch_sec);
@@ -163,11 +168,37 @@ const [simProgress, setSimProgress] = useState(0);
       let minTimeForBigUpg = Math.min(t41, t42, t43, t45);
       
       // Prevent Plotly log-scale crash by pushing null if all major upgrades are purchased
-      ttfVals.push(minTimeForBigUpg === 999999 ? null : minTimeForBigUpg);
+      const ttf = minTimeForBigUpg === 999999 ? null : minTimeForBigUpg;
+      
+      pivotXVals.push(ev.arch_sec);
+      ttnlVals.push(ttnlVals.length > 0 ? ttnlVals[ttnlVals.length - 1] : 0); // Placeholder to be overwritten
+      ttfVals.push(ttf);
+      
+      // Calculate true TTNL here
+      const expNeeded = 10 * Math.pow(1.2, (ev.level || 1) + 1);
+      ttnlVals[currentIndex] = xpRate > 0 ? expNeeded / xpRate : 0;
+
+      if (ttf !== null) {
+          lastValidPivotIndex = currentIndex;
+      }
+      currentIndex++;
     });
 
-    return { xVals, xpVals, divVals, levelVals, floorVals, ttnlVals, ttfVals };
-  },[pathData]);
+    // DYNAMIC TRUNCATION: Slice the Opportunity Cost chart to end shortly after the final milestone is bought!
+    let finalPivotX = pivotXVals;
+    let finalTtnl = ttnlVals;
+    let finalTtf = ttfVals;
+
+    if (lastValidPivotIndex !== -1 && lastValidPivotIndex < pivotXVals.length - 1) {
+        // Add a small 10-tick visual buffer so the line doesn't abruptly snap to the edge of the chart
+        const sliceEnd = Math.min(pivotXVals.length, lastValidPivotIndex + 10);
+        finalPivotX = pivotXVals.slice(0, sliceEnd);
+        finalTtnl = ttnlVals.slice(0, sliceEnd);
+        finalTtf = ttfVals.slice(0, sliceEnd);
+    }
+
+    return { xVals, xpVals, divVals, levelVals, floorVals, pivotXVals: finalPivotX, ttnlVals: finalTtnl, ttfVals: finalTtf };
+  }, [ pathData ]);
 
   const pushChartData = useMemo(() => {
     if (!pathData) return null;
@@ -256,7 +287,22 @@ const [simProgress, setSimProgress] = useState(0);
       'div': '#06b6d4'
     };
 
-    return { xVals, yVals, markerX, markerY, markerText, color: colors[selectedFragPlot] };
+    // DYNAMIC TRUNCATION: Stop plotting dead currency! 
+    // Find the absolute last time the fragment was actually spent, and slice the chart there.
+    let finalXVals = xVals;
+    let finalYVals = yVals;
+
+    if (markerX.length > 0) {
+        const lastMarkerX = markerX[markerX.length - 1];
+        const cutoffIndex = xVals.findIndex(x => x > lastMarkerX);
+        if (cutoffIndex !== -1) {
+            // Keep exactly 1 extra data point to show the final purchase dropping the bank to 0
+            finalXVals = xVals.slice(0, cutoffIndex + 1);
+            finalYVals = yVals.slice(0, cutoffIndex + 1);
+        }
+    }
+
+    return { xVals: finalXVals, yVals: finalYVals, markerX, markerY, markerText, color: colors[selectedFragPlot] };
   },[ pathData, selectedFragPlot ]);
 
   const templates = {
@@ -564,10 +610,10 @@ const [simProgress, setSimProgress] = useState(0);
               </p>
               <div className="h-[300px] w-full">
                 <Plot
-                  data={[
-                    { x: chartData.xVals, y: chartData.ttnlVals, type: 'scatter', mode: 'lines', name: 'Mins to Level (XP Build)', line: { color: '#f87171', shape: 'hv', width: 2 } },
-                    { x: chartData.xVals, y: chartData.ttfVals, type: 'scatter', mode: 'lines', name: 'Mins to Major Upgrade (Frag Build)', line: { color: '#a3e635', shape: 'hv', width: 2 } }
-                  ]}
+                  data={[ 
+                    { x: chartData.pivotXVals, y: chartData.ttnlVals, type: 'scatter', mode: 'lines', name: 'Mins to Level (XP Build)', line: { color: '#f87171', shape: 'hv', width: 2 } },
+                    { x: chartData.pivotXVals, y: chartData.ttfVals, type: 'scatter', mode: 'lines', name: 'Mins to Major Upgrade (Frag Build)', line: { color: '#a3e635', shape: 'hv', width: 2 } }
+                   ]}
                   layout={{
                     paper_bgcolor: 'transparent',
                     plot_bgcolor: 'transparent',
