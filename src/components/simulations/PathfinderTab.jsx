@@ -335,16 +335,16 @@ export default function PathfinderTab() {
             />
           </div>
           <div>
-            <label className="block text-sm font-bold text-st-text mb-2">Strategic Shift (Target Floor):</label>
+            <label className="block text-sm font-bold text-st-text mb-2">Divine Idol Pivot (Target Floor):</label>
             <input 
               type="number" 
               min="1"
               value={shiftFloor}
               onChange={(e) => setShiftFloor(e.target.value)}
               className="w-full bg-[#0E1117] border border-st-border rounded p-2 text-st-text focus:border-st-orange outline-none"
-              placeholder="e.g. 100"
+              placeholder="e.g. 150"
             />
-            <span className="text-[10px] text-st-text-light block mt-1">Shifts Farm priority to Divine Frags.</span>
+            <span className="text-[10px] text-st-text-light block mt-1">Permanently abandons XP to farm Divine Frags.</span>
           </div>
           <div>
             <label className="block text-sm font-bold text-st-text mb-2">Push Confidence Threshold (%):</label>
