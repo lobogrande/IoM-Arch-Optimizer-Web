@@ -14,10 +14,11 @@ export default function PathfinderTab() {
   const [isSimulating, setIsSimulating] = useState(false);
   const[pathData, setPathData] = useState(null);
   const[simStatus, setSimStatus] = useState('');
-  const [simProgress, setSimProgress] = useState(0);
+const [simProgress, setSimProgress] = useState(0);
   const [groupBy, setGroupBy] = useState('floor'); // 'floor' or 'level'
   const [targetLevel, setTargetLevel] = useState("30"); // Absolute target level
   const [startFrags, setStartFrags] = useState({ com: 0, rare: 0, epic: 0, leg: 0, myth: 0, div: 0 });
+  const [selectedFragPlot, setSelectedFragPlot] = useState('com');
 
   const handleFragChange = (key, val) => {
     setStartFrags(prev => ({ ...prev, [key]: parseFloat(val) || 0 }));
@@ -188,7 +189,74 @@ export default function PathfinderTab() {
     });
 
     return { floors, stats };
-  },[pathData]);
+  }, [ pathData ]);
+
+  const fragChartData = useMemo(() => {
+    if (!pathData) return null;
+    const xVals = [ ];
+    const yVals = [ ];
+    const markerX = [ ];
+    const markerY = [ ];
+    const markerText = [ ];
+
+    const fragDict = { 'com': 'Common', 'rare': 'Rare', 'epic': 'Epic', 'leg': 'Legendary', 'myth': 'Mythic', 'div': 'Divine' };
+    const fragUI = fragDict[selectedFragPlot];
+
+    pathData.history.forEach(ev => {
+      xVals.push(ev.arch_sec);
+      const currentBank = ev.frags?.[selectedFragPlot] || 0;
+      yVals.push(currentBank);
+
+      const isStandardUpgrade = ev.type === 'upgrade' && ev.desc.includes(`Cost:`) && ev.desc.includes(fragUI);
+      const isHestiaTribute = ev.type === 'system' && selectedFragPlot === 'com' && (ev.event || '').includes('Hestia Idol Tributed');
+      const isDivineTribute = ev.type === 'system' && selectedFragPlot === 'div' && (ev.event || '').includes('Divine Idols Tributed');
+
+      if (isStandardUpgrade || isHestiaTribute || isDivineTribute) {
+        markerX.push(ev.arch_sec);
+        markerY.push(currentBank);
+
+        let costStr = '?';
+        let title = ev.event;
+
+        if (isStandardUpgrade) {
+          const costMatch = ev.desc.match(/Cost:\s*([\d.]+)/);
+          costStr = costMatch ? formatNum(parseFloat(costMatch[1])) : '?';
+          title = ev.event.replace('🛒 Bought ', '');
+        } else if (isHestiaTribute) {
+          const lvlMatch = ev.event.match(/\(\+([\d]+)\s+Levels\)/);
+          const lvls = lvlMatch ? parseInt(lvlMatch[1]) : 1;
+          costStr = formatNum(lvls * 999);
+        } else if (isDivineTribute) {
+          const hMatch = ev.event.match(/\+([\d]+)\s+Hades/);
+          const pMatch = ev.event.match(/\+([\d]+)\s+Prom/);
+          const sMatch = ev.event.match(/\+([\d]+)\s+Sis/);
+          
+          const h = hMatch ? parseInt(hMatch[1]) : 0;
+          const p = pMatch ? parseInt(pMatch[1]) : 0;
+          const s = sMatch ? parseInt(sMatch[1]) : 0;
+          
+          costStr = formatNum((h + p + s) * 999);
+        }
+
+        markerText.push(
+          `<b>${title}</b><br>` +
+          `Cost: ${costStr} ${fragUI}<br>` +
+          `Arch Lvl: ${ev.level} | Max Flr: ${ev.floor}`
+        );
+      }
+    });
+
+    const colors = {
+      'com': '#9ca3af',
+      'rare': '#3b82f6',
+      'epic': '#a855f7',
+      'leg': '#eab308',
+      'myth': '#ef4444',
+      'div': '#06b6d4'
+    };
+
+    return { xVals, yVals, markerX, markerY, markerText, color: colors[selectedFragPlot] };
+  },[ pathData, selectedFragPlot ]);
 
   const templates = {
     founder: {
@@ -585,6 +653,63 @@ export default function PathfinderTab() {
                   style={{ width: '100%', height: '100%' }}
                 />
               </div>
+            </div>
+          </div>
+
+          <div className="bg-[#0E1117] border border-st-border rounded p-4 shadow-sm animate-fade-in mb-6">
+            <div className="flex flex-col md:flex-row justify-between items-center mb-4 border-b border-st-border pb-2 gap-3">
+              <h3 className="text-lg font-bold text-st-text">Fragment Economy & Milestones</h3>
+              <select
+                value={selectedFragPlot}
+                onChange={(e) => setSelectedFragPlot(e.target.value)}
+                className="bg-st-secondary/50 border border-st-border rounded px-3 py-1.5 text-sm text-st-text font-bold outline-none focus:border-st-orange"
+              >
+                <option value="com">Common Fragments</option>
+                <option value="rare">Rare Fragments</option>
+                <option value="epic">Epic Fragments</option>
+                <option value="leg">Legendary Fragments</option>
+                <option value="myth">Mythic Fragments</option>
+                <option value="div">Divine Fragments</option>
+              </select>
+            </div>
+            <div className="h-[400px] w-full">
+              <Plot
+                data={[ 
+                  {
+                    x: fragChartData.xVals,
+                    y: fragChartData.yVals,
+                    type: 'scatter',
+                    mode: 'lines',
+                    name: 'Bank Amount',
+                    line: { color: fragChartData.color, width: 2, shape: 'hv' },
+                    fill: 'tozeroy',
+                    fillcolor: fragChartData.color + '20'
+                  },
+                  {
+                    x: fragChartData.markerX,
+                    y: fragChartData.markerY,
+                    type: 'scatter',
+                    mode: 'markers',
+                    name: 'Purchased Upgrades',
+                    marker: { color: '#ffffff', size: 8, line: { color: fragChartData.color, width: 2 } },
+                    text: fragChartData.markerText,
+                    hoverinfo: 'text'
+                  }
+                 ]}
+                layout={{
+                  paper_bgcolor: 'transparent',
+                  plot_bgcolor: 'transparent',
+                  font: { color: '#FAFAFA' },
+                  margin: { l: 60, r: 20, t: 10, b: 80 },
+                  xaxis: { title: { text: 'Timeline (Arch Secs)', standoff: 15 }, gridcolor: '#333' },
+                  yaxis: { title: { text: 'Bank Amount', standoff: 10 }, gridcolor: '#333' },
+                  legend: { orientation: 'h', y: -0.3, x: 0.5, xanchor: 'center' },
+                  autosize: true,
+                  hovermode: 'closest'
+                }}
+                useResizeHandler={true}
+                style={{ width: '100%', height: '100%' }}
+              />
             </div>
           </div>
 
