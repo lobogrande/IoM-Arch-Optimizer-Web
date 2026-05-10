@@ -855,14 +855,16 @@ export async function runPathfinderSimulation(startState, targetLevel, initialFr
             if ((state.upgrade_levels[8] || 0) < 1) comMaxed = false;
 
             if (comMaxed) {
-                let bought = 0;
-                while (frags.com >= 999 && (state.external_levels[4] || 0) < 3000) {
-                    frags.com -= 999;
-                    bought++;
-                }
+                const currentHestia = state.external_levels[4] || 0;
+                const maxAffordable = Math.floor(frags.com / 999);
+                const maxAllowed = 3000 - currentHestia;
+                
+                // O(1) clamp ensures we never exceed the hard cap or our wallet
+                const bought = Math.max(0, Math.min(maxAffordable, maxAllowed));
                 
                 if (bought > 0) {
-                    state.external_levels = { ...state.external_levels, 4: (state.external_levels[4] || 0) + bought };
+                    frags.com -= (bought * 999);
+                    state.external_levels = { ...state.external_levels, 4: currentHestia + bought };
                     const justMaxedHestia = (state.external_levels[4] || 0) >= 3000;
                     
                     history.push({
