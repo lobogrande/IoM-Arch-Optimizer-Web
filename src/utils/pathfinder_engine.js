@@ -464,6 +464,7 @@ export async function runPathfinderSimulation(startState, targetLevel, initialFr
         current_max_floor: s.current_max_floor,
         base_stats: { ...s.base_stats },
         upgrade_levels: { ...s.upgrade_levels },
+        external_levels: { ...s.external_levels },
         cards: { ...s.cards },
         total_infernal_cards: s.total_infernal_cards || 0,
         arch_sec: cumulativeArchSecs,

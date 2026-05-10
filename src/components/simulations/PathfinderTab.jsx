@@ -47,6 +47,7 @@ const [simProgress, setSimProgress] = useState(0);
       current_max_floor: snap.current_max_floor,
       base_stats: { ...snap.base_stats },
       upgrade_levels: { ...snap.upgrade_levels },
+      external_levels: snap.external_levels ? { ...snap.external_levels } : useStore.getState().external_levels,
       cards: snap.cards ? { ...snap.cards } : useStore.getState().cards,
       total_infernal_cards: snap.total_infernal_cards !== undefined ? snap.total_infernal_cards : useStore.getState().total_infernal_cards
     });
