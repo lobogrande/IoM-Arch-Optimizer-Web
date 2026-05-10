@@ -530,10 +530,8 @@ export async function runPathfinderSimulation(startState, targetLevel, initialFr
     // --- AUTOMATED PIVOT LOGIC ---
     // Evaluates Opportunity Cost and dynamically swaps the active optimizer target
     const determineFarmMetric = (expNeededCheck) => {
-        // Endgame Phase 2: All Divine Idols are maxed. Pivot to explicit Block hunting!
-        const idolsMaxed = (state.external_levels[21] || 0) >= 6666 && 
-                           (state.prometheus_level || 0) >= 1000 && 
-                           (state.sisyphus_level || 0) >= 7777;
+        // Endgame Phase 2: Hades Idol is maxed. Pivot to explicit Block hunting!
+        const idolsMaxed = (state.external_levels[21] || 0) >= 6666;
                            
         if ((state.external_levels[4] || 0) >= 3000) {
             if (idolsMaxed) {
@@ -942,7 +940,7 @@ export async function runPathfinderSimulation(startState, targetLevel, initialFr
                 let curProm = state.prometheus_level || 0;
                 let curSis = state.sisyphus_level || 0;
                 
-                const idolsWereMaxed = curHades >= 6666 && curProm >= 1000 && curSis >= 7777;
+                const idolsWereMaxed = curHades >= 6666;
                 
                 while (frags.div >= 999) {
                     const pool =[];
@@ -973,15 +971,14 @@ export async function runPathfinderSimulation(startState, targetLevel, initialFr
                     if (boughtHades > 0) state.external_levels = { ...state.external_levels, 21: curHades };
                     if (boughtProm > 0) state.prometheus_level = curProm;
                     if (boughtSis > 0) state.sisyphus_level = curSis;
-                    const idolsAreMaxed = (state.external_levels[21] || 0) >= 6666 && 
-                                          (state.prometheus_level || 0) >= 1000 && 
-                                          (state.sisyphus_level || 0) >= 7777;
+
+                    const idolsAreMaxed = (state.external_levels[21] || 0) >= 6666;
 
                     hadesLevelsSinceLastReopt += boughtHades;
                     let reoptMsg = "";
                     
                     if (hadesLevelsSinceLastReopt >= 100 || (!idolsWereMaxed && idolsAreMaxed)) {
-                        reoptMsg = idolsAreMaxed ? " All Divine Idols Maxed!" : " Triggered build re-optimization.";
+                        reoptMsg = idolsAreMaxed ? " Hades Idol Maxed! Executing endgame pivot." : " Triggered build re-optimization.";
                         await pool.syncState(state);
                         
                         const totalBudget = state.arch_level + (state.upgrade_levels[12] || 0);
@@ -1049,7 +1046,7 @@ export async function runPathfinderSimulation(startState, targetLevel, initialFr
                             active_build_str: lastFarmStr,
                             level: state.arch_level,
                             floor: state.current_max_floor,
-                            desc: `Divine Idols maxed. Fragment farming abandoned. Build permanently optimized to brute-force highest unmaxed block tiers.`,
+                            desc: `Hades Idol maxed. Pure fragment farming abandoned. Build permanently optimized to brute-force highest unmaxed block tiers.`,
                             yields: { farm: currentFarmYields, push: currentPushYields, frag_potential: currentFragPotential },
                             frags: { ...frags },
                             card_progress: { ...card_progress },
