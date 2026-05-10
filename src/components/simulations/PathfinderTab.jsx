@@ -33,7 +33,6 @@ export default function PathfinderTab() {
   };
 
   // Hardcoded Ascension 2 Starting Template Baseline
-  const[shiftFloor, setShiftFloor] = useState("100");
   const[minWinRate, setMinWinRate] = useState("20");
   const[templateType, setTemplateType] = useState('founder');
   const[startingArchSecs, setStartingArchSecs] = useState("0");
@@ -264,10 +263,9 @@ export default function PathfinderTab() {
         ? { com: 0, rare: 0, epic: 0, leg: 0, myth: 0, div: 0 } 
         : startFrags;
 
-      const parsedShift = parseInt(shiftFloor) || 100;
       const parsedMinWinRate = parseFloat(minWinRate) || 20;
       const parsedArchSecs = parseFloat(startingArchSecs) || 0;
-      const result = await runPathfinderSimulation(activeState, targetArch, initialFrags, pool, parsedShift, parsedMinWinRate, parsedArchSecs, (prog) => {
+      const result = await runPathfinderSimulation(activeState, targetArch, initialFrags, pool, parsedMinWinRate, parsedArchSecs, (prog) => {
         setSimProgress(prog.progress);
         setSimStatus(prog.status);
       });
@@ -334,19 +332,7 @@ export default function PathfinderTab() {
               placeholder="e.g. 50"
             />
           </div>
-          <div>
-            <label className="block text-sm font-bold text-st-text mb-2">Divine Idol Pivot (Target Floor):</label>
-            <input 
-              type="number" 
-              min="1"
-              value={shiftFloor}
-              onChange={(e) => setShiftFloor(e.target.value)}
-              className="w-full bg-[#0E1117] border border-st-border rounded p-2 text-st-text focus:border-st-orange outline-none"
-              placeholder="e.g. 150"
-            />
-            <span className="text-[10px] text-st-text-light block mt-1">Permanently abandons XP to farm Divine Frags.</span>
-          </div>
-          <div>
+          
             <label className="block text-sm font-bold text-st-text mb-2">Push Confidence Threshold (%):</label>
             <input 
               type="number" 
