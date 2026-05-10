@@ -490,11 +490,8 @@ export async function runPathfinderSimulation(startState, targetLevel, initialFr
 
     // Dynamically generate the full list of available upgrades for the current Ascension
     let lockedUpgs =[ ];
-    if (!state.asc1_unlocked) {
-        lockedUpgs =[ ...ASC1_LOCKED_UPGS, ...ASC2_LOCKED_UPGS ];
-    } else if (!state.asc2_unlocked) {
-        lockedUpgs = ASC2_LOCKED_UPGS;
-    }
+    if (state.asc1_unlocked === false) lockedUpgs.push(...ASC1_LOCKED_UPGS, ...ASC2_LOCKED_UPGS);
+    else if (state.asc2_unlocked === false) lockedUpgs.push(...ASC2_LOCKED_UPGS);
 
     const upgradeTargets = Object.keys(UPGRADE_NAMES)
         .map(Number)
@@ -694,40 +691,37 @@ export async function runPathfinderSimulation(startState, targetLevel, initialFr
                 const currency = cost.currency;
 
                 // --- DYNAMIC ROI TRAP FILTER ---
-                // Protects major Ascension 2 investments from exponential fragment sinks
-                const majorMilestones = {
-                    'com': { id: 41, cost: 100000 },
-                    'rare': { id: 42, cost: 90000 },
-                    'epic': { id: 43, cost: 80000 },
-                    'leg': { id: 44, cost: 70000 },
-                    'myth': { id: 45, cost: 50000 }
-                };
+                        const majorMilestones = {
+                            'com': { id: 41, cost: 100000 },
+                            'rare': { id: 42, cost: 90000 },
+                            'epic': { id: 43, cost: 80000 },
+                            'leg': { id: 44, cost: 70000 },
+                            'myth': { id: 45, cost: 50000 }
+                        };
 
-                if (majorMilestones[ currency ] && upgId < 41) {
-                    const milestone = majorMilestones[ currency ];
-                    const isMilestoneBought = (state.upgrade_levels[milestone.id] || 0) > 0;
-                    const milestoneReqFloor = UPGRADE_LEVEL_REQS[ milestone.id ] || 0;
-                    
-                    // Only apply the hoarding lock if we haven't bought it yet, and it's imminent (within 10 floors)
-                    if (!isMilestoneBought && state.current_max_floor >= milestoneReqFloor - 10) {
-                        const currentYield = yields[ FRAG_RATE_KEYS[ currency ] ] || 0;
-                        if (currentYield > 0) {
-                            const bank = frags[ currency ] || 0;
+                        let isTrapped = false;
+                        if (majorMilestones[ currency ] && upgId !== majorMilestones[ currency ].id) {
+                            const milestone = majorMilestones[ currency ];
+                            const isMilestoneBought = (state.upgrade_levels[milestone.id] || 0) > 0;
+                            const milestoneReqFloor = UPGRADE_LEVEL_REQS[ milestone.id ] || 0;
                             
-                            // Time to afford the major milestone if we DO NOT buy this upgrade
-                            const timeToMilestoneHoard = Math.max(0, milestone.cost - bank) / currentYield;
-                            
-                            // Time to afford the major milestone if we DO buy it
-                            // Generous assumption: This upgrade magically boosts our fragment yield by 5%
-                            const optimisticNewYield = currentYield * 1.05;
-                            const timeToMilestoneSpend = Math.max(0, milestone.cost - (bank - cost.amount)) / optimisticNewYield;
-                            
-                            if (timeToMilestoneSpend > timeToMilestoneHoard) {
-                                continue; // 🚨 TRAP DETECTED: Buying this mathematically delays the major milestone!
+                            if (!isMilestoneBought && state.current_max_floor >= milestoneReqFloor - 10) {
+                                const currentYield = yields[ FRAG_RATE_KEYS[ currency ] ] || 0;
+                                const bank = frags[ currency ] || 0;
+                                
+                                // FOOLPROOF: If we can already afford the milestone, NEVER trap!
+                                if (currentYield > 0 && bank < milestone.cost) {
+                                    const timeToMilestoneHoard = Math.max(0, milestone.cost - bank) / currentYield;
+                                    const optimisticNewYield = currentYield * 1.05;
+                                    const timeToMilestoneSpend = Math.max(0, milestone.cost - (bank - cost.amount)) / optimisticNewYield;
+                                    
+                                    if (timeToMilestoneSpend > timeToMilestoneHoard) {
+                                        isTrapped = true;
+                                    }
+                                }
                             }
                         }
-                    }
-                }
+                        if (isTrapped) continue;
                 
                 if (currency === 'gems') {
                     // For Phase 2, we assume Gems are plentiful enough to instantly buy when unlocked
@@ -818,16 +812,15 @@ export async function runPathfinderSimulation(startState, targetLevel, initialFr
             let comMaxed = true;
             
             for (const id of comUpgs) {
-                if (lockedUpgs.includes(id)) continue; // Ignore upgrades strictly locked by current Ascension tier
+                if (lockedUpgs.includes(id)) continue; 
                 
                 const cap = INTERNAL_UPGRADE_CAPS[id] || 1;
-                const reqFlr = UPGRADE_LEVEL_REQS[id] || 0;
-                if ((state.upgrade_levels[id] || 0) < cap && state.current_max_floor >= reqFlr) {
+                if ((state.upgrade_levels[id] || 0) < cap) {
                     comMaxed = false; 
                     break;
                 }
             }
-            if ((state.upgrade_levels[8] || 0) < 1) comMaxed = false; // Check the Custom Ability Unlock (Level 1 is Com)
+            if ((state.upgrade_levels[8] || 0) < 1) comMaxed = false;
 
             if (comMaxed) {
                 let bought = 0;
