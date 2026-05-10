@@ -111,7 +111,7 @@ const enforceBudget = (build, statsList, budget, caps) => {
 
 // Fast Multi-Heuristic for Frag Farming (Saves 99% compute time vs Full Optimizer)
 // Tests 4 targeted distributions of remaining points after maxing Perception
-const getShadowFragYields = async (pool, state, budget, caps, shiftFloor) => {
+const getShadowFragYields = async (pool, state, budget, caps) => {
     const perAmt = Math.min(budget, caps.Per || 0);
     const rem = budget - perAmt;
     
@@ -170,7 +170,7 @@ const getShadowFragYields = async (pool, state, budget, caps, shiftFloor) => {
     // Evaluate all candidates using a fast 2-sample batch
     // DYNAMIC TARGETING: Seek the fragment type of the NEXT unpurchased major upgrade!
     let metric = 'frag_1_per_min';
-    if (state.current_max_floor >= shiftFloor) {
+    if ((state.external_levels[4] || 0) >= 3000) {
         metric = 'frag_6_per_min';
     } else if (!(state.upgrade_levels[41] > 0)) {
         metric = 'frag_1_per_min';
@@ -381,7 +381,7 @@ async function attemptMultiFloorPush(pool, state, maxTimePenaltySecs, minWinRate
     let finalWinRate = 0;
 
     // Evaluate each step cumulatively to safely measure the penalty required to reach the ceiling
-    for (let f = currentFloor + 1; f <= highestFloors[0]; f++) {
+    for (let f = currentFloor + 1; f <= Math.min(200, highestFloors[0]); f++) {
         const successes = highestFloors.filter(hf => hf >= f).length;
         const winRate = successes / samples;
         
@@ -421,7 +421,7 @@ async function attemptMultiFloorPush(pool, state, maxTimePenaltySecs, minWinRate
     }
 }
 
-export async function runPathfinderSimulation(startState, targetLevel, initialFrags, pool, shiftFloor, minWinRate, initialArchSecs = 0, onProgress) {
+export async function runPathfinderSimulation(startState, targetLevel, initialFrags, pool, minWinRate, initialArchSecs = 0, onProgress) {
     // 1. Initialize Tracked State (Dual-Track the base stats!)
     let state = { 
         ...startState, 
@@ -502,7 +502,8 @@ export async function runPathfinderSimulation(startState, targetLevel, initialFr
     // --- AUTOMATED PIVOT LOGIC ---
     // Evaluates Opportunity Cost and dynamically swaps the active optimizer target
     const determineFarmMetric = (expNeededCheck) => {
-        if (state.current_max_floor >= shiftFloor) return 'frag_6_per_min';
+        // Endgame Phase 1: Hestia is maxed. Permanently abandon XP farming to hunt Divine/Infernal Cards
+        if ((state.external_levels[4] || 0) >= 3000) return 'frag_6_per_min';
 
         let target = null;
         if (!(state.upgrade_levels[41] > 0)) target = { id: 41, frag: 'com', cost: 100000, key: 'frag_1_per_min' };
@@ -815,6 +816,8 @@ export async function runPathfinderSimulation(startState, targetLevel, initialFr
                 
                 if (bought > 0) {
                     state.external_levels = { ...state.external_levels, 4: (state.external_levels[4] || 0) + bought };
+                    const justMaxedHestia = (state.external_levels[4] || 0) >= 3000;
+                    
                     history.push({
                         type: "system",
                         event: `🔥 Hestia Idol Tributed (+${bought} Levels)`,
@@ -830,6 +833,36 @@ export async function runPathfinderSimulation(startState, targetLevel, initialFr
                         card_progress: { ...card_progress },
                         state_snapshot: captureSnapshot(state)
                     });
+
+                    // Trigger the massive Endgame Pivot the exact moment Hestia caps out
+                    if (justMaxedHestia) {
+                        report(`Lvl ${state.arch_level}: Endgame Transition! Re-optimizing for Divine Fragments...`);
+                        await pool.syncState(state);
+                        
+                        const totalBudget = state.arch_level + (state.upgrade_levels[12] || 0);
+                        const farmMetric = determineFarmMetric(Math.max(0, getExpRequired(state.arch_level) - currentExp));
+                        const optFarm = await runFastOptimizer(pool, state, farmMetric, totalBudget, state.base_stats, 3);
+                        state.base_stats = optFarm.bestBuild;
+                        currentFarmYields = optFarm.bestYields;
+                        currentFragPotential = currentFarmYields;
+                        lastFarmStr = formatBuildStr(state.base_stats, state);
+                        
+                        history.push({
+                            type: "system",
+                            event: `🛡️ Endgame Phase 1: Divine Idol Pivot`,
+                            arch_sec: cumulativeArchSecs,
+                            time_delta: 0,
+                            active_build: "Farm",
+                            active_build_str: lastFarmStr,
+                            level: state.arch_level,
+                            floor: state.current_max_floor,
+                            desc: `Hestia maxed. XP progression abandoned. Build permanently optimized for Divine/Infernal Cards.`,
+                            yields: { farm: currentFarmYields, push: currentPushYields, frag_potential: currentFragPotential },
+                            frags: { ...frags },
+                            card_progress: { ...card_progress },
+                            state_snapshot: captureSnapshot(state)
+                        });
+                    }
                 }
             }
         }
@@ -1177,7 +1210,8 @@ export async function runPathfinderSimulation(startState, targetLevel, initialFr
             }
         }
 
-        if (!hasInstantUpgrade) {
+        // Floor Pushing permanently disables itself once Floor 200 is reached
+        if (!hasInstantUpgrade && state.current_max_floor < 200) {
             let pushBuildIsStale = true;
 
             while (true) {
@@ -1232,28 +1266,15 @@ export async function runPathfinderSimulation(startState, targetLevel, initialFr
                         }
                     }
                     
-                    let didShift = false;
-                    if (oldFloor < shiftFloor && state.current_max_floor >= shiftFloor) {
-                        didShift = true;
-                        const totalBudget = state.arch_level + (state.upgrade_levels[12] || 0);
-                        const optFarm = await runFastOptimizer(pool, state, 'frag_6_per_min', totalBudget, state.base_stats, 3);
-                        state.base_stats = optFarm.bestBuild;
-                        currentFarmYields = optFarm.bestYields;
-
-                        // Because the floor shift just occurred, the active farm build IS the optimized frag build!
+                    // We pushed the floor! Recalculate ALL yields against the new reality using smoothed averages!
+                    await pool.syncState(state);
+                    currentFarmYields = await getSmoothedYields(pool, state, state.base_stats, 3);
+                    
+                    if ((state.external_levels[4] || 0) >= 3000) {
                         currentFragPotential = currentFarmYields;
-
-                        lastFarmStr = formatBuildStr(state.base_stats, state);
                     } else {
-                        await pool.syncState(state);
-                        currentFarmYields = await getSmoothedYields(pool, state, state.base_stats, 3);
-                        
-                        if (state.current_max_floor >= shiftFloor) {
-                            currentFragPotential = currentFarmYields;
-                        } else {
-                            const currentBudget = state.arch_level + (state.upgrade_levels[12] || 0);
-                            currentFragPotential = await getShadowFragYields(pool, state, currentBudget, getEffectiveStatCaps(state), shiftFloor);
-                        }
+                        const currentBudget = state.arch_level + (state.upgrade_levels[12] || 0);
+                        currentFragPotential = await getShadowFragYields(pool, state, currentBudget, getEffectiveStatCaps(state));
                     }
                     
                     const pushTestState = { ...state, current_max_floor: state.current_max_floor + 1 };
@@ -1285,7 +1306,6 @@ export async function runPathfinderSimulation(startState, targetLevel, initialFr
                 let floorDesc = `Brute-forced ceiling with ${winRateStr}% win rate. (Jumped from ${oldFloor} to ${state.current_max_floor}!)`;
                 if (newUpgs.length > 0) floorDesc += ` Unlocks: ${newUpgs.join(', ')}.`;
                 if (newBlocks.length > 0) floorDesc += ` New Blocks: ${newBlocks.join(', ')}.`;
-                if (didShift) floorDesc += ` STRATEGIC SHIFT: Farm Build now optimizing for Divine Fragments!`;
 
                 let timeGapPush = cumulativeArchSecs - lastEventTime;
                 
