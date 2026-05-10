@@ -203,7 +203,29 @@ async function runFastOptimizer(pool, state, targetMetric, budget, previousBuild
     const candidates = [ safePrevious ];
 
     const bounds = {};
-    stats.forEach(s => bounds[s] = [0, Math.min(budget, caps[s])]);
+    stats.forEach(s => bounds[s] =[ 0, Math.min(budget, caps[s]) ]);
+    
+    // --- EMPIRICAL DIMENSION REDUCTION (MAX FLOOR PUSHES ONLY) ---
+    // Based on 150+ floors of telemetry, we aggressively prune dead stats to exponentially speed up the grid search
+    if (targetMetric === 'highest_floor') {
+        const floor = state.current_max_floor;
+        if (floor >= 25) {
+            if (bounds.Int) bounds.Int =[ 0, 0 ];
+            if (bounds.Per) bounds.Per =[ 0, 0 ];
+            
+            // The Overflow Rule: Lock Corruption to 0 UNLESS we physically run out of room in the primary stats!
+            const coreCapacity = (caps.Str || 0) + (caps.Agi || 0) + (caps.Luck || 0) + (caps.Div || 0);
+            const overflow = Math.max(0, budget - coreCapacity);
+            if (bounds.Corr) bounds.Corr =[ 0, Math.min(caps.Corr || 0, overflow) ];
+        }
+        if (floor >= 100) {
+            // Telemetry proves Luck mathematically flatlines at its absolute cap beyond Floor 100
+            if (bounds.Luck) {
+                const lCap = Math.min(budget, caps.Luck);
+                bounds.Luck =[ lCap, lCap ];
+            }
+        }
+    }
     
     // 1. Inject Micro-Neighbors: Guarantee we test precise +1 breakpoints from the previous build!
     if (budget > 0) {
@@ -292,11 +314,11 @@ async function runFastOptimizer(pool, state, targetMetric, budget, previousBuild
     stats.forEach(sFrom => {
         stats.forEach(sTo => {
             if (sFrom !== sTo) {
-                if ((bestR2[sFrom] || 0) >= 1 && (bestR2[sTo] || 0) < caps[sTo]) {
-                    const n1 = { ...bestR2, [sFrom]: bestR2[sFrom] - 1,[sTo]: (bestR2[sTo] || 0) + 1 };
+                if ((bestR2[sFrom] || 0) > bounds[sFrom][ 0 ] && (bestR2[sTo] || 0) < bounds[sTo][ 1 ]) {
+                    const n1 = { ...bestR2, [sFrom]: bestR2[sFrom] - 1, [sTo]: (bestR2[sTo] || 0) + 1 };
                     p3CandidatesMap.set(stats.map(s => n1[s] || 0).join(','), enforceBudget(n1, stats, budget, caps));
                 }
-                if ((bestR2[sFrom] || 0) >= 2 && (bestR2[sTo] || 0) < caps[sTo] - 1) {
+                if ((bestR2[sFrom] || 0) > bounds[sFrom][ 0 ] + 1 && (bestR2[sTo] || 0) < bounds[sTo][ 1 ] - 1) {
                     const n2 = { ...bestR2, [sFrom]: bestR2[sFrom] - 2, [sTo]: (bestR2[sTo] || 0) + 2 };
                     p3CandidatesMap.set(stats.map(s => n2[s] || 0).join(','), enforceBudget(n2, stats, budget, caps));
                 }
@@ -314,8 +336,8 @@ async function runFastOptimizer(pool, state, targetMetric, budget, previousBuild
         const walkDist = 1 + Math.floor(Math.random() * maxWalk);
         
         for (let w = 0; w < walkDist; w++) {
-            const fromCandidates = stats.filter(s => (mut[s] || 0) > 0);
-            const toCandidates = stats.filter(s => (mut[s] || 0) < caps[s]);
+            const fromCandidates = stats.filter(s => (mut[s] || 0) > bounds[s][ 0 ]);
+            const toCandidates = stats.filter(s => (mut[s] || 0) < bounds[s][ 1 ]);
             
             if (fromCandidates.length > 0 && toCandidates.length > 0) {
                 const sFrom = fromCandidates[Math.floor(Math.random() * fromCandidates.length)];
