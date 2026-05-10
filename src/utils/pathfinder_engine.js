@@ -209,20 +209,22 @@ async function runFastOptimizer(pool, state, targetMetric, budget, previousBuild
     // Based on 150+ floors of telemetry, we aggressively prune dead stats to exponentially speed up the grid search
     if (targetMetric === 'highest_floor') {
         const floor = state.current_max_floor;
+        const wiggle = 3; // Allow up to 3 points of micro-optimization for niche Armor Pen / Mod synergies
+        
         if (floor >= 25) {
-            if (bounds.Int) bounds.Int =[ 0, 0 ];
-            if (bounds.Per) bounds.Per =[ 0, 0 ];
+            if (bounds.Int) bounds.Int =[ 0, Math.min(budget, wiggle, caps.Int || 0) ];
+            if (bounds.Per) bounds.Per =[ 0, Math.min(budget, wiggle, caps.Per || 0) ];
             
-            // The Overflow Rule: Lock Corruption to 0 UNLESS we physically run out of room in the primary stats!
+            // The Overflow Rule: Allow wiggle room, BUT strictly expand if primary stats run out of capacity!
             const coreCapacity = (caps.Str || 0) + (caps.Agi || 0) + (caps.Luck || 0) + (caps.Div || 0);
             const overflow = Math.max(0, budget - coreCapacity);
-            if (bounds.Corr) bounds.Corr =[ 0, Math.min(caps.Corr || 0, overflow) ];
+            if (bounds.Corr) bounds.Corr =[ 0, Math.min(budget, caps.Corr || 0, Math.max(wiggle, overflow)) ];
         }
         if (floor >= 100) {
-            // Telemetry proves Luck mathematically flatlines at its absolute cap beyond Floor 100
+            // Telemetry proves Luck stays near its cap, but we allow pulling up to 3 points out if needed
             if (bounds.Luck) {
-                const lCap = Math.min(budget, caps.Luck);
-                bounds.Luck =[ lCap, lCap ];
+                const lCap = Math.min(budget, caps.Luck || 0);
+                bounds.Luck =[ Math.max(0, lCap - wiggle), lCap ];
             }
         }
     }
