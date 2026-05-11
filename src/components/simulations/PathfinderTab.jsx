@@ -17,11 +17,20 @@ export default function PathfinderTab() {
 const [simProgress, setSimProgress] = useState(0);
   const [groupBy, setGroupBy] = useState('floor'); // 'floor' or 'level'
   const [targetLevel, setTargetLevel] = useState("30"); // Absolute target level
-  const[startFrags, setStartFrags] = useState({ com: 0, rare: 0, epic: 0, leg: 0, myth: 0, div: 0 });
-  const[selectedFragPlot, setSelectedFragPlot] = useState('com');
+  const [startFrags, setStartFrags] = useState(store.frags || { com: 0, rare: 0, epic: 0, leg: 0, myth: 0, div: 0 });
+  const [startCardProgress, setStartCardProgress] = useState(store.card_progress || { });
+  const [selectedFragPlot, setSelectedFragPlot] = useState('com');
   
   // Card Plot Filters
   const[cardRarityFilter, setCardRarityFilter] = useState([ 'dirt', 'com', 'rare', 'epic', 'leg', 'myth', 'div' ]);
+
+  // Sync workspace state inputs automatically when switching to "current" or applying a log state
+  React.useEffect(() => {
+    if (startMode === 'current') {
+      setStartFrags(store.frags || { com: 0, rare: 0, epic: 0, leg: 0, myth: 0, div: 0 });
+      setStartCardProgress(store.card_progress || { });
+    }
+  }, [ store.frags, store.card_progress, startMode ]);
 
   const handleFragChange = (key, val) => {
     setStartFrags(prev => ({ ...prev, [key]: parseFloat(val) || 0 }));
@@ -53,6 +62,7 @@ const [simProgress, setSimProgress] = useState(0);
       external_levels: snap.external_levels ? { ...snap.external_levels } : useStore.getState().external_levels,
       cards: snap.cards ? { ...snap.cards } : useStore.getState().cards,
       card_progress: snap.card_progress ? { ...snap.card_progress } : { },
+      frags: snap.frags ? { ...snap.frags } : useStore.getState().frags,
       total_infernal_cards: snap.total_infernal_cards !== undefined ? snap.total_infernal_cards : useStore.getState().total_infernal_cards
     });
     
@@ -412,7 +422,7 @@ const [simProgress, setSimProgress] = useState(0);
         upgrade_levels: store.upgrade_levels,
         external_levels: store.external_levels,
         cards: store.cards,
-        card_progress: store.card_progress || { }
+        card_progress: startCardProgress
       };
 
       await pool.syncState(activeState);
@@ -576,6 +586,38 @@ const [simProgress, setSimProgress] = useState(0);
                       />
                     </div>
                   ))}
+                </div>
+              </div>
+
+              <div className="mt-4 border-t border-st-border pt-4">
+                <label className="block text-sm font-bold text-[#FAFAFA] mb-2">Card Fragment Progress (Poly/Infernal EV):</label>
+                <div className="grid grid-cols-4 md:grid-cols-7 gap-2 max-h-48 overflow-y-auto pr-1">
+                  {[ 'dirt1', 'com1', 'rare1', 'epic1', 'leg1', 'myth1', 'div1',
+                    'dirt2', 'com2', 'rare2', 'epic2', 'leg2', 'myth2', 'div2',
+                    'dirt3', 'com3', 'rare3', 'epic3', 'leg3', 'myth3', 'div3',
+                    'dirt4', 'com4', 'rare4', 'epic4', 'leg4', 'myth4', 'div4'
+                  ].map(blockId => {
+                    const lvl = store.cards[blockId] || 0;
+                    const canEdit = lvl > 0 && lvl < 4;
+                    
+                    return (
+                      <div key={blockId} className="flex flex-col">
+                        <label className={`text-[10px] mb-1 capitalize ${canEdit ? 'text-st-text-light' : 'text-st-border'}`}>
+                          {blockId} (L{lvl})
+                        </label>
+                        <input
+                          type="number"
+                          step="0.1"
+                          min="0"
+                          disabled={!canEdit}
+                          value={startCardProgress[blockId] === 0 ? '' : (startCardProgress[blockId] || '')}
+                          onChange={(e) => setStartCardProgress(p => ({ ...p, [blockId]: parseFloat(e.target.value) || 0 }))}
+                          className={`bg-st-bg border border-st-border rounded px-2 py-1 focus:border-st-orange outline-none text-xs ${!canEdit ? 'opacity-50 cursor-not-allowed text-st-border' : 'text-st-text'}`}
+                          placeholder={canEdit ? "0.0" : "N/A"}
+                        />
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
             </div>
