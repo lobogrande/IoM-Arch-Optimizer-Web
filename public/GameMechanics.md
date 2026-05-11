@@ -82,3 +82,18 @@ Block Cards provide massive multiplicative bonuses to specific blocks, reducing 
     *   **Infernal Fragments (Level 4):** Requires 10 fragments. Odds: 1 in 200,000 (All blocks, flat rate).
 *   **Ascension Restrictions:** Tier 4 blocks (`*4`) cannot drop cards and card bonuses do not apply to them unless Ascension 2 is unlocked.
 *   **Simulator RNG Math (Gamma Distribution):** When predicting the Time-to-Milestone or Opportunity Cost for fragment farming, the simulator uses a **Gamma Distribution**. Because higher-tier cards require collecting multiple fragments, the Gamma distribution accurately models that hunting for multiple drops mathematically smooths out RNG variance. Thus, the expected time to secure 10 drops is significantly less punishing than 10x the maximum RNG variance of a single drop.
+
+## 6. UPGRADES, COST SCALING, & PROGRESSION
+The internal upgrade system is strictly gated by progression milestones and features complex cost inflation logic.
+*   **Unlock Requirements:** Upgrades only become available in the shop based on the player's All-Time Highest Floor reached (e.g., Upgrade 20 unlocks at Floor 9, Upgrade 55 unlocks at Floor 92).
+*   **Ascension Restrictions:** Entire upgrade nodes are physically locked from the player based on their Ascension state. 
+    *   *Pre-Ascension 1 Locks:* Upgrades 12, 17, 24, 32, 40, 47-51, 53, 54.
+    *   *Pre-Ascension 2 Locks:* Upgrades 19, 27, 34, 46, 52, 55.
+*   **Currencies:**
+    *   Early foundational upgrades (Upgrades 3, 4, 5) cost Gems.
+    *   All other upgrades cost a specific tier of Fragment (Common through Divine).
+*   **Cost Scaling & Multipliers:**
+    *   Multi-level upgrades scale exponentially. Most fragment upgrades scale at a `1.2x` cost multiplier per level. A select few scale at steeper rates (e.g., Upgrades 17 and 27 use `1.35x`, Upgrade 12 uses `2.0x`).
+    *   Certain endgame nodes (like Upgrades 41-45, 47) are single-purchase only and require massive flat lump-sum fragment payments.
+*   **Ascension Cost Inflation:** An upgrade's base cost fundamentally inflates when transitioning to a new Ascension. The engine tracks an array of base costs `[ Asc0, Asc1, Asc2 ]`. An upgrade might cost 150 Common fragments at Asc1, but inflate to 300 at Asc2. Upgrades that do not exist in a previous ascension are handled as `null` until the correct ascension array index is reached.
+*   **Rounding Math:** Gem upgrade costs round to the nearest whole integer (with a special `Math.floor` exception exclusively for Ascension 0). Fragment upgrade costs strictly retain float precision, rounding to exactly two decimal places (`Math.round(amount * 100) / 100`).
