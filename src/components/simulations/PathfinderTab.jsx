@@ -225,7 +225,7 @@ const [simProgress, setSimProgress] = useState(0);
   const pushChartData = useMemo(() => {
     if (!pathData) return null;
     const floors =[ ];
-    const stats = { Str:[ ], Agi:[ ], Per:[ ], Int:[ ], Luck:[ ], Div:[ ], Corr:[ ] };
+    const stats = { Str:[ ], Agi:[ ], Per:[ ], Int:[ ], Luck:[ ], Div:[ ], Corr:[ ], Unspent:[ ] };
     const statKeys =['Str', 'Agi', 'Per', 'Int', 'Luck', 'Div', 'Corr'];
 
     pathData.history.forEach(ev => {
@@ -235,15 +235,43 @@ const [simProgress, setSimProgress] = useState(0);
         const match = ev.active_build_str.match(/\[(.*?)\]/);
         if (match) {
           const parts = match[1].split('/');
+          let used = 0;
           statKeys.forEach((key, idx) => {
-            stats[key].push(parseInt(parts[idx]) || 0);
+            const val = parseInt(parts[idx]) || 0;
+            stats[key].push(val);
+            used += val;
           });
+          const budget = (ev.level || 1) + (ev.state_snapshot?.upgrade_levels?.[12] || 0);
+          stats.Unspent.push(Math.max(0, budget - used));
         }
       }
     });
 
     return { floors, stats };
-  }, [ pathData ]);
+  },[pathData]);
+
+  const farmChartData = useMemo(() => {
+    if (!pathData) return null;
+    const xVals =[ ];
+    const stats = { Str:[ ], Agi:[ ], Per:[ ], Int:[ ], Luck:[ ], Div:[ ], Corr:[ ], Unspent:[ ] };
+    const statKeys =['Str', 'Agi', 'Per', 'Int', 'Luck', 'Div', 'Corr'];
+
+    pathData.history.forEach(ev => {
+      if (ev.state_snapshot && ev.state_snapshot.base_stats) {
+        xVals.push(ev.arch_sec);
+        let used = 0;
+        statKeys.forEach(key => {
+          const val = ev.state_snapshot.base_stats[key] || 0;
+          stats[key].push(val);
+          used += val;
+        });
+        const budget = (ev.state_snapshot.arch_level || 1) + (ev.state_snapshot.upgrade_levels?.[12] || 0);
+        stats.Unspent.push(Math.max(0, budget - used));
+      }
+    });
+
+    return { xVals, stats };
+  },[pathData]);
 
   const fragChartData = useMemo(() => {
     if (!pathData) return null;
@@ -847,39 +875,9 @@ const [simProgress, setSimProgress] = useState(0);
               </div>
             </div>
 
-            <div className="bg-[#0E1117] border border-st-border rounded p-4 shadow-sm animate-fade-in">
-              <h3 className="text-lg font-bold text-st-text mb-4 border-b border-st-border pb-2">Push Build Stat Distribution</h3>
-              <div className="h-[400px] w-full">
-                <Plot
-                  data={[
-                    { x: pushChartData.floors, y: pushChartData.stats.Str, type: 'scatter', mode: 'lines+markers', name: 'Str', line: { color: '#ef4444', width: 2 } },
-                    { x: pushChartData.floors, y: pushChartData.stats.Agi, type: 'scatter', mode: 'lines+markers', name: 'Agi', line: { color: '#3b82f6', width: 2 } },
-                    { x: pushChartData.floors, y: pushChartData.stats.Per, type: 'scatter', mode: 'lines+markers', name: 'Per', line: { color: '#eab308', width: 2 } },
-                    { x: pushChartData.floors, y: pushChartData.stats.Int, type: 'scatter', mode: 'lines+markers', name: 'Int', line: { color: '#06b6d4', width: 2 } },
-                    { x: pushChartData.floors, y: pushChartData.stats.Luck, type: 'scatter', mode: 'lines+markers', name: 'Luck', line: { color: '#22c55e', width: 2 } },
-                    { x: pushChartData.floors, y: pushChartData.stats.Div, type: 'scatter', mode: 'lines+markers', name: 'Div', line: { color: '#f9a8d4', width: 2 } },
-                    { x: pushChartData.floors, y: pushChartData.stats.Corr, type: 'scatter', mode: 'lines+markers', name: 'Corr', line: { color: '#a855f7', width: 2, dash: 'dot' } }
-                  ]}
-                  layout={{
-                    paper_bgcolor: 'transparent',
-                    plot_bgcolor: 'transparent',
-                    font: { color: '#FAFAFA' },
-                    margin: { l: 60, r: 20, t: 10, b: 80 },
-                    xaxis: { title: { text: 'Max Floor Pushed', standoff: 15 }, gridcolor: '#333' },
-                    yaxis: { title: { text: 'Stat Points Allocated', standoff: 10 }, gridcolor: '#333' },
-                    legend: { orientation: 'h', y: -0.3, x: 0.5, xanchor: 'center' },
-                    autosize: true
-                  }}
-                  useResizeHandler={true}
-                  style={{ width: '100%', height: '100%' }}
-                />
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-[#0E1117] border border-st-border rounded p-4 shadow-sm animate-fade-in mb-6">
-            <div className="flex flex-col md:flex-row justify-between items-center mb-4 border-b border-st-border pb-2 gap-3">
-              <h3 className="text-lg font-bold text-st-text">Fragment Economy & Milestones</h3>
+            <div className="bg-[#0E1117] border border-st-border rounded p-4 shadow-sm animate-fade-in flex flex-col">
+              <div className="flex flex-col md:flex-row justify-between items-center mb-4 border-b border-st-border pb-2 gap-3">
+                <h3 className="text-lg font-bold text-st-text">Fragment Economy & Milestones</h3>
               <select
                 value={selectedFragPlot}
                 onChange={(e) => setSelectedFragPlot(e.target.value)}
@@ -931,6 +929,69 @@ const [simProgress, setSimProgress] = useState(0);
                 useResizeHandler={true}
                 style={{ width: '100%', height: '100%' }}
               />
+            </div>
+          </div>
+          </div>
+
+          <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 mb-6">
+            <div className="bg-[#0E1117] border border-st-border rounded p-4 shadow-sm animate-fade-in">
+              <h3 className="text-lg font-bold text-st-text mb-4 border-b border-st-border pb-2">Farm Build Stat Distribution</h3>
+              <div className="h-[400px] w-full">
+                <Plot
+                  data={[ 
+                    { x: farmChartData.xVals, y: farmChartData.stats.Str, type: 'scatter', mode: 'lines', name: 'Str', line: { color: '#ef4444', width: 2 } },
+                    { x: farmChartData.xVals, y: farmChartData.stats.Agi, type: 'scatter', mode: 'lines', name: 'Agi', line: { color: '#3b82f6', width: 2 } },
+                    { x: farmChartData.xVals, y: farmChartData.stats.Per, type: 'scatter', mode: 'lines', name: 'Per', line: { color: '#eab308', width: 2 } },
+                    { x: farmChartData.xVals, y: farmChartData.stats.Int, type: 'scatter', mode: 'lines', name: 'Int', line: { color: '#06b6d4', width: 2 } },
+                    { x: farmChartData.xVals, y: farmChartData.stats.Luck, type: 'scatter', mode: 'lines', name: 'Luck', line: { color: '#22c55e', width: 2 } },
+                    { x: farmChartData.xVals, y: farmChartData.stats.Div, type: 'scatter', mode: 'lines', name: 'Div', line: { color: '#f9a8d4', width: 2 } },
+                    { x: farmChartData.xVals, y: farmChartData.stats.Corr, type: 'scatter', mode: 'lines', name: 'Corr', line: { color: '#a855f7', width: 2, dash: 'dot' } },
+                    { x: farmChartData.xVals, y: farmChartData.stats.Unspent, type: 'scatter', mode: 'lines', name: 'Unspent', line: { color: '#ffffff', width: 2, dash: 'dash' } }
+                   ]}
+                  layout={{
+                    paper_bgcolor: 'transparent',
+                    plot_bgcolor: 'transparent',
+                    font: { color: '#FAFAFA' },
+                    margin: { l: 60, r: 20, t: 10, b: 80 },
+                    xaxis: { title: { text: 'Timeline (Arch Secs)', standoff: 15 }, gridcolor: '#333' },
+                    yaxis: { title: { text: 'Stat Points Allocated', standoff: 10 }, gridcolor: '#333' },
+                    legend: { orientation: 'h', y: -0.3, x: 0.5, xanchor: 'center' },
+                    autosize: true
+                  }}
+                  useResizeHandler={true}
+                  style={{ width: '100%', height: '100%' }}
+                />
+              </div>
+            </div>
+
+            <div className="bg-[#0E1117] border border-st-border rounded p-4 shadow-sm animate-fade-in">
+              <h3 className="text-lg font-bold text-st-text mb-4 border-b border-st-border pb-2">Push Build Stat Distribution</h3>
+              <div className="h-[400px] w-full">
+                <Plot
+                  data={[ 
+                    { x: pushChartData.floors, y: pushChartData.stats.Str, type: 'scatter', mode: 'lines+markers', name: 'Str', line: { color: '#ef4444', width: 2 } },
+                    { x: pushChartData.floors, y: pushChartData.stats.Agi, type: 'scatter', mode: 'lines+markers', name: 'Agi', line: { color: '#3b82f6', width: 2 } },
+                    { x: pushChartData.floors, y: pushChartData.stats.Per, type: 'scatter', mode: 'lines+markers', name: 'Per', line: { color: '#eab308', width: 2 } },
+                    { x: pushChartData.floors, y: pushChartData.stats.Int, type: 'scatter', mode: 'lines+markers', name: 'Int', line: { color: '#06b6d4', width: 2 } },
+                    { x: pushChartData.floors, y: pushChartData.stats.Luck, type: 'scatter', mode: 'lines+markers', name: 'Luck', line: { color: '#22c55e', width: 2 } },
+                    { x: pushChartData.floors, y: pushChartData.stats.Div, type: 'scatter', mode: 'lines+markers', name: 'Div', line: { color: '#f9a8d4', width: 2 } },
+                    { x: pushChartData.floors, y: pushChartData.stats.Corr, type: 'scatter', mode: 'lines+markers', name: 'Corr', line: { color: '#a855f7', width: 2, dash: 'dot' } },
+                    { x: pushChartData.floors, y: pushChartData.stats.Unspent, type: 'scatter', mode: 'lines+markers', name: 'Unspent', line: { color: '#ffffff', width: 2, dash: 'dash' } }
+                   ]}
+                  layout={{
+                    paper_bgcolor: 'transparent',
+                    plot_bgcolor: 'transparent',
+                    font: { color: '#FAFAFA' },
+                    margin: { l: 60, r: 20, t: 10, b: 80 },
+                    xaxis: { title: { text: 'Max Floor Pushed', standoff: 15 }, gridcolor: '#333' },
+                    yaxis: { title: { text: 'Stat Points Allocated', standoff: 10 }, gridcolor: '#333' },
+                    legend: { orientation: 'h', y: -0.3, x: 0.5, xanchor: 'center' },
+                    autosize: true
+                  }}
+                  useResizeHandler={true}
+                  style={{ width: '100%', height: '100%' }}
+                />
+              </div>
             </div>
           </div>
 
