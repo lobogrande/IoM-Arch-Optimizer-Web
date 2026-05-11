@@ -857,7 +857,17 @@ export default function PathfinderTab() {
                   { x: fragChartData.xVals, y: fragChartData.yVals, type: 'scatter', mode: 'lines', name: `${fragDict[selectedFragPlot]} Bank`, line: { color: fragChartData.color, width: 2, shape: 'hv' }, fill: 'tozeroy', fillcolor: fragChartData.color + '20', xaxis: 'x4', yaxis: 'y5', legendgroup: 'econ' },
                   { x: fragChartData.markerX, y: fragChartData.markerY, type: 'scatter', mode: 'markers', name: 'Purchases', marker: { color: '#ffffff', size: 8, line: { color: fragChartData.color, width: 2 } }, text: fragChartData.markerText, hoverinfo: 'text', xaxis: 'x4', yaxis: 'y5', legendgroup: 'econ' },
 
-                  // 5. Farm Stats
+                  // 5. Push Stats
+                  { x: pushChartData.xVals, y: pushChartData.stats.Str, type: 'scatter', mode: 'lines', name: 'Str', line: { color: '#ef4444', width: 2, shape: 'hv' }, xaxis: 'x10', yaxis: 'y10', legendgroup: 'push_stats' },
+                  { x: pushChartData.xVals, y: pushChartData.stats.Agi, type: 'scatter', mode: 'lines', name: 'Agi', line: { color: '#3b82f6', width: 2, shape: 'hv' }, xaxis: 'x10', yaxis: 'y10', legendgroup: 'push_stats' },
+                  { x: pushChartData.xVals, y: pushChartData.stats.Per, type: 'scatter', mode: 'lines', name: 'Per', line: { color: '#eab308', width: 2, shape: 'hv' }, xaxis: 'x10', yaxis: 'y10', legendgroup: 'push_stats' },
+                  { x: pushChartData.xVals, y: pushChartData.stats.Int, type: 'scatter', mode: 'lines', name: 'Int', line: { color: '#06b6d4', width: 2, shape: 'hv' }, xaxis: 'x10', yaxis: 'y10', legendgroup: 'push_stats' },
+                  { x: pushChartData.xVals, y: pushChartData.stats.Luck, type: 'scatter', mode: 'lines', name: 'Luck', line: { color: '#22c55e', width: 2, shape: 'hv' }, xaxis: 'x10', yaxis: 'y10', legendgroup: 'push_stats' },
+                  { x: pushChartData.xVals, y: pushChartData.stats.Div, type: 'scatter', mode: 'lines', name: 'Div', line: { color: '#f9a8d4', width: 2, shape: 'hv' }, xaxis: 'x10', yaxis: 'y10', legendgroup: 'push_stats' },
+                  { x: pushChartData.xVals, y: pushChartData.stats.Corr, type: 'scatter', mode: 'lines', name: 'Corr', line: { color: '#a855f7', width: 2, dash: 'dot', shape: 'hv' }, xaxis: 'x10', yaxis: 'y10', legendgroup: 'push_stats' },
+                  { x: pushChartData.xVals, y: pushChartData.stats.Unspent, type: 'scatter', mode: 'lines', name: 'Unspent', line: { color: '#ffffff', width: 2, dash: 'dash', shape: 'hv' }, xaxis: 'x10', yaxis: 'y10', legendgroup: 'push_stats' },
+
+                  // 6. Farm Stats
                   { x: farmChartData.xVals, y: farmChartData.stats.Str, type: 'scatter', mode: 'lines', name: 'Str', line: { color: '#ef4444', width: 2 }, xaxis: 'x5', yaxis: 'y6', legendgroup: 'stats' },
                   { x: farmChartData.xVals, y: farmChartData.stats.Agi, type: 'scatter', mode: 'lines', name: 'Agi', line: { color: '#3b82f6', width: 2 }, xaxis: 'x5', yaxis: 'y6', legendgroup: 'stats' },
                   { x: farmChartData.xVals, y: farmChartData.stats.Per, type: 'scatter', mode: 'lines', name: 'Per', line: { color: '#eab308', width: 2 }, xaxis: 'x5', yaxis: 'y6', legendgroup: 'stats' },
