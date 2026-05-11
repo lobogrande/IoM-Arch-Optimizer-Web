@@ -21,6 +21,11 @@ const [simProgress, setSimProgress] = useState(0);
   const [startCardProgress, setStartCardProgress] = useState(store.card_progress || { });
   const [selectedFragPlot, setSelectedFragPlot] = useState('com');
   
+  // Yield Rates Chart Filters
+  const [showXpRates, setShowXpRates] = useState(true);
+  const[showFragRates, setShowFragRates] = useState(true);
+  const [selectedRateFrag, setSelectedRateFrag] = useState('div');
+  
   // Card Plot Filters
   const[cardRarityFilter, setCardRarityFilter] = useState([ 'dirt', 'com', 'rare', 'epic', 'leg', 'myth', 'div' ]);
 
@@ -138,8 +143,8 @@ const [simProgress, setSimProgress] = useState(0);
     const floorVals =[ ];
     
     // Map the dropdown selection to the Pyodide dictionary keys
-    const fragRateKey = { com: 'frag_1_per_min', rare: 'frag_2_per_min', epic: 'frag_3_per_min', leg: 'frag_4_per_min', myth: 'frag_5_per_min', div: 'frag_6_per_min' }[selectedFragPlot] || 'frag_6_per_min';
-    const fragUIName = { com: 'Common', rare: 'Rare', epic: 'Epic', leg: 'Legendary', myth: 'Mythic', div: 'Divine' }[selectedFragPlot] || 'Divine';
+    const fragRateKey = { com: 'frag_1_per_min', rare: 'frag_2_per_min', epic: 'frag_3_per_min', leg: 'frag_4_per_min', myth: 'frag_5_per_min', div: 'frag_6_per_min' }[selectedRateFrag] || 'frag_6_per_min';
+    const fragUIName = { com: 'Common', rare: 'Rare', epic: 'Epic', leg: 'Legendary', myth: 'Mythic', div: 'Divine' }[selectedRateFrag] || 'Divine';
 
     // Decouple the Pivot X-axis so we can truncate it without breaking the Progression chart
     const pivotXVals =[ ];
@@ -215,7 +220,7 @@ const [simProgress, setSimProgress] = useState(0);
     }
 
     return { xVals, xpVals, pushXpVals, farmFragVals, pushFragVals, fragUIName, levelVals, floorVals, pivotXVals: finalPivotX, ttnlVals: finalTtnl, ttfVals: finalTtf };
-  },[ pathData, selectedFragPlot ]);
+  },[ pathData, selectedRateFrag ]);
 
   const pushChartData = useMemo(() => {
     if (!pathData) return null;
@@ -733,56 +738,87 @@ const [simProgress, setSimProgress] = useState(0);
           </div>
 
           <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 mb-6">
-            <div className="bg-[#0E1117] border border-st-border rounded p-4 shadow-sm animate-fade-in">
-              <h3 className="text-lg font-bold text-st-text mb-4 border-b border-st-border pb-2">XP Yields: Farm vs Push</h3>
+            <div className="bg-[#0E1117] border border-st-border rounded p-4 shadow-sm animate-fade-in flex flex-col">
+              <div className="flex flex-col md:flex-row justify-between items-center mb-4 border-b border-st-border pb-2 gap-3 shrink-0">
+                <h3 className="text-lg font-bold text-st-text">Yields: Farm vs Push</h3>
+                
+                <div className="flex flex-wrap items-center gap-4 bg-st-bg border border-st-border rounded px-3 py-1.5 shadow-sm">
+                  <label className="flex items-center gap-1.5 text-xs font-bold text-st-text cursor-pointer hover:text-[#4ade80] transition-colors">
+                    <input type="checkbox" checked={showXpRates} onChange={(e) => setShowXpRates(e.target.checked)} className="accent-[#4ade80]" /> 
+                    Show XP
+                  </label>
+                  <div className="w-px h-4 bg-st-border"></div>
+                  <label className="flex items-center gap-1.5 text-xs font-bold text-st-text cursor-pointer hover:text-[#facc15] transition-colors">
+                    <input type="checkbox" checked={showFragRates} onChange={(e) => setShowFragRates(e.target.checked)} className="accent-[#facc15]" /> 
+                    Show Frags:
+                  </label>
+                  <select
+                    value={selectedRateFrag}
+                    onChange={(e) => setSelectedRateFrag(e.target.value)}
+                    disabled={!showFragRates}
+                    className="bg-st-secondary/50 border border-st-border rounded px-2 py-0.5 text-xs text-st-text font-bold outline-none focus:border-[#facc15] disabled:opacity-30 cursor-pointer"
+                  >
+                    <option value="com">Common</option>
+                    <option value="rare">Rare</option>
+                    <option value="epic">Epic</option>
+                    <option value="leg">Legendary</option>
+                    <option value="myth">Mythic</option>
+                    <option value="div">Divine</option>
+                  </select>
+                </div>
+              </div>
               <div className="h-[400px] w-full">
                 <Plot
                   data={[ 
-                    {
-                      x: chartData.xVals,
-                      y: chartData.xpVals,
-                      type: 'scatter',
-                      mode: 'lines',
-                      name: 'Farm Build XP',
-                      line: { color: '#4ade80', shape: 'hv', width: 2 },
-                      yaxis: 'y'
-                    },
-                    {
-                      x: chartData.xVals,
-                      y: chartData.pushXpVals,
-                      type: 'scatter',
-                      mode: 'lines',
-                      name: 'Push Build XP',
-                      line: { color: '#ef4444', shape: 'hv', width: 1.5, dash: 'dot' },
-                      yaxis: 'y'
-                    },
-                    {
-                      x: chartData.xVals,
-                      y: chartData.farmFragVals,
-                      type: 'scatter',
-                      mode: 'lines',
-                      name: `Farm ${chartData.fragUIName} / Min`,
-                      line: { color: '#facc15', shape: 'hv', width: 2 },
-                      yaxis: 'y2'
-                    },
-                    {
-                      x: chartData.xVals,
-                      y: chartData.pushFragVals,
-                      type: 'scatter',
-                      mode: 'lines',
-                      name: `Push ${chartData.fragUIName} / Min`,
-                      line: { color: '#ca8a04', shape: 'hv', width: 1.5, dash: 'dot' },
-                      yaxis: 'y2'
-                    }
-                   ] }
+                    ...(showXpRates ?[
+                      {
+                        x: chartData.xVals,
+                        y: chartData.xpVals,
+                        type: 'scatter',
+                        mode: 'lines',
+                        name: 'Farm Build XP',
+                        line: { color: '#4ade80', shape: 'hv', width: 2 },
+                        yaxis: 'y'
+                      },
+                      {
+                        x: chartData.xVals,
+                        y: chartData.pushXpVals,
+                        type: 'scatter',
+                        mode: 'lines',
+                        name: 'Push Build XP',
+                        line: { color: '#ef4444', shape: 'hv', width: 1.5, dash: 'dot' },
+                        yaxis: 'y'
+                      }
+                    ] : [ ]),
+                    ...(showFragRates ?[
+                      {
+                        x: chartData.xVals,
+                        y: chartData.farmFragVals,
+                        type: 'scatter',
+                        mode: 'lines',
+                        name: `Farm ${chartData.fragUIName} / Min`,
+                        line: { color: '#facc15', shape: 'hv', width: 2 },
+                        yaxis: 'y2'
+                      },
+                      {
+                        x: chartData.xVals,
+                        y: chartData.pushFragVals,
+                        type: 'scatter',
+                        mode: 'lines',
+                        name: `Push ${chartData.fragUIName} / Min`,
+                        line: { color: '#ca8a04', shape: 'hv', width: 1.5, dash: 'dot' },
+                        yaxis: 'y2'
+                      }
+                    ] : [ ])
+                   ]}
                   layout={{
                     paper_bgcolor: 'transparent',
                     plot_bgcolor: 'transparent',
                     font: { color: '#FAFAFA' },
                     margin: { l: 60, r: 60, t: 10, b: 80 },
                     xaxis: { title: { text: 'Timeline (Arch Secs)', standoff: 15 }, gridcolor: '#333' },
-                    yaxis: { title: { text: 'XP / Min', standoff: 10 }, titlefont: { color: '#4ade80' }, tickfont: { color: '#4ade80' }, gridcolor: '#333' },
-                    yaxis2: { title: { text: `${chartData.fragUIName} / Min`, standoff: 10 }, titlefont: { color: '#facc15' }, tickfont: { color: '#facc15' }, overlaying: 'y', side: 'right', showgrid: false },
+                    yaxis: showXpRates ? { title: { text: 'XP / Min', standoff: 10 }, titlefont: { color: '#4ade80' }, tickfont: { color: '#4ade80' }, gridcolor: '#333' } : { visible: false, showgrid: false },
+                    yaxis2: showFragRates ? { title: { text: `${chartData.fragUIName} / Min`, standoff: 10 }, titlefont: { color: '#facc15' }, tickfont: { color: '#facc15' }, overlaying: showXpRates ? 'y' : undefined, side: showXpRates ? 'right' : 'left', showgrid: !showXpRates, gridcolor: '#333', anchor: 'x' } : { visible: false, showgrid: false },
                     legend: { orientation: 'h', y: -0.3, x: 0.5, xanchor: 'center' },
                     autosize: true
                   }}
