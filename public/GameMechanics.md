@@ -103,3 +103,34 @@ The internal upgrade system is strictly gated by progression milestones and feat
     *   Certain endgame nodes (like Upgrades 41-45, 47) are single-purchase only and require massive flat lump-sum fragment payments.
 *   **Ascension Cost Inflation:** An upgrade's base cost fundamentally inflates when transitioning to a new Ascension. The engine tracks an array of base costs `[ Asc0, Asc1, Asc2 ]`. An upgrade might cost 150 Common fragments at Asc1, but inflate to 300 at Asc2. Upgrades that do not exist in a previous ascension are handled as `null` until the correct ascension array index is reached.
 *   **Rounding Math:** Gem upgrade costs round to the nearest whole integer (with a special `Math.floor` exception exclusively for Ascension 0). Fragment upgrade costs strictly retain float precision, rounding to exactly two decimal places (`Math.round(amount * 100) / 100`).
+
+## 7. IDOLS & THE DILUTION MECHANIC
+Idols are external systems that profoundly impact the Arch simulator. Upgrading an idol requires spending a specific tier of fragment. **Crucially, level-ups are random within a fragment category.** If I have multiple idols unlocked that share the same fragment cost, each level-up randomly selects among them, diluting my chances of hitting the idol I actually want.
+
+*   **Hestia (Ascension 1):** 
+    *   **Cost:** Common Fragments (cost scales from base until plateauing at 999 per level).
+    *   **Max Level:** 3000.
+    *   **Unlock Req:** Arch Level 10 & Generator Level 30.
+    *   **Effect:** Unlocks Infernal Misc cards (including the crucial Arch Ability Misc card). Provides +0.01% Fragment Gain per level.
+*   **Theseus (Ascension 2):** 
+    *   **Cost:** Rare Fragments.
+    *   **Max Level:** 3000.
+    *   **Unlock Req:** Arch Level 40 & Golden Lantern unlocked.
+    *   **Effect:** Immediately increases Banked Lootbug Cap by +15. Provides +0.01% Lootbug Loot Multiplier per level.
+*   **Hades (Ascension 1):** 
+    *   **Cost:** Divine Fragments.
+    *   **Max Level:** 6666.
+    *   **Unlock Req:** Arch Level 85 & Blackened Basker Legendary Fish Tribute 2.
+    *   **Effect:** Immediately unlocks access to Infernal Arch block cards. Increases ALL Infernal Card bonuses by +0.0045% per level (up to a massive 30% max bonus).
+*   **Prometheus (Ascension 2):** 
+    *   **Cost:** Divine Fragments.
+    *   **Max Level:** 1000.
+    *   **Unlock Req:** Arch Level 80 & W4 9th Statue built.
+    *   **Effect:** Has no direct impact on Arch math. *Its sole purpose in the simulator is to dilute the Divine Fragment pool.*
+*   **Sisyphus (Ascension 2):** 
+    *   **Cost:** Divine Fragments.
+    *   **Max Level:** 7777.
+    *   **Unlock Req:** Arch Level 90 & Rank 7 Butterfly Skin Quest complete.
+    *   **Effect:** Has no direct impact on Arch math. *Serves to dilute the Divine Fragment pool.*
+
+**The Divine Pool Trap:** In Ascension 2, because Prometheus and Sisyphus unlock at similar milestones to Hades, they effectively cut the Hades level-up efficiency down to 1/3. The simulator's mathematical Opportunity Cost for maxing Hades skyrockets because I am forced to pay for the other two idols simultaneously due to the RNG selection.
