@@ -224,13 +224,13 @@ export default function PathfinderTab() {
 
   const pushChartData = useMemo(() => {
     if (!pathData) return null;
-    const floors =[ ];
+    const xVals =[ ];
     const stats = { Str:[ ], Agi:[ ], Per:[ ], Int:[ ], Luck:[ ], Div:[ ], Corr:[ ], Unspent:[ ] };
     const statKeys =[ 'Str', 'Agi', 'Per', 'Int', 'Luck', 'Div', 'Corr' ];
 
     pathData.history.forEach(ev => {
       if (ev.type === 'floor' && ev.active_build_str) {
-        floors.push(ev.floor);
+        xVals.push(ev.arch_sec);
         // Extract the array from "[1/7/0/0/1/9/0]"
         const match = ev.active_build_str.match(/\[(.*?)\]/);
         if (match) {
@@ -247,7 +247,7 @@ export default function PathfinderTab() {
       }
     });
 
-    return { floors, stats };
+    return { xVals, stats };
   }, [ pathData ]);
 
   const farmChartData = useMemo(() => {
