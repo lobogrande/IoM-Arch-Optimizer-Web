@@ -51,15 +51,16 @@ Combat is a micro-tick simulated timeline. Damage resolution strictly follows a 
     *   If no mod rolls for a given block, killing it simply yields its standard baseline rewards.
 *   **The Anti-Milking Rule:** Modifiers are **ONLY** evaluated and applied when the block's HP reaches 0. You cannot "milk" a block by hitting it multiple times to repeatedly trigger an attached mod.
 
-## 4. THE PHASE 3 ENDGAME META (Why Str drops for Corr)
-In Phase 3 (farming lower-tier blocks), the engine intentionally drops `Str` to near zero and maximizes `Corr`. 
-*   Because lower-tier blocks have low HP, high `Str` results in "Overkill Damage" which is entirely wasted.
-*   Because `Corr` provides its own massive damage multiplier, the engine can still 1-shot or 2-shot weak blocks using `Corr` alone.
-*   By shifting points from `Str` to `Corr`, the engine maintains clear speed while massively multiplying the `loot_mod_gain` triggered upon block death.
-*   The only mathematical constraint on this strategy is ensuring `Agi` is high enough to offset `Corr`'s 3% Max Stamina penalty.
-
-## 5. SKILLS & INSTA-CHARGING
-*   **Enrage:** Additive multiplier to base damage and crit damage.
-*   **Flurry:** Flat attack speed boost and instantly refunds flat Stamina upon casting.
-*   **Quake:** Consumes charges per hit to trigger the AoE splash.
-*   **Insta-Charge RNG:** When a skill Auto-Casts, it rolls against `ability_insta_charge` chance. If successful, its cooldown instantly resets to 0.0. Because the RNG loop checks this repeatedly, skills can theoretically cast themselves dozens of times in a single micro-tick.
+## 4. SKILLS, COOLDOWNS, & INSTA-CHARGING
+Skills are fully automated in the simulator via Upgrade 8 (Auto-Cast). They have distinct trigger mechanisms and can freely overlap, creating massive burst-damage windows.
+*   **Duration vs. Charges:** 
+    *   **Flurry** is *time-based*. It runs on a duration timer (base 5s) and ticks down in real-time. It grants a flat attack speed boost and instantly refunds flat Stamina upon casting.
+    *   **Enrage** and **Quake** are *charge-based*. They provide a set number of enhanced attacks (base 5 charges each). These charges only deplete when a hit actually lands.
+*   **Skill Synergies:** Because they do not block each other, an active Flurry (faster attack speed) will rapidly accelerate the consumption of Enrage and Quake charges, concentrating their burst damage. 
+*   **Cooldowns & Enhancements:**
+    *   Base cooldowns are 60s (Enrage), 120s (Flurry), and 180s (Quake).
+    *   These timers are reduced additively by various internal upgrades and external skill tree nodes (Avada Keda- Skill).
+    *   **Arch Ability Misc Card:** Provides a global, *multiplicative* cooldown reduction to all three skills simultaneously (applied after additive upgrade reductions).
+    *   *(Bug Note: Upgrade 32 is intended only for Enrage cooldown reduction, but currently applies to Flurry and Quake as well).*
+*   **Insta-Charge RNG:** When a skill goes off cooldown and Auto-Casts, it rolls against the `ability_insta_charge` stat. If successful, its cooldown instantly resets to 0.0. This check repeats independently, allowing a skill to theoretically cast itself multiple times in a single micro-tick.
+*   **The Ability Fairy:** Unlocked via Upgrade 27. While completely ignored by the autonomous simulator, this is a manual-player feature where a fairy periodically appears on screen. Clicking it instantly resets all 3 skill cooldowns to zero and triggers them simultaneously.
