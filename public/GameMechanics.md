@@ -38,10 +38,18 @@ Combat is a micro-tick simulated timeline. Damage resolution strictly follows a 
 *   **Quake (AoE):** Splashes damage to all remaining blocks on the active floor path. It inherits Enrage base damage, but rolls its own independent Critical Hits and interacts with the specific armor of each individual background block hit.
 *   **Overkill is Wasted:** Any damage dealt beyond a block's remaining HP is completely discarded. It does not carry over.
 
-## 3. BLOCK SPAWNING & MODIFIERS (The Anti-Milking Rule)
-*   **Spawns:** The 24-slot grid is generated top-down based on a hardcoded 1-in-X chance array per floor tier.
-*   **Modifiers (Mods):** `exp_multi`, `loot_multi`, `stamina_gain`, and `speed_gain` are rolled *at the exact moment the block is spawned*, based on the player's Mod Chance stats.
-*   **Kill Rewards:** Modifiers are **ONLY** applied when the block's HP reaches 0 (`_process_kill_rewards`). **You cannot "milk" a block by hitting it multiple times.** 
+## 3. BLOCK SPAWNING, SCALING, & MODIFIERS
+*   **Spawning Hierarchy:** The 24-slot grid is generated sequentially using top-down probability checks. It attempts to roll the highest unlocked rarity first (Divine ➔ Mythic ➔ down to Dirt). If a rarity succeeds its 1-in-X chance, it spawns. 
+*   **Ascension Failsafes:** Pre-Ascension 1, any rolled Divine blocks are forcefully downgraded to Mythic. Pre-Ascension 2, Tier 4 blocks are downgraded to Tier 3.
+*   **Floor Scaling & Known Bugs:** Base HP strictly doubles and Armor multiplies by 1.5 at fixed intervals (Floors 100, 150, 200, 250, etc.). *Note: The math contains known GameMaker bugs: Floor 150 skips the armor scale, and Floor 300 triggers the HP/Armor doubling twice.*
+*   **Gleaming Floors:** Entire floors have a chance to spawn as "Gleaming," which applies a global multiplier (`gleaming_multi`) to all XP and Loot gained from blocks on that specific floor.
+*   **Modifiers (Mods) Mechanics:**
+    *   Mods are predetermined properties attached to the block the exact moment it spawns.
+    *   A block rolls independently for each of the 4 Mod types (Exp, Loot, Stamina, Speed) based on the player's respective Mod Chance stats.
+    *   A block can have a **maximum of 1 of each type** of mod.
+    *   A block **can** have multiple *different* mods at the same time (e.g., both an Exp Mod and a Loot Mod on the same block).
+    *   If no mod rolls for a given block, killing it simply yields its standard baseline rewards.
+*   **The Anti-Milking Rule:** Modifiers are **ONLY** evaluated and applied when the block's HP reaches 0. You cannot "milk" a block by hitting it multiple times to repeatedly trigger an attached mod.
 
 ## 4. THE PHASE 3 ENDGAME META (Why Str drops for Corr)
 In Phase 3 (farming lower-tier blocks), the engine intentionally drops `Str` to near zero and maximizes `Corr`. 
