@@ -52,6 +52,7 @@ const [simProgress, setSimProgress] = useState(0);
       upgrade_levels: { ...snap.upgrade_levels },
       external_levels: snap.external_levels ? { ...snap.external_levels } : useStore.getState().external_levels,
       cards: snap.cards ? { ...snap.cards } : useStore.getState().cards,
+      card_progress: snap.card_progress ? { ...snap.card_progress } : { },
       total_infernal_cards: snap.total_infernal_cards !== undefined ? snap.total_infernal_cards : useStore.getState().total_infernal_cards
     });
     
@@ -400,7 +401,7 @@ const [simProgress, setSimProgress] = useState(0);
       await new Promise(r => setTimeout(r, 50));
       
       // Force Asc2 Unlocked for the template start!
-      const activeState = startMode === 'template' ? { ...asc2Template, asc2_unlocked: true, asc1_unlocked: true } : {
+      const activeState = startMode === 'template' ? { ...asc2Template, asc2_unlocked: true, asc1_unlocked: true, card_progress: { } } : {
         asc1_unlocked: store.asc1_unlocked,
         asc2_unlocked: store.asc2_unlocked,
         arch_level: store.arch_level,
@@ -410,7 +411,8 @@ const [simProgress, setSimProgress] = useState(0);
         base_stats: store.base_stats,
         upgrade_levels: store.upgrade_levels,
         external_levels: store.external_levels,
-        cards: store.cards
+        cards: store.cards,
+        card_progress: store.card_progress || { }
       };
 
       await pool.syncState(activeState);
