@@ -556,6 +556,21 @@ export async function runPathfinderSimulation(startState, targetLevel, initialFr
 
     // --- AUTOMATED PIVOT LOGIC ---
     // Evaluates Opportunity Cost and dynamically swaps the active optimizer target
+    const isCrippledPhase = (s) => {
+        if ((s.external_levels[21] || 0) < 6666) return false;
+        if ((s.external_levels[4] || 0) < 3000) return false;
+        
+        // Phase 3 triggers the moment ALL Tier 4 and Tier 3 cards are maxed
+        const highTierCards =[
+            'div4', 'myth4', 'leg4', 'epic4', 'rare4', 'com4', 'dirt4',
+            'div3', 'myth3', 'leg3', 'epic3', 'rare3', 'com3', 'dirt3'
+        ];
+        for (const c of highTierCards) {
+            if ((s.cards[c] || 0) < 4) return false;
+        }
+        return true;
+    };
+
     const determineFarmMetric = (expNeededCheck) => {
         // Endgame Phase 2: Hades Idol is maxed. Pivot to explicit Block hunting!
         const idolsMaxed = (state.external_levels[21] || 0) >= 6666;
@@ -601,20 +616,55 @@ export async function runPathfinderSimulation(startState, targetLevel, initialFr
         return 'xp_per_min';
     };
 
+    let phase3Active = false;
+
+    const executeFarmOptimization = async (budget, expNeededCheck) => {
+        const farmMetric = determineFarmMetric(expNeededCheck);
+        const crippled = isCrippledPhase(state);
+        
+        let optFarm;
+        if (crippled) {
+            optFarm = await getCrippledYields(pool, state, farmMetric);
+        } else {
+            optFarm = await runFastOptimizer(pool, state, farmMetric, budget, state.base_stats, 3);
+        }
+        
+        state.base_stats = optFarm.bestBuild;
+        currentFarmYields = optFarm.bestYields;
+
+        if ((state.external_levels[4] || 0) >= 3000) {
+            currentFragPotential = currentFarmYields;
+        } else {
+            currentFragPotential = await getShadowFragYields(pool, state, budget, getEffectiveStatCaps(state));
+        }
+        
+        lastFarmStr = formatBuildStr(state.base_stats, state);
+        
+        if (crippled && !phase3Active) {
+            phase3Active = true;
+            history.push({
+                type: "system",
+                event: `🕸️ Endgame Phase 3: Crippled Builds`,
+                arch_sec: cumulativeArchSecs,
+                time_delta: 0,
+                active_build: "Farm",
+                active_build_str: lastFarmStr,
+                level: state.arch_level,
+                floor: state.current_max_floor,
+                desc: `All T3/T4 cards maxed! Full stat budgets abandoned. Optimizer now using constrained meta-builds to farm lower-tier blocks without overkilling.`,
+                yields: { farm: currentFarmYields, push: currentPushYields, frag_potential: currentFragPotential },
+                frags: { ...frags },
+                card_progress: { ...card_progress },
+                state_snapshot: captureSnapshot(state)
+            });
+        }
+    };
+
     report(`Establishing Baseline Farm Build...`);
     await new Promise(r => setTimeout(r, 10)); // Force UI Paint
 
     // 1. Establish perfect Farm Build
-    const farmMetric = determineFarmMetric(Math.max(0, getExpRequired(state.arch_level) - currentExp));
-    const optFarm = await runFastOptimizer(pool, state, farmMetric, expectedBudget, state.base_stats, 3);
-    state.base_stats = optFarm.bestBuild;
-    currentFarmYields = optFarm.bestYields;
-
-    if ((state.external_levels[4] || 0) >= 3000) {
-        currentFragPotential = currentFarmYields;
-    } else {
-        currentFragPotential = await getShadowFragYields(pool, state, expectedBudget, getEffectiveStatCaps(state));
-    }
+    await executeFarmOptimization(expectedBudget, Math.max(0, getExpRequired(state.arch_level) - currentExp));
     
     report(`Establishing Baseline Push Build...`);
     await new Promise(r => setTimeout(r, 10)); // Force UI Paint
@@ -914,12 +964,7 @@ export async function runPathfinderSimulation(startState, targetLevel, initialFr
                         await pool.syncState(state);
                         
                         const totalBudget = state.arch_level + (state.upgrade_levels[12] || 0);
-                        const farmMetric = determineFarmMetric(Math.max(0, getExpRequired(state.arch_level) - currentExp));
-                        const optFarm = await runFastOptimizer(pool, state, farmMetric, totalBudget, state.base_stats, 3);
-                        state.base_stats = optFarm.bestBuild;
-                        currentFarmYields = optFarm.bestYields;
-                        currentFragPotential = currentFarmYields;
-                        lastFarmStr = formatBuildStr(state.base_stats, state);
+                        await executeFarmOptimization(totalBudget, Math.max(0, getExpRequired(state.arch_level) - currentExp));
                         
                         history.push({
                             type: "system",
@@ -1012,16 +1057,7 @@ export async function runPathfinderSimulation(startState, targetLevel, initialFr
                         report(`Lvl ${state.arch_level}: Re-optimizing Farm...`);
                         await new Promise(r => setTimeout(r, 10));
 
-                        const farmMetric = determineFarmMetric(Math.max(0, getExpRequired(state.arch_level) - currentExp));
-                        const optFarm = await runFastOptimizer(pool, state, farmMetric, totalBudget, state.base_stats, 3);
-                        state.base_stats = optFarm.bestBuild;
-                        currentFarmYields = optFarm.bestYields;
-
-                        if ((state.external_levels[4] || 0) >= 3000) {
-                            currentFragPotential = currentFarmYields;
-                        } else {
-                            currentFragPotential = await getShadowFragYields(pool, state, totalBudget, getEffectiveStatCaps(state));
-                        }
+                        await executeFarmOptimization(totalBudget, Math.max(0, getExpRequired(state.arch_level) - currentExp));
 
                         const statsKeys = getAvailableStatKeys(state);
                         const effectiveCaps = getEffectiveStatCaps(state);
@@ -1058,11 +1094,7 @@ export async function runPathfinderSimulation(startState, targetLevel, initialFr
                     if (!idolsWereMaxed && idolsAreMaxed) {
                         // Immediately trigger the Phase 2 Pivot metric
                         const totalBudget = state.arch_level + (state.upgrade_levels[12] || 0);
-                        const farmMetric = determineFarmMetric(0);
-                        const optFarm = await runFastOptimizer(pool, state, farmMetric, totalBudget, state.base_stats, 3);
-                        state.base_stats = optFarm.bestBuild;
-                        currentFarmYields = optFarm.bestYields;
-                        lastFarmStr = formatBuildStr(state.base_stats, state);
+                        await executeFarmOptimization(totalBudget, 0);
 
                         history.push({
                             type: "system",
@@ -1097,16 +1129,7 @@ export async function runPathfinderSimulation(startState, targetLevel, initialFr
             report(`Lvl ${state.arch_level}: Optimizing Farm Build...`);
             await new Promise(r => setTimeout(r, 10)); // Force UI Paint
             
-            const farmMetric = determineFarmMetric(Math.max(0, getExpRequired(state.arch_level) - currentExp));
-            const optFarm = await runFastOptimizer(pool, state, farmMetric, totalBudget, state.base_stats, 3);
-            state.base_stats = optFarm.bestBuild;
-            currentFarmYields = optFarm.bestYields;
-
-            if ((state.external_levels[4] || 0) >= 3000) {
-                currentFragPotential = currentFarmYields;
-            } else {
-                currentFragPotential = await getShadowFragYields(pool, state, totalBudget, getEffectiveStatCaps(state));
-            }
+            await executeFarmOptimization(totalBudget, Math.max(0, getExpRequired(state.arch_level) - currentExp));
 
             // LAZY OPTIMIZATION: Defer Push build re-optimization until a floor push is actually attempted.
             // FIX: Top-up the stale push build so logs and yield snapshots have the mathematically correct stat point total!
@@ -1171,16 +1194,7 @@ export async function runPathfinderSimulation(startState, targetLevel, initialFr
                 report(`Lvl ${state.arch_level}: Re-optimizing Farm after buying Upg ${nextUpgradeId}...`);
                 await new Promise(r => setTimeout(r, 10));
 
-                const farmMetric = determineFarmMetric(Math.max(0, getExpRequired(state.arch_level) - currentExp));
-                const optFarm = await runFastOptimizer(pool, state, farmMetric, totalBudget, state.base_stats, 3);
-                state.base_stats = optFarm.bestBuild;
-                currentFarmYields = optFarm.bestYields;
-
-                if ((state.external_levels[4] || 0) >= 3000) {
-                    currentFragPotential = currentFarmYields;
-                } else {
-                    currentFragPotential = await getShadowFragYields(pool, state, totalBudget, getEffectiveStatCaps(state));
-                }
+                await executeFarmOptimization(totalBudget, Math.max(0, getExpRequired(state.arch_level) - currentExp));
 
                 // LAZY OPTIMIZATION: Defer Push build re-optimization until a floor push is actually attempted.
                 // FIX: Top-up the stale push build!
@@ -1257,16 +1271,7 @@ export async function runPathfinderSimulation(startState, targetLevel, initialFr
             await new Promise(r => setTimeout(r, 10));
 
             // Re-map the mathematically optimal baseline since multipliers shifted
-            const farmMetric = determineFarmMetric(Math.max(0, getExpRequired(state.arch_level) - currentExp));
-            const optFarm = await runFastOptimizer(pool, state, farmMetric, totalBudget, state.base_stats, 3);
-            state.base_stats = optFarm.bestBuild;
-            currentFarmYields = optFarm.bestYields;
-
-            if ((state.external_levels[4] || 0) >= 3000) {
-                currentFragPotential = currentFarmYields;
-            } else {
-                currentFragPotential = await getShadowFragYields(pool, state, totalBudget, getEffectiveStatCaps(state));
-            }
+            await executeFarmOptimization(totalBudget, Math.max(0, getExpRequired(state.arch_level) - currentExp));
 
             // Top-up Push Build mathematically
             const statsKeys = getAvailableStatKeys(state);
