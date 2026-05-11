@@ -16,6 +16,7 @@ The game does not use standard RPG stat definitions. Stats often dual-scale and 
 *   **Corruption (Corr):** **(Locked pre-Ascension 2).** The Ultimate Endgame Stat. 
     *   *The Buff:* Provides a massive damage multiplier (`0.06 * Corr` base, explicitly boosted by Upgrade 52) AND multiplies the yield of all Triggered Mods (`exp_mod_gain`, `loot_mod_gain`, etc.).
     *   *The Curse:* Reduces `max_sta` by 3% per point (`1 - 0.03 * Corr`).
+*   **Float Drift & Banker's Rounding:** The game natively calculates stats using 32-bit floating-point math. To maintain perfect accuracy, the simulator forcefully replicates GameMaker's memory drift: Max Stamina and Enrage values artificially drift *upward* before rounding, while Base Damage drifts *downward*. This ensures calculated breakpoint math never misses by a rounding error of 1.
 
 ## 2. THE COMBAT LOOP & DAMAGE RESOLUTION
 Combat is a micro-tick simulated timeline. Damage resolution strictly follows a specific order of operations, and critically, **Armor acts differently depending on the damage source.**
@@ -39,7 +40,8 @@ Combat is a micro-tick simulated timeline. Damage resolution strictly follows a 
 *   **Overkill is Wasted:** Any damage dealt beyond a block's remaining HP is completely discarded. It does not carry over.
 
 ## 3. BLOCK SPAWNING, SCALING, & MODIFIERS
-*   **Spawning Hierarchy:** The 24-slot grid is generated sequentially using top-down probability checks. It attempts to roll the highest unlocked rarity first (Divine ➔ Mythic ➔ down to Dirt). If a rarity succeeds its 1-in-X chance, it spawns. 
+*   **Boss/Gauntlet Floor Overrides:** Before the standard RNG runs, the game checks a hardcoded list of Boss/Gauntlet floors. These specific floors completely bypass normal probability brackets and forcefully spawn predetermined block tiers or "mixed" layouts.
+*   **Spawning Hierarchy:** For normal floors, the 24-slot grid is generated sequentially using top-down probability checks. It attempts to roll the highest unlocked rarity first (Divine ➔ Mythic ➔ down to Dirt). If a rarity succeeds its 1-in-X chance, it spawns. 
 *   **Ascension Failsafes:** Pre-Ascension 1, any rolled Divine blocks are forcefully downgraded to Mythic. Pre-Ascension 2, Tier 4 blocks are downgraded to Tier 3.
 *   **Floor Scaling & Known Bugs:** Base HP strictly doubles and Armor multiplies by 1.5 at fixed intervals (Floors 100, 150, 200, 250, etc.). *Note: The math contains known GameMaker bugs: Floor 150 skips the armor scale, and Floor 300 triggers the HP/Armor doubling twice.*
 *   **Gleaming Floors (Ascension 2+ Only):** Entire floors have a chance to spawn as "Gleaming," applying a global multiplier (`gleaming_multi`) to all XP and Loot gained from blocks on that specific floor. This mechanic relies on two distinct player stats: **Gleaming Chance** and **Gleaming Multiplier**. Both stats start at a baseline and can be significantly scaled through specific Upgrades (e.g., Upgrades 19 and 46) and Infernal Card bonuses (e.g., Mythic 1, Divine 2, Dirt 4).
@@ -48,6 +50,7 @@ Combat is a micro-tick simulated timeline. Damage resolution strictly follows a 
     *   A block rolls independently for each of the 4 Mod types (Exp, Loot, Stamina, Speed) based on the player's respective Mod Chance stats.
     *   A block can have a **maximum of 1 of each type** of mod.
     *   A block **can** have multiple *different* mods at the same time (e.g., both an Exp Mod and a Loot Mod on the same block).
+    *   **The Speed Pool:** The Speed Mod does *not* grant a timed buff. Instead, when triggered upon block kill, it adds charges to a "Speed Pool." Every subsequent attack consumes 1 charge from this pool to attack at double speed.
     *   If no mod rolls for a given block, killing it simply yields its standard baseline rewards.
 *   **The Anti-Milking Rule:** Modifiers are **ONLY** evaluated and applied when the block's HP reaches 0. You cannot "milk" a block by hitting it multiple times to repeatedly trigger an attached mod.
 
