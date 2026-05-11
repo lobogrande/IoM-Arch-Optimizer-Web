@@ -469,6 +469,7 @@ export async function runPathfinderSimulation(startState, targetLevel, initialFr
         total_infernal_cards: s.total_infernal_cards || 0,
         arch_sec: cumulativeArchSecs,
         card_progress: { ...card_progress },
+        frags: { ...frags },
         prometheus_level: s.prometheus_level || 0,
         sisyphus_level: s.sisyphus_level || 0
     });
