@@ -35,7 +35,8 @@ const getWorkspaceSnapshot = (state) => ({
   base_stats: { ...state.base_stats },
   upgrade_levels: { ...state.upgrade_levels },
   external_levels: { ...state.external_levels },
-  cards: { ...state.cards }
+  cards: { ...state.cards },
+  card_progress: { ...state.card_progress }
 });
 
 const useStore = create(
@@ -73,6 +74,7 @@ const useStore = create(
   upgrade_levels: {},
   external_levels: {},
   cards: {},
+  card_progress: {},
   arch_ability_infernal_bonus: "0",
   total_infernal_cards: 0,
 
@@ -278,6 +280,7 @@ const useStore = create(
       upgrade_levels: { },
       external_levels: defaultExt,
       cards: { },
+      card_progress: { },
       arch_ability_infernal_bonus: "0",
       total_infernal_cards: 0,
       sandbox_stats: { Str: 0, Agi: 0, Per: 0, Int: 0, Luck: 0, Div: 0, Corr: 0 },
