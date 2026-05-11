@@ -105,7 +105,12 @@ The internal upgrade system is strictly gated by progression milestones and feat
 *   **Rounding Math:** Gem upgrade costs round to the nearest whole integer (with a special `Math.floor` exception exclusively for Ascension 0). Fragment upgrade costs strictly retain float precision, rounding to exactly two decimal places (`Math.round(amount * 100) / 100`).
 
 ## 7. IDOLS & THE DILUTION MECHANIC
-Idols are external systems that profoundly impact the Arch simulator. Upgrading an idol requires spending a specific tier of fragment. For all idols, the cost scales from a base value until it plateaus at a maximum of 999 fragments per level. **Crucially, level-ups are random within a fragment category.** If I have multiple idols unlocked that share the same fragment cost, each level-up randomly selects among them, diluting my chances of hitting the idol I actually want.
+Idols are external systems that profoundly impact the Arch simulator. Upgrading an idol requires spending a specific tier of fragment. **Crucially, level-ups are random within a fragment category.** If I have multiple idols unlocked that share the same fragment cost, each level-up randomly selects among them, diluting my chances of hitting the idol I actually want.
+
+*   **Aggregate Cost Scaling (Non-Divine):** For non-Divine idols, the fragment cost formula is NOT based on an individual idol's level. Instead, it evaluates `L` as the **aggregate sum of all idol levels** that share that specific fragment tier. 
+*   **The Quadratic Formula:** The exact cost at aggregate level `L` follows an arithmetic progression, mathematically expressed as a quadratic curve: `Cost = min(999, 0.005 * L² + 0.085 * L + 0.91)`. 
+    *   *The Anti-Drift Math:* Factoring out the scaling decimals gives `0.005 * (L² + 17L) + 0.91`. For any whole number `L`, the result of `(L² + 17L)` is *always* an even integer. Multiplying an even integer by `0.005` guarantees a perfect multiple of `0.01`. Adding the `0.91` constant perfectly preserves this, ensuring the final output naturally possesses exactly two decimal places, completely bypassing GameMaker's IEEE-754 floating-point drift.
+    *   *The 999 Plateau:* Because the cost scales quadratically against the *aggregate* level, Asc1 and Asc2 idols often start at the maximum cost. The formula hits the 999 cap around `L = 439`. Therefore, if my previous 6 Common fragment idols are maxed out (totaling an aggregate level of 1903), the engine evaluates `L = 1904` when I unlock Hestia. The starting Idol cost is already hard-capped at exactly 999 Common Fragments per level from the very first purchase.
 
 *   **Hestia (Ascension 1):** 
     *   **Cost:** Common Fragments.
