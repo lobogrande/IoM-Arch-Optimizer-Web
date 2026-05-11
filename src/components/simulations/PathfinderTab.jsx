@@ -8,91 +8,13 @@ import PlotComponent from 'react-plotly.js';
 // Vite/CommonJS Interop Fix: Extract the component if Vite wrapped it in a Module object
 const Plot = PlotComponent.default || PlotComponent;
 
-function CorruptionInsight({ currentBuild }) {
-  if (!currentBuild) return null;
-  const str = currentBuild.Str || 0;
-  const per = currentBuild.Per || 0;
-  const int = currentBuild.Int || 0;
-  const luck = currentBuild.Luck || 0;
-  const div = currentBuild.Div || 0;
-  const corr = currentBuild.Corr || 0;
-  const agi = currentBuild.Agi || 0;
-
-  const armorCrack = str + div + per;
-  const modChance = luck + Math.max(int, per);
-
-  // Determine engine state based on our reverse-engineered data rules
-  let stateTag = "Balanced Scaling";
-  let stateColor = "text-gray-400";
-  let explanation = "The engine is balancing base damage with moderate mod multipliers.";
-
-  if (armorCrack >= 65 && corr <= 2) {
-      stateTag = "Armor Veto (Push/Divine)";
-      stateColor = "text-red-500";
-      explanation = "High enemy armor detected. The engine has vetoed Corruption to afford the Str/Div/Per required to crack blocks.";
-  } else if (corr >= 14 && armorCrack <= 30 && modChance >= 50) {
-      stateTag = "Crippled Mod Farming";
-      stateColor = "text-[#4ade80]";
-      explanation = "Low-tier block farming. Armor is ignored. The engine is hyper-scaling Mod Chance and compounding it with maxed Corruption.";
-      
-      if (agi <= 2) {
-          explanation += " Agility is starved to intentionally force rapid low-floor suicide loops.";
-      }
-  } else if (corr > 5 && modChance < 10) {
-      stateTag = "Transitional Noise";
-      stateColor = "text-yellow-500";
-      explanation = "Mathematical anomaly. Corruption is currently inefficient due to low Mod Chance.";
-  }
-
-  return (
-      <div className="mt-3 border-t border-st-border pt-2">
-          <strong className="text-purple-400 border-b border-st-border pb-0.5 mb-2 block">Corruption Engine Diagnostics</strong>
-          <div className="grid grid-cols-3 gap-2 mb-2 text-center">
-              <div className="bg-[#1a1a1a] p-1.5 rounded border border-st-border">
-                  <div className="text-gray-500 text-[9px] uppercase">Armor Crack</div>
-                  <div className={`text-sm font-bold ${armorCrack >= 65 ? 'text-red-400' : 'text-gray-300'}`}>
-                      {armorCrack}
-                  </div>
-                  <div className="text-[8px] text-gray-600">Str+Div+Per</div>
-              </div>
-              
-              <div className="bg-[#1a1a1a] p-1.5 rounded border border-st-border">
-                  <div className="text-gray-500 text-[9px] uppercase">Mod Power</div>
-                  <div className={`text-sm font-bold ${modChance >= 50 ? 'text-[#4ade80]' : 'text-gray-300'}`}>
-                      {modChance}
-                  </div>
-                  <div className="text-[8px] text-gray-600">Luck+(Int|Per)</div>
-              </div>
-
-              <div className="bg-[#1a1a1a] p-1.5 rounded border border-st-border relative">
-                  <div className="text-gray-500 text-[9px] uppercase">Corr Alloc</div>
-                  <div className={`text-sm font-bold ${corr >= 14 ? 'text-purple-400' : 'text-gray-300'}`}>
-                      {corr}
-                  </div>
-                  <div className="text-[8px] text-gray-600">-{corr * 3}% Max Sta</div>
-              </div>
-          </div>
-
-          <div className="bg-[#161616] p-2 rounded border border-st-border">
-              <div className="flex items-center justify-between mb-1">
-                  <span className="text-gray-500 text-[9px] uppercase">Current Logic Pivot</span>
-                  <span className={`text-[10px] font-bold ${stateColor}`}>{stateTag}</span>
-              </div>
-              <p className="text-gray-400 text-[10px] leading-relaxed">
-                  {explanation}
-              </p>
-          </div>
-      </div>
-  );
-}
-
 export default function PathfinderTab() {
   const store = useStore();
   const[startMode, setStartMode] = useState('template');
   const [isSimulating, setIsSimulating] = useState(false);
   const[pathData, setPathData] = useState(null);
   const[simStatus, setSimStatus] = useState('');
-const [simProgress, setSimProgress] = useState(0);
+  const [simProgress, setSimProgress] = useState(0);
   const [groupBy, setGroupBy] = useState('floor'); // 'floor' or 'level'
   const [targetLevel, setTargetLevel] = useState("30"); // Absolute target level
   const [startFrags, setStartFrags] = useState(store.frags || { com: 0, rare: 0, epic: 0, leg: 0, myth: 0, div: 0 });
@@ -330,8 +252,8 @@ const [simProgress, setSimProgress] = useState(0);
 
   const farmChartData = useMemo(() => {
     if (!pathData) return null;
-    const xVals =[ ];
-    const stats = { Str:[ ], Agi:[ ], Per:[ ], Int:[ ], Luck:[ ], Div:[ ], Corr:[ ], Unspent:[ ] };
+    const xVals = [ ];
+    const stats = { Str: [ ], Agi: [ ], Per: [ ], Int: [ ], Luck: [ ], Div: [ ], Corr: [ ], Unspent: [ ] };
     const statKeys =['Str', 'Agi', 'Per', 'Int', 'Luck', 'Div', 'Corr'];
 
     pathData.history.forEach(ev => {
@@ -349,7 +271,26 @@ const [simProgress, setSimProgress] = useState(0);
     });
 
     return { xVals, stats };
-  },[pathData]);
+  },[ pathData ]);
+
+  const corrDiagnosticsData = useMemo(() => {
+    if (!pathData) return null;
+    const xVals = [ ];
+    const corrVals = [ ];
+    const armorCrackVals = [ ];
+    const modPowerVals = [ ];
+
+    pathData.history.forEach(ev => {
+      if (ev.state_snapshot && ev.state_snapshot.base_stats) {
+        xVals.push(ev.arch_sec);
+        const stats = ev.state_snapshot.base_stats;
+        corrVals.push(stats.Corr || 0);
+        armorCrackVals.push((stats.Str || 0) + (stats.Div || 0) + (stats.Per || 0));
+        modPowerVals.push((stats.Luck || 0) + Math.max(stats.Int || 0, stats.Per || 0));
+      }
+    });
+    return { xVals, corrVals, armorCrackVals, modPowerVals };
+  }, [ pathData ]);
 
   const fragChartData = useMemo(() => {
     if (!pathData) return null;
@@ -1073,6 +1014,99 @@ const [simProgress, setSimProgress] = useState(0);
             </div>
           </div>
 
+          {/* MACRO CORRUPTION MECHANICS PANEL */}
+          <div className="bg-[#0E1117] border border-st-border rounded p-4 shadow-sm animate-fade-in mb-6 flex flex-col xl:flex-row gap-6">
+            <div className="xl:w-1/3 flex flex-col justify-center space-y-4">
+              <div className="border-b border-st-border pb-2">
+                <h3 className="text-lg font-bold text-st-text flex items-center gap-2">
+                  <span className="text-purple-400">🧠</span> Engine Mechanics: Corruption
+                </h3>
+                <p className="text-[11px] text-st-text-light mt-1 leading-relaxed">
+                  The Simulated Annealing engine does not guess; it follows strict mathematical breakpoints derived from telemetry.
+                </p>
+              </div>
+
+              <div className="space-y-3">
+                <div className="bg-st-secondary/30 p-3 rounded border border-st-border border-l-2 border-l-red-500">
+                  <h4 className="text-xs font-bold text-gray-200 mb-1">1. The Armor Veto (Pushing)</h4>
+                  <p className="text-[10px] text-gray-400">
+                    If effective armor zeroes out base damage, Corruption's multiplier is useless. To crack high-tier blocks (e.g., Divine), the engine forcefully zeroes out Corruption to afford the required <span className="text-red-400 font-mono">Str + Div + Per</span>.
+                  </p>
+                </div>
+
+                <div className="bg-st-secondary/30 p-3 rounded border border-st-border border-l-2 border-l-green-500">
+                  <h4 className="text-xs font-bold text-gray-200 mb-1">2. The Crippled Build Ratio</h4>
+                  <p className="text-[10px] text-gray-400">
+                    When farming low-tier cards (Dirt/Common), armor is irrelevant. The engine ignores Armor Crack and hyper-scales <span className="text-green-400 font-mono">Luck + Int</span>, multiplying the mod yields to the moon using maxed Corruption.
+                  </p>
+                </div>
+
+                <div className="bg-st-secondary/30 p-3 rounded border border-st-border border-l-2 border-l-purple-500">
+                  <h4 className="text-xs font-bold text-gray-200 mb-1">3. The Suicide Loop (Stamina Tax)</h4>
+                  <p className="text-[10px] text-gray-400">
+                    While maximizing Corruption, the engine intentionally starves <span className="text-blue-400 font-mono">Agility</span> to shrink the stamina pool. This forces rapid, low-floor resets to maximize kills-per-minute on weak blocks.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div className="xl:w-2/3 h-[400px]">
+              <Plot
+                data={[ 
+                  { 
+                    x: corrDiagnosticsData.xVals, 
+                    y: corrDiagnosticsData.armorCrackVals, 
+                    type: 'scatter', 
+                    mode: 'lines', 
+                    name: 'Armor Crack (Str+Div+Per)', 
+                    line: { color: '#ef4444', width: 2, shape: 'hv' }, 
+                    yaxis: 'y' 
+                  },
+                  { 
+                    x: corrDiagnosticsData.xVals, 
+                    y: corrDiagnosticsData.modPowerVals, 
+                    type: 'scatter', 
+                    mode: 'lines', 
+                    name: 'Mod Power (Luck+Int|Per)', 
+                    line: { color: '#4ade80', width: 2, shape: 'hv' }, 
+                    yaxis: 'y' 
+                  },
+                  { 
+                    x: corrDiagnosticsData.xVals, 
+                    y: corrDiagnosticsData.corrVals, 
+                    type: 'scatter', 
+                    mode: 'none', 
+                    fill: 'tozeroy', 
+                    name: 'Corr Allocated', 
+                    fillcolor: 'rgba(168, 85, 247, 0.25)', 
+                    yaxis: 'y2' 
+                  }
+                 ]}
+                layout={{
+                  paper_bgcolor: 'transparent',
+                  plot_bgcolor: 'transparent',
+                  font: { color: '#FAFAFA' },
+                  margin: { l: 50, r: 50, t: 10, b: 50 },
+                  xaxis: { title: { text: 'Timeline (Arch Secs)', standoff: 15 }, gridcolor: '#333' },
+                  yaxis: { title: { text: 'Combined Stat Points', standoff: 10 }, gridcolor: '#333' },
+                  yaxis2: { 
+                    title: { text: 'Corruption Allocated', standoff: 10 }, 
+                    overlaying: 'y', 
+                    side: 'right', 
+                    range: [ 0, 16 ],
+                    showgrid: false,
+                    tickfont: { color: '#c084fc' },
+                    titlefont: { color: '#c084fc' }
+                  },
+                  legend: { orientation: 'h', y: -0.2, x: 0.5, xanchor: 'center' },
+                  autosize: true
+                }}
+                useResizeHandler={true}
+                style={{ width: '100%', height: '100%' }}
+              />
+            </div>
+          </div>
+
           <div className="bg-[#0E1117] border border-st-border rounded p-4 shadow-sm animate-fade-in mb-6">
             <div className="flex flex-col md:flex-row justify-between items-center mb-4 border-b border-st-border pb-2 gap-3">
               <h3 className="text-lg font-bold text-st-text shrink-0">Card Drops (Swimlanes)</h3>
@@ -1361,11 +1395,6 @@ const [simProgress, setSimProgress] = useState(0);
                                       })}
                                     </div>
                                   </div>
-                                )}
-
-                                {/* CORRUPTION ENGINE DIAGNOSTICS */}
-                                {finalEvent.state_snapshot?.base_stats && (
-                                  <CorruptionInsight currentBuild={finalEvent.state_snapshot.base_stats} />
                                 )}
                               </details>
                             )}
