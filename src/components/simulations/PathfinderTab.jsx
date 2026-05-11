@@ -884,7 +884,7 @@ export default function PathfinderTab() {
                   // X-Axes (All synced together via matches: 'x')
                   xaxis:  { anchor: 'y',  matches: 'x', showticklabels: true, tickfont: { size: 10, color: '#888' }, gridcolor: '#333' },
                   xaxis2: { anchor: 'y2', matches: 'x', showticklabels: true, tickfont: { size: 10, color: '#888' }, gridcolor: '#333' },
-                  xaxis3: { anchor: 'y3', matches: 'x', showticklabels: true, tickfont: { size: 10, color: '#888' }, gridcolor: '#333' },
+                  xaxis3: { anchor: showXpRates ? 'y3' : 'y4', matches: 'x', showticklabels: true, tickfont: { size: 10, color: '#888' }, gridcolor: '#333' },
                   xaxis4: { anchor: 'y5', matches: 'x', showticklabels: true, tickfont: { size: 10, color: '#888' }, gridcolor: '#333' },
                   xaxis5: { anchor: 'y6', matches: 'x', showticklabels: true, tickfont: { size: 10, color: '#888' }, gridcolor: '#333' },
                   xaxis6: { anchor: 'y7', matches: 'x', showticklabels: true, tickfont: { size: 10, color: '#888' }, gridcolor: '#333' },
@@ -893,10 +893,13 @@ export default function PathfinderTab() {
                   // Y-Axes (Perfectly spaced mathematically: gap=0.038, height=0.110)
                   yaxis:  { domain: [0.888, 0.998], title: { text: 'Milestone', font: { size: 11 } }, gridcolor: '#333', automargin: true },
                   yaxis2: { domain:[0.740, 0.850], title: { text: 'Cost (Mins)', font: { size: 11 } }, type: 'log', gridcolor: '#333', automargin: true },
-                  yaxis3: { domain:[0.592, 0.702], title: { text: 'Yields', font: { size: 11 } }, gridcolor: '#333', automargin: true },
-                  yaxis4: { overlaying: 'y3', side: 'right', title: { text: 'Frags/Min', font: { size: 11 } }, automargin: true },
+                  
+                  // Dynamic Plot 3: Yields (y3 = XP, y4 = Frags)
+                  yaxis3: showXpRates ? { domain:[0.592, 0.702], title: { text: 'Yields (XP)', font: { size: 11 } }, gridcolor: '#333', automargin: true } : { domain:[0.592, 0.702], visible: false },
+                  yaxis4: showFragRates ? { domain: showXpRates ? undefined :[0.592, 0.702], overlaying: showXpRates ? 'y3' : undefined, side: showXpRates ? 'right' : 'left', title: { text: 'Frags/Min', font: { size: 11 } }, gridcolor: showXpRates ? undefined : '#333', automargin: true } : { domain: [0.592, 0.702], visible: false },
+                  
                   yaxis5: { domain:[0.444, 0.554], title: { text: 'Bank Amt', font: { size: 11 } }, gridcolor: '#333', automargin: true },
-                  yaxis6: { domain: [0.296, 0.406], title: { text: 'Points', font: { size: 11 } }, gridcolor: '#333', automargin: true },
+                  yaxis6: { domain:[0.296, 0.406], title: { text: 'Points', font: { size: 11 } }, gridcolor: '#333', automargin: true },
                   yaxis7: { domain:[0.148, 0.258], title: { text: 'Combined', font: { size: 11 } }, gridcolor: '#333', automargin: true },
                   yaxis8: { overlaying: 'y7', side: 'right', range:[ 0, 16 ], tickfont: { color: '#c084fc' }, title: { text: 'Corr Alloc', font: { color: '#c084fc', size: 11 } }, automargin: true },
                   yaxis9: { domain:[0.000, 0.110], title: { text: 'Block Tier', font: { size: 11 } }, gridcolor: '#333', categoryorder: 'array', categoryarray:[ 'Tier 1', 'Tier 2', 'Tier 3', 'Tier 4' ], automargin: true },
