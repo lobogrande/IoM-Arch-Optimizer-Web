@@ -65,3 +65,17 @@ Skills are enabled in the simulator via Upgrade 8 (which also unlocks the in-gam
     *   *(Bug Note: Upgrade 32 is intended only for Enrage cooldown reduction, but currently applies to Flurry and Quake as well).*
 *   **Insta-Charge RNG:** When a skill goes off cooldown and Auto-Casts, it rolls against the `ability_insta_charge` stat. If successful, its cooldown instantly resets to 0.0. This check repeats independently, allowing a skill to theoretically cast itself multiple times in a single micro-tick.
 *   **The Ability Fairy:** Unlocked via Upgrade 27. While completely ignored by the autonomous simulator, this is a manual-player feature where a fairy periodically appears on screen. Clicking it instantly resets all 3 skill cooldowns to zero and triggers them simultaneously.
+
+## 5. BLOCK CARDS, BONUSES, & DROP RNG
+Block Cards provide massive multiplicative bonuses to specific blocks, reducing their HP while simultaneously increasing their Exp and Fragment yields. Cards drop exclusively from block kills.
+*   **Card Levels & Base Effects:**
+    *   **Level 1:** -10% HP, +10% Exp/Loot.
+    *   **Level 2:** -20% HP, +20% Exp/Loot.
+    *   **Level 3 (Polychrome):** -35% HP, +35% Exp/Loot. (The base 35% can be further enhanced by Upgrade 41).
+    *   **Level 4 (Infernal):** Retains Polychrome block bonuses AND grants a unique global stat bonus (e.g., global damage, gleaming chance). This global bonus is scaled heavily by the "Infernal Multiplier" (driven by total collected Infernal Cards and the Hades Idol).
+*   **Drop Rates & Requirements:**
+    *   **Base Card (Level 1):** Requires 1 drop. Odds: 1 in 1,500 (Tier 1-3) | 1 in 15,000 (Tier 4).
+    *   **Polychrome Fragments (Level 3):** Requires 10 fragments. Odds: 1 in 7,500 (Tier 1-3) | 1 in 75,000 (Tier 4).
+    *   **Infernal Fragments (Level 4):** Requires 10 fragments. Odds: 1 in 200,000 (All blocks, flat rate).
+*   **Ascension Restrictions:** Tier 4 blocks (`*4`) cannot drop cards and card bonuses do not apply to them unless Ascension 2 is unlocked.
+*   **Simulator RNG Math (Gamma Distribution):** When predicting the Time-to-Milestone or Opportunity Cost for fragment farming, the simulator uses a **Gamma Distribution**. Because higher-tier cards require collecting multiple fragments, the Gamma distribution accurately models that hunting for multiple drops mathematically smooths out RNG variance. Thus, the expected time to secure 10 drops is significantly less punishing than 10x the maximum RNG variance of a single drop.
