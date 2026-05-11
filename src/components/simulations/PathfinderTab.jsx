@@ -761,10 +761,10 @@ export default function PathfinderTab() {
             </div>
 
             {/* MASTER PLOT (With embedded, absolutely positioned controls) */}
-            <div className="w-full mt-4 relative" style={{ height: '2800px' }}>
+            <div className="w-full mt-4 relative" style={{ height: '3200px' }}>
               
-              {/* YIELDS CONTROLS (Absolute positioned to match Plot 3 domain: 0.706 top) */}
-              <div className="absolute right-[80px] z-10 flex items-center gap-3 bg-[#111] border border-st-border px-3 py-1.5 rounded shadow-md" style={{ top: '805px' }}>
+              {/* YIELDS CONTROLS (Absolute positioned to match Plot 3 domain: 0.740 top) */}
+              <div className="absolute right-[80px] z-10 flex items-center gap-3 bg-[#111] border border-st-border px-3 py-1.5 rounded shadow-md" style={{ top: '850px' }}>
                   <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Filters:</span>
                   <label className="flex items-center gap-1 text-[11px] font-bold text-st-text cursor-pointer hover:text-[#4ade80] transition-colors">
                     <input type="checkbox" checked={showXpRates} onChange={(e) => setShowXpRates(e.target.checked)} className="accent-[#4ade80]" /> 
@@ -789,8 +789,8 @@ export default function PathfinderTab() {
                   </select>
               </div>
 
-              {/* ECONOMY CONTROLS (Absolute positioned to match Plot 4 domain: 0.559 top) */}
-              <div className="absolute right-[80px] z-10 flex items-center gap-2 bg-[#111] border border-st-border px-3 py-1.5 rounded shadow-md" style={{ top: '1205px' }}>
+              {/* ECONOMY CONTROLS (Absolute positioned to match Plot 4 domain: 0.611 top) */}
+              <div className="absolute right-[80px] z-10 flex items-center gap-2 bg-[#111] border border-st-border px-3 py-1.5 rounded shadow-md" style={{ top: '1250px' }}>
                   <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Select Bank:</span>
                   <select
                     value={selectedFragPlot}
@@ -806,8 +806,8 @@ export default function PathfinderTab() {
                   </select>
               </div>
 
-              {/* CARD CONTROLS (Absolute positioned to match Plot 7 domain: 0.118 top) */}
-              <div className="absolute right-[80px] z-10 flex items-center gap-1.5 bg-[#111] border border-st-border px-3 py-1.5 rounded shadow-md" style={{ top: '2405px' }}>
+              {/* CARD CONTROLS (Absolute positioned to match Plot 8 domain: 0.095 top) */}
+              <div className="absolute right-[80px] z-10 flex items-center gap-1.5 bg-[#111] border border-st-border px-3 py-1.5 rounded shadow-md" style={{ top: '2860px' }}>
                   <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mr-1">Tiers:</span>
                   {[ 
                     { id: 'dirt', label: 'Dirt', color: 'border-[#78716c] text-[#78716c]' },
