@@ -944,7 +944,7 @@ export default function PathfinderTab() {
           {/* PUSH BUILD STATS (FLOOR-BASED X-AXIS) */}
           <div className="bg-[#0E1117] border border-st-border rounded p-4 shadow-sm animate-fade-in mb-6">
             <h3 className="text-lg font-bold text-st-text mb-4 border-b border-st-border pb-2 flex items-center gap-2">
-               Push Build Stat Distribution
+               Push Build Stat Breakpoints
                <span className="text-[10px] bg-st-secondary text-gray-400 px-2 py-0.5 rounded font-mono font-normal border border-st-border">X-Axis = Max Floor</span>
             </h3>
             <div className="h-[400px] w-full">
