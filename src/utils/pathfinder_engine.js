@@ -486,8 +486,8 @@ export async function runPathfinderSimulation(startState, targetLevel, initialFr
         div: initialFrags?.div || 0 
     };
 
-    // Tracks internal progress towards drops using Gamma 50% expectations
-    let card_progress = { };
+    // Tracks internal progress towards drops using Gamma 50% expectations (Persisted across chunks!)
+    let card_progress = startState.card_progress ? { ...startState.card_progress } : { };
     
     let history = [ ];
     let lastFarmStr = "";
