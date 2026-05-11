@@ -1362,6 +1362,11 @@ const [simProgress, setSimProgress] = useState(0);
                                     </div>
                                   </div>
                                 )}
+
+                                {/* CORRUPTION ENGINE DIAGNOSTICS */}
+                                {finalEvent.state_snapshot?.base_stats && (
+                                  <CorruptionInsight currentBuild={finalEvent.state_snapshot.base_stats} />
+                                )}
                               </details>
                             )}
                           </div>
