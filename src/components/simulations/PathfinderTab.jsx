@@ -252,8 +252,8 @@ export default function PathfinderTab() {
 
   const farmChartData = useMemo(() => {
     if (!pathData) return null;
-    const xVals = [ ];
-    const stats = { Str: [ ], Agi: [ ], Per: [ ], Int: [ ], Luck: [ ], Div: [ ], Corr: [ ], Unspent: [ ] };
+    const xVals =[ ];
+    const stats = { Str:[ ], Agi:[ ], Per:[ ], Int:[ ], Luck:[ ], Div:[ ], Corr:[ ], Unspent:[ ] };
     const statKeys =['Str', 'Agi', 'Per', 'Int', 'Luck', 'Div', 'Corr'];
 
     pathData.history.forEach(ev => {
@@ -271,7 +271,28 @@ export default function PathfinderTab() {
     });
 
     return { xVals, stats };
-  },[ pathData ]);
+  },[pathData]);
+
+  const corrDiagnosticsData = useMemo(() => {
+    if (!pathData) return null;
+    const xVals =[ ];
+    const corrVals =[ ];
+    const armorCrackVals =[ ];
+    const modPowerVals =[ ];
+
+    pathData.history.forEach(ev => {
+      if (ev.state_snapshot && ev.state_snapshot.base_stats) {
+        xVals.push(ev.arch_sec);
+        const stats = ev.state_snapshot.base_stats;
+        corrVals.push(stats.Corr || 0);
+        armorCrackVals.push((stats.Str || 0) + (stats.Div || 0) + (stats.Per || 0));
+        modPowerVals.push((stats.Luck || 0) + Math.max(stats.Int || 0, stats.Per || 0));
+      }
+    });
+    return { xVals, corrVals, armorCrackVals, modPowerVals };
+  }, [pathData]);
+
+  const fragDict = { 'com': 'Common', 'rare': 'Rare', 'epic': 'Epic', 'leg': 'Legendary', 'myth': 'Mythic', 'div': 'Divine' };
 
   const corrDiagnosticsData = useMemo(() => {
     if (!pathData) return null;
@@ -731,79 +752,50 @@ export default function PathfinderTab() {
       {/* VISUALIZATIONS & RESULTS AREA */}
       {pathData && (
         <>
-          <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 mb-6">
-            <div className="bg-[#0E1117] border border-st-border rounded p-4 shadow-sm animate-fade-in">
-              <h3 className="text-lg font-bold text-st-text mb-4 border-b border-st-border pb-2">Progression Trends</h3>
-              <div className="h-[300px] w-full">
-                <Plot
-                  data={[
-                    { x: chartData.xVals, y: chartData.levelVals, type: 'scatter', mode: 'lines', name: 'Arch Level', line: { color: '#3b82f6', shape: 'hv', width: 2 } },
-                    { x: chartData.xVals, y: chartData.floorVals, type: 'scatter', mode: 'lines', name: 'Max Floor', line: { color: '#ef4444', shape: 'hv', width: 2 } }
-                  ]}
-                  layout={{
-                    paper_bgcolor: 'transparent',
-                    plot_bgcolor: 'transparent',
-                    font: { color: '#FAFAFA' },
-                    margin: { l: 60, r: 20, t: 10, b: 80 },
-                    xaxis: { title: { text: 'Timeline (Arch Secs)', standoff: 15 }, gridcolor: '#333' },
-                    yaxis: { title: { text: 'Milestone', standoff: 10 }, gridcolor: '#333' },
-                    legend: { orientation: 'h', y: -0.3, x: 0.5, xanchor: 'center' },
-                    autosize: true
-                  }}
-                  useResizeHandler={true}
-                  style={{ width: '100%', height: '100%' }}
-                />
-              </div>
+          {/* EDUCATIONAL RULES & CONTROLS */}
+          <div className="bg-[#0E1117] border border-st-border rounded p-4 shadow-sm animate-fade-in mb-6">
+            <h3 className="text-xl font-bold text-st-text mb-4 border-b border-st-border pb-2 flex items-center gap-2">
+               <span className="text-purple-400">🧠</span> Master Timeline Analysis
+            </h3>
+            
+            <div className="grid grid-cols-1 xl:grid-cols-3 gap-6 mb-6">
+                <div className="bg-st-secondary/30 p-3 rounded border border-st-border border-l-2 border-l-red-500">
+                  <h4 className="text-xs font-bold text-gray-200 mb-1">1. The Armor Veto (Pushing)</h4>
+                  <p className="text-[10px] text-gray-400">
+                    If effective armor zeroes out base damage, Corruption's multiplier is useless. To crack high-tier blocks, the engine forcefully zeroes out Corruption to afford <span className="text-red-400 font-mono">Str+Div+Per</span>.
+                  </p>
+                </div>
+                <div className="bg-st-secondary/30 p-3 rounded border border-st-border border-l-2 border-l-green-500">
+                  <h4 className="text-xs font-bold text-gray-200 mb-1">2. The Crippled Build Ratio</h4>
+                  <p className="text-[10px] text-gray-400">
+                    When farming low-tier cards, armor is irrelevant. The engine ignores Armor Crack and hyper-scales <span className="text-green-400 font-mono">Luck+Int</span>, compounding mod yields with maxed Corruption.
+                  </p>
+                </div>
+                <div className="bg-st-secondary/30 p-3 rounded border border-st-border border-l-2 border-l-purple-500">
+                  <h4 className="text-xs font-bold text-gray-200 mb-1">3. The Suicide Loop</h4>
+                  <p className="text-[10px] text-gray-400">
+                    While maximizing Corruption, the engine starves <span className="text-blue-400 font-mono">Agility</span> to shrink the stamina pool. This forces rapid resets to maximize kills-per-minute on weak blocks.
+                  </p>
+                </div>
             </div>
 
-            <div className="bg-[#0E1117] border border-st-border rounded p-4 shadow-sm animate-fade-in">
-              <h3 className="text-lg font-bold text-st-text mb-1">Strategic Pivot Point (Opportunity Cost)</h3>
-              <p className="text-[10px] text-st-text-light mb-4 border-b border-st-border pb-2">
-                <strong>How to use this:</strong> The engine is running a hidden "Shadow Build" in the background optimized for fragments. The exact moment the Green Line (Time to afford an expensive upgrade using the shadow build) drops below the Red Line (Time to grind out another Arch Level), <b>that is the Floor you should set as your Strategic Shift!</b>
-              </p>
-              <div className="h-[300px] w-full">
-                <Plot
-                  data={[ 
-                    { x: chartData.pivotXVals, y: chartData.ttnlVals, type: 'scatter', mode: 'lines', name: 'Mins to Level (XP Build)', line: { color: '#f87171', shape: 'hv', width: 2 } },
-                    { x: chartData.pivotXVals, y: chartData.ttfVals, type: 'scatter', mode: 'lines', name: 'Mins to Major Upgrade (Frag Build)', line: { color: '#a3e635', shape: 'hv', width: 2 } }
-                   ]}
-                  layout={{
-                    paper_bgcolor: 'transparent',
-                    plot_bgcolor: 'transparent',
-                    font: { color: '#FAFAFA' },
-                    margin: { l: 60, r: 20, t: 10, b: 80 },
-                    xaxis: { title: { text: 'Timeline (Arch Secs)', standoff: 15 }, gridcolor: '#333' },
-                    yaxis: { title: { text: 'Time Cost (Minutes)', standoff: 10 }, type: 'log', gridcolor: '#333' },
-                    legend: { orientation: 'h', y: -0.3, x: 0.5, xanchor: 'center' },
-                    autosize: true
-                  }}
-                  useResizeHandler={true}
-                  style={{ width: '100%', height: '100%' }}
-                />
-              </div>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 mb-6">
-            <div className="bg-[#0E1117] border border-st-border rounded p-4 shadow-sm animate-fade-in flex flex-col">
-              <div className="flex flex-col md:flex-row justify-between items-center mb-4 border-b border-st-border pb-2 gap-3 shrink-0">
-                <h3 className="text-lg font-bold text-st-text">Yields: Farm vs Push</h3>
-                
-                <div className="flex flex-wrap items-center gap-4 bg-st-bg border border-st-border rounded px-3 py-1.5 shadow-sm">
-                  <label className="flex items-center gap-1.5 text-xs font-bold text-st-text cursor-pointer hover:text-[#4ade80] transition-colors">
+            {/* TIMELINE CONTROLS */}
+            <div className="flex flex-wrap items-center gap-4 bg-[#161616] p-3 rounded border border-st-border">
+                <div className="flex items-center gap-3 pr-4 border-r border-st-border">
+                  <span className="text-xs font-bold text-gray-400">Yields:</span>
+                  <label className="flex items-center gap-1 text-xs font-bold text-st-text cursor-pointer hover:text-[#4ade80] transition-colors">
                     <input type="checkbox" checked={showXpRates} onChange={(e) => setShowXpRates(e.target.checked)} className="accent-[#4ade80]" /> 
                     Show XP
                   </label>
-                  <div className="w-px h-4 bg-st-border"></div>
-                  <label className="flex items-center gap-1.5 text-xs font-bold text-st-text cursor-pointer hover:text-[#facc15] transition-colors">
+                  <label className="flex items-center gap-1 text-xs font-bold text-st-text cursor-pointer hover:text-[#facc15] transition-colors">
                     <input type="checkbox" checked={showFragRates} onChange={(e) => setShowFragRates(e.target.checked)} className="accent-[#facc15]" /> 
-                    Show Frags:
+                    Show Frags
                   </label>
                   <select
                     value={selectedRateFrag}
                     onChange={(e) => setSelectedRateFrag(e.target.value)}
                     disabled={!showFragRates}
-                    className="bg-st-secondary/50 border border-st-border rounded px-2 py-0.5 text-xs text-st-text font-bold outline-none focus:border-[#facc15] disabled:opacity-30 cursor-pointer"
+                    className="bg-st-secondary border border-st-border rounded px-2 py-0.5 text-xs text-st-text outline-none cursor-pointer"
                   >
                     <option value="com">Common</option>
                     <option value="rare">Rare</option>
@@ -813,352 +805,147 @@ export default function PathfinderTab() {
                     <option value="div">Divine</option>
                   </select>
                 </div>
-              </div>
-              <div className="h-[400px] w-full">
-                <Plot
-                  data={[ 
-                    ...(showXpRates ?[
-                      {
-                        x: chartData.xVals,
-                        y: chartData.xpVals,
-                        type: 'scatter',
-                        mode: 'lines',
-                        name: 'Farm Build XP',
-                        line: { color: '#4ade80', shape: 'hv', width: 2 },
-                        yaxis: 'y'
-                      },
-                      {
-                        x: chartData.xVals,
-                        y: chartData.pushXpVals,
-                        type: 'scatter',
-                        mode: 'lines',
-                        name: 'Push Build XP',
-                        line: { color: '#ef4444', shape: 'hv', width: 1.5, dash: 'dot' },
-                        yaxis: 'y'
-                      }
-                    ] : [ ]),
-                    ...(showFragRates ?[
-                      {
-                        x: chartData.xVals,
-                        y: chartData.farmFragVals,
-                        type: 'scatter',
-                        mode: 'lines',
-                        name: `Farm ${chartData.fragUIName} / Min`,
-                        line: { color: '#facc15', shape: 'hv', width: 2 },
-                        yaxis: 'y2'
-                      },
-                      {
-                        x: chartData.xVals,
-                        y: chartData.pushFragVals,
-                        type: 'scatter',
-                        mode: 'lines',
-                        name: `Push ${chartData.fragUIName} / Min`,
-                        line: { color: '#ca8a04', shape: 'hv', width: 1.5, dash: 'dot' },
-                        yaxis: 'y2'
-                      }
-                    ] : [ ])
-                   ]}
-                  layout={{
-                    uirevision: 'constant_yield_zoom', // Preserves zoom natively across checkbox toggles globally!
-                    paper_bgcolor: 'transparent',
-                    plot_bgcolor: 'transparent',
-                    font: { color: '#FAFAFA' },
-                    margin: { l: 60, r: 60, t: 10, b: 80 },
-                    xaxis: { 
-                      title: { text: 'Timeline (Arch Secs)', standoff: 15 }, 
-                      gridcolor: '#333'
-                    },
-                    yaxis: showXpRates ? { 
-                      title: { text: 'XP / Min', standoff: 10 }, 
-                      titlefont: { color: '#4ade80' }, 
-                      tickfont: { color: '#4ade80' }, 
-                      gridcolor: '#333'
-                    } : { visible: false, showgrid: false },
-                    yaxis2: showFragRates ? { 
-                      title: { text: `${chartData.fragUIName} / Min`, standoff: 10 }, 
-                      titlefont: { color: '#facc15' }, 
-                      tickfont: { color: '#facc15' }, 
-                      overlaying: showXpRates ? 'y' : undefined, 
-                      side: showXpRates ? 'right' : 'left', 
-                      showgrid: !showXpRates, 
-                      gridcolor: '#333', 
-                      anchor: 'x',
-                      uirevision: selectedRateFrag // Overrides global uirevision to reset ONLY yaxis2 auto-scale when fragment changes!
-                    } : { visible: false, showgrid: false },
-                    legend: { orientation: 'h', y: -0.3, x: 0.5, xanchor: 'center' },
-                    autosize: true
-                  }}
-                  useResizeHandler={true}
-                  style={{ width: '100%', height: '100%' }}
-                />
-              </div>
+
+                <div className="flex items-center gap-3 pr-4 border-r border-st-border">
+                  <span className="text-xs font-bold text-gray-400">Economy Bank:</span>
+                  <select
+                    value={selectedFragPlot}
+                    onChange={(e) => setSelectedFragPlot(e.target.value)}
+                    className="bg-st-secondary border border-st-border rounded px-2 py-0.5 text-xs text-st-text outline-none cursor-pointer"
+                  >
+                    <option value="com">Common</option>
+                    <option value="rare">Rare</option>
+                    <option value="epic">Epic</option>
+                    <option value="leg">Legendary</option>
+                    <option value="myth">Mythic</option>
+                    <option value="div">Divine</option>
+                  </select>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-bold text-gray-400 mr-1">Card Filters:</span>
+                  {[ 
+                    { id: 'dirt', label: 'Dirt', color: 'border-[#78716c] text-[#78716c]' },
+                    { id: 'com', label: 'Common', color: 'border-[#9ca3af] text-[#9ca3af]' },
+                    { id: 'rare', label: 'Rare', color: 'border-[#3b82f6] text-[#3b82f6]' },
+                    { id: 'epic', label: 'Epic', color: 'border-[#a855f7] text-[#a855f7]' },
+                    { id: 'leg', label: 'Legendary', color: 'border-[#eab308] text-[#eab308]' },
+                    { id: 'myth', label: 'Mythic', color: 'border-[#ef4444] text-[#ef4444]' },
+                    { id: 'div', label: 'Divine', color: 'border-[#06b6d4] text-[#06b6d4]' }
+                   ].map(r => {
+                    const isActive = cardRarityFilter.includes(r.id);
+                    return (
+                      <button
+                        key={r.id}
+                        onClick={() => toggleRarityFilter(r.id)}
+                        className={`px-2 py-0.5 rounded text-[10px] font-bold border transition-colors ${
+                          isActive ? `${r.color} bg-st-secondary/50` : 'border-st-border text-st-text-light opacity-50 hover:opacity-100'
+                        }`}
+                      >
+                        {r.label}
+                      </button>
+                    );
+                  })}
+                </div>
             </div>
 
-            <div className="bg-[#0E1117] border border-st-border rounded p-4 shadow-sm animate-fade-in flex flex-col">
-              <div className="flex flex-col md:flex-row justify-between items-center mb-4 border-b border-st-border pb-2 gap-3">
-                <h3 className="text-lg font-bold text-st-text">Fragment Economy & Milestones</h3>
-              <select
-                value={selectedFragPlot}
-                onChange={(e) => setSelectedFragPlot(e.target.value)}
-                className="bg-st-secondary/50 border border-st-border rounded px-3 py-1.5 text-sm text-st-text font-bold outline-none focus:border-st-orange"
-              >
-                <option value="com">Common Fragments</option>
-                <option value="rare">Rare Fragments</option>
-                <option value="epic">Epic Fragments</option>
-                <option value="leg">Legendary Fragments</option>
-                <option value="myth">Mythic Fragments</option>
-                <option value="div">Divine Fragments</option>
-              </select>
+            {/* MASTER PLOT */}
+            <div className="w-full mt-4" style={{ height: '2400px' }}>
+              <Plot
+                data={[ 
+                  // 1. Progression
+                  { x: chartData.xVals, y: chartData.levelVals, type: 'scatter', mode: 'lines', name: 'Arch Level', line: { color: '#3b82f6', shape: 'hv', width: 2 }, yaxis: 'y', legendgroup: 'prog' },
+                  { x: chartData.xVals, y: chartData.floorVals, type: 'scatter', mode: 'lines', name: 'Max Floor', line: { color: '#ef4444', shape: 'hv', width: 2 }, yaxis: 'y', legendgroup: 'prog' },
+                  
+                  // 2. Opp Cost
+                  { x: chartData.pivotXVals, y: chartData.ttnlVals, type: 'scatter', mode: 'lines', name: 'Mins to Level (XP)', line: { color: '#f87171', shape: 'hv', width: 2 }, yaxis: 'y2', legendgroup: 'opp' },
+                  { x: chartData.pivotXVals, y: chartData.ttfVals, type: 'scatter', mode: 'lines', name: 'Mins to Major Upg', line: { color: '#a3e635', shape: 'hv', width: 2 }, yaxis: 'y2', legendgroup: 'opp' },
+                  
+                  // 3. Yields
+                  ...(showXpRates ?[
+                      { x: chartData.xVals, y: chartData.xpVals, type: 'scatter', mode: 'lines', name: 'Farm XP', line: { color: '#4ade80', shape: 'hv', width: 2 }, yaxis: 'y3', legendgroup: 'yields' },
+                      { x: chartData.xVals, y: chartData.pushXpVals, type: 'scatter', mode: 'lines', name: 'Push XP', line: { color: '#ef4444', shape: 'hv', width: 1.5, dash: 'dot' }, yaxis: 'y3', legendgroup: 'yields' }
+                  ] : [ ]),
+                  ...(showFragRates ?[
+                      { x: chartData.xVals, y: chartData.farmFragVals, type: 'scatter', mode: 'lines', name: `Farm ${chartData.fragUIName}/Min`, line: { color: '#facc15', shape: 'hv', width: 2 }, yaxis: 'y4', legendgroup: 'yields' },
+                      { x: chartData.xVals, y: chartData.pushFragVals, type: 'scatter', mode: 'lines', name: `Push ${chartData.fragUIName}/Min`, line: { color: '#ca8a04', shape: 'hv', width: 1.5, dash: 'dot' }, yaxis: 'y4', legendgroup: 'yields' }
+                  ] : [ ]),
+
+                  // 4. Economy
+                  { x: fragChartData.xVals, y: fragChartData.yVals, type: 'scatter', mode: 'lines', name: `${fragDict[selectedFragPlot]} Bank`, line: { color: fragChartData.color, width: 2, shape: 'hv' }, fill: 'tozeroy', fillcolor: fragChartData.color + '20', yaxis: 'y5', legendgroup: 'econ' },
+                  { x: fragChartData.markerX, y: fragChartData.markerY, type: 'scatter', mode: 'markers', name: 'Purchases', marker: { color: '#ffffff', size: 8, line: { color: fragChartData.color, width: 2 } }, text: fragChartData.markerText, hoverinfo: 'text', yaxis: 'y5', legendgroup: 'econ' },
+
+                  // 5. Farm Stats
+                  { x: farmChartData.xVals, y: farmChartData.stats.Str, type: 'scatter', mode: 'lines', name: 'Str', line: { color: '#ef4444', width: 2 }, yaxis: 'y6', legendgroup: 'stats' },
+                  { x: farmChartData.xVals, y: farmChartData.stats.Agi, type: 'scatter', mode: 'lines', name: 'Agi', line: { color: '#3b82f6', width: 2 }, yaxis: 'y6', legendgroup: 'stats' },
+                  { x: farmChartData.xVals, y: farmChartData.stats.Per, type: 'scatter', mode: 'lines', name: 'Per', line: { color: '#eab308', width: 2 }, yaxis: 'y6', legendgroup: 'stats' },
+                  { x: farmChartData.xVals, y: farmChartData.stats.Int, type: 'scatter', mode: 'lines', name: 'Int', line: { color: '#06b6d4', width: 2 }, yaxis: 'y6', legendgroup: 'stats' },
+                  { x: farmChartData.xVals, y: farmChartData.stats.Luck, type: 'scatter', mode: 'lines', name: 'Luck', line: { color: '#22c55e', width: 2 }, yaxis: 'y6', legendgroup: 'stats' },
+                  { x: farmChartData.xVals, y: farmChartData.stats.Div, type: 'scatter', mode: 'lines', name: 'Div', line: { color: '#f9a8d4', width: 2 }, yaxis: 'y6', legendgroup: 'stats' },
+                  { x: farmChartData.xVals, y: farmChartData.stats.Corr, type: 'scatter', mode: 'lines', name: 'Corr', line: { color: '#a855f7', width: 2, dash: 'dot' }, yaxis: 'y6', legendgroup: 'stats' },
+
+                  // 6. Corr Mechanics
+                  { x: corrDiagnosticsData.xVals, y: corrDiagnosticsData.armorCrackVals, type: 'scatter', mode: 'lines', name: 'Armor Crack', line: { color: '#ef4444', width: 2, shape: 'hv' }, yaxis: 'y7', legendgroup: 'corr' },
+                  { x: corrDiagnosticsData.xVals, y: corrDiagnosticsData.modPowerVals, type: 'scatter', mode: 'lines', name: 'Mod Power', line: { color: '#4ade80', width: 2, shape: 'hv' }, yaxis: 'y7', legendgroup: 'corr' },
+                  { x: corrDiagnosticsData.xVals, y: corrDiagnosticsData.corrVals, type: 'scatter', mode: 'none', fill: 'tozeroy', name: 'Corr Alloc', fillcolor: 'rgba(168, 85, 247, 0.25)', yaxis: 'y8', legendgroup: 'corr' },
+
+                  // 7. Cards
+                  ...cardSwimlaneData.traces.map(t => ({ ...t, yaxis: 'y9', legendgroup: 'cards' }))
+                 ]}
+                layout={{
+                  uirevision: 'master_timeline_zoom', // NEVER change this, keeps zoom locked in regardless of UI filtering!
+                  paper_bgcolor: 'transparent',
+                  plot_bgcolor: 'transparent',
+                  font: { color: '#FAFAFA' },
+                  margin: { l: 60, r: 60, t: 20, b: 40 },
+                  xaxis: { title: { text: 'Timeline (Arch Secs)', standoff: 15 }, gridcolor: '#333' },
+                  yaxis:  { domain: [ 0.883, 1.000 ], title: 'Progression', gridcolor: '#333' },
+                  yaxis2: { domain:[ 0.736, 0.853 ], title: 'Opp Cost (Mins)', type: 'log', gridcolor: '#333' },
+                  yaxis3: { domain:[ 0.589, 0.706 ], title: 'Yields', gridcolor: '#333' },
+                  yaxis4: { overlaying: 'y3', side: 'right', title: 'Frags/Min', gridcolor: '#333' },
+                  yaxis5: { domain:[ 0.442, 0.559 ], title: 'Economy Bank', gridcolor: '#333' },
+                  yaxis6: { domain: [ 0.295, 0.412 ], title: 'Farm Stats', gridcolor: '#333' },
+                  yaxis7: { domain:[ 0.148, 0.265 ], title: 'Corr Mechanics', gridcolor: '#333' },
+                  yaxis8: { overlaying: 'y7', side: 'right', title: 'Corr Alloc', range: [ 0, 16 ], tickfont: { color: '#c084fc' } },
+                  yaxis9: { domain:[ 0.000, 0.118 ], title: 'Card Drops', gridcolor: '#333', categoryorder: 'array', categoryarray:[ 'Tier 1', 'Tier 2', 'Tier 3', 'Tier 4' ] },
+                  showlegend: true,
+                  legend: { orientation: 'v', x: 1.05, y: 1 },
+                  autosize: true,
+                  hovermode: 'x' // Draws the vertical line through all charts!
+                }}
+                useResizeHandler={true}
+                style={{ width: '100%', height: '100%' }}
+              />
             </div>
+          </div>
+
+          {/* PUSH BUILD STATS (FLOOR-BASED X-AXIS) */}
+          <div className="bg-[#0E1117] border border-st-border rounded p-4 shadow-sm animate-fade-in mb-6">
+            <h3 className="text-lg font-bold text-st-text mb-4 border-b border-st-border pb-2 flex items-center gap-2">
+               Push Build Stat Distribution
+               <span className="text-[10px] bg-st-secondary text-gray-400 px-2 py-0.5 rounded font-mono font-normal border border-st-border">X-Axis = Max Floor</span>
+            </h3>
             <div className="h-[400px] w-full">
               <Plot
                 data={[ 
-                  {
-                    x: fragChartData.xVals,
-                    y: fragChartData.yVals,
-                    type: 'scatter',
-                    mode: 'lines',
-                    name: 'Bank Amount',
-                    line: { color: fragChartData.color, width: 2, shape: 'hv' },
-                    fill: 'tozeroy',
-                    fillcolor: fragChartData.color + '20'
-                  },
-                  {
-                    x: fragChartData.markerX,
-                    y: fragChartData.markerY,
-                    type: 'scatter',
-                    mode: 'markers',
-                    name: 'Purchased Upgrades',
-                    marker: { color: '#ffffff', size: 8, line: { color: fragChartData.color, width: 2 } },
-                    text: fragChartData.markerText,
-                    hoverinfo: 'text'
-                  }
+                  { x: pushChartData.floors, y: pushChartData.stats.Str, type: 'scatter', mode: 'lines+markers', name: 'Str', line: { color: '#ef4444', width: 2 } },
+                  { x: pushChartData.floors, y: pushChartData.stats.Agi, type: 'scatter', mode: 'lines+markers', name: 'Agi', line: { color: '#3b82f6', width: 2 } },
+                  { x: pushChartData.floors, y: pushChartData.stats.Per, type: 'scatter', mode: 'lines+markers', name: 'Per', line: { color: '#eab308', width: 2 } },
+                  { x: pushChartData.floors, y: pushChartData.stats.Int, type: 'scatter', mode: 'lines+markers', name: 'Int', line: { color: '#06b6d4', width: 2 } },
+                  { x: pushChartData.floors, y: pushChartData.stats.Luck, type: 'scatter', mode: 'lines+markers', name: 'Luck', line: { color: '#22c55e', width: 2 } },
+                  { x: pushChartData.floors, y: pushChartData.stats.Div, type: 'scatter', mode: 'lines+markers', name: 'Div', line: { color: '#f9a8d4', width: 2 } },
+                  { x: pushChartData.floors, y: pushChartData.stats.Corr, type: 'scatter', mode: 'lines+markers', name: 'Corr', line: { color: '#a855f7', width: 2, dash: 'dot' } },
+                  { x: pushChartData.floors, y: pushChartData.stats.Unspent, type: 'scatter', mode: 'lines+markers', name: 'Unspent', line: { color: '#ffffff', width: 2, dash: 'dash' } }
                  ]}
                 layout={{
                   paper_bgcolor: 'transparent',
                   plot_bgcolor: 'transparent',
                   font: { color: '#FAFAFA' },
                   margin: { l: 60, r: 20, t: 10, b: 80 },
-                  xaxis: { title: { text: 'Timeline (Arch Secs)', standoff: 15 }, gridcolor: '#333' },
-                  yaxis: { title: { text: 'Bank Amount', standoff: 10 }, gridcolor: '#333' },
+                  xaxis: { title: { text: 'Max Floor Pushed', standoff: 15 }, gridcolor: '#333' },
+                  yaxis: { title: { text: 'Stat Points Allocated', standoff: 10 }, gridcolor: '#333' },
                   legend: { orientation: 'h', y: -0.3, x: 0.5, xanchor: 'center' },
-                  autosize: true,
-                  hovermode: 'closest'
-                }}
-                useResizeHandler={true}
-                style={{ width: '100%', height: '100%' }}
-              />
-            </div>
-          </div>
-          </div>
-
-          <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 mb-6">
-            <div className="bg-[#0E1117] border border-st-border rounded p-4 shadow-sm animate-fade-in">
-              <h3 className="text-lg font-bold text-st-text mb-4 border-b border-st-border pb-2">Farm Build Stat Distribution</h3>
-              <div className="h-[400px] w-full">
-                <Plot
-                  data={[ 
-                    { x: farmChartData.xVals, y: farmChartData.stats.Str, type: 'scatter', mode: 'lines', name: 'Str', line: { color: '#ef4444', width: 2 } },
-                    { x: farmChartData.xVals, y: farmChartData.stats.Agi, type: 'scatter', mode: 'lines', name: 'Agi', line: { color: '#3b82f6', width: 2 } },
-                    { x: farmChartData.xVals, y: farmChartData.stats.Per, type: 'scatter', mode: 'lines', name: 'Per', line: { color: '#eab308', width: 2 } },
-                    { x: farmChartData.xVals, y: farmChartData.stats.Int, type: 'scatter', mode: 'lines', name: 'Int', line: { color: '#06b6d4', width: 2 } },
-                    { x: farmChartData.xVals, y: farmChartData.stats.Luck, type: 'scatter', mode: 'lines', name: 'Luck', line: { color: '#22c55e', width: 2 } },
-                    { x: farmChartData.xVals, y: farmChartData.stats.Div, type: 'scatter', mode: 'lines', name: 'Div', line: { color: '#f9a8d4', width: 2 } },
-                    { x: farmChartData.xVals, y: farmChartData.stats.Corr, type: 'scatter', mode: 'lines', name: 'Corr', line: { color: '#a855f7', width: 2, dash: 'dot' } },
-                    { x: farmChartData.xVals, y: farmChartData.stats.Unspent, type: 'scatter', mode: 'lines', name: 'Unspent', line: { color: '#ffffff', width: 2, dash: 'dash' } }
-                   ]}
-                  layout={{
-                    paper_bgcolor: 'transparent',
-                    plot_bgcolor: 'transparent',
-                    font: { color: '#FAFAFA' },
-                    margin: { l: 60, r: 20, t: 10, b: 80 },
-                    xaxis: { title: { text: 'Timeline (Arch Secs)', standoff: 15 }, gridcolor: '#333' },
-                    yaxis: { title: { text: 'Stat Points Allocated', standoff: 10 }, gridcolor: '#333' },
-                    legend: { orientation: 'h', y: -0.3, x: 0.5, xanchor: 'center' },
-                    autosize: true
-                  }}
-                  useResizeHandler={true}
-                  style={{ width: '100%', height: '100%' }}
-                />
-              </div>
-            </div>
-
-            <div className="bg-[#0E1117] border border-st-border rounded p-4 shadow-sm animate-fade-in">
-              <h3 className="text-lg font-bold text-st-text mb-4 border-b border-st-border pb-2">Push Build Stat Distribution</h3>
-              <div className="h-[400px] w-full">
-                <Plot
-                  data={[ 
-                    { x: pushChartData.floors, y: pushChartData.stats.Str, type: 'scatter', mode: 'lines+markers', name: 'Str', line: { color: '#ef4444', width: 2 } },
-                    { x: pushChartData.floors, y: pushChartData.stats.Agi, type: 'scatter', mode: 'lines+markers', name: 'Agi', line: { color: '#3b82f6', width: 2 } },
-                    { x: pushChartData.floors, y: pushChartData.stats.Per, type: 'scatter', mode: 'lines+markers', name: 'Per', line: { color: '#eab308', width: 2 } },
-                    { x: pushChartData.floors, y: pushChartData.stats.Int, type: 'scatter', mode: 'lines+markers', name: 'Int', line: { color: '#06b6d4', width: 2 } },
-                    { x: pushChartData.floors, y: pushChartData.stats.Luck, type: 'scatter', mode: 'lines+markers', name: 'Luck', line: { color: '#22c55e', width: 2 } },
-                    { x: pushChartData.floors, y: pushChartData.stats.Div, type: 'scatter', mode: 'lines+markers', name: 'Div', line: { color: '#f9a8d4', width: 2 } },
-                    { x: pushChartData.floors, y: pushChartData.stats.Corr, type: 'scatter', mode: 'lines+markers', name: 'Corr', line: { color: '#a855f7', width: 2, dash: 'dot' } },
-                    { x: pushChartData.floors, y: pushChartData.stats.Unspent, type: 'scatter', mode: 'lines+markers', name: 'Unspent', line: { color: '#ffffff', width: 2, dash: 'dash' } }
-                   ]}
-                  layout={{
-                    paper_bgcolor: 'transparent',
-                    plot_bgcolor: 'transparent',
-                    font: { color: '#FAFAFA' },
-                    margin: { l: 60, r: 20, t: 10, b: 80 },
-                    xaxis: { title: { text: 'Max Floor Pushed', standoff: 15 }, gridcolor: '#333' },
-                    yaxis: { title: { text: 'Stat Points Allocated', standoff: 10 }, gridcolor: '#333' },
-                    legend: { orientation: 'h', y: -0.3, x: 0.5, xanchor: 'center' },
-                    autosize: true
-                  }}
-                  useResizeHandler={true}
-                  style={{ width: '100%', height: '100%' }}
-                />
-              </div>
-            </div>
-          </div>
-
-          {/* MACRO CORRUPTION MECHANICS PANEL */}
-          <div className="bg-[#0E1117] border border-st-border rounded p-4 shadow-sm animate-fade-in mb-6 flex flex-col xl:flex-row gap-6">
-            <div className="xl:w-1/3 flex flex-col justify-center space-y-4">
-              <div className="border-b border-st-border pb-2">
-                <h3 className="text-lg font-bold text-st-text flex items-center gap-2">
-                  <span className="text-purple-400">🧠</span> Engine Mechanics: Corruption
-                </h3>
-                <p className="text-[11px] text-st-text-light mt-1 leading-relaxed">
-                  The Simulated Annealing engine does not guess; it follows strict mathematical breakpoints derived from telemetry.
-                </p>
-              </div>
-
-              <div className="space-y-3">
-                <div className="bg-st-secondary/30 p-3 rounded border border-st-border border-l-2 border-l-red-500">
-                  <h4 className="text-xs font-bold text-gray-200 mb-1">1. The Armor Veto (Pushing)</h4>
-                  <p className="text-[10px] text-gray-400">
-                    If effective armor zeroes out base damage, Corruption's multiplier is useless. To crack high-tier blocks (e.g., Divine), the engine forcefully zeroes out Corruption to afford the required <span className="text-red-400 font-mono">Str + Div + Per</span>.
-                  </p>
-                </div>
-
-                <div className="bg-st-secondary/30 p-3 rounded border border-st-border border-l-2 border-l-green-500">
-                  <h4 className="text-xs font-bold text-gray-200 mb-1">2. The Crippled Build Ratio</h4>
-                  <p className="text-[10px] text-gray-400">
-                    When farming low-tier cards (Dirt/Common), armor is irrelevant. The engine ignores Armor Crack and hyper-scales <span className="text-green-400 font-mono">Luck + Int</span>, multiplying the mod yields to the moon using maxed Corruption.
-                  </p>
-                </div>
-
-                <div className="bg-st-secondary/30 p-3 rounded border border-st-border border-l-2 border-l-purple-500">
-                  <h4 className="text-xs font-bold text-gray-200 mb-1">3. The Suicide Loop (Stamina Tax)</h4>
-                  <p className="text-[10px] text-gray-400">
-                    While maximizing Corruption, the engine intentionally starves <span className="text-blue-400 font-mono">Agility</span> to shrink the stamina pool. This forces rapid, low-floor resets to maximize kills-per-minute on weak blocks.
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            <div className="xl:w-2/3 h-[400px]">
-              <Plot
-                data={[ 
-                  { 
-                    x: corrDiagnosticsData.xVals, 
-                    y: corrDiagnosticsData.armorCrackVals, 
-                    type: 'scatter', 
-                    mode: 'lines', 
-                    name: 'Armor Crack (Str+Div+Per)', 
-                    line: { color: '#ef4444', width: 2, shape: 'hv' }, 
-                    yaxis: 'y' 
-                  },
-                  { 
-                    x: corrDiagnosticsData.xVals, 
-                    y: corrDiagnosticsData.modPowerVals, 
-                    type: 'scatter', 
-                    mode: 'lines', 
-                    name: 'Mod Power (Luck+Int|Per)', 
-                    line: { color: '#4ade80', width: 2, shape: 'hv' }, 
-                    yaxis: 'y' 
-                  },
-                  { 
-                    x: corrDiagnosticsData.xVals, 
-                    y: corrDiagnosticsData.corrVals, 
-                    type: 'scatter', 
-                    mode: 'none', 
-                    fill: 'tozeroy', 
-                    name: 'Corr Allocated', 
-                    fillcolor: 'rgba(168, 85, 247, 0.25)', 
-                    yaxis: 'y2' 
-                  }
-                 ]}
-                layout={{
-                  paper_bgcolor: 'transparent',
-                  plot_bgcolor: 'transparent',
-                  font: { color: '#FAFAFA' },
-                  margin: { l: 50, r: 50, t: 10, b: 50 },
-                  xaxis: { title: { text: 'Timeline (Arch Secs)', standoff: 15 }, gridcolor: '#333' },
-                  yaxis: { title: { text: 'Combined Stat Points', standoff: 10 }, gridcolor: '#333' },
-                  yaxis2: { 
-                    title: { text: 'Corruption Allocated', standoff: 10 }, 
-                    overlaying: 'y', 
-                    side: 'right', 
-                    range: [ 0, 16 ],
-                    showgrid: false,
-                    tickfont: { color: '#c084fc' },
-                    titlefont: { color: '#c084fc' }
-                  },
-                  legend: { orientation: 'h', y: -0.2, x: 0.5, xanchor: 'center' },
                   autosize: true
-                }}
-                useResizeHandler={true}
-                style={{ width: '100%', height: '100%' }}
-              />
-            </div>
-          </div>
-
-          <div className="bg-[#0E1117] border border-st-border rounded p-4 shadow-sm animate-fade-in mb-6">
-            <div className="flex flex-col md:flex-row justify-between items-center mb-4 border-b border-st-border pb-2 gap-3">
-              <h3 className="text-lg font-bold text-st-text shrink-0">Card Drops (Swimlanes)</h3>
-              
-              <div className="flex flex-wrap gap-2">
-                {[ 
-                  { id: 'dirt', label: 'Dirt', color: 'border-[#78716c] text-[#78716c]' },
-                  { id: 'com', label: 'Common', color: 'border-[#9ca3af] text-[#9ca3af]' },
-                  { id: 'rare', label: 'Rare', color: 'border-[#3b82f6] text-[#3b82f6]' },
-                  { id: 'epic', label: 'Epic', color: 'border-[#a855f7] text-[#a855f7]' },
-                  { id: 'leg', label: 'Legendary', color: 'border-[#eab308] text-[#eab308]' },
-                  { id: 'myth', label: 'Mythic', color: 'border-[#ef4444] text-[#ef4444]' },
-                  { id: 'div', label: 'Divine', color: 'border-[#06b6d4] text-[#06b6d4]' }
-                 ].map(r => {
-                  const isActive = cardRarityFilter.includes(r.id);
-                  return (
-                    <button
-                      key={r.id}
-                      onClick={() => toggleRarityFilter(r.id)}
-                      className={`px-3 py-1 rounded text-xs font-bold border transition-colors ${
-                        isActive ? `${r.color} bg-st-secondary/50` : 'border-st-border text-st-text-light opacity-50 hover:opacity-100'
-                      }`}
-                    >
-                      {r.label}
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-
-            <div className="h-[300px] w-full">
-              <Plot
-                data={cardSwimlaneData.traces}
-                layout={{
-                  paper_bgcolor: 'transparent',
-                  plot_bgcolor: 'transparent',
-                  font: { color: '#FAFAFA' },
-                  margin: { l: 60, r: 20, t: 10, b: 80 },
-                  xaxis: { 
-                    title: { text: 'Timeline (Arch Secs)', standoff: 15 }, 
-                    gridcolor: '#333',
-                    range: cardSwimlaneData.xRange
-                  },
-                  yaxis: { 
-                    title: { text: 'Block Tier', standoff: 10 }, 
-                    gridcolor: '#333', 
-                    categoryorder: 'array', 
-                    categoryarray:[ 'Tier 1', 'Tier 2', 'Tier 3', 'Tier 4' ] 
-                  },
-                  legend: { orientation: 'h', y: -0.3, x: 0.5, xanchor: 'center' },
-                  autosize: true,
-                  hovermode: 'closest'
                 }}
                 useResizeHandler={true}
                 style={{ width: '100%', height: '100%' }}
