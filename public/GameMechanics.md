@@ -105,10 +105,10 @@ The internal upgrade system is strictly gated by progression milestones and feat
 *   **Rounding Math:** Gem upgrade costs round to the nearest whole integer (with a special `Math.floor` exception exclusively for Ascension 0). Fragment upgrade costs strictly retain float precision, rounding to exactly two decimal places (`Math.round(amount * 100) / 100`).
 
 ## 7. IDOLS & THE DILUTION MECHANIC
-Idols are external systems that profoundly impact the Arch simulator. Upgrading an idol requires spending a specific tier of fragment. **Crucially, level-ups are random within a fragment category.** If I have multiple idols unlocked that share the same fragment cost, each level-up randomly selects among them, diluting my chances of hitting the idol I actually want.
+Idols are external systems that profoundly impact the Arch simulator. Upgrading an idol requires spending a specific tier of fragment. For all idols, the cost scales from a base value until it plateaus at a maximum of 999 fragments per level. **Crucially, level-ups are random within a fragment category.** If I have multiple idols unlocked that share the same fragment cost, each level-up randomly selects among them, diluting my chances of hitting the idol I actually want.
 
 *   **Hestia (Ascension 1):** 
-    *   **Cost:** Common Fragments (cost scales from base until plateauing at 999 per level).
+    *   **Cost:** Common Fragments.
     *   **Max Level:** 3000.
     *   **Unlock Req:** Arch Level 10 & Generator Level 30.
     *   **Effect:** Unlocks Infernal Misc cards (including the crucial Arch Ability Misc card). Provides +0.01% Fragment Gain per level.
