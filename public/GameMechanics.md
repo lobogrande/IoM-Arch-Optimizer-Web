@@ -84,8 +84,9 @@ Block Cards provide massive multiplicative bonuses to specific blocks, reducing 
 *   **Simulator RNG Math (Gamma Distribution):** When predicting the Time-to-Milestone or Opportunity Cost for fragment farming, the simulator uses a **Gamma Distribution**. Because higher-tier cards require collecting multiple fragments, the Gamma distribution accurately models that hunting for multiple drops mathematically smooths out RNG variance. Thus, the expected time to secure 10 drops is significantly less punishing than 10x the maximum RNG variance of a single drop.
 
 ## 6. UPGRADES, COST SCALING, & PROGRESSION
-The internal upgrade system is strictly gated by progression milestones and features complex cost inflation logic.
-*   **Unlock Requirements:** Upgrades only become available in the shop based on the player's All-Time Highest Floor reached (e.g., Upgrade 20 unlocks at Floor 9, Upgrade 55 unlocks at Floor 92).
+The internal upgrade system is strictly gated by progression milestones and features complex cost inflation logic. *(Note: Upgrade IDs like "Upgrade 8" or "Upgrade 55" are strictly internal to my codebase architecture. The actual game and my UI only expose the Upgrade Names to the user).*
+*   **The Ascension Reset:** When a player Ascends, they undergo a hard reset of their current run progress. All fragment pools are wiped to 0, Arch Level resets to 1, the Max Floor reached resets, and all previously purchased internal upgrades are reset back to Level 0.
+*   **Unlock Requirements:** Upgrades only become available in the shop based on the player's current Max Floor reached (e.g., Upgrade 20 unlocks at Floor 9, Upgrade 55 unlocks at Floor 92). Because of the Ascension Reset, players must climb floors to re-unlock the shop UI tiers on every new Ascension.
 *   **Ascension Restrictions:** Entire upgrade nodes are physically locked from the player based on their Ascension state. 
     *   *Pre-Ascension 1 Locks:* Upgrades 12, 17, 24, 32, 40, 47-51, 53, 54.
     *   *Pre-Ascension 2 Locks:* Upgrades 19, 27, 34, 46, 52, 55.
