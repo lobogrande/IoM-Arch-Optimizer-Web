@@ -307,8 +307,8 @@ const [simProgress, setSimProgress] = useState(0);
 
     // Group the data into three separate traces so Plotly generates a clickable legend!
     const traces = {
-      gilded: { x: [ ], y: [ ], text: [ ], mode: 'markers', name: 'Base/Gilded', marker: { symbol: 'circle', color: '#9ca3af', size: 8, line: { color: '#000', width: 1 } } },
-      poly: { x: [ ], y: [ ], text: [ ], mode: 'markers', name: 'Poly', marker: { symbol: 'diamond', color: '#a855f7', size: 10, line: { color: '#000', width: 1 } } },
+      gilded: { x: [ ], y: [ ], text: [ ], mode: 'markers', name: 'Base/Gilded', marker: { symbol: 'circle', color: '#ffffff', size: 8, line: { color: '#000', width: 1 } } },
+      poly: { x: [ ], y: [ ], text: [ ], mode: 'markers', name: 'Poly', marker: { symbol: 'diamond', color: '#22c55e', size: 10, line: { color: '#000', width: 1 } } },
       infernal: { x: [ ], y: [ ], text: [ ], mode: 'markers', name: 'Infernal', marker: { symbol: 'star', color: '#f97316', size: 14, line: { color: '#000', width: 1 } } }
     };
 
