@@ -192,37 +192,15 @@ const getShadowFragYields = async (pool, state, budget, caps) => {
     return results[0];
 };
 
-// Fast-tracks Phase 3 Endgame by using empirically-derived constrained builds
-const getCrippledYields = async (pool, state, targetMetric) => {
-    const variants =[
-        { Str: 0, Agi: 11, Per: 1, Int: 0, Luck: 0, Div: 1, Corr: 12 }, // The Empirically-Derived User Meta Build
-        { Str: 0, Agi: 15, Per: 0, Int: 0, Luck: 0, Div: 0, Corr: 15 }, // Pure Agi/Corr Focus
-        { Str: 1, Agi: 10, Per: 1, Int: 0, Luck: 1, Div: 1, Corr: 10 }, // Balanced Micro-Dosing
-        { Str: 5, Agi: 20, Per: 0, Int: 0, Luck: 5, Div: 5, Corr: 10 }, // Slightly higher floor safety
-        { Str: 0, Agi: 5,  Per: 0, Int: 0, Luck: 0, Div: 0, Corr: 5  }  // Extreme Cripple (Ultra Low HP blocks)
-    ];
-    
-    const caps = getEffectiveStatCaps(state);
-    const statsKeys = getAvailableStatKeys(state);
-    
-    let promises = variants.map(async (v) => {
-        const safeBuild = {};
-        statsKeys.forEach(s => safeBuild[s] = Math.min(v[s] || 0, caps[s] || 0));
-        const yields = await getSmoothedYields(pool, state, safeBuild, 3);
-        return { build: safeBuild, yields, val: yields[targetMetric] || 0 };
-    });
-    
-    const results = await Promise.all(promises);
-    results.sort((a, b) => b.val - a.val);
-    
-    return { bestBuild: results[0].build, bestYields: results[0].yields };
-};
-
 // Runs a lightning-fast Successive Halving Grid Search to completely escape local minima
-async function runFastOptimizer(pool, state, targetMetric, budget, previousBuild, samples = 5) {
+async function runFastOptimizer(pool, state, targetMetric, budget, previousBuild, samples = 5, allowUnspent = false) {
     await pool.syncState(state);
-    const stats = getAvailableStatKeys(state);
+    const baseStats = getAvailableStatKeys(state);
+    
+    // Inject "Unspent" as a virtual 8th stat so the optimizer can organically discover crippled builds
+    const stats = allowUnspent ?[ ...baseStats, 'Unspent' ] : baseStats;
     const caps = getEffectiveStatCaps(state);
+    if (allowUnspent) caps['Unspent'] = budget;
     
     // Ensure the baseline isn't cheating the math!
     const safePrevious = enforceBudget(previousBuild, stats, budget, caps);
@@ -622,12 +600,11 @@ export async function runPathfinderSimulation(startState, targetLevel, initialFr
         const farmMetric = determineFarmMetric(expNeededCheck);
         const crippled = isCrippledPhase(state);
         
-        let optFarm;
-        if (crippled) {
-            optFarm = await getCrippledYields(pool, state, farmMetric);
-        } else {
-            optFarm = await runFastOptimizer(pool, state, farmMetric, budget, state.base_stats, 3);
-        }
+        // Utilize the native optimizer, but unlock the "Unspent" dimension so it organically discovers crippled builds!
+        const optFarm = await runFastOptimizer(pool, state, farmMetric, budget, state.base_stats, 3, crippled);
+        
+        // Strip the virtual 'Unspent' key so it doesn't pollute the UI snapshot or formatting strings
+        if (crippled) delete optFarm.bestBuild.Unspent;
         
         state.base_stats = optFarm.bestBuild;
         currentFarmYields = optFarm.bestYields;
