@@ -17,8 +17,11 @@ export default function PathfinderTab() {
 const [simProgress, setSimProgress] = useState(0);
   const [groupBy, setGroupBy] = useState('floor'); // 'floor' or 'level'
   const [targetLevel, setTargetLevel] = useState("30"); // Absolute target level
-  const [startFrags, setStartFrags] = useState({ com: 0, rare: 0, epic: 0, leg: 0, myth: 0, div: 0 });
-  const [selectedFragPlot, setSelectedFragPlot] = useState('com');
+  const[startFrags, setStartFrags] = useState({ com: 0, rare: 0, epic: 0, leg: 0, myth: 0, div: 0 });
+  const[selectedFragPlot, setSelectedFragPlot] = useState('com');
+  
+  // Card Plot Filters
+  const[cardRarityFilter, setCardRarityFilter] = useState([ 'dirt', 'com', 'rare', 'epic', 'leg', 'myth', 'div' ]);
 
   const handleFragChange = (key, val) => {
     setStartFrags(prev => ({ ...prev, [key]: parseFloat(val) || 0 }));
@@ -298,6 +301,48 @@ const [simProgress, setSimProgress] = useState(0);
 
     return { xVals: finalXVals, yVals: finalYVals, markerX, markerY, markerText, color: colors[selectedFragPlot] };
   },[ pathData, selectedFragPlot ]);
+
+  const cardSwimlaneData = useMemo(() => {
+    if (!pathData) return null;
+
+    // Group the data into three separate traces so Plotly generates a clickable legend!
+    const traces = {
+      gilded: { x: [ ], y: [ ], text: [ ], mode: 'markers', name: 'Base/Gilded', marker: { symbol: 'circle', color: '#9ca3af', size: 8, line: { color: '#000', width: 1 } } },
+      poly: { x: [ ], y: [ ], text: [ ], mode: 'markers', name: 'Poly', marker: { symbol: 'diamond', color: '#a855f7', size: 10, line: { color: '#000', width: 1 } } },
+      infernal: { x: [ ], y: [ ], text: [ ], mode: 'markers', name: 'Infernal', marker: { symbol: 'star', color: '#f97316', size: 14, line: { color: '#000', width: 1 } } }
+    };
+
+    pathData.history.forEach(ev => {
+      if (ev.type === 'card') {
+        const parts = ev.event.split(': ');
+        if (parts.length < 2) return;
+        
+        const blockId = parts[1]; // e.g., "div4"
+        const rarity = blockId.replace(/[0-9]/g, '');
+        const tier = `Tier ${blockId.replace(/[^0-9]/g, '')}`;
+
+        if (!cardRarityFilter.includes(rarity)) return;
+
+        let category = 'gilded';
+        if (ev.event.includes('Poly')) category = 'poly';
+        else if (ev.event.includes('Infernal')) category = 'infernal';
+
+        traces[category].x.push(ev.arch_sec);
+        traces[category].y.push(tier);
+        traces[category].text.push(
+          `<b>${ev.event}</b><br>Arch Lvl: ${ev.level} | Max Flr: ${ev.floor}`
+        );
+      }
+    });
+
+    return[ traces.gilded, traces.poly, traces.infernal ];
+  }, [ pathData, cardRarityFilter ]);
+
+  const toggleRarityFilter = (rarity) => {
+    setCardRarityFilter(prev => 
+      prev.includes(rarity) ? prev.filter(r => r !== rarity) : [ ...prev, rarity ]
+    );
+  };
 
   const templates = {
     founder: {
@@ -744,6 +789,61 @@ const [simProgress, setSimProgress] = useState(0);
                   margin: { l: 60, r: 20, t: 10, b: 80 },
                   xaxis: { title: { text: 'Timeline (Arch Secs)', standoff: 15 }, gridcolor: '#333' },
                   yaxis: { title: { text: 'Bank Amount', standoff: 10 }, gridcolor: '#333' },
+                  legend: { orientation: 'h', y: -0.3, x: 0.5, xanchor: 'center' },
+                  autosize: true,
+                  hovermode: 'closest'
+                }}
+                useResizeHandler={true}
+                style={{ width: '100%', height: '100%' }}
+              />
+            </div>
+          </div>
+
+          <div className="bg-[#0E1117] border border-st-border rounded p-4 shadow-sm animate-fade-in mb-6">
+            <div className="flex flex-col md:flex-row justify-between items-center mb-4 border-b border-st-border pb-2 gap-3">
+              <h3 className="text-lg font-bold text-st-text shrink-0">Card Drops (Swimlanes)</h3>
+              
+              <div className="flex flex-wrap gap-2">
+                {[ 
+                  { id: 'dirt', label: 'Dirt', color: 'border-[#78716c] text-[#78716c]' },
+                  { id: 'com', label: 'Common', color: 'border-[#9ca3af] text-[#9ca3af]' },
+                  { id: 'rare', label: 'Rare', color: 'border-[#3b82f6] text-[#3b82f6]' },
+                  { id: 'epic', label: 'Epic', color: 'border-[#a855f7] text-[#a855f7]' },
+                  { id: 'leg', label: 'Legendary', color: 'border-[#eab308] text-[#eab308]' },
+                  { id: 'myth', label: 'Mythic', color: 'border-[#ef4444] text-[#ef4444]' },
+                  { id: 'div', label: 'Divine', color: 'border-[#06b6d4] text-[#06b6d4]' }
+                 ].map(r => {
+                  const isActive = cardRarityFilter.includes(r.id);
+                  return (
+                    <button
+                      key={r.id}
+                      onClick={() => toggleRarityFilter(r.id)}
+                      className={`px-3 py-1 rounded text-xs font-bold border transition-colors ${
+                        isActive ? `${r.color} bg-st-secondary/50` : 'border-st-border text-st-text-light opacity-50 hover:opacity-100'
+                      }`}
+                    >
+                      {r.label}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            <div className="h-[300px] w-full">
+              <Plot
+                data={cardSwimlaneData}
+                layout={{
+                  paper_bgcolor: 'transparent',
+                  plot_bgcolor: 'transparent',
+                  font: { color: '#FAFAFA' },
+                  margin: { l: 60, r: 20, t: 10, b: 80 },
+                  xaxis: { title: { text: 'Timeline (Arch Secs)', standoff: 15 }, gridcolor: '#333' },
+                  yaxis: { 
+                    title: { text: 'Block Tier', standoff: 10 }, 
+                    gridcolor: '#333', 
+                    categoryorder: 'array', 
+                    categoryarray:[ 'Tier 1', 'Tier 2', 'Tier 3', 'Tier 4' ] 
+                  },
                   legend: { orientation: 'h', y: -0.3, x: 0.5, xanchor: 'center' },
                   autosize: true,
                   hovermode: 'closest'
