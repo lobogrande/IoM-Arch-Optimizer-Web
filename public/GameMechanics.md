@@ -42,7 +42,7 @@ Combat is a micro-tick simulated timeline. Damage resolution strictly follows a 
 *   **Spawning Hierarchy:** The 24-slot grid is generated sequentially using top-down probability checks. It attempts to roll the highest unlocked rarity first (Divine ➔ Mythic ➔ down to Dirt). If a rarity succeeds its 1-in-X chance, it spawns. 
 *   **Ascension Failsafes:** Pre-Ascension 1, any rolled Divine blocks are forcefully downgraded to Mythic. Pre-Ascension 2, Tier 4 blocks are downgraded to Tier 3.
 *   **Floor Scaling & Known Bugs:** Base HP strictly doubles and Armor multiplies by 1.5 at fixed intervals (Floors 100, 150, 200, 250, etc.). *Note: The math contains known GameMaker bugs: Floor 150 skips the armor scale, and Floor 300 triggers the HP/Armor doubling twice.*
-*   **Gleaming Floors:** Entire floors have a chance to spawn as "Gleaming," which applies a global multiplier (`gleaming_multi`) to all XP and Loot gained from blocks on that specific floor.
+*   **Gleaming Floors (Ascension 2+ Only):** Entire floors have a chance to spawn as "Gleaming," applying a global multiplier (`gleaming_multi`) to all XP and Loot gained from blocks on that specific floor. This mechanic relies on two distinct player stats: **Gleaming Chance** and **Gleaming Multiplier**. Both stats start at a baseline and can be significantly scaled through specific Upgrades (e.g., Upgrades 19 and 46) and Infernal Card bonuses (e.g., Mythic 1, Divine 2, Dirt 4).
 *   **Modifiers (Mods) Mechanics:**
     *   Mods are predetermined properties attached to the block the exact moment it spawns.
     *   A block rolls independently for each of the 4 Mod types (Exp, Loot, Stamina, Speed) based on the player's respective Mod Chance stats.
