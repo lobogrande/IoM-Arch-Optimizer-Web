@@ -213,18 +213,17 @@ class CombatSimulator:
                         # Did it roll an Auto-Tap?
                         if random.random() < p_crosshair_auto_tap:
                             ch_base_dmg = p_enraged_damage if is_enrage else p_damage
+                            ch_eff_armor = max(0, target_block.armor - p_armor_pen)
                             
                             # Did it roll a Gold (Crit) Crosshair?
                             if random.random() < p_gold_crosshair_chance:
                                 ch_crit_mult, ch_crit_type = roll_crit(is_enrage)
                                 state.hit_counts[ch_crit_type] += 1
-                                ch_dmg = ch_base_dmg * p_gold_crosshair_mult * ch_crit_mult
+                                # Fix: Apply armor BEFORE crit and gold multipliers!
+                                ch_actual_dmg = max(1.0, (ch_base_dmg - ch_eff_armor) * p_gold_crosshair_mult * ch_crit_mult)
                             else:
-                                ch_dmg = ch_base_dmg
+                                ch_actual_dmg = max(1.0, ch_base_dmg - ch_eff_armor)
                                 
-                            ch_eff_armor = max(0, target_block.armor - p_armor_pen)
-                            ch_actual_dmg = max(1.0, ch_dmg - ch_eff_armor)
-                            
                             eff_ch = min(ch_actual_dmg, target_block.hp)
                             state.overkill_damage += (ch_actual_dmg - eff_ch)
                             state.crosshair_damage += ch_actual_dmg
