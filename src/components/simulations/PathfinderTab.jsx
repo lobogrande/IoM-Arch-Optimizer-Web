@@ -760,15 +760,17 @@ export default function PathfinderTab() {
                 </div>
             </div>
 
-            {/* TIMELINE CONTROLS */}
-            <div className="flex flex-wrap items-center gap-4 bg-[#161616] p-3 rounded border border-st-border">
-                <div className="flex items-center gap-3 pr-4 border-r border-st-border">
-                  <span className="text-xs font-bold text-gray-400">Yields:</span>
-                  <label className="flex items-center gap-1 text-xs font-bold text-st-text cursor-pointer hover:text-[#4ade80] transition-colors">
+            {/* MASTER PLOT (With embedded, absolutely positioned controls) */}
+            <div className="w-full mt-4 relative" style={{ height: '2800px' }}>
+              
+              {/* YIELDS CONTROLS (Absolute positioned to match Plot 3 domain: 0.706 top) */}
+              <div className="absolute right-[80px] z-10 flex items-center gap-3 bg-[#111] border border-st-border px-3 py-1.5 rounded shadow-md" style={{ top: '805px' }}>
+                  <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Filters:</span>
+                  <label className="flex items-center gap-1 text-[11px] font-bold text-st-text cursor-pointer hover:text-[#4ade80] transition-colors">
                     <input type="checkbox" checked={showXpRates} onChange={(e) => setShowXpRates(e.target.checked)} className="accent-[#4ade80]" /> 
                     Show XP
                   </label>
-                  <label className="flex items-center gap-1 text-xs font-bold text-st-text cursor-pointer hover:text-[#facc15] transition-colors">
+                  <label className="flex items-center gap-1 text-[11px] font-bold text-st-text cursor-pointer hover:text-[#facc15] transition-colors">
                     <input type="checkbox" checked={showFragRates} onChange={(e) => setShowFragRates(e.target.checked)} className="accent-[#facc15]" /> 
                     Show Frags
                   </label>
@@ -776,7 +778,7 @@ export default function PathfinderTab() {
                     value={selectedRateFrag}
                     onChange={(e) => setSelectedRateFrag(e.target.value)}
                     disabled={!showFragRates}
-                    className="bg-st-secondary border border-st-border rounded px-2 py-0.5 text-xs text-st-text outline-none cursor-pointer"
+                    className="bg-[#1a1a1a] border border-st-border rounded px-1.5 py-0.5 text-[10px] text-st-text outline-none cursor-pointer"
                   >
                     <option value="com">Common</option>
                     <option value="rare">Rare</option>
@@ -785,14 +787,15 @@ export default function PathfinderTab() {
                     <option value="myth">Mythic</option>
                     <option value="div">Divine</option>
                   </select>
-                </div>
+              </div>
 
-                <div className="flex items-center gap-3 pr-4 border-r border-st-border">
-                  <span className="text-xs font-bold text-gray-400">Economy Bank:</span>
+              {/* ECONOMY CONTROLS (Absolute positioned to match Plot 4 domain: 0.559 top) */}
+              <div className="absolute right-[80px] z-10 flex items-center gap-2 bg-[#111] border border-st-border px-3 py-1.5 rounded shadow-md" style={{ top: '1205px' }}>
+                  <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Select Bank:</span>
                   <select
                     value={selectedFragPlot}
                     onChange={(e) => setSelectedFragPlot(e.target.value)}
-                    className="bg-st-secondary border border-st-border rounded px-2 py-0.5 text-xs text-st-text outline-none cursor-pointer"
+                    className="bg-[#1a1a1a] border border-st-border rounded px-2 py-0.5 text-[11px] font-bold text-st-text outline-none cursor-pointer focus:border-st-orange"
                   >
                     <option value="com">Common</option>
                     <option value="rare">Rare</option>
@@ -801,10 +804,11 @@ export default function PathfinderTab() {
                     <option value="myth">Mythic</option>
                     <option value="div">Divine</option>
                   </select>
-                </div>
+              </div>
 
-                <div className="flex items-center gap-2">
-                  <span className="text-xs font-bold text-gray-400 mr-1">Card Filters:</span>
+              {/* CARD CONTROLS (Absolute positioned to match Plot 7 domain: 0.118 top) */}
+              <div className="absolute right-[80px] z-10 flex items-center gap-1.5 bg-[#111] border border-st-border px-3 py-1.5 rounded shadow-md" style={{ top: '2405px' }}>
+                  <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mr-1">Tiers:</span>
                   {[ 
                     { id: 'dirt', label: 'Dirt', color: 'border-[#78716c] text-[#78716c]' },
                     { id: 'com', label: 'Common', color: 'border-[#9ca3af] text-[#9ca3af]' },
@@ -819,7 +823,7 @@ export default function PathfinderTab() {
                       <button
                         key={r.id}
                         onClick={() => toggleRarityFilter(r.id)}
-                        className={`px-2 py-0.5 rounded text-[10px] font-bold border transition-colors ${
+                        className={`px-1.5 py-0.5 rounded text-[9px] font-bold border transition-colors ${
                           isActive ? `${r.color} bg-st-secondary/50` : 'border-st-border text-st-text-light opacity-50 hover:opacity-100'
                         }`}
                       >
@@ -827,11 +831,8 @@ export default function PathfinderTab() {
                       </button>
                     );
                   })}
-                </div>
-            </div>
+              </div>
 
-            {/* MASTER PLOT */}
-            <div className="w-full mt-4" style={{ height: '2800px' }}>
               <Plot
                 data={[ 
                   // 1. Progression
@@ -846,7 +847,7 @@ export default function PathfinderTab() {
                   ...(showXpRates ?[
                       { x: chartData.xVals, y: chartData.xpVals, type: 'scatter', mode: 'lines', name: 'Farm XP', line: { color: '#4ade80', shape: 'hv', width: 2 }, xaxis: 'x3', yaxis: 'y3', legendgroup: 'yields' },
                       { x: chartData.xVals, y: chartData.pushXpVals, type: 'scatter', mode: 'lines', name: 'Push XP', line: { color: '#ef4444', shape: 'hv', width: 1.5, dash: 'dot' }, xaxis: 'x3', yaxis: 'y3', legendgroup: 'yields' }
-                  ] : [ ]),
+                  ] :[ ]),
                   ...(showFragRates ?[
                       { x: chartData.xVals, y: chartData.farmFragVals, type: 'scatter', mode: 'lines', name: `Farm ${chartData.fragUIName}/Min`, line: { color: '#facc15', shape: 'hv', width: 2 }, xaxis: 'x3', yaxis: 'y4', legendgroup: 'yields' },
                       { x: chartData.xVals, y: chartData.pushFragVals, type: 'scatter', mode: 'lines', name: `Push ${chartData.fragUIName}/Min`, line: { color: '#ca8a04', shape: 'hv', width: 1.5, dash: 'dot' }, xaxis: 'x3', yaxis: 'y4', legendgroup: 'yields' }
@@ -892,12 +893,12 @@ export default function PathfinderTab() {
                   // Y-Axes (Perfectly spaced mathematically: gap=0.038, height=0.110)
                   yaxis:  { domain: [0.888, 0.998], title: { text: 'Milestone', font: { size: 11 } }, gridcolor: '#333', automargin: true },
                   yaxis2: { domain:[0.740, 0.850], title: { text: 'Cost (Mins)', font: { size: 11 } }, type: 'log', gridcolor: '#333', automargin: true },
-                  yaxis3: { domain: [0.592, 0.702], title: { text: 'Yields', font: { size: 11 } }, gridcolor: '#333', automargin: true },
+                  yaxis3: { domain:[0.592, 0.702], title: { text: 'Yields', font: { size: 11 } }, gridcolor: '#333', automargin: true },
                   yaxis4: { overlaying: 'y3', side: 'right', title: { text: 'Frags/Min', font: { size: 11 } }, automargin: true },
-                  yaxis5: { domain: [0.444, 0.554], title: { text: 'Bank Amt', font: { size: 11 } }, gridcolor: '#333', automargin: true },
+                  yaxis5: { domain:[0.444, 0.554], title: { text: 'Bank Amt', font: { size: 11 } }, gridcolor: '#333', automargin: true },
                   yaxis6: { domain: [0.296, 0.406], title: { text: 'Points', font: { size: 11 } }, gridcolor: '#333', automargin: true },
                   yaxis7: { domain:[0.148, 0.258], title: { text: 'Combined', font: { size: 11 } }, gridcolor: '#333', automargin: true },
-                  yaxis8: { overlaying: 'y7', side: 'right', range: [ 0, 16 ], tickfont: { color: '#c084fc' }, title: { text: 'Corr Alloc', font: { color: '#c084fc', size: 11 } }, automargin: true },
+                  yaxis8: { overlaying: 'y7', side: 'right', range:[ 0, 16 ], tickfont: { color: '#c084fc' }, title: { text: 'Corr Alloc', font: { color: '#c084fc', size: 11 } }, automargin: true },
                   yaxis9: { domain:[0.000, 0.110], title: { text: 'Block Tier', font: { size: 11 } }, gridcolor: '#333', categoryorder: 'array', categoryarray:[ 'Tier 1', 'Tier 2', 'Tier 3', 'Tier 4' ], automargin: true },
                   
                   // Annotations for Subplot Titles
