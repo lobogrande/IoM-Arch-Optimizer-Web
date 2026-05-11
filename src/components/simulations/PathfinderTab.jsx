@@ -334,9 +334,18 @@ const [simProgress, setSimProgress] = useState(0);
         );
       }
     });
+    
+    // Calculate full absolute timeline range (with 2% padding) so the x-axis doesn't auto-shrink when filtering!
+    let xRange = undefined;
+    if (pathData.history.length > 0) {
+      const minX = pathData.history[0].arch_sec;
+      const maxX = pathData.history[pathData.history.length - 1].arch_sec;
+      const pad = (maxX - minX) * 0.02 || 10;
+      xRange =[ minX - pad, maxX + pad ];
+    }
 
-    return[ traces.gilded, traces.poly, traces.infernal ];
-  }, [ pathData, cardRarityFilter ]);
+    return { traces:[ traces.gilded, traces.poly, traces.infernal ], xRange };
+  },[ pathData, cardRarityFilter ]);
 
   const toggleRarityFilter = (rarity) => {
     setCardRarityFilter(prev => 
@@ -831,13 +840,17 @@ const [simProgress, setSimProgress] = useState(0);
 
             <div className="h-[300px] w-full">
               <Plot
-                data={cardSwimlaneData}
+                data={cardSwimlaneData.traces}
                 layout={{
                   paper_bgcolor: 'transparent',
                   plot_bgcolor: 'transparent',
                   font: { color: '#FAFAFA' },
                   margin: { l: 60, r: 20, t: 10, b: 80 },
-                  xaxis: { title: { text: 'Timeline (Arch Secs)', standoff: 15 }, gridcolor: '#333' },
+                  xaxis: { 
+                    title: { text: 'Timeline (Arch Secs)', standoff: 15 }, 
+                    gridcolor: '#333',
+                    range: cardSwimlaneData.xRange
+                  },
                   yaxis: { 
                     title: { text: 'Block Tier', standoff: 10 }, 
                     gridcolor: '#333', 
