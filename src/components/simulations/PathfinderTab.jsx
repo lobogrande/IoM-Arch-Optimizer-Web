@@ -222,11 +222,39 @@ export default function PathfinderTab() {
     return { xVals, xpVals, pushXpVals, farmFragVals, pushFragVals, fragUIName, levelVals, floorVals, pivotXVals: finalPivotX, ttnlVals: finalTtnl, ttfVals: finalTtf };
   },[ pathData, selectedRateFrag ]);
 
+  const pushChartData = useMemo(() => {
+    if (!pathData) return null;
+    const floors =[ ];
+    const stats = { Str:[ ], Agi:[ ], Per:[ ], Int:[ ], Luck:[ ], Div:[ ], Corr:[ ], Unspent:[ ] };
+    const statKeys =[ 'Str', 'Agi', 'Per', 'Int', 'Luck', 'Div', 'Corr' ];
+
+    pathData.history.forEach(ev => {
+      if (ev.type === 'floor' && ev.active_build_str) {
+        floors.push(ev.floor);
+        // Extract the array from "[1/7/0/0/1/9/0]"
+        const match = ev.active_build_str.match(/\[(.*?)\]/);
+        if (match) {
+          const parts = match[1].split('/');
+          let used = 0;
+          statKeys.forEach((key, idx) => {
+            const val = parseInt(parts[idx]) || 0;
+            stats[key].push(val);
+            used += val;
+          });
+          const budget = (ev.level || 1) + (ev.state_snapshot?.upgrade_levels?.[ 12 ] || 0);
+          stats.Unspent.push(Math.max(0, budget - used));
+        }
+      }
+    });
+
+    return { floors, stats };
+  }, [ pathData ]);
+
   const farmChartData = useMemo(() => {
     if (!pathData) return null;
     const xVals =[ ];
     const stats = { Str:[ ], Agi:[ ], Per:[ ], Int:[ ], Luck:[ ], Div:[ ], Corr:[ ], Unspent:[ ] };
-    const statKeys =['Str', 'Agi', 'Per', 'Int', 'Luck', 'Div', 'Corr'];
+    const statKeys =[ 'Str', 'Agi', 'Per', 'Int', 'Luck', 'Div', 'Corr' ];
 
     pathData.history.forEach(ev => {
       if (ev.state_snapshot && ev.state_snapshot.base_stats) {
