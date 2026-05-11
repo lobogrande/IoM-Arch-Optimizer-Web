@@ -7,6 +7,7 @@
 ## 1. THE STAT SYSTEM (Mathematical Realities)
 The game does not use standard RPG stat definitions. Stats often dual-scale and have heavily intertwined formulas. **Crucially, stat utility evolves; many stats gain entirely new modifiers or massively increased scaling coefficients later in the game via specific upgrades or Ascensions.**
 
+*   **Stat Budget Acquisition:** I receive 1 allocatable stat point for every Arch Level gained. Additionally, Upgrade 12 ("Stat Points") grants up to +5 extra stat points (+1 per level). However, Upgrade 12 is entirely locked during Ascension 0 and only becomes available once Ascension 1 is reached.
 *   **Strength (Str):** Double-dips into Damage. Early on, it provides a base additive damage increase and a small multiplier. Later (via Upgrades 25, 36, 47, and 51), its multiplier scaling drastically increases, and it begins significantly compounding `crit_dmg_mult`.
 *   **Agility (Agi):** The primary source of Max Stamina. Also provides minor Crit Chance and Speed Mod Chance. Its base stamina yield (`5 * Agi`) is heavily amplified later by Upgrade 26 (`Max Sta/Mod Chance`).
 *   **Perception (Per):** Increases Armor Penetration, Fragment/Loot Gain Multipliers, and Loot Mod Chance. Upgrade 33 vastly amplifies its base Armor Penetration and Mod Chance coefficients.
