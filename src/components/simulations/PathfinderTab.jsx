@@ -266,25 +266,6 @@ export default function PathfinderTab() {
 
   const fragDict = { 'com': 'Common', 'rare': 'Rare', 'epic': 'Epic', 'leg': 'Legendary', 'myth': 'Mythic', 'div': 'Divine' };
 
-  const corrDiagnosticsData = useMemo(() => {
-    if (!pathData) return null;
-    const xVals = [ ];
-    const corrVals = [ ];
-    const armorCrackVals = [ ];
-    const modPowerVals = [ ];
-
-    pathData.history.forEach(ev => {
-      if (ev.state_snapshot && ev.state_snapshot.base_stats) {
-        xVals.push(ev.arch_sec);
-        const stats = ev.state_snapshot.base_stats;
-        corrVals.push(stats.Corr || 0);
-        armorCrackVals.push((stats.Str || 0) + (stats.Div || 0) + (stats.Per || 0));
-        modPowerVals.push((stats.Luck || 0) + Math.max(stats.Int || 0, stats.Per || 0));
-      }
-    });
-    return { xVals, corrVals, armorCrackVals, modPowerVals };
-  }, [ pathData ]);
-
   const fragChartData = useMemo(() => {
     if (!pathData) return null;
     const xVals = [ ];
