@@ -131,6 +131,7 @@ const [simProgress, setSimProgress] = useState(0);
     if (!pathData) return null;
     const xVals =[ ];
     const xpVals =[ ];
+    const pushXpVals =[ ];
     const divVals =[ ];
     const levelVals =[ ];
     const floorVals =[ ];
@@ -146,8 +147,10 @@ const [simProgress, setSimProgress] = useState(0);
       xVals.push(ev.arch_sec);
       
       const xpRate = ev.yields?.farm?.xp_per_min || 0;
+      const pushXpRate = ev.yields?.push?.xp_per_min || 0;
       
       xpVals.push(xpRate);
+      pushXpVals.push(pushXpRate);
       divVals.push(ev.yields?.farm?.frag_6_per_min || 0);
       levelVals.push(ev.level || 1);
       floorVals.push(ev.floor || 1);
@@ -205,8 +208,8 @@ const [simProgress, setSimProgress] = useState(0);
         finalTtf = ttfVals.slice(0, sliceEnd);
     }
 
-    return { xVals, xpVals, divVals, levelVals, floorVals, pivotXVals: finalPivotX, ttnlVals: finalTtnl, ttfVals: finalTtf };
-  }, [ pathData ]);
+    return { xVals, xpVals, pushXpVals, divVals, levelVals, floorVals, pivotXVals: finalPivotX, ttnlVals: finalTtnl, ttfVals: finalTtf };
+  },[ pathData ]);
 
   const pushChartData = useMemo(() => {
     if (!pathData) return null;
@@ -725,17 +728,26 @@ const [simProgress, setSimProgress] = useState(0);
 
           <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 mb-6">
             <div className="bg-[#0E1117] border border-st-border rounded p-4 shadow-sm animate-fade-in">
-              <h3 className="text-lg font-bold text-st-text mb-4 border-b border-st-border pb-2">Farm Yields over Time</h3>
+              <h3 className="text-lg font-bold text-st-text mb-4 border-b border-st-border pb-2">XP Yields: Farm vs Push</h3>
               <div className="h-[400px] w-full">
                 <Plot
-                  data={[
+                  data={[ 
                     {
                       x: chartData.xVals,
                       y: chartData.xpVals,
                       type: 'scatter',
                       mode: 'lines',
-                      name: 'XP / Min',
+                      name: 'Farm Build XP',
                       line: { color: '#4ade80', shape: 'hv', width: 2 },
+                      yaxis: 'y'
+                    },
+                    {
+                      x: chartData.xVals,
+                      y: chartData.pushXpVals,
+                      type: 'scatter',
+                      mode: 'lines',
+                      name: 'Push Build XP',
+                      line: { color: '#ef4444', shape: 'hv', width: 1.5, dash: 'dot' },
                       yaxis: 'y'
                     },
                     {
@@ -747,7 +759,7 @@ const [simProgress, setSimProgress] = useState(0);
                       line: { color: '#facc15', shape: 'hv', width: 2 },
                       yaxis: 'y2'
                     }
-                  ]}
+                   ] }
                   layout={{
                     paper_bgcolor: 'transparent',
                     plot_bgcolor: 'transparent',
