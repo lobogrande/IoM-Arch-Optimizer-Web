@@ -52,10 +52,11 @@ Combat is a micro-tick simulated timeline. Damage resolution strictly follows a 
 *   **The Anti-Milking Rule:** Modifiers are **ONLY** evaluated and applied when the block's HP reaches 0. You cannot "milk" a block by hitting it multiple times to repeatedly trigger an attached mod.
 
 ## 4. SKILLS, COOLDOWNS, & INSTA-CHARGING
-Skills are fully automated in the simulator via Upgrade 8 (Auto-Cast). They have distinct trigger mechanisms and can freely overlap, creating massive burst-damage windows.
-*   **Duration vs. Charges:** 
-    *   **Flurry** is *time-based*. It runs on a duration timer (base 5s) and ticks down in real-time. It grants a flat attack speed boost and instantly refunds flat Stamina upon casting.
-    *   **Enrage** and **Quake** are *charge-based*. They provide a set number of enhanced attacks (base 5 charges each). These charges only deplete when a hit actually lands.
+Skills are enabled in the simulator via Upgrade 8 (which also unlocks the in-game auto-cast feature, assumed always-on for idle simulation). They have distinct trigger mechanisms and can freely overlap, creating massive burst-damage windows.
+*   **Skill Effects & Triggers:** 
+    *   **Flurry** is *time-based*. It runs on a duration timer (base 5s) and ticks down in real-time. It grants a multiplicative attack speed boost and instantly refunds a flat amount of Stamina upon casting.
+    *   **Enrage** is *charge-based* (base 5 charges). It applies an additive multiplier to the player's base damage, and crucially, provides a massive secondary boost to the Critical Damage multiplier. Charges only deplete when a hit actually lands.
+    *   **Quake** is *charge-based* (base 5 charges). When a hit lands, it consumes a charge to trigger an AoE splash attack, dealing a percentage of the player's base damage to all remaining blocks on the active floor path. Quake hits roll their own independent critical strikes and interact individually with the effective armor of each background block.
 *   **Skill Synergies:** Because they do not block each other, an active Flurry (faster attack speed) will rapidly accelerate the consumption of Enrage and Quake charges, concentrating their burst damage. 
 *   **Cooldowns & Enhancements:**
     *   Base cooldowns are 60s (Enrage), 120s (Flurry), and 180s (Quake).
