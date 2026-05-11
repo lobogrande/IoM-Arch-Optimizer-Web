@@ -8,6 +8,84 @@ import PlotComponent from 'react-plotly.js';
 // Vite/CommonJS Interop Fix: Extract the component if Vite wrapped it in a Module object
 const Plot = PlotComponent.default || PlotComponent;
 
+function CorruptionInsight({ currentBuild }) {
+  if (!currentBuild) return null;
+  const str = currentBuild.Str || 0;
+  const per = currentBuild.Per || 0;
+  const int = currentBuild.Int || 0;
+  const luck = currentBuild.Luck || 0;
+  const div = currentBuild.Div || 0;
+  const corr = currentBuild.Corr || 0;
+  const agi = currentBuild.Agi || 0;
+
+  const armorCrack = str + div + per;
+  const modChance = luck + Math.max(int, per);
+
+  // Determine engine state based on our reverse-engineered data rules
+  let stateTag = "Balanced Scaling";
+  let stateColor = "text-gray-400";
+  let explanation = "The engine is balancing base damage with moderate mod multipliers.";
+
+  if (armorCrack >= 65 && corr <= 2) {
+      stateTag = "Armor Veto (Push/Divine)";
+      stateColor = "text-red-500";
+      explanation = "High enemy armor detected. The engine has vetoed Corruption to afford the Str/Div/Per required to crack blocks.";
+  } else if (corr >= 14 && armorCrack <= 30 && modChance >= 50) {
+      stateTag = "Crippled Mod Farming";
+      stateColor = "text-[#4ade80]";
+      explanation = "Low-tier block farming. Armor is ignored. The engine is hyper-scaling Mod Chance and compounding it with maxed Corruption.";
+      
+      if (agi <= 2) {
+          explanation += " Agility is starved to intentionally force rapid low-floor suicide loops.";
+      }
+  } else if (corr > 5 && modChance < 10) {
+      stateTag = "Transitional Noise";
+      stateColor = "text-yellow-500";
+      explanation = "Mathematical anomaly. Corruption is currently inefficient due to low Mod Chance.";
+  }
+
+  return (
+      <div className="mt-3 border-t border-st-border pt-2">
+          <strong className="text-purple-400 border-b border-st-border pb-0.5 mb-2 block">Corruption Engine Diagnostics</strong>
+          <div className="grid grid-cols-3 gap-2 mb-2 text-center">
+              <div className="bg-[#1a1a1a] p-1.5 rounded border border-st-border">
+                  <div className="text-gray-500 text-[9px] uppercase">Armor Crack</div>
+                  <div className={`text-sm font-bold ${armorCrack >= 65 ? 'text-red-400' : 'text-gray-300'}`}>
+                      {armorCrack}
+                  </div>
+                  <div className="text-[8px] text-gray-600">Str+Div+Per</div>
+              </div>
+              
+              <div className="bg-[#1a1a1a] p-1.5 rounded border border-st-border">
+                  <div className="text-gray-500 text-[9px] uppercase">Mod Power</div>
+                  <div className={`text-sm font-bold ${modChance >= 50 ? 'text-[#4ade80]' : 'text-gray-300'}`}>
+                      {modChance}
+                  </div>
+                  <div className="text-[8px] text-gray-600">Luck+(Int|Per)</div>
+              </div>
+
+              <div className="bg-[#1a1a1a] p-1.5 rounded border border-st-border relative">
+                  <div className="text-gray-500 text-[9px] uppercase">Corr Alloc</div>
+                  <div className={`text-sm font-bold ${corr >= 14 ? 'text-purple-400' : 'text-gray-300'}`}>
+                      {corr}
+                  </div>
+                  <div className="text-[8px] text-gray-600">-{corr * 3}% Max Sta</div>
+              </div>
+          </div>
+
+          <div className="bg-[#161616] p-2 rounded border border-st-border">
+              <div className="flex items-center justify-between mb-1">
+                  <span className="text-gray-500 text-[9px] uppercase">Current Logic Pivot</span>
+                  <span className={`text-[10px] font-bold ${stateColor}`}>{stateTag}</span>
+              </div>
+              <p className="text-gray-400 text-[10px] leading-relaxed">
+                  {explanation}
+              </p>
+          </div>
+      </div>
+  );
+}
+
 export default function PathfinderTab() {
   const store = useStore();
   const[startMode, setStartMode] = useState('template');
