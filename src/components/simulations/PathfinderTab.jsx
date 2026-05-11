@@ -896,33 +896,36 @@ export default function PathfinderTab() {
                   xaxis2: { anchor: 'y2', matches: 'x', showticklabels: true, tickfont: { size: 10, color: '#888' }, gridcolor: '#333' },
                   xaxis3: { anchor: showXpRates ? 'y3' : 'y4', matches: 'x', showticklabels: true, tickfont: { size: 10, color: '#888' }, gridcolor: '#333' },
                   xaxis4: { anchor: 'y5', matches: 'x', showticklabels: true, tickfont: { size: 10, color: '#888' }, gridcolor: '#333' },
+                  xaxis10:{ anchor: 'y10',matches: 'x', showticklabels: true, tickfont: { size: 10, color: '#888' }, gridcolor: '#333' },
                   xaxis5: { anchor: 'y6', matches: 'x', showticklabels: true, tickfont: { size: 10, color: '#888' }, gridcolor: '#333' },
                   xaxis6: { anchor: 'y7', matches: 'x', showticklabels: true, tickfont: { size: 10, color: '#888' }, gridcolor: '#333' },
                   xaxis7: { anchor: 'y9', matches: 'x', showticklabels: true, tickfont: { size: 12, color: '#eee' }, gridcolor: '#333', title: { text: 'Timeline (Arch Secs)', standoff: 15 } },
 
-                  // Y-Axes (Perfectly spaced mathematically: gap=0.038, height=0.110)
-                  yaxis:  { domain: [0.888, 0.998], title: { text: 'Milestone', font: { size: 11 } }, gridcolor: '#333', automargin: true },
-                  yaxis2: { domain:[0.740, 0.850], title: { text: 'Cost (Mins)', font: { size: 11 } }, type: 'log', gridcolor: '#333', automargin: true },
+                  // Y-Axes (Perfectly spaced mathematically: gap=0.034, height=0.095)
+                  yaxis:  { domain: [0.903, 0.998], title: { text: 'Milestone', font: { size: 11 } }, gridcolor: '#333', automargin: true },
+                  yaxis2: { domain: [0.774, 0.869], title: { text: 'Cost (Mins)', font: { size: 11 } }, type: 'log', gridcolor: '#333', automargin: true },
                   
                   // Dynamic Plot 3: Yields (y3 = XP, y4 = Frags)
-                  yaxis3: showXpRates ? { domain:[0.592, 0.702], title: { text: 'Yields (XP)', font: { size: 11 } }, gridcolor: '#333', automargin: true } : { domain:[0.592, 0.702], visible: false },
-                  yaxis4: showFragRates ? { domain: showXpRates ? undefined :[0.592, 0.702], overlaying: showXpRates ? 'y3' : undefined, side: showXpRates ? 'right' : 'left', title: { text: 'Frags/Min', font: { size: 11 } }, gridcolor: showXpRates ? undefined : '#333', automargin: true } : { domain: [0.592, 0.702], visible: false },
+                  yaxis3: showXpRates ? { domain:[0.645, 0.740], title: { text: 'Yields (XP)', font: { size: 11 } }, gridcolor: '#333', automargin: true } : { domain:[0.645, 0.740], visible: false },
+                  yaxis4: showFragRates ? { domain: showXpRates ? undefined :[0.645, 0.740], overlaying: showXpRates ? 'y3' : undefined, side: showXpRates ? 'right' : 'left', title: { text: 'Frags/Min', font: { size: 11 } }, gridcolor: showXpRates ? undefined : '#333', automargin: true } : { domain: [0.645, 0.740], visible: false },
                   
-                  yaxis5: { domain:[0.444, 0.554], title: { text: 'Bank Amt', font: { size: 11 } }, gridcolor: '#333', automargin: true },
-                  yaxis6: { domain:[0.296, 0.406], title: { text: 'Points', font: { size: 11 } }, gridcolor: '#333', automargin: true },
-                  yaxis7: { domain:[0.148, 0.258], title: { text: 'Combined', font: { size: 11 } }, gridcolor: '#333', automargin: true },
+                  yaxis5: { domain: [0.516, 0.611], title: { text: 'Bank Amt', font: { size: 11 } }, gridcolor: '#333', automargin: true },
+                  yaxis10:{ domain:[0.387, 0.482], title: { text: 'Points', font: { size: 11 } }, gridcolor: '#333', automargin: true },
+                  yaxis6: { domain:[0.258, 0.353], title: { text: 'Points', font: { size: 11 } }, gridcolor: '#333', automargin: true },
+                  yaxis7: { domain:[0.129, 0.224], title: { text: 'Combined', font: { size: 11 } }, gridcolor: '#333', automargin: true },
                   yaxis8: { overlaying: 'y7', side: 'right', range:[ 0, 16 ], tickfont: { color: '#c084fc' }, title: { text: 'Corr Alloc', font: { color: '#c084fc', size: 11 } }, automargin: true },
-                  yaxis9: { domain:[0.000, 0.110], title: { text: 'Block Tier', font: { size: 11 } }, gridcolor: '#333', categoryorder: 'array', categoryarray:[ 'Tier 1', 'Tier 2', 'Tier 3', 'Tier 4' ], automargin: true },
+                  yaxis9: { domain: [0.000, 0.095], title: { text: 'Block Tier', font: { size: 11 } }, gridcolor: '#333', categoryorder: 'array', categoryarray:[ 'Tier 1', 'Tier 2', 'Tier 3', 'Tier 4' ], automargin: true },
                   
                   // Annotations for Subplot Titles
                   annotations:[
-                    { text: '<b>1. Progression Trends</b>', x: 0, y: 1.000, xref: 'paper', yref: 'paper', showarrow: false, font: {size: 14, color: '#fff'}, xanchor: 'left', yanchor: 'bottom', yshift: 5 },
-                    { text: '<b>2. Strategic Pivot Point (Opportunity Cost)</b>', x: 0, y: 0.852, xref: 'paper', yref: 'paper', showarrow: false, font: {size: 14, color: '#fff'}, xanchor: 'left', yanchor: 'bottom', yshift: 5 },
-                    { text: '<b>3. Yields: Farm vs Push</b>', x: 0, y: 0.704, xref: 'paper', yref: 'paper', showarrow: false, font: {size: 14, color: '#fff'}, xanchor: 'left', yanchor: 'bottom', yshift: 5 },
-                    { text: '<b>4. Fragment Economy & Milestones</b>', x: 0, y: 0.556, xref: 'paper', yref: 'paper', showarrow: false, font: {size: 14, color: '#fff'}, xanchor: 'left', yanchor: 'bottom', yshift: 5 },
-                    { text: '<b>5. Farm Build Stat Distribution</b>', x: 0, y: 0.408, xref: 'paper', yref: 'paper', showarrow: false, font: {size: 14, color: '#fff'}, xanchor: 'left', yanchor: 'bottom', yshift: 5 },
-                    { text: '<b>6. Engine Mechanics: Corruption Optimization</b>', x: 0, y: 0.260, xref: 'paper', yref: 'paper', showarrow: false, font: {size: 14, color: '#fff'}, xanchor: 'left', yanchor: 'bottom', yshift: 5 },
-                    { text: '<b>7. Card Drops (Swimlanes)</b>', x: 0, y: 0.112, xref: 'paper', yref: 'paper', showarrow: false, font: {size: 14, color: '#fff'}, xanchor: 'left', yanchor: 'bottom', yshift: 5 }
+                    { text: '<b>1. Progression Trends</b>', x: 0, y: 0.998, xref: 'paper', yref: 'paper', showarrow: false, font: {size: 14, color: '#fff'}, xanchor: 'left', yanchor: 'bottom', yshift: 5 },
+                    { text: '<b>2. Strategic Pivot Point (Opportunity Cost)</b>', x: 0, y: 0.869, xref: 'paper', yref: 'paper', showarrow: false, font: {size: 14, color: '#fff'}, xanchor: 'left', yanchor: 'bottom', yshift: 5 },
+                    { text: '<b>3. Yields: Farm vs Push</b>', x: 0, y: 0.740, xref: 'paper', yref: 'paper', showarrow: false, font: {size: 14, color: '#fff'}, xanchor: 'left', yanchor: 'bottom', yshift: 5 },
+                    { text: '<b>4. Fragment Economy & Milestones</b>', x: 0, y: 0.611, xref: 'paper', yref: 'paper', showarrow: false, font: {size: 14, color: '#fff'}, xanchor: 'left', yanchor: 'bottom', yshift: 5 },
+                    { text: '<b>5. Push Build Stat Distribution</b>', x: 0, y: 0.482, xref: 'paper', yref: 'paper', showarrow: false, font: {size: 14, color: '#fff'}, xanchor: 'left', yanchor: 'bottom', yshift: 5 },
+                    { text: '<b>6. Farm Build Stat Distribution</b>', x: 0, y: 0.353, xref: 'paper', yref: 'paper', showarrow: false, font: {size: 14, color: '#fff'}, xanchor: 'left', yanchor: 'bottom', yshift: 5 },
+                    { text: '<b>7. Engine Mechanics: Corruption Optimization</b>', x: 0, y: 0.224, xref: 'paper', yref: 'paper', showarrow: false, font: {size: 14, color: '#fff'}, xanchor: 'left', yanchor: 'bottom', yshift: 5 },
+                    { text: '<b>8. Card Drops (Swimlanes)</b>', x: 0, y: 0.095, xref: 'paper', yref: 'paper', showarrow: false, font: {size: 14, color: '#fff'}, xanchor: 'left', yanchor: 'bottom', yshift: 5 }
                   ],
 
                   showlegend: true,
