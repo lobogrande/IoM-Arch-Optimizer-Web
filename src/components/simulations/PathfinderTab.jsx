@@ -831,64 +831,86 @@ export default function PathfinderTab() {
             </div>
 
             {/* MASTER PLOT */}
-            <div className="w-full mt-4" style={{ height: '2400px' }}>
+            <div className="w-full mt-4" style={{ height: '2800px' }}>
               <Plot
                 data={[ 
                   // 1. Progression
-                  { x: chartData.xVals, y: chartData.levelVals, type: 'scatter', mode: 'lines', name: 'Arch Level', line: { color: '#3b82f6', shape: 'hv', width: 2 }, yaxis: 'y', legendgroup: 'prog' },
-                  { x: chartData.xVals, y: chartData.floorVals, type: 'scatter', mode: 'lines', name: 'Max Floor', line: { color: '#ef4444', shape: 'hv', width: 2 }, yaxis: 'y', legendgroup: 'prog' },
+                  { x: chartData.xVals, y: chartData.levelVals, type: 'scatter', mode: 'lines', name: 'Arch Level', line: { color: '#3b82f6', shape: 'hv', width: 2 }, xaxis: 'x', yaxis: 'y', legendgroup: 'prog' },
+                  { x: chartData.xVals, y: chartData.floorVals, type: 'scatter', mode: 'lines', name: 'Max Floor', line: { color: '#ef4444', shape: 'hv', width: 2 }, xaxis: 'x', yaxis: 'y', legendgroup: 'prog' },
                   
                   // 2. Opp Cost
-                  { x: chartData.pivotXVals, y: chartData.ttnlVals, type: 'scatter', mode: 'lines', name: 'Mins to Level (XP)', line: { color: '#f87171', shape: 'hv', width: 2 }, yaxis: 'y2', legendgroup: 'opp' },
-                  { x: chartData.pivotXVals, y: chartData.ttfVals, type: 'scatter', mode: 'lines', name: 'Mins to Major Upg', line: { color: '#a3e635', shape: 'hv', width: 2 }, yaxis: 'y2', legendgroup: 'opp' },
+                  { x: chartData.pivotXVals, y: chartData.ttnlVals, type: 'scatter', mode: 'lines', name: 'Mins to Level (XP)', line: { color: '#f87171', shape: 'hv', width: 2 }, xaxis: 'x2', yaxis: 'y2', legendgroup: 'opp' },
+                  { x: chartData.pivotXVals, y: chartData.ttfVals, type: 'scatter', mode: 'lines', name: 'Mins to Major Upg', line: { color: '#a3e635', shape: 'hv', width: 2 }, xaxis: 'x2', yaxis: 'y2', legendgroup: 'opp' },
                   
                   // 3. Yields
                   ...(showXpRates ?[
-                      { x: chartData.xVals, y: chartData.xpVals, type: 'scatter', mode: 'lines', name: 'Farm XP', line: { color: '#4ade80', shape: 'hv', width: 2 }, yaxis: 'y3', legendgroup: 'yields' },
-                      { x: chartData.xVals, y: chartData.pushXpVals, type: 'scatter', mode: 'lines', name: 'Push XP', line: { color: '#ef4444', shape: 'hv', width: 1.5, dash: 'dot' }, yaxis: 'y3', legendgroup: 'yields' }
+                      { x: chartData.xVals, y: chartData.xpVals, type: 'scatter', mode: 'lines', name: 'Farm XP', line: { color: '#4ade80', shape: 'hv', width: 2 }, xaxis: 'x3', yaxis: 'y3', legendgroup: 'yields' },
+                      { x: chartData.xVals, y: chartData.pushXpVals, type: 'scatter', mode: 'lines', name: 'Push XP', line: { color: '#ef4444', shape: 'hv', width: 1.5, dash: 'dot' }, xaxis: 'x3', yaxis: 'y3', legendgroup: 'yields' }
                   ] : [ ]),
                   ...(showFragRates ?[
-                      { x: chartData.xVals, y: chartData.farmFragVals, type: 'scatter', mode: 'lines', name: `Farm ${chartData.fragUIName}/Min`, line: { color: '#facc15', shape: 'hv', width: 2 }, yaxis: 'y4', legendgroup: 'yields' },
-                      { x: chartData.xVals, y: chartData.pushFragVals, type: 'scatter', mode: 'lines', name: `Push ${chartData.fragUIName}/Min`, line: { color: '#ca8a04', shape: 'hv', width: 1.5, dash: 'dot' }, yaxis: 'y4', legendgroup: 'yields' }
+                      { x: chartData.xVals, y: chartData.farmFragVals, type: 'scatter', mode: 'lines', name: `Farm ${chartData.fragUIName}/Min`, line: { color: '#facc15', shape: 'hv', width: 2 }, xaxis: 'x3', yaxis: 'y4', legendgroup: 'yields' },
+                      { x: chartData.xVals, y: chartData.pushFragVals, type: 'scatter', mode: 'lines', name: `Push ${chartData.fragUIName}/Min`, line: { color: '#ca8a04', shape: 'hv', width: 1.5, dash: 'dot' }, xaxis: 'x3', yaxis: 'y4', legendgroup: 'yields' }
                   ] : [ ]),
 
                   // 4. Economy
-                  { x: fragChartData.xVals, y: fragChartData.yVals, type: 'scatter', mode: 'lines', name: `${fragDict[selectedFragPlot]} Bank`, line: { color: fragChartData.color, width: 2, shape: 'hv' }, fill: 'tozeroy', fillcolor: fragChartData.color + '20', yaxis: 'y5', legendgroup: 'econ' },
-                  { x: fragChartData.markerX, y: fragChartData.markerY, type: 'scatter', mode: 'markers', name: 'Purchases', marker: { color: '#ffffff', size: 8, line: { color: fragChartData.color, width: 2 } }, text: fragChartData.markerText, hoverinfo: 'text', yaxis: 'y5', legendgroup: 'econ' },
+                  { x: fragChartData.xVals, y: fragChartData.yVals, type: 'scatter', mode: 'lines', name: `${fragDict[selectedFragPlot]} Bank`, line: { color: fragChartData.color, width: 2, shape: 'hv' }, fill: 'tozeroy', fillcolor: fragChartData.color + '20', xaxis: 'x4', yaxis: 'y5', legendgroup: 'econ' },
+                  { x: fragChartData.markerX, y: fragChartData.markerY, type: 'scatter', mode: 'markers', name: 'Purchases', marker: { color: '#ffffff', size: 8, line: { color: fragChartData.color, width: 2 } }, text: fragChartData.markerText, hoverinfo: 'text', xaxis: 'x4', yaxis: 'y5', legendgroup: 'econ' },
 
                   // 5. Farm Stats
-                  { x: farmChartData.xVals, y: farmChartData.stats.Str, type: 'scatter', mode: 'lines', name: 'Str', line: { color: '#ef4444', width: 2 }, yaxis: 'y6', legendgroup: 'stats' },
-                  { x: farmChartData.xVals, y: farmChartData.stats.Agi, type: 'scatter', mode: 'lines', name: 'Agi', line: { color: '#3b82f6', width: 2 }, yaxis: 'y6', legendgroup: 'stats' },
-                  { x: farmChartData.xVals, y: farmChartData.stats.Per, type: 'scatter', mode: 'lines', name: 'Per', line: { color: '#eab308', width: 2 }, yaxis: 'y6', legendgroup: 'stats' },
-                  { x: farmChartData.xVals, y: farmChartData.stats.Int, type: 'scatter', mode: 'lines', name: 'Int', line: { color: '#06b6d4', width: 2 }, yaxis: 'y6', legendgroup: 'stats' },
-                  { x: farmChartData.xVals, y: farmChartData.stats.Luck, type: 'scatter', mode: 'lines', name: 'Luck', line: { color: '#22c55e', width: 2 }, yaxis: 'y6', legendgroup: 'stats' },
-                  { x: farmChartData.xVals, y: farmChartData.stats.Div, type: 'scatter', mode: 'lines', name: 'Div', line: { color: '#f9a8d4', width: 2 }, yaxis: 'y6', legendgroup: 'stats' },
-                  { x: farmChartData.xVals, y: farmChartData.stats.Corr, type: 'scatter', mode: 'lines', name: 'Corr', line: { color: '#a855f7', width: 2, dash: 'dot' }, yaxis: 'y6', legendgroup: 'stats' },
+                  { x: farmChartData.xVals, y: farmChartData.stats.Str, type: 'scatter', mode: 'lines', name: 'Str', line: { color: '#ef4444', width: 2 }, xaxis: 'x5', yaxis: 'y6', legendgroup: 'stats' },
+                  { x: farmChartData.xVals, y: farmChartData.stats.Agi, type: 'scatter', mode: 'lines', name: 'Agi', line: { color: '#3b82f6', width: 2 }, xaxis: 'x5', yaxis: 'y6', legendgroup: 'stats' },
+                  { x: farmChartData.xVals, y: farmChartData.stats.Per, type: 'scatter', mode: 'lines', name: 'Per', line: { color: '#eab308', width: 2 }, xaxis: 'x5', yaxis: 'y6', legendgroup: 'stats' },
+                  { x: farmChartData.xVals, y: farmChartData.stats.Int, type: 'scatter', mode: 'lines', name: 'Int', line: { color: '#06b6d4', width: 2 }, xaxis: 'x5', yaxis: 'y6', legendgroup: 'stats' },
+                  { x: farmChartData.xVals, y: farmChartData.stats.Luck, type: 'scatter', mode: 'lines', name: 'Luck', line: { color: '#22c55e', width: 2 }, xaxis: 'x5', yaxis: 'y6', legendgroup: 'stats' },
+                  { x: farmChartData.xVals, y: farmChartData.stats.Div, type: 'scatter', mode: 'lines', name: 'Div', line: { color: '#f9a8d4', width: 2 }, xaxis: 'x5', yaxis: 'y6', legendgroup: 'stats' },
+                  { x: farmChartData.xVals, y: farmChartData.stats.Corr, type: 'scatter', mode: 'lines', name: 'Corr', line: { color: '#a855f7', width: 2, dash: 'dot' }, xaxis: 'x5', yaxis: 'y6', legendgroup: 'stats' },
 
                   // 6. Corr Mechanics
-                  { x: corrDiagnosticsData.xVals, y: corrDiagnosticsData.armorCrackVals, type: 'scatter', mode: 'lines', name: 'Armor Crack', line: { color: '#ef4444', width: 2, shape: 'hv' }, yaxis: 'y7', legendgroup: 'corr' },
-                  { x: corrDiagnosticsData.xVals, y: corrDiagnosticsData.modPowerVals, type: 'scatter', mode: 'lines', name: 'Mod Power', line: { color: '#4ade80', width: 2, shape: 'hv' }, yaxis: 'y7', legendgroup: 'corr' },
-                  { x: corrDiagnosticsData.xVals, y: corrDiagnosticsData.corrVals, type: 'scatter', mode: 'none', fill: 'tozeroy', name: 'Corr Alloc', fillcolor: 'rgba(168, 85, 247, 0.25)', yaxis: 'y8', legendgroup: 'corr' },
+                  { x: corrDiagnosticsData.xVals, y: corrDiagnosticsData.armorCrackVals, type: 'scatter', mode: 'lines', name: 'Armor Crack', line: { color: '#ef4444', width: 2, shape: 'hv' }, xaxis: 'x6', yaxis: 'y7', legendgroup: 'corr' },
+                  { x: corrDiagnosticsData.xVals, y: corrDiagnosticsData.modPowerVals, type: 'scatter', mode: 'lines', name: 'Mod Power', line: { color: '#4ade80', width: 2, shape: 'hv' }, xaxis: 'x6', yaxis: 'y7', legendgroup: 'corr' },
+                  { x: corrDiagnosticsData.xVals, y: corrDiagnosticsData.corrVals, type: 'scatter', mode: 'none', fill: 'tozeroy', name: 'Corr Alloc', fillcolor: 'rgba(168, 85, 247, 0.25)', xaxis: 'x6', yaxis: 'y8', legendgroup: 'corr' },
 
                   // 7. Cards
-                  ...cardSwimlaneData.traces.map(t => ({ ...t, yaxis: 'y9', legendgroup: 'cards' }))
+                  ...cardSwimlaneData.traces.map(t => ({ ...t, xaxis: 'x7', yaxis: 'y9', legendgroup: 'cards' }))
                  ]}
                 layout={{
-                  uirevision: 'master_timeline_zoom', // NEVER change this, keeps zoom locked in regardless of UI filtering!
+                  uirevision: 'master_timeline_zoom',
                   paper_bgcolor: 'transparent',
                   plot_bgcolor: 'transparent',
                   font: { color: '#FAFAFA' },
-                  margin: { l: 60, r: 60, t: 20, b: 40 },
-                  xaxis: { title: { text: 'Timeline (Arch Secs)', standoff: 15 }, gridcolor: '#333' },
-                  yaxis:  { domain: [ 0.883, 1.000 ], title: 'Progression', gridcolor: '#333' },
-                  yaxis2: { domain:[ 0.736, 0.853 ], title: 'Opp Cost (Mins)', type: 'log', gridcolor: '#333' },
-                  yaxis3: { domain:[ 0.589, 0.706 ], title: 'Yields', gridcolor: '#333' },
-                  yaxis4: { overlaying: 'y3', side: 'right', title: 'Frags/Min', gridcolor: '#333' },
-                  yaxis5: { domain:[ 0.442, 0.559 ], title: 'Economy Bank', gridcolor: '#333' },
-                  yaxis6: { domain: [ 0.295, 0.412 ], title: 'Farm Stats', gridcolor: '#333' },
-                  yaxis7: { domain:[ 0.148, 0.265 ], title: 'Corr Mechanics', gridcolor: '#333' },
-                  yaxis8: { overlaying: 'y7', side: 'right', title: 'Corr Alloc', range: [ 0, 16 ], tickfont: { color: '#c084fc' } },
-                  yaxis9: { domain:[ 0.000, 0.118 ], title: 'Card Drops', gridcolor: '#333', categoryorder: 'array', categoryarray:[ 'Tier 1', 'Tier 2', 'Tier 3', 'Tier 4' ] },
+                  margin: { l: 60, r: 60, t: 30, b: 50 },
+                  
+                  // X-Axes (All synced together via matches: 'x')
+                  xaxis:  { anchor: 'y',  matches: 'x', showticklabels: true, tickfont: { size: 10, color: '#888' }, gridcolor: '#333' },
+                  xaxis2: { anchor: 'y2', matches: 'x', showticklabels: true, tickfont: { size: 10, color: '#888' }, gridcolor: '#333' },
+                  xaxis3: { anchor: 'y3', matches: 'x', showticklabels: true, tickfont: { size: 10, color: '#888' }, gridcolor: '#333' },
+                  xaxis4: { anchor: 'y5', matches: 'x', showticklabels: true, tickfont: { size: 10, color: '#888' }, gridcolor: '#333' },
+                  xaxis5: { anchor: 'y6', matches: 'x', showticklabels: true, tickfont: { size: 10, color: '#888' }, gridcolor: '#333' },
+                  xaxis6: { anchor: 'y7', matches: 'x', showticklabels: true, tickfont: { size: 10, color: '#888' }, gridcolor: '#333' },
+                  xaxis7: { anchor: 'y9', matches: 'x', showticklabels: true, tickfont: { size: 12, color: '#eee' }, gridcolor: '#333', title: { text: 'Timeline (Arch Secs)', standoff: 15 } },
+
+                  // Y-Axes (Perfectly spaced mathematically: gap=0.038, height=0.110)
+                  yaxis:  { domain: [0.888, 0.998], title: { text: 'Milestone', font: { size: 11 } }, gridcolor: '#333', automargin: true },
+                  yaxis2: { domain:[0.740, 0.850], title: { text: 'Cost (Mins)', font: { size: 11 } }, type: 'log', gridcolor: '#333', automargin: true },
+                  yaxis3: { domain: [0.592, 0.702], title: { text: 'Yields', font: { size: 11 } }, gridcolor: '#333', automargin: true },
+                  yaxis4: { overlaying: 'y3', side: 'right', title: { text: 'Frags/Min', font: { size: 11 } }, automargin: true },
+                  yaxis5: { domain: [0.444, 0.554], title: { text: 'Bank Amt', font: { size: 11 } }, gridcolor: '#333', automargin: true },
+                  yaxis6: { domain: [0.296, 0.406], title: { text: 'Points', font: { size: 11 } }, gridcolor: '#333', automargin: true },
+                  yaxis7: { domain:[0.148, 0.258], title: { text: 'Combined', font: { size: 11 } }, gridcolor: '#333', automargin: true },
+                  yaxis8: { overlaying: 'y7', side: 'right', range: [ 0, 16 ], tickfont: { color: '#c084fc' }, title: { text: 'Corr Alloc', font: { color: '#c084fc', size: 11 } }, automargin: true },
+                  yaxis9: { domain:[0.000, 0.110], title: { text: 'Block Tier', font: { size: 11 } }, gridcolor: '#333', categoryorder: 'array', categoryarray:[ 'Tier 1', 'Tier 2', 'Tier 3', 'Tier 4' ], automargin: true },
+                  
+                  // Annotations for Subplot Titles
+                  annotations:[
+                    { text: '<b>1. Progression Trends</b>', x: 0, y: 1.000, xref: 'paper', yref: 'paper', showarrow: false, font: {size: 14, color: '#fff'}, xanchor: 'left', yanchor: 'bottom', yshift: 5 },
+                    { text: '<b>2. Strategic Pivot Point (Opportunity Cost)</b>', x: 0, y: 0.852, xref: 'paper', yref: 'paper', showarrow: false, font: {size: 14, color: '#fff'}, xanchor: 'left', yanchor: 'bottom', yshift: 5 },
+                    { text: '<b>3. Yields: Farm vs Push</b>', x: 0, y: 0.704, xref: 'paper', yref: 'paper', showarrow: false, font: {size: 14, color: '#fff'}, xanchor: 'left', yanchor: 'bottom', yshift: 5 },
+                    { text: '<b>4. Fragment Economy & Milestones</b>', x: 0, y: 0.556, xref: 'paper', yref: 'paper', showarrow: false, font: {size: 14, color: '#fff'}, xanchor: 'left', yanchor: 'bottom', yshift: 5 },
+                    { text: '<b>5. Farm Build Stat Distribution</b>', x: 0, y: 0.408, xref: 'paper', yref: 'paper', showarrow: false, font: {size: 14, color: '#fff'}, xanchor: 'left', yanchor: 'bottom', yshift: 5 },
+                    { text: '<b>6. Engine Mechanics: Corruption Optimization</b>', x: 0, y: 0.260, xref: 'paper', yref: 'paper', showarrow: false, font: {size: 14, color: '#fff'}, xanchor: 'left', yanchor: 'bottom', yshift: 5 },
+                    { text: '<b>7. Card Drops (Swimlanes)</b>', x: 0, y: 0.112, xref: 'paper', yref: 'paper', showarrow: false, font: {size: 14, color: '#fff'}, xanchor: 'left', yanchor: 'bottom', yshift: 5 }
+                  ],
+
                   showlegend: true,
                   legend: { orientation: 'v', x: 1.05, y: 1 },
                   autosize: true,
