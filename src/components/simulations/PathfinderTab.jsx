@@ -132,10 +132,15 @@ const [simProgress, setSimProgress] = useState(0);
     const xVals =[ ];
     const xpVals =[ ];
     const pushXpVals =[ ];
-    const divVals =[ ];
+    const farmFragVals =[ ];
+    const pushFragVals =[ ];
     const levelVals =[ ];
     const floorVals =[ ];
     
+    // Map the dropdown selection to the Pyodide dictionary keys
+    const fragRateKey = { com: 'frag_1_per_min', rare: 'frag_2_per_min', epic: 'frag_3_per_min', leg: 'frag_4_per_min', myth: 'frag_5_per_min', div: 'frag_6_per_min' }[selectedFragPlot] || 'frag_6_per_min';
+    const fragUIName = { com: 'Common', rare: 'Rare', epic: 'Epic', leg: 'Legendary', myth: 'Mythic', div: 'Divine' }[selectedFragPlot] || 'Divine';
+
     // Decouple the Pivot X-axis so we can truncate it without breaking the Progression chart
     const pivotXVals =[ ];
     const ttnlVals =[ ];
@@ -151,7 +156,8 @@ const [simProgress, setSimProgress] = useState(0);
       
       xpVals.push(xpRate);
       pushXpVals.push(pushXpRate);
-      divVals.push(ev.yields?.farm?.frag_6_per_min || 0);
+      farmFragVals.push(ev.yields?.farm?.[fragRateKey] || 0);
+      pushFragVals.push(ev.yields?.push?.[fragRateKey] || 0);
       levelVals.push(ev.level || 1);
       floorVals.push(ev.floor || 1);
       
@@ -208,8 +214,8 @@ const [simProgress, setSimProgress] = useState(0);
         finalTtf = ttfVals.slice(0, sliceEnd);
     }
 
-    return { xVals, xpVals, pushXpVals, divVals, levelVals, floorVals, pivotXVals: finalPivotX, ttnlVals: finalTtnl, ttfVals: finalTtf };
-  },[ pathData ]);
+    return { xVals, xpVals, pushXpVals, farmFragVals, pushFragVals, fragUIName, levelVals, floorVals, pivotXVals: finalPivotX, ttnlVals: finalTtnl, ttfVals: finalTtf };
+  },[ pathData, selectedFragPlot ]);
 
   const pushChartData = useMemo(() => {
     if (!pathData) return null;
@@ -752,11 +758,20 @@ const [simProgress, setSimProgress] = useState(0);
                     },
                     {
                       x: chartData.xVals,
-                      y: chartData.divVals,
+                      y: chartData.farmFragVals,
                       type: 'scatter',
                       mode: 'lines',
-                      name: 'Divine Frags / Min',
+                      name: `Farm ${chartData.fragUIName} / Min`,
                       line: { color: '#facc15', shape: 'hv', width: 2 },
+                      yaxis: 'y2'
+                    },
+                    {
+                      x: chartData.xVals,
+                      y: chartData.pushFragVals,
+                      type: 'scatter',
+                      mode: 'lines',
+                      name: `Push ${chartData.fragUIName} / Min`,
+                      line: { color: '#ca8a04', shape: 'hv', width: 1.5, dash: 'dot' },
                       yaxis: 'y2'
                     }
                    ] }
@@ -765,9 +780,9 @@ const [simProgress, setSimProgress] = useState(0);
                     plot_bgcolor: 'transparent',
                     font: { color: '#FAFAFA' },
                     margin: { l: 60, r: 60, t: 10, b: 80 },
-                    xaxis: { title: { text: 'Timeline (Arch Seconds)', standoff: 15 }, gridcolor: '#333' },
+                    xaxis: { title: { text: 'Timeline (Arch Secs)', standoff: 15 }, gridcolor: '#333' },
                     yaxis: { title: { text: 'XP / Min', standoff: 10 }, titlefont: { color: '#4ade80' }, tickfont: { color: '#4ade80' }, gridcolor: '#333' },
-                    yaxis2: { title: { text: 'Div Frags / Min', standoff: 10 }, titlefont: { color: '#facc15' }, tickfont: { color: '#facc15' }, overlaying: 'y', side: 'right', showgrid: false },
+                    yaxis2: { title: { text: `${chartData.fragUIName} / Min`, standoff: 10 }, titlefont: { color: '#facc15' }, tickfont: { color: '#facc15' }, overlaying: 'y', side: 'right', showgrid: false },
                     legend: { orientation: 'h', y: -0.3, x: 0.5, xanchor: 'center' },
                     autosize: true
                   }}
