@@ -18,16 +18,25 @@ The game does not use standard RPG stat definitions. Stats often dual-scale and 
     *   *The Curse:* Reduces `max_sta` by 3% per point (`1 - 0.03 * Corr`).
 
 ## 2. THE COMBAT LOOP & DAMAGE RESOLUTION
-Combat is a micro-tick simulated timeline, not a turn-based system.
+Combat is a micro-tick simulated timeline. Damage resolution strictly follows a specific order of operations, and critically, **Armor acts differently depending on the damage source.**
+
 *   **Stamina is Health:** Hitting a block costs 1.0 Stamina. Spawning an ore costs 0.0 Stamina. The run ends when Stamina hits 0.
-*   **Effective Armor & Minimum Damage:** Damage subtracted by block armor is `max(0, armor - armor_pen)`. Hits ALWAYS deal a minimum of 1.0 damage regardless of armor (`max(1.0, dmg - eff_armor)`).
 *   **Compounding Critical Hits:** Crits roll sequentially, not exclusively. 
-    *   Normal Hit -> rolls Crit Chance.
-    *   If Crit -> rolls Super Crit Chance.
-    *   If Super Crit -> rolls Ultra Crit Chance.
-    *   *Ultra Crits mathematically compound the multipliers of all three tiers.*
-*   **Crosshairs:** Spawn independently of attack speed on a fixed timer. They deal "free" damage (no stamina cost) and can randomly Auto-Tap and/or trigger a Golden Multiplier (acting as a separate critical hit).
-*   **Quake (AoE):** Splashes damage to all remaining blocks on the active floor path.
+    *   Normal Hit ➔ rolls Crit Chance.
+    *   If Crit ➔ rolls Super Crit Chance.
+    *   If Super Crit ➔ rolls Ultra Crit Chance.
+    *   *Multipliers Compound:* An Ultra Crit mathematically compounds all three tiers: `base_crit_dmg * super_crit_dmg * ultra_crit_dmg`.
+*   **Melee & Quake Damage Resolution (Crit AFTER Armor):** 
+    1.  Determine Base Damage (Enrage acts as an additive multiplier in the base formula, not an after-the-fact buff).
+    2.  Calculate Effective Armor: `max(0, Block_Armor - Armor_Penetration)`.
+    3.  Subtract Effective Armor from Base Damage.
+    4.  **Multiply by Crit Multiplier:** `(Base_Dmg - Eff_Armor) * Crit_Mult`. 
+    5.  **Minimum Floor:** If the final result is ≤ 0, it is hard-capped to exactly 1.0 damage.
+*   **Crosshair Damage Resolution (Crit BEFORE Armor):** 
+    *   Crosshairs spawn independently on a fixed timer and cost 0 Stamina.
+    *   *The Armor Bypass Quirk:* Unlike melee, if a Crosshair triggers a Gold Multiplier and/or a Critical Hit, those multipliers are applied to the Base Damage **BEFORE** Effective Armor is subtracted: `(Base_Dmg * Gold_Mult * Crit_Mult) - Eff_Armor`. This makes Crosshairs vastly superior at punching through high-armor blocks.
+*   **Quake (AoE):** Splashes damage to all remaining blocks on the active floor path. It inherits Enrage base damage, but rolls its own independent Critical Hits and interacts with the specific armor of each individual background block hit.
+*   **Overkill is Wasted:** Any damage dealt beyond a block's remaining HP is completely discarded. It does not carry over.
 
 ## 3. BLOCK SPAWNING & MODIFIERS (The Anti-Milking Rule)
 *   **Spawns:** The 24-slot grid is generated top-down based on a hardcoded 1-in-X chance array per floor tier.
