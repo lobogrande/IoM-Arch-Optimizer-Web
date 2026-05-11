@@ -25,9 +25,15 @@ const [simProgress, setSimProgress] = useState(0);
   const [showXpRates, setShowXpRates] = useState(true);
   const[showFragRates, setShowFragRates] = useState(true);
   const [selectedRateFrag, setSelectedRateFrag] = useState('div');
+  const [yieldsZoom, setYieldsZoom] = useState({ x: null, y: null, y2: null });
+  
+  // Reset Y2 zoom if the fragment currency changes so it auto-scales to the new magnitude correctly
+  React.useEffect(() => {
+    setYieldsZoom(prev => ({ ...prev, y2: null }));
+  },[ selectedRateFrag ]);
   
   // Card Plot Filters
-  const[cardRarityFilter, setCardRarityFilter] = useState([ 'dirt', 'com', 'rare', 'epic', 'leg', 'myth', 'div' ]);
+  const [cardRarityFilter, setCardRarityFilter] = useState([ 'dirt', 'com', 'rare', 'epic', 'leg', 'myth', 'div' ]);
 
   // Sync workspace state inputs automatically when switching to "current" or applying a log state
   React.useEffect(() => {
@@ -816,11 +822,49 @@ const [simProgress, setSimProgress] = useState(0);
                     plot_bgcolor: 'transparent',
                     font: { color: '#FAFAFA' },
                     margin: { l: 60, r: 60, t: 10, b: 80 },
-                    xaxis: { title: { text: 'Timeline (Arch Secs)', standoff: 15 }, gridcolor: '#333' },
-                    yaxis: showXpRates ? { title: { text: 'XP / Min', standoff: 10 }, titlefont: { color: '#4ade80' }, tickfont: { color: '#4ade80' }, gridcolor: '#333' } : { visible: false, showgrid: false },
-                    yaxis2: showFragRates ? { title: { text: `${chartData.fragUIName} / Min`, standoff: 10 }, titlefont: { color: '#facc15' }, tickfont: { color: '#facc15' }, overlaying: showXpRates ? 'y' : undefined, side: showXpRates ? 'right' : 'left', showgrid: !showXpRates, gridcolor: '#333', anchor: 'x' } : { visible: false, showgrid: false },
+                    xaxis: { 
+                      title: { text: 'Timeline (Arch Secs)', standoff: 15 }, 
+                      gridcolor: '#333',
+                      ...(yieldsZoom.x ? { range: yieldsZoom.x } : { })
+                    },
+                    yaxis: showXpRates ? { 
+                      title: { text: 'XP / Min', standoff: 10 }, 
+                      titlefont: { color: '#4ade80' }, 
+                      tickfont: { color: '#4ade80' }, 
+                      gridcolor: '#333',
+                      ...(yieldsZoom.y ? { range: yieldsZoom.y } : { })
+                    } : { visible: false, showgrid: false },
+                    yaxis2: showFragRates ? { 
+                      title: { text: `${chartData.fragUIName} / Min`, standoff: 10 }, 
+                      titlefont: { color: '#facc15' }, 
+                      tickfont: { color: '#facc15' }, 
+                      overlaying: showXpRates ? 'y' : undefined, 
+                      side: showXpRates ? 'right' : 'left', 
+                      showgrid: !showXpRates, 
+                      gridcolor: '#333', 
+                      anchor: 'x',
+                      ...(yieldsZoom.y2 ? { range: yieldsZoom.y2 } : { })
+                    } : { visible: false, showgrid: false },
                     legend: { orientation: 'h', y: -0.3, x: 0.5, xanchor: 'center' },
                     autosize: true
+                  }}
+                  onRelayout={(e) => {
+                    setYieldsZoom(prev => {
+                      const next = { ...prev };
+                      if (e['xaxis.autorange']) next.x = null;
+                      else if (e['xaxis.range[0]']) next.x = [ e['xaxis.range[0]'], e['xaxis.range[1]'] ];
+                      else if (e['xaxis.range']) next.x = e['xaxis.range'];
+
+                      if (e['yaxis.autorange']) next.y = null;
+                      else if (e['yaxis.range[0]']) next.y = [ e['yaxis.range[0]'], e['yaxis.range[1]'] ];
+                      else if (e['yaxis.range']) next.y = e['yaxis.range'];
+
+                      if (e['yaxis2.autorange']) next.y2 = null;
+                      else if (e['yaxis2.range[0]']) next.y2 = [ e['yaxis2.range[0]'], e['yaxis2.range[1]'] ];
+                      else if (e['yaxis2.range']) next.y2 = e['yaxis2.range'];
+                      
+                      return next;
+                    });
                   }}
                   useResizeHandler={true}
                   style={{ width: '100%', height: '100%' }}
