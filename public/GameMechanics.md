@@ -40,7 +40,7 @@ Combat is a micro-tick simulated timeline. Damage resolution strictly follows a 
 *   **Overkill is Wasted:** Any damage dealt beyond a block's remaining HP is completely discarded. It does not carry over.
 
 ## 3. BLOCK SPAWNING, SCALING, & MODIFIERS
-*   **Boss/Gauntlet Floor Overrides:** Before the standard RNG runs, the game checks a hardcoded list of Boss/Gauntlet floors. These specific floors completely bypass normal probability brackets and forcefully spawn predetermined block tiers or "mixed" layouts.
+*   **Boss/Gauntlet Floor Overrides:** Before the standard RNG runs, the game checks a hardcoded list of Boss/Gauntlet floors. These specific floors completely bypass normal probability brackets and forcefully spawn predetermined block tiers or "mixed" layouts. **Crucially, all Boss/Gauntlet floors are guaranteed to have a full grid (all 24 slots are populated with blocks).**
 *   **Spawning Hierarchy:** For normal floors, the 24-slot grid is generated sequentially using top-down probability checks. It attempts to roll the highest unlocked rarity first (Divine ➔ Mythic ➔ down to Dirt). If a rarity succeeds its 1-in-X chance, it spawns. 
 *   **Ascension Failsafes:** Pre-Ascension 1, any rolled Divine blocks are forcefully downgraded to Mythic. Pre-Ascension 2, Tier 4 blocks are downgraded to Tier 3.
 *   **Floor Scaling & Known Bugs:** Base HP strictly doubles and Armor multiplies by 1.5 at fixed intervals (Floors 100, 150, 200, 250, etc.). *Note: The math contains known GameMaker bugs: Floor 150 skips the armor scale, and Floor 300 triggers the HP/Armor doubling twice.*
