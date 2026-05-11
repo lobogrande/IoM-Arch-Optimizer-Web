@@ -32,9 +32,9 @@ Combat is a micro-tick simulated timeline. Damage resolution strictly follows a 
     3.  Subtract Effective Armor from Base Damage.
     4.  **Multiply by Crit Multiplier:** `(Base_Dmg - Eff_Armor) * Crit_Mult`. 
     5.  **Minimum Floor:** If the final result is ≤ 0, it is hard-capped to exactly 1.0 damage.
-*   **Crosshair Damage Resolution (Crit BEFORE Armor):** 
+*   **Crosshair Damage Resolution:** 
     *   Crosshairs spawn independently on a fixed timer and cost 0 Stamina.
-    *   *The Armor Bypass Quirk:* Unlike melee, if a Crosshair triggers a Gold Multiplier and/or a Critical Hit, those multipliers are applied to the Base Damage **BEFORE** Effective Armor is subtracted: `(Base_Dmg * Gold_Mult * Crit_Mult) - Eff_Armor`. This makes Crosshairs vastly superior at punching through high-armor blocks.
+    *   Crosshairs follow the exact same order of operations as Melee hits (Crit applied AFTER Armor). If a Gold Crosshair triggers, its specific `Gold_Mult` acts as an additional multiplier compounded alongside the standard crits: `(Base_Dmg - Eff_Armor) * Gold_Mult * Crit_Mult`.
 *   **Quake (AoE):** Splashes damage to all remaining blocks on the active floor path. It inherits Enrage base damage, but rolls its own independent Critical Hits and interacts with the specific armor of each individual background block hit.
 *   **Overkill is Wasted:** Any damage dealt beyond a block's remaining HP is completely discarded. It does not carry over.
 
