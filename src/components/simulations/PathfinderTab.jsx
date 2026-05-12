@@ -677,12 +677,13 @@ export default function PathfinderTab() {
               <p>Loaded Profile: <span className="text-st-orange font-bold">{asc2Template.name}</span></p>
               <p>Arch Level: {asc2Template.arch_level} | Max Floor: {asc2Template.current_max_floor}</p>
               <p>Total Cards: {asc2Template.total_infernal_cards} | Hades Lvl: {asc2Template.external_levels[21]}</p>
-              <p className="mt-2 text-[#FAFAFA]">Autonomous Endgame Director:</p>
-              <ul className="list-disc ml-4 opacity-80 mt-1">
-                <li>Automated Pivot 1: Pure Fragment builds for Upgrades 41-45</li>
-                <li>Automated Pivot 2: Hestia Idol auto-tribute logic (Caps at 3000)</li>
-                <li>Automated Pivot 3: Post-Hestia transition to Divine Idol auto-tribute pool</li>
-                <li>Automated Pivot 4: Post-Idol transition to Tier 4 Block Hunting</li>
+              <p className="mt-2 text-[#FAFAFA] font-bold">Autonomous Endgame Director:</p>
+              <ul className="list-disc ml-4 opacity-80 mt-1.5 text-xs space-y-1">
+                <li><strong className="text-st-orange">Opportunity Cost:</strong> Dynamically swaps between EXP and Frag farming to snipe Upgs 41-45.</li>
+                <li><strong className="text-blue-400">Phase 1 (Divine Pivot):</strong> Post-Hestia (3000). Abandons EXP to pure-farm Divine Frags for Hades.</li>
+                <li><strong className="text-purple-400">Phase 2 (Card Hunt):</strong> Post-Hades (6666). Abandons frags to brute-force unmaxed block tiers.</li>
+                <li><strong className="text-green-400">Phase 3 (Crippled):</strong> Post-T4/T3 cards. Starves stat budget to hyper-farm low-tier blocks (T1/T2).</li>
+                <li><strong className="text-yellow-400">Ultimate Mastery:</strong> Locks build and engages O(1) fast-forward once entire tech tree is maxed.</li>
               </ul>
             </div>
           ) : (
