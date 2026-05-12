@@ -508,7 +508,9 @@ export default function PathfinderTab() {
 
       const parsedMinWinRate = parseFloat(minWinRate) || 20;
       const parsedArchSecs = parseFloat(startingArchSecs) || 0;
-      const result = await runPathfinderSimulation(activeState, targetArch, initialFrags, pool, parsedMinWinRate, parsedArchSecs, (prog) => {
+      const parsedExp = startMode === 'template' ? 0 : (parseFloat(startExp) || 0);
+
+      const result = await runPathfinderSimulation(activeState, targetArch, initialFrags, pool, parsedMinWinRate, parsedArchSecs, parsedExp, (prog) => {
         setSimProgress(prog.progress);
         setSimStatus(prog.status);
       });
