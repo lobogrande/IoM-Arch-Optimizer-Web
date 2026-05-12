@@ -629,9 +629,24 @@ export default function PathfinderTab() {
             </div>
           ) : (
             <div>
-              <p>Arch Level: {store.arch_level}</p>
-              <p>Max Floor: {store.current_max_floor}</p>
-              <p>Targeting remaining goals based on current state...</p>
+              <div className="flex flex-wrap items-center gap-6">
+                <div>
+                  <p className="text-st-text font-bold">Arch Level: <span className="text-st-orange">{store.arch_level}</span></p>
+                  <p className="text-st-text font-bold">Max Floor: <span className="text-st-orange">{store.current_max_floor}</span></p>
+                </div>
+                <div className="border-l border-st-border pl-6">
+                  <label className="block text-[10px] font-bold text-st-text-light mb-1 uppercase tracking-wider">Current EXP towards Lvl {store.arch_level + 1}:</label>
+                  <input 
+                    type="number" 
+                    min="0"
+                    value={startExp === 0 ? '' : startExp}
+                    onChange={(e) => setStartExp(parseFloat(e.target.value) || 0)}
+                    className="bg-st-bg border border-st-border rounded px-2 py-1.5 text-st-text focus:border-st-orange outline-none text-xs w-48 font-mono"
+                    placeholder="0"
+                  />
+                </div>
+              </div>
+              <p className="mt-3 text-st-text-light">Targeting remaining goals based on current state...</p>
               
               <div className="mt-4 border-t border-st-border pt-4">
                 <label className="block text-sm font-bold text-[#FAFAFA] mb-2">Starting Fragment Bank (Raw Amounts):</label>
