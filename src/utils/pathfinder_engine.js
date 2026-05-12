@@ -531,6 +531,8 @@ export async function runPathfinderSimulation(startState, targetLevel, initialFr
     let currentFarmYields = null;
     let currentPushYields = null;
     let currentFragPotential = null;
+    
+    let techTreeExhaustedAnnounced = false;
 
     // --- AUTOMATED PIVOT LOGIC ---
     // Evaluates Opportunity Cost and dynamically swaps the active optimizer target
@@ -682,6 +684,49 @@ export async function runPathfinderSimulation(startState, targetLevel, initialFr
 
     while (state.arch_level < targetLevel && eventCount < MAX_EVENTS) {
         eventCount++;
+
+        // --- ULTIMATE MASTERY CHECK ---
+        // If the entire tech tree is exhausted, we stop running expensive grid searches!
+        if (!techTreeExhaustedAnnounced) {
+            const idolsMaxed = (state.external_levels[4] >= 3000) && (state.external_levels[21] >= 6666) && (state.prometheus_level >= 1000) && (state.sisyphus_level >= 7777);
+            
+            let cardsMaxed = true;
+            for (const blockId of Object.keys(BLOCK_MIN_FLOORS)) {
+                if ((state.cards[blockId] || 0) < 4) {
+                    cardsMaxed = false;
+                    break;
+                }
+            }
+
+            let upgradesMaxed = true;
+            for (const id of upgradeTargets) {
+                if (id === 3 || id === 4 || id === 5) continue; // Infinite Gem Sinks
+                const cap = INTERNAL_UPGRADE_CAPS[id] || 1;
+                if ((state.upgrade_levels[id] || 0) < cap) {
+                    upgradesMaxed = false;
+                    break;
+                }
+            }
+
+            if (idolsMaxed && cardsMaxed && upgradesMaxed) {
+                techTreeExhaustedAnnounced = true;
+                history.push({
+                    type: "system",
+                    event: `🏆 Ultimate Mastery: Tech Tree Exhausted!`,
+                    arch_sec: cumulativeArchSecs,
+                    time_delta: 0,
+                    active_build: "Farm",
+                    active_build_str: lastFarmStr,
+                    level: state.arch_level,
+                    floor: state.current_max_floor,
+                    desc: `All Upgrades, Cards, and Idols have been maxed. The optimizer is now locking the current build and engaging Fast-Forward mode to reach your target level.`,
+                    yields: { farm: currentFarmYields, push: currentPushYields, frag_potential: currentFragPotential },
+                    frags: { ...frags },
+                    card_progress: { ...card_progress },
+                    state_snapshot: captureSnapshot(state)
+                });
+            }
+        }
 
         // 1. SENSOR: Exclusively use the globally smoothed Farm Yields
         // This guarantees that Time Deltas and Resource Accruals match the UI Snapshot mathematically!
@@ -1101,26 +1146,46 @@ export async function runPathfinderSimulation(startState, targetLevel, initialFr
             currentExp = 0; // Reset exp
             
             const totalBudget = state.arch_level + (state.upgrade_levels[12] || 0);
-
-            // PHASE 3.5: Lazy Dual-Track Optimizer!
-            report(`Lvl ${state.arch_level}: Optimizing Farm Build...`);
-            await new Promise(r => setTimeout(r, 10)); // Force UI Paint
-            
-            await executeFarmOptimization(totalBudget, Math.max(0, getExpRequired(state.arch_level) - currentExp));
-
-            // LAZY OPTIMIZATION: Defer Push build re-optimization until a floor push is actually attempted.
-            // FIX: Top-up the stale push build so logs and yield snapshots have the mathematically correct stat point total!
             const statsKeys = getAvailableStatKeys(state);
             const effectiveCaps = getEffectiveStatCaps(state);
-            state.push_stats = enforceBudget(state.push_stats, statsKeys, totalBudget, effectiveCaps);
 
-            // We just sync the yields of the topped-up push build here so the UI snapshot isn't broken.
-            const pushActualTargetState = { ...state, current_max_floor: state.current_max_floor + 1 };
-            await pool.syncState(pushActualTargetState);
-            currentPushYields = await getSmoothedYields(pool, pushActualTargetState, state.push_stats, 3);
-            await pool.syncState(state);
-            unspentPoints = 0;
-            pushBuildIsStale = true; // Stat points added!
+            if (!techTreeExhaustedAnnounced) {
+                // PHASE 3.5: Lazy Dual-Track Optimizer!
+                report(`Lvl ${state.arch_level}: Optimizing Farm Build...`);
+                await new Promise(r => setTimeout(r, 10)); // Force UI Paint
+                
+                await executeFarmOptimization(totalBudget, Math.max(0, getExpRequired(state.arch_level) - currentExp));
+
+                // LAZY OPTIMIZATION: Defer Push build re-optimization until a floor push is actually attempted.
+                // FIX: Top-up the stale push build so logs and yield snapshots have the mathematically correct stat point total!
+                state.push_stats = enforceBudget(state.push_stats, statsKeys, totalBudget, effectiveCaps);
+
+                // We just sync the yields of the topped-up push build here so the UI snapshot isn't broken.
+                const pushActualTargetState = { ...state, current_max_floor: state.current_max_floor + 1 };
+                await pool.syncState(pushActualTargetState);
+                currentPushYields = await getSmoothedYields(pool, pushActualTargetState, state.push_stats, 3);
+                await pool.syncState(state);
+                
+                unspentPoints = 0;
+                pushBuildIsStale = true; // Stat points added!
+            } else {
+                // FAST-FORWARD MODE: Skip Simulated Annealing. 
+                // Just use the organic top-up enforcer to dump the +1 stat point into the next available capped stat.
+                state.base_stats = enforceBudget(state.base_stats, statsKeys, totalBudget, effectiveCaps);
+                state.push_stats = enforceBudget(state.push_stats, statsKeys, totalBudget, effectiveCaps);
+                
+                await pool.syncState(state);
+                currentFarmYields = await getSmoothedYields(pool, state, state.base_stats, 3);
+                currentFragPotential = currentFarmYields; // Shadow build logic is disabled in fast-forward
+                
+                const pushActualTargetState = { ...state, current_max_floor: state.current_max_floor + 1 };
+                await pool.syncState(pushActualTargetState);
+                currentPushYields = await getSmoothedYields(pool, pushActualTargetState, state.push_stats, 3);
+                await pool.syncState(state);
+                
+                unspentPoints = 0;
+                pushBuildIsStale = true;
+            }
 
             const farmStr = formatBuildStr(state.base_stats, state);
             const pushStr = formatBuildStr(state.push_stats, state);
