@@ -984,40 +984,6 @@ export default function PathfinderTab() {
             </div>
           </div>
 
-          {/* PUSH BUILD STATS (FLOOR-BASED X-AXIS) */}
-          <div className="bg-[#0E1117] border border-st-border rounded p-4 shadow-sm animate-fade-in mb-6">
-            <h3 className="text-lg font-bold text-st-text mb-4 border-b border-st-border pb-2 flex items-center gap-2">
-               Push Build Stat Breakpoints
-               <span className="text-[10px] bg-st-secondary text-gray-400 px-2 py-0.5 rounded font-mono font-normal border border-st-border">X-Axis = Max Floor Pushed</span>
-            </h3>
-            <div className="h-[400px] w-full">
-              <Plot
-                data={[ 
-                  { x: pushChartData.floors, y: pushChartData.stats.Str, type: 'scatter', mode: 'lines+markers', name: 'Str', line: { color: '#ef4444', width: 2 } },
-                  { x: pushChartData.floors, y: pushChartData.stats.Agi, type: 'scatter', mode: 'lines+markers', name: 'Agi', line: { color: '#3b82f6', width: 2 } },
-                  { x: pushChartData.floors, y: pushChartData.stats.Per, type: 'scatter', mode: 'lines+markers', name: 'Per', line: { color: '#eab308', width: 2 } },
-                  { x: pushChartData.floors, y: pushChartData.stats.Int, type: 'scatter', mode: 'lines+markers', name: 'Int', line: { color: '#06b6d4', width: 2 } },
-                  { x: pushChartData.floors, y: pushChartData.stats.Luck, type: 'scatter', mode: 'lines+markers', name: 'Luck', line: { color: '#22c55e', width: 2 } },
-                  { x: pushChartData.floors, y: pushChartData.stats.Div, type: 'scatter', mode: 'lines+markers', name: 'Div', line: { color: '#f9a8d4', width: 2 } },
-                  { x: pushChartData.floors, y: pushChartData.stats.Corr, type: 'scatter', mode: 'lines+markers', name: 'Corr', line: { color: '#a855f7', width: 2, dash: 'dot' } },
-                  { x: pushChartData.floors, y: pushChartData.stats.Unspent, type: 'scatter', mode: 'lines+markers', name: 'Unspent', line: { color: '#ffffff', width: 2, dash: 'dash' } }
-                 ]}
-                layout={{
-                  paper_bgcolor: 'transparent',
-                  plot_bgcolor: 'transparent',
-                  font: { color: '#FAFAFA' },
-                  margin: { l: 60, r: 20, t: 10, b: 80 },
-                  xaxis: { title: { text: 'Max Floor', standoff: 15 }, gridcolor: '#333' },
-                  yaxis: { title: { text: 'Stat Points Allocated', standoff: 10 }, gridcolor: '#333' },
-                  legend: { orientation: 'h', y: -0.3, x: 0.5, xanchor: 'center' },
-                  autosize: true
-                }}
-                useResizeHandler={true}
-                style={{ width: '100%', height: '100%' }}
-              />
-            </div>
-          </div>
-
           <div className="bg-st-bg border border-st-border rounded p-4 shadow-sm animate-fade-in">
             <div className="flex flex-col md:flex-row justify-between items-center mb-4 border-b border-st-border pb-2 gap-3">
               <h3 className="text-lg font-bold text-st-text shrink-0">Node-Graph Timeline</h3>
