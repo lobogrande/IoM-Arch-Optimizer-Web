@@ -656,7 +656,7 @@ export default function PathfinderTab() {
 
               <div className="mt-4 border-t border-st-border pt-4">
                 <label className="block text-sm font-bold text-[#FAFAFA] mb-2">Card Fragment Progress (Current Fragments Owned 0-9):</label>
-                <div className="grid grid-cols-4 md:grid-cols-9 gap-2 max-h-48 overflow-y-auto pr-1">
+                <div className="grid grid-cols-4 md:grid-cols-9 gap-2 max-h-64 overflow-y-auto pr-1">
                   {[ 
                     'dirt1', 'dirt2', 'dirt3', 'dirt4',
                     'com1', 'com2', 'com3', 'com4',
