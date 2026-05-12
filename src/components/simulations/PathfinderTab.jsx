@@ -432,6 +432,62 @@ export default function PathfinderTab() {
     );
   };
 
+  const simulationInsights = useMemo(() => {
+    if (!pathData) return null;
+    const insights =[ ];
+    const pivots =[ ];
+    let corrVetoed = false;
+    let crippledStarted = false;
+    let masteryHit = false;
+
+    pathData.history.forEach((ev, idx) => {
+        if (ev.type === 'system' && (ev.event.includes('Endgame Phase') || ev.event.includes('Ultimate Mastery'))) {
+            let shortName = ev.event;
+            if (shortName.includes('Phase 1')) shortName = 'Phase 1: Divine';
+            else if (shortName.includes('Phase 2')) shortName = 'Phase 2: Cards';
+            else if (shortName.includes('Phase 3')) shortName = 'Phase 3: Crippled';
+            else if (shortName.includes('Mastery')) shortName = 'Ultimate Mastery';
+
+            pivots.push({
+                sec: ev.arch_sec,
+                label: shortName,
+                fullEvent: ev.event
+            });
+        }
+
+        if (ev.type === 'floor' && ev.state_snapshot && ev.state_snapshot.base_stats) {
+            const prevEv = pathData.history[ idx - 1 ];
+            if (prevEv && prevEv.state_snapshot && prevEv.state_snapshot.base_stats && prevEv.state_snapshot.base_stats.Corr > 0 && ev.state_snapshot.base_stats.Corr === 0) {
+                if (!corrVetoed) {
+                    insights.push({
+                        icon: '🛡️', title: 'Armor Veto Triggered',
+                        desc: `At Floor ${ev.floor}, enemy armor outscaled your damage. The engine dynamically stripped Corruption to 0 to afford more Strength and Divinity for Armor Penetration.`
+                    });
+                    corrVetoed = true;
+                }
+            }
+        }
+
+        if (ev.type === 'system' && ev.event.includes('Phase 3') && !crippledStarted) {
+            insights.push({
+                icon: '📉', title: 'Crippled Farm Engaged',
+                desc: `At Arch Level ${ev.level}, the engine detected all high-tier cards were maxed. It intentionally abandoned your stat budget to farm low-tier blocks without wasting time on overkill.`
+            });
+            crippledStarted = true;
+        }
+
+        if (ev.type === 'system' && ev.event.includes('Tech Tree Exhausted') && !masteryHit) {
+            insights.push({
+                icon: '🏆', title: 'Tech Tree Exhausted',
+                desc: `At Arch Level ${ev.level}, all Upgrades, Cards, and Idols were mathematically maxed. The optimizer locked the build and fast-forwarded the remaining timeline.`
+            });
+            masteryHit = true;
+        }
+    });
+
+    return { insights, pivots };
+  }, [ pathData ]);
+
   const templates = {
     founder: {
       name: "Founder_Asc2_Start",
