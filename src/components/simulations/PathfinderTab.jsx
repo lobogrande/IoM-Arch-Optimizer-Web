@@ -1049,7 +1049,16 @@ export default function PathfinderTab() {
                   yaxis8: { overlaying: 'y7', side: 'right', range:[ 0, 16 ], tickfont: { color: '#c084fc' }, title: { text: 'Corr Alloc', font: { color: '#c084fc', size: 11 } }, automargin: true },
                   yaxis9: { domain:[0.000, 0.095], title: { text: 'Block Tier', font: { size: 11 } }, gridcolor: '#333', categoryorder: 'array', categoryarray:[ 'Tier 1', 'Tier 2', 'Tier 3', 'Tier 4' ], automargin: true },
                   
-                  // Annotations for Subplot Titles
+                  // Vertical Demarcation Lines for Strategy Pivots
+                  shapes: simulationInsights?.pivots.map(p => ({
+                    type: 'line',
+                    x0: p.sec, x1: p.sec,
+                    y0: 0, y1: 1, yref: 'paper',
+                    line: { color: '#f59e0b', width: 2, dash: 'dot' },
+                    layer: 'below'
+                  })) || [ ],
+                  
+                  // Annotations for Subplot Titles & Vertical Pivots
                   annotations:[
                     { text: '<b>1. Progression Trends</b>', x: 0, y: 0.998, xref: 'paper', yref: 'paper', showarrow: false, font: {size: 14, color: '#fff'}, xanchor: 'left', yanchor: 'bottom', yshift: 5 },
                     { text: '<b>2. Strategic Pivot Point (Opportunity Cost)</b>', x: 0, y: 0.869, xref: 'paper', yref: 'paper', showarrow: false, font: {size: 14, color: '#fff'}, xanchor: 'left', yanchor: 'bottom', yshift: 5 },
@@ -1058,7 +1067,20 @@ export default function PathfinderTab() {
                     { text: '<b>5. Push Build Stat Distribution</b>', x: 0, y: 0.482, xref: 'paper', yref: 'paper', showarrow: false, font: {size: 14, color: '#fff'}, xanchor: 'left', yanchor: 'bottom', yshift: 5 },
                     { text: '<b>6. Farm Build Stat Distribution</b>', x: 0, y: 0.353, xref: 'paper', yref: 'paper', showarrow: false, font: {size: 14, color: '#fff'}, xanchor: 'left', yanchor: 'bottom', yshift: 5 },
                     { text: '<b>7. Engine Mechanics: Corruption Optimization</b>', x: 0, y: 0.224, xref: 'paper', yref: 'paper', showarrow: false, font: {size: 14, color: '#fff'}, xanchor: 'left', yanchor: 'bottom', yshift: 5 },
-                    { text: '<b>8. Card Drops (Swimlanes)</b>', x: 0, y: 0.095, xref: 'paper', yref: 'paper', showarrow: false, font: {size: 14, color: '#fff'}, xanchor: 'left', yanchor: 'bottom', yshift: 5 }
+                    { text: '<b>8. Card Drops (Swimlanes)</b>', x: 0, y: 0.095, xref: 'paper', yref: 'paper', showarrow: false, font: {size: 14, color: '#fff'}, xanchor: 'left', yanchor: 'bottom', yshift: 5 },
+                    
+                    // Pivot Labels
+                    ...(simulationInsights?.pivots.map(p => ({
+                        x: p.sec, y: 1.0, yref: 'paper',
+                        text: `<b>${p.label}</b>`,
+                        showarrow: false,
+                        font: { size: 10, color: '#fba918' },
+                        textangle: -90,
+                        xanchor: 'right',
+                        yanchor: 'top',
+                        yshift: -5,
+                        xshift: -5
+                    })) || [ ])
                   ],
 
                   // SPLIT LEGENDS (Anchored vertically to match each subplot's domain top)
