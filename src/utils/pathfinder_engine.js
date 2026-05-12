@@ -622,13 +622,12 @@ export async function runPathfinderSimulation(startState, targetLevel, initialFr
         const farmMetric = determineFarmMetric(expNeededCheck);
         const crippled = isCrippledPhase(state);
         
-        let optFarm;
-        if (crippled) {
-            // Bypass the random-walk optimizer entirely. Use strict mathematical heuristics to prevent RNG noise!
-            optFarm = await runCrippledOptimizer(pool, state, farmMetric, budget);
-        } else {
-            optFarm = await runFastOptimizer(pool, state, farmMetric, budget, state.base_stats, 3, false);
-        }
+        // Utilize the native optimizer, but unlock the "Unspent" dimension so it organically discovers crippled builds!
+        // The allowUnspent flag now heavily boosts sample sizes to combat T1/T2 block RNG sparsity.
+        const optFarm = await runFastOptimizer(pool, state, farmMetric, budget, state.base_stats, 3, crippled);
+        
+        // Strip the virtual 'Unspent' key so it doesn't pollute the UI snapshot or formatting strings
+        if (crippled) delete optFarm.bestBuild.Unspent;
         
         state.base_stats = optFarm.bestBuild;
         currentFarmYields = optFarm.bestYields;
