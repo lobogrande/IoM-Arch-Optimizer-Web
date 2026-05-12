@@ -825,10 +825,33 @@ export default function PathfinderTab() {
       </div>
 
       {/* VISUALIZATIONS & RESULTS AREA */}
+      {!pathData && !isSimulating && (
+        <div className="bg-[#0E1117] border border-st-border rounded p-8 shadow-sm animate-fade-in mb-6 text-center mt-6">
+          <h3 className="text-2xl font-bold text-st-text mb-3">Ready to Simulate</h3>
+          <p className="text-sm text-st-text-light mb-8 max-w-3xl mx-auto leading-relaxed">
+            The Pathfinder Macro-Stepper uses a dual-track progression model to simulate thousands of runs, automatically predicting when you should pivot between EXP, Fragment, and Card farming strategies. 
+          </p>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-left max-w-5xl mx-auto">
+            <div className="bg-st-secondary/20 p-5 rounded border border-st-border hover:border-st-orange transition-colors">
+              <div className="text-st-orange font-bold mb-2 flex items-center gap-2"><span className="text-xl">⏱️</span> Opportunity Cost</div>
+              <div className="text-xs text-gray-400 leading-relaxed">The engine automatically calculates the ROI of waiting for a milestone vs spending immediately. It plots this crossover point exactly on the timeline.</div>
+            </div>
+            <div className="bg-st-secondary/20 p-5 rounded border border-st-border hover:border-purple-400 transition-colors">
+              <div className="text-purple-400 font-bold mb-2 flex items-center gap-2"><span className="text-xl">📉</span> Crippled Builds</div>
+              <div className="text-xs text-gray-400 leading-relaxed">Watch the engine organically discover that it needs to starve its own stats (Unspent &gt; 0) to efficiently farm Tier 1/2 cards in the extreme endgame.</div>
+            </div>
+            <div className="bg-st-secondary/20 p-5 rounded border border-st-border hover:border-green-400 transition-colors">
+              <div className="text-green-400 font-bold mb-2 flex items-center gap-2"><span className="text-xl">🛡️</span> The Armor Veto</div>
+              <div className="text-xs text-gray-400 leading-relaxed">See the exact floor where enemy armor forces the engine to abandon Corruption multipliers in favor of raw Strength and Perception.</div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {pathData && (
         <>
           {/* EDUCATIONAL RULES & CONTROLS */}
-          <div className="bg-[#0E1117] border border-st-border rounded p-4 shadow-sm animate-fade-in mb-6">
+          <div className="bg-[#0E1117] border border-st-border rounded p-4 shadow-sm animate-fade-in mb-6 mt-6">
             <h3 className="text-xl font-bold text-st-text mb-4 border-b border-st-border pb-2 flex items-center gap-2">
                <span className="text-purple-400">🧠</span> Master Timeline Analysis
             </h3>
