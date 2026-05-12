@@ -857,24 +857,40 @@ export default function PathfinderTab() {
             </h3>
             
             <div className="grid grid-cols-1 xl:grid-cols-3 gap-6 mb-6">
-                <div className="bg-st-secondary/30 p-3 rounded border border-st-border border-l-2 border-l-red-500">
-                  <h4 className="text-xs font-bold text-gray-200 mb-1">1. The Armor Veto (Pushing)</h4>
-                  <p className="text-[10px] text-gray-400">
-                    If effective armor zeroes out base damage, Corruption's multiplier is useless. To crack high-tier blocks, the engine forcefully zeroes out Corruption to afford <span className="text-red-400 font-mono">Str+Div+Per</span>.
-                  </p>
-                </div>
-                <div className="bg-st-secondary/30 p-3 rounded border border-st-border border-l-2 border-l-green-500">
-                  <h4 className="text-xs font-bold text-gray-200 mb-1">2. The Crippled Build Ratio</h4>
-                  <p className="text-[10px] text-gray-400">
-                    When farming low-tier cards, armor is irrelevant. The engine ignores Armor Crack and hyper-scales <span className="text-green-400 font-mono">Luck+Int</span>, compounding mod yields with maxed Corruption.
-                  </p>
-                </div>
-                <div className="bg-st-secondary/30 p-3 rounded border border-st-border border-l-2 border-l-purple-500">
-                  <h4 className="text-xs font-bold text-gray-200 mb-1">3. The Suicide Loop</h4>
-                  <p className="text-[10px] text-gray-400">
-                    While maximizing Corruption, the engine starves <span className="text-blue-400 font-mono">Agility</span> to shrink the stamina pool. This forces rapid resets to maximize kills-per-minute on weak blocks.
-                  </p>
-                </div>
+                {simulationInsights && simulationInsights.insights.length > 0 ? (
+                  simulationInsights.insights.map((insight, i) => (
+                    <div key={i} className="bg-[#1a1a1a] p-3 rounded border border-st-border border-l-2 border-l-st-orange shadow-md relative overflow-hidden">
+                      <div className="absolute -right-4 -top-4 text-5xl opacity-5">{insight.icon}</div>
+                      <h4 className="text-xs font-bold text-gray-200 mb-1 flex items-center gap-1">
+                        <span>{insight.icon}</span> {insight.title}
+                      </h4>
+                      <p className="text-[10px] text-gray-400 leading-relaxed">
+                        {insight.desc}
+                      </p>
+                    </div>
+                  ))
+                ) : (
+                  <>
+                    <div className="bg-st-secondary/30 p-3 rounded border border-st-border border-l-2 border-l-red-500">
+                      <h4 className="text-xs font-bold text-gray-200 mb-1">1. The Armor Veto (Pushing)</h4>
+                      <p className="text-[10px] text-gray-400">
+                        If effective armor zeroes out base damage, Corruption's multiplier is useless. To crack high-tier blocks, the engine forcefully zeroes out Corruption to afford <span className="text-red-400 font-mono">Str+Div+Per</span>.
+                      </p>
+                    </div>
+                    <div className="bg-st-secondary/30 p-3 rounded border border-st-border border-l-2 border-l-green-500">
+                      <h4 className="text-xs font-bold text-gray-200 mb-1">2. The Crippled Build Ratio</h4>
+                      <p className="text-[10px] text-gray-400">
+                        When farming low-tier cards, armor is irrelevant. The engine ignores Armor Crack and hyper-scales <span className="text-green-400 font-mono">Luck+Int</span>, compounding mod yields with maxed Corruption.
+                      </p>
+                    </div>
+                    <div className="bg-st-secondary/30 p-3 rounded border border-st-border border-l-2 border-l-purple-500">
+                      <h4 className="text-xs font-bold text-gray-200 mb-1">3. The Suicide Loop</h4>
+                      <p className="text-[10px] text-gray-400">
+                        While maximizing Corruption, the engine starves <span className="text-blue-400 font-mono">Agility</span> to shrink the stamina pool. This forces rapid resets to maximize kills-per-minute on weak blocks.
+                      </p>
+                    </div>
+                  </>
+                )}
             </div>
 
             {/* MASTER PLOT (With embedded, absolutely positioned controls) */}
