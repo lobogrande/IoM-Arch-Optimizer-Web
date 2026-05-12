@@ -70,7 +70,8 @@ export default function PathfinderTab() {
       cards: snap.cards ? { ...snap.cards } : useStore.getState().cards,
       card_progress: snap.card_progress ? { ...snap.card_progress } : { },
       frags: snap.frags ? { ...snap.frags } : useStore.getState().frags,
-      total_infernal_cards: snap.total_infernal_cards !== undefined ? snap.total_infernal_cards : useStore.getState().total_infernal_cards
+      total_infernal_cards: snap.total_infernal_cards !== undefined ? snap.total_infernal_cards : useStore.getState().total_infernal_cards,
+      current_exp: snap.current_exp || 0
     });
     
     // Auto-update the initial time for chunked simulations
