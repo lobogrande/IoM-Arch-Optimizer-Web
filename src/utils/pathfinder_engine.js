@@ -349,8 +349,8 @@ async function runFastOptimizer(pool, state, targetMetric, budget, previousBuild
                 const sFrom = fromCandidates[Math.floor(Math.random() * fromCandidates.length)];
                 const sTo = toCandidates[Math.floor(Math.random() * toCandidates.length)];
                 if (sFrom !== sTo) {
-                    mut[sFrom]--;
-                    mut[sTo]++;
+                    mut[sFrom] = (mut[sFrom] || 0) - 1;
+                    mut[sTo] = (mut[sTo] || 0) + 1;
                 }
             }
         }
@@ -682,10 +682,11 @@ export async function runPathfinderSimulation(startState, targetLevel, initialFr
         state_snapshot: captureSnapshot(state)
     });
 
-    while (state.arch_level < targetLevel && eventCount < MAX_EVENTS) {
-        eventCount++;
+    try {
+        while (state.arch_level < targetLevel && eventCount < MAX_EVENTS) {
+            eventCount++;
 
-        // --- ULTIMATE MASTERY CHECK ---
+            // --- ULTIMATE MASTERY CHECK ---
         // If the entire tech tree is exhausted, we stop running expensive grid searches!
         if (!techTreeExhaustedAnnounced) {
             const idolsMaxed = (state.external_levels[4] >= 3000) && (state.external_levels[21] >= 6666) && (state.prometheus_level >= 1000) && (state.sisyphus_level >= 7777);
@@ -1510,6 +1511,20 @@ export async function runPathfinderSimulation(startState, targetLevel, initialFr
 
         // Send UI Progress
         report(`Simulating Timeline (Level ${state.arch_level} / ${targetLevel})...`);
+        }
+    } catch (engineError) {
+        console.error("Pathfinder loop crashed:", engineError);
+        history.push({
+            type: "system",
+            event: "⚠️ Simulation Crashed",
+            arch_sec: cumulativeArchSecs,
+            level: state.arch_level,
+            floor: state.current_max_floor,
+            desc: `Fatal Error: ${engineError.message}. Recovered partial timeline.`,
+            yields: { farm: currentFarmYields, push: currentPushYields, frag_potential: currentFragPotential },
+            frags: { ...frags },
+            state_snapshot: captureSnapshot(state)
+        });
     }
 
     history.push({
