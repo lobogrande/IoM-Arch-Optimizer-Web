@@ -19,6 +19,7 @@ export default function PathfinderTab() {
   const [targetLevel, setTargetLevel] = useState("30"); // Absolute target level
   const [startFrags, setStartFrags] = useState(store.frags || { com: 0, rare: 0, epic: 0, leg: 0, myth: 0, div: 0 });
   const [startCardProgress, setStartCardProgress] = useState(store.card_progress || { });
+  const [startExp, setStartExp] = useState(store.current_exp || 0);
   const [selectedFragPlot, setSelectedFragPlot] = useState('com');
   
   // Yield Rates Chart Filters
@@ -34,8 +35,9 @@ export default function PathfinderTab() {
     if (startMode === 'current') {
       setStartFrags(store.frags || { com: 0, rare: 0, epic: 0, leg: 0, myth: 0, div: 0 });
       setStartCardProgress(store.card_progress || { });
+      setStartExp(store.current_exp || 0);
     }
-  }, [ store.frags, store.card_progress, startMode ]);
+  }, [ store.frags, store.card_progress, store.current_exp, startMode ]);
 
   const handleFragChange = (key, val) => {
     setStartFrags(prev => ({ ...prev, [key]: parseFloat(val) || 0 }));
