@@ -294,8 +294,8 @@ async function runFastOptimizer(pool, state, targetMetric, budget, previousBuild
     const finalCandidates = Array.from(unique.values());
 
     // 4. Round 1 Filter (Mini-batch for Push Builds, with Secondary Tie-Breaker)
-    // Bumped to 10 specifically to break extreme quantization ties that hide optimal sub-paths!
-    const r1Samples = targetMetric === 'highest_floor' ? 10 : 2; 
+    // Bumped to break extreme quantization ties and combat sparse RNG during crippled card farming
+    const r1Samples = targetMetric === 'highest_floor' ? 10 : (allowUnspent ? 8 : 2); 
     const r1Promises = finalCandidates.map(async (testStats) => {
         const avgYields = await getSmoothedYields(pool, state, testStats, r1Samples);
         return { build: testStats, val: avgYields[targetMetric] || 0, secondary: avgYields.xp_per_min || 0 };
@@ -314,8 +314,8 @@ async function runFastOptimizer(pool, state, targetMetric, budget, previousBuild
     const r2Candidates = r1Results.slice(0, keepCount).map(r => r.build);
     
     // 5. Round 2: Monte Carlo Validation
-    // STRICT FIX: Force a much larger sample size specifically for Push Builds to mathematically prevent Optimizer Bias (overfitting to RNG noise)
-    const r2Samples = targetMetric === 'highest_floor' ? Math.max(25, samples) : samples;
+    // STRICT FIX: Force a much larger sample size specifically for Push Builds and Crippled phases to mathematically prevent Optimizer Bias
+    const r2Samples = targetMetric === 'highest_floor' ? Math.max(25, samples) : (allowUnspent ? 15 : samples);
     const r2Promises = r2Candidates.map(async (testStats) => {
         const avgYields = await getSmoothedYields(pool, state, testStats, r2Samples);
         return { build: testStats, val: avgYields[targetMetric] || 0, secondary: avgYields.xp_per_min || 0, yields: avgYields };
@@ -378,7 +378,7 @@ async function runFastOptimizer(pool, state, targetMetric, budget, previousBuild
     }
 
     const p3Candidates = Array.from(p3CandidatesMap.values());
-    const p3Samples = targetMetric === 'highest_floor' ? 20 : 5;
+    const p3Samples = targetMetric === 'highest_floor' ? 20 : (allowUnspent ? 15 : 5);
     
     const p3Promises = p3Candidates.map(async (testStats) => {
         const avgYields = await getSmoothedYields(pool, state, testStats, p3Samples);
