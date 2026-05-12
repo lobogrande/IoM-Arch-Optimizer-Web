@@ -192,65 +192,42 @@ const getShadowFragYields = async (pool, state, budget, caps) => {
     return results[0];
 };
 
-// Mathematically strict heuristic templates to eliminate sparse-RNG noise during Phase 3 Suicide loops!
-async function runCrippledOptimizer(pool, state, targetMetric, budget) {
-    const caps = getEffectiveStatCaps(state);
-    
-    // Base crippled foundation: Maximize Mod Chance and Corruption
-    const base = { Str: 0, Agi: 0, Per: 0, Int: 0, Luck: 0, Div: 0, Corr: 0 };
-    let b = budget;
-    
-    base.Luck = Math.min(b, caps.Luck || 0); b -= base.Luck;
-    base.Corr = Math.min(b, caps.Corr || 0); b -= base.Corr;
-    base.Per = Math.min(b, caps.Per || 0); b -= base.Per;
-    base.Int = Math.min(b, caps.Int || 0); b -= base.Int;
-    
-    // We define 5 strict templates scaling in physical power to find the exact "Goldilocks" suicide zone.
-    // As the player gains passive Infernal Card power, the engine will naturally favor the weaker templates!
-    const templates = [
-        { ...base, Str: 0, Agi: 0 },
-        { ...base, Str: 3, Agi: 0 },
-        { ...base, Str: 7, Agi: 1 },
-        { ...base, Str: 15, Agi: 2 },
-        { ...base, Str: 25, Agi: 5 }
-    ];
-    
-    // Filter out templates that exceed the remaining budget
-    const validTemplates = templates.filter(t => (t.Str + t.Agi) <= b);
-    if (validTemplates.length === 0) validTemplates.push(base); // Fallback
-    
-    // Test them all with MASSIVE samples (15) to completely crush the RNG variance of rare block spawns!
-    const promises = validTemplates.map(async (testStats) => {
-        const avgYields = await getSmoothedYields(pool, state, testStats, 15);
-        return { build: testStats, val: avgYields[targetMetric] || 0, secondary: avgYields.xp_per_min || 0, yields: avgYields };
-    });
-    
-    const results = await Promise.all(promises);
-    
-    results.sort((a, b) => {
-        if (b.val !== a.val) return b.val - a.val;
-        return b.secondary - a.secondary; // Fallback tie-breaker
-    });
-    
-    return { bestBuild: results[0].build, bestYields: results[0].yields };
-}
-
 // Runs a lightning-fast Successive Halving Grid Search to completely escape local minima
 async function runFastOptimizer(pool, state, targetMetric, budget, previousBuild, samples = 5, allowUnspent = false) {
     await pool.syncState(state);
     const baseStats = getAvailableStatKeys(state);
     
     // Inject "Unspent" as a virtual 8th stat so the optimizer can organically discover crippled builds
-    const stats = allowUnspent ?[ ...baseStats, 'Unspent' ] : baseStats;
+    const stats = allowUnspent ? [ ...baseStats, 'Unspent' ] : baseStats;
     const caps = getEffectiveStatCaps(state);
     if (allowUnspent) caps['Unspent'] = budget;
     
-    // Ensure the baseline isn't cheating the math!
-    const safePrevious = enforceBudget(previousBuild, stats, budget, caps);
-    const candidates = [ safePrevious ];
-
     const bounds = {};
-    stats.forEach(s => bounds[s] =[ 0, Math.min(budget, caps[s]) ]);
+    stats.forEach(s => bounds[s] = [ 0, Math.min(budget, caps[s]) ]);
+
+    // --- EXPLICIT CRIPPLED PHASE BOUNDARIES ---
+    if (allowUnspent) {
+        // Strictly enforce the ground rules to prevent the engine from maxing out stats and overkilling
+        if (bounds.Str) bounds.Str = [0, Math.min(25, bounds.Str[1])];
+        if (bounds.Agi) bounds.Agi = [0, Math.min(25, bounds.Agi[1])];
+        if (bounds.Per) bounds.Per = [0, Math.min(15, bounds.Per[1])];
+        if (bounds.Int) bounds.Int = [0, Math.min(15, bounds.Int[1])];
+        if (bounds.Luck) bounds.Luck = [0, Math.min(15, bounds.Luck[1])];
+        if (bounds.Div) bounds.Div = [0, Math.min(15, bounds.Div[1])];
+        // Corr remains bounded only by its cap to maximize multipliers
+        
+        // Unspent points MUST be >= 95 to ensure the build remains thoroughly crippled
+        const minUnspent = Math.min(95, budget);
+        bounds.Unspent = [minUnspent, budget];
+    }
+
+    // Ensure the baseline isn't cheating the math, and clamp it to the new bounds!
+    let safePrevious = enforceBudget(previousBuild, stats, budget, caps);
+    stats.forEach(s => {
+        if (safePrevious[s] < bounds[s][0]) safePrevious[s] = bounds[s][0];
+        if (safePrevious[s] > bounds[s][1]) safePrevious[s] = bounds[s][1];
+    });
+    const candidates = [ safePrevious ];
     
     // --- EMPIRICAL DIMENSION REDUCTION (MAX FLOOR PUSHES ONLY) ---
     // Based on 150+ floors of telemetry, we aggressively prune dead stats to exponentially speed up the grid search
