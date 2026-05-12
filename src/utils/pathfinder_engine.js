@@ -192,6 +192,49 @@ const getShadowFragYields = async (pool, state, budget, caps) => {
     return results[0];
 };
 
+// Mathematically strict heuristic templates to eliminate sparse-RNG noise during Phase 3 Suicide loops!
+async function runCrippledOptimizer(pool, state, targetMetric, budget) {
+    const caps = getEffectiveStatCaps(state);
+    
+    // Base crippled foundation: Maximize Mod Chance and Corruption
+    const base = { Str: 0, Agi: 0, Per: 0, Int: 0, Luck: 0, Div: 0, Corr: 0 };
+    let b = budget;
+    
+    base.Luck = Math.min(b, caps.Luck || 0); b -= base.Luck;
+    base.Corr = Math.min(b, caps.Corr || 0); b -= base.Corr;
+    base.Per = Math.min(b, caps.Per || 0); b -= base.Per;
+    base.Int = Math.min(b, caps.Int || 0); b -= base.Int;
+    
+    // We define 5 strict templates scaling in physical power to find the exact "Goldilocks" suicide zone.
+    // As the player gains passive Infernal Card power, the engine will naturally favor the weaker templates!
+    const templates = [
+        { ...base, Str: 0, Agi: 0 },
+        { ...base, Str: 3, Agi: 0 },
+        { ...base, Str: 7, Agi: 1 },
+        { ...base, Str: 15, Agi: 2 },
+        { ...base, Str: 25, Agi: 5 }
+    ];
+    
+    // Filter out templates that exceed the remaining budget
+    const validTemplates = templates.filter(t => (t.Str + t.Agi) <= b);
+    if (validTemplates.length === 0) validTemplates.push(base); // Fallback
+    
+    // Test them all with MASSIVE samples (15) to completely crush the RNG variance of rare block spawns!
+    const promises = validTemplates.map(async (testStats) => {
+        const avgYields = await getSmoothedYields(pool, state, testStats, 15);
+        return { build: testStats, val: avgYields[targetMetric] || 0, secondary: avgYields.xp_per_min || 0, yields: avgYields };
+    });
+    
+    const results = await Promise.all(promises);
+    
+    results.sort((a, b) => {
+        if (b.val !== a.val) return b.val - a.val;
+        return b.secondary - a.secondary; // Fallback tie-breaker
+    });
+    
+    return { bestBuild: results[0].build, bestYields: results[0].yields };
+}
+
 // Runs a lightning-fast Successive Halving Grid Search to completely escape local minima
 async function runFastOptimizer(pool, state, targetMetric, budget, previousBuild, samples = 5, allowUnspent = false) {
     await pool.syncState(state);
@@ -602,11 +645,13 @@ export async function runPathfinderSimulation(startState, targetLevel, initialFr
         const farmMetric = determineFarmMetric(expNeededCheck);
         const crippled = isCrippledPhase(state);
         
-        // Utilize the native optimizer, but unlock the "Unspent" dimension so it organically discovers crippled builds!
-        const optFarm = await runFastOptimizer(pool, state, farmMetric, budget, state.base_stats, 3, crippled);
-        
-        // Strip the virtual 'Unspent' key so it doesn't pollute the UI snapshot or formatting strings
-        if (crippled) delete optFarm.bestBuild.Unspent;
+        let optFarm;
+        if (crippled) {
+            // Bypass the random-walk optimizer entirely. Use strict mathematical heuristics to prevent RNG noise!
+            optFarm = await runCrippledOptimizer(pool, state, farmMetric, budget);
+        } else {
+            optFarm = await runFastOptimizer(pool, state, farmMetric, budget, state.base_stats, 3, false);
+        }
         
         state.base_stats = optFarm.bestBuild;
         currentFarmYields = optFarm.bestYields;
