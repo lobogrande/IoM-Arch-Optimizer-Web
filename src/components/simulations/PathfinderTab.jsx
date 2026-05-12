@@ -655,7 +655,7 @@ export default function PathfinderTab() {
               </div>
 
               <div className="mt-4 border-t border-st-border pt-4">
-                <label className="block text-sm font-bold text-[#FAFAFA] mb-2">Card Fragment Progress (Poly/Infernal EV):</label>
+                <label className="block text-sm font-bold text-[#FAFAFA] mb-2">Card Fragment Progress (Current Fragments Owned 0-9):</label>
                 <div className="grid grid-cols-4 md:grid-cols-7 gap-2 max-h-48 overflow-y-auto pr-1">
                   {[ 'dirt1', 'com1', 'rare1', 'epic1', 'leg1', 'myth1', 'div1',
                     'dirt2', 'com2', 'rare2', 'epic2', 'leg2', 'myth2', 'div2',
@@ -663,7 +663,13 @@ export default function PathfinderTab() {
                     'dirt4', 'com4', 'rare4', 'epic4', 'leg4', 'myth4', 'div4'
                   ].map(blockId => {
                     const lvl = store.cards[blockId] || 0;
+                    
+                    // We only allow editing for Poly/Infernal crafts, which ALWAYS strictly require 10 fragments
                     const canEdit = lvl > 0 && lvl < 4;
+                    
+                    // Convert internal EV back to UI Fragments for display (10 frags = 9.669 EV)
+                    const currentEv = startCardProgress[blockId] || 0;
+                    const displayFrags = currentEv > 0 ? Number((currentEv / 0.9669).toFixed(2)) : '';
                     
                     return (
                       <div key={blockId} className="flex flex-col">
@@ -672,13 +678,19 @@ export default function PathfinderTab() {
                         </label>
                         <input
                           type="number"
-                          step="0.1"
+                          step="1"
                           min="0"
+                          max="9"
                           disabled={!canEdit}
-                          value={startCardProgress[blockId] === 0 ? '' : (startCardProgress[blockId] || '')}
-                          onChange={(e) => setStartCardProgress(p => ({ ...p, [blockId]: parseFloat(e.target.value) || 0 }))}
+                          value={canEdit ? displayFrags : ''}
+                          onChange={(e) => {
+                              const frags = parseFloat(e.target.value);
+                              // Convert inputted fragments into exact mathematical engine Expected Value
+                              const ev = isNaN(frags) ? 0 : frags * 0.9669;
+                              setStartCardProgress(p => ({ ...p, [blockId]: ev }));
+                          }}
                           className={`bg-st-bg border border-st-border rounded px-2 py-1 focus:border-st-orange outline-none text-xs ${!canEdit ? 'opacity-50 cursor-not-allowed text-st-border' : 'text-st-text'}`}
-                          placeholder={canEdit ? "0.0" : "N/A"}
+                          placeholder={canEdit ? "0" : "N/A"}
                         />
                       </div>
                     );
