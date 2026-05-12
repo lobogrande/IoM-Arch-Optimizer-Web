@@ -656,11 +656,15 @@ export default function PathfinderTab() {
 
               <div className="mt-4 border-t border-st-border pt-4">
                 <label className="block text-sm font-bold text-[#FAFAFA] mb-2">Card Fragment Progress (Current Fragments Owned 0-9):</label>
-                <div className="grid grid-cols-4 md:grid-cols-7 gap-2 max-h-48 overflow-y-auto pr-1">
-                  {[ 'dirt1', 'com1', 'rare1', 'epic1', 'leg1', 'myth1', 'div1',
-                    'dirt2', 'com2', 'rare2', 'epic2', 'leg2', 'myth2', 'div2',
-                    'dirt3', 'com3', 'rare3', 'epic3', 'leg3', 'myth3', 'div3',
-                    'dirt4', 'com4', 'rare4', 'epic4', 'leg4', 'myth4', 'div4'
+                <div className="grid grid-cols-4 md:grid-cols-9 gap-2 max-h-48 overflow-y-auto pr-1">
+                  {[ 
+                    'dirt1', 'dirt2', 'dirt3', 'dirt4',
+                    'com1', 'com2', 'com3', 'com4',
+                    'rare1', 'rare2', 'rare3', 'rare4',
+                    'epic1', 'epic2', 'epic3', 'epic4',
+                    'leg1', 'leg2', 'leg3', 'leg4',
+                    'myth1', 'myth2', 'myth3', 'myth4',
+                    'div1', 'div2', 'div3', 'div4'
                   ].map(blockId => {
                     const lvl = store.cards[blockId] || 0;
                     
