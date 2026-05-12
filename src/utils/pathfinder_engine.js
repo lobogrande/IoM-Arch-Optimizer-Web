@@ -469,7 +469,7 @@ async function attemptMultiFloorPush(pool, state, maxTimePenaltySecs, minWinRate
     }
 }
 
-export async function runPathfinderSimulation(startState, targetLevel, initialFrags, pool, minWinRate, initialArchSecs = 0, onProgress) {
+export async function runPathfinderSimulation(startState, targetLevel, initialFrags, pool, minWinRate, initialArchSecs = 0, initialExp = 0, onProgress) {
     // 1. Initialize Tracked State (Dual-Track the base stats!)
     let state = { 
         ...startState, 
@@ -483,6 +483,9 @@ export async function runPathfinderSimulation(startState, targetLevel, initialFr
     let cumulativeArchSecs = initialArchSecs;
     let lastEventTime = initialArchSecs;
     
+    let currentExp = initialExp;
+    let unspentPoints = 0;
+
     const captureSnapshot = (s) => ({
         arch_level: s.arch_level,
         current_max_floor: s.current_max_floor,
@@ -492,13 +495,12 @@ export async function runPathfinderSimulation(startState, targetLevel, initialFr
         cards: { ...s.cards },
         total_infernal_cards: s.total_infernal_cards || 0,
         arch_sec: cumulativeArchSecs,
+        current_exp: currentExp,
         card_progress: { ...card_progress },
         frags: { ...frags },
         prometheus_level: s.prometheus_level || 0,
         sisyphus_level: s.sisyphus_level || 0
     });
-    let currentExp = 0;
-    let unspentPoints = 0;
     
     // Fragment Banks (Initialized from UI input)
     let frags = { 
