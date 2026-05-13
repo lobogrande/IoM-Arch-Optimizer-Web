@@ -275,7 +275,7 @@ class Player:
         bb_mult = 1.0 + (self.w('W12') * min(100, self.current_max_floor))
         
         val = (base_calc + stat_calc1 + stat_calc2 + self.base_damage_const) * (mult1 + mult2) * bb_mult
-        return self._gm_int(val, drift=-1) # Native downward float drift
+        return self._gm_int(val, drift=1) # Native upward float drift
 
     @property
     def enraged_damage(self):
