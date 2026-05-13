@@ -515,6 +515,25 @@ export default function PathfinderTab() {
                         break;
                     }
                 }
+
+                // Identify the specific upgrades that mathematically redefine the Crit Engine
+                const critUpgs = {
+                    13: 'Crits Unlocked',
+                    30: 'Super Crits Scaled',
+                    37: 'Ultra Crits Unlocked',
+                    45: 'Stat Caps +5',
+                    53: 'Super Crits Maxed'
+                };
+
+                for (const [id, label] of Object.entries(critUpgs)) {
+                    if ((curUpgs[id] || 0) > 0 && (prevUpgs[id] || 0) === 0) {
+                        critPivots.push({
+                            sec: ev.arch_sec,
+                            label: label
+                        });
+                        break;
+                    }
+                }
             }
         }
 
@@ -553,7 +572,7 @@ export default function PathfinderTab() {
         phases.push(currentPhase);
     }
 
-    return { insights, pivots, minorPivots, phases };
+    return { insights, pivots, minorPivots, critPivots, phases };
   }, [ pathData ]);
 
   const templates = {
