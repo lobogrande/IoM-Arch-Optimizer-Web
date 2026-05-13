@@ -1159,7 +1159,7 @@ export default function PathfinderTab() {
                     { text: '<b>4. Fragment Economy & Milestones</b>', x: 0, y: 0.611, xref: 'paper', yref: 'paper', showarrow: false, font: {size: 14, color: '#fff'}, xanchor: 'left', yanchor: 'bottom', yshift: 5 },
                     { text: '<b>5. Push Build Priority Trends (100% Normalized)</b>', x: 0, y: 0.482, xref: 'paper', yref: 'paper', showarrow: false, font: {size: 14, color: '#fff'}, xanchor: 'left', yanchor: 'bottom', yshift: 5 },
                     { text: '<b>6. Farm Build Priority Trends (100% Normalized)</b>', x: 0, y: 0.353, xref: 'paper', yref: 'paper', showarrow: false, font: {size: 14, color: '#fff'}, xanchor: 'left', yanchor: 'bottom', yshift: 5 },
-                    { text: '<b>7. Engine Mechanics: Corruption Optimization</b>', x: 0, y: 0.224, xref: 'paper', yref: 'paper', showarrow: false, font: {size: 14, color: '#fff'}, xanchor: 'left', yanchor: 'bottom', yshift: 5 },
+                    { text: '<b>7. PUSH Build Mechanics: Corruption vs Armor Crack</b>', x: 0, y: 0.224, xref: 'paper', yref: 'paper', showarrow: false, font: {size: 14, color: '#fff'}, xanchor: 'left', yanchor: 'bottom', yshift: 5 },
                     { text: '<b>8. Card Drops (Swimlanes)</b>', x: 0, y: 0.095, xref: 'paper', yref: 'paper', showarrow: false, font: {size: 14, color: '#fff'}, xanchor: 'left', yanchor: 'bottom', yshift: 5 },
                     
                     // Pivot Labels
