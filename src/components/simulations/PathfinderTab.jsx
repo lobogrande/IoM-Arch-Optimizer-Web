@@ -1035,24 +1035,24 @@ export default function PathfinderTab() {
                   { x: fragChartData.markerX, y: fragChartData.markerY, type: 'scatter', mode: 'markers', name: 'Purchases', marker: { color: '#ffffff', size: 8, line: { color: fragChartData.color, width: 2 } }, text: fragChartData.markerText, hoverinfo: 'text', xaxis: 'x4', yaxis: 'y5', legend: 'legend4' },
 
                   // 5. Push Stats (100% Normalized)
-                  { x: pushChartData.xVals, y: pushChartData.stats.Str, type: 'scatter', mode: 'lines', stackgroup: 'push', groupnorm: 'percent', name: 'Str', line: { color: '#ef4444', width: 1, shape: 'hv' }, xaxis: 'x10', yaxis: 'y10', legend: 'legend5' },
-                  { x: pushChartData.xVals, y: pushChartData.stats.Agi, type: 'scatter', mode: 'lines', stackgroup: 'push', groupnorm: 'percent', name: 'Agi', line: { color: '#3b82f6', width: 1, shape: 'hv' }, xaxis: 'x10', yaxis: 'y10', legend: 'legend5' },
-                  { x: pushChartData.xVals, y: pushChartData.stats.Per, type: 'scatter', mode: 'lines', stackgroup: 'push', groupnorm: 'percent', name: 'Per', line: { color: '#eab308', width: 1, shape: 'hv' }, xaxis: 'x10', yaxis: 'y10', legend: 'legend5' },
-                  { x: pushChartData.xVals, y: pushChartData.stats.Int, type: 'scatter', mode: 'lines', stackgroup: 'push', groupnorm: 'percent', name: 'Int', line: { color: '#06b6d4', width: 1, shape: 'hv' }, xaxis: 'x10', yaxis: 'y10', legend: 'legend5' },
-                  { x: pushChartData.xVals, y: pushChartData.stats.Luck, type: 'scatter', mode: 'lines', stackgroup: 'push', groupnorm: 'percent', name: 'Luck', line: { color: '#22c55e', width: 1, shape: 'hv' }, xaxis: 'x10', yaxis: 'y10', legend: 'legend5' },
-                  { x: pushChartData.xVals, y: pushChartData.stats.Div, type: 'scatter', mode: 'lines', stackgroup: 'push', groupnorm: 'percent', name: 'Div', line: { color: '#f9a8d4', width: 1, shape: 'hv' }, xaxis: 'x10', yaxis: 'y10', legend: 'legend5' },
-                  { x: pushChartData.xVals, y: pushChartData.stats.Corr, type: 'scatter', mode: 'lines', stackgroup: 'push', groupnorm: 'percent', name: 'Corr', line: { color: '#a855f7', width: 1, shape: 'hv' }, xaxis: 'x10', yaxis: 'y10', legend: 'legend5' },
-                  { x: pushChartData.xVals, y: pushChartData.stats.Unspent, type: 'scatter', mode: 'lines', stackgroup: 'push', groupnorm: 'percent', name: 'Unspent', line: { color: '#ffffff', width: 1, dash: 'dash', shape: 'hv' }, fillcolor: 'rgba(255,255,255,0.1)', xaxis: 'x10', yaxis: 'y10', legend: 'legend5' },
+                  { x: pushChartData.xVals, y: pushChartData.stats.Str, type: 'scatter', mode: 'lines', stackgroup: 'push', groupnorm: 'percent', name: 'Str (Dmg)', line: { color: '#ef4444', width: 1, shape: 'hv' }, xaxis: 'x10', yaxis: 'y10', legend: 'legend5' },
+                  { x: pushChartData.xVals, y: pushChartData.stats.Agi, type: 'scatter', mode: 'lines', stackgroup: 'push', groupnorm: 'percent', name: 'Agi (Stamina)', line: { color: '#3b82f6', width: 1, shape: 'hv' }, xaxis: 'x10', yaxis: 'y10', legend: 'legend5' },
+                  { x: pushChartData.xVals, y: pushChartData.stats.Per, type: 'scatter', mode: 'lines', stackgroup: 'push', groupnorm: 'percent', name: 'Per (Armor Pen)', line: { color: '#eab308', width: 1, shape: 'hv' }, xaxis: 'x10', yaxis: 'y10', legend: 'legend5' },
+                  { x: pushChartData.xVals, y: pushChartData.stats.Int, type: 'scatter', mode: 'lines', stackgroup: 'push', groupnorm: 'percent', name: 'Int (EXP)', line: { color: '#06b6d4', width: 1, shape: 'hv' }, xaxis: 'x10', yaxis: 'y10', legend: 'legend5' },
+                  { x: pushChartData.xVals, y: pushChartData.stats.Luck, type: 'scatter', mode: 'lines', stackgroup: 'push', groupnorm: 'percent', name: 'Luck (Crits/Mods)', line: { color: '#22c55e', width: 1, shape: 'hv' }, xaxis: 'x10', yaxis: 'y10', legend: 'legend5' },
+                  { x: pushChartData.xVals, y: pushChartData.stats.Div, type: 'scatter', mode: 'lines', stackgroup: 'push', groupnorm: 'percent', name: 'Div (Dmg)', line: { color: '#f9a8d4', width: 1, shape: 'hv' }, xaxis: 'x10', yaxis: 'y10', legend: 'legend5' },
+                  { x: pushChartData.xVals, y: pushChartData.stats.Corr, type: 'scatter', mode: 'lines', stackgroup: 'push', groupnorm: 'percent', name: 'Corr (Mults)', line: { color: '#a855f7', width: 1, shape: 'hv' }, xaxis: 'x10', yaxis: 'y10', legend: 'legend5' },
+                  { x: pushChartData.xVals, y: pushChartData.stats.Unspent, type: 'scatter', mode: 'lines', stackgroup: 'push', groupnorm: 'percent', name: 'Unspent (Crippled)', line: { color: '#ffffff', width: 1, dash: 'dash', shape: 'hv' }, fillcolor: 'rgba(255,255,255,0.1)', xaxis: 'x10', yaxis: 'y10', legend: 'legend5' },
 
                   // 6. Farm Stats (100% Normalized)
-                  { x: farmChartData.xVals, y: farmChartData.stats.Str, type: 'scatter', mode: 'lines', stackgroup: 'farm', groupnorm: 'percent', name: 'Str', line: { color: '#ef4444', width: 1, shape: 'hv' }, xaxis: 'x5', yaxis: 'y6', legend: 'legend6' },
-                  { x: farmChartData.xVals, y: farmChartData.stats.Agi, type: 'scatter', mode: 'lines', stackgroup: 'farm', groupnorm: 'percent', name: 'Agi', line: { color: '#3b82f6', width: 1, shape: 'hv' }, xaxis: 'x5', yaxis: 'y6', legend: 'legend6' },
-                  { x: farmChartData.xVals, y: farmChartData.stats.Per, type: 'scatter', mode: 'lines', stackgroup: 'farm', groupnorm: 'percent', name: 'Per', line: { color: '#eab308', width: 1, shape: 'hv' }, xaxis: 'x5', yaxis: 'y6', legend: 'legend6' },
-                  { x: farmChartData.xVals, y: farmChartData.stats.Int, type: 'scatter', mode: 'lines', stackgroup: 'farm', groupnorm: 'percent', name: 'Int', line: { color: '#06b6d4', width: 1, shape: 'hv' }, xaxis: 'x5', yaxis: 'y6', legend: 'legend6' },
-                  { x: farmChartData.xVals, y: farmChartData.stats.Luck, type: 'scatter', mode: 'lines', stackgroup: 'farm', groupnorm: 'percent', name: 'Luck', line: { color: '#22c55e', width: 1, shape: 'hv' }, xaxis: 'x5', yaxis: 'y6', legend: 'legend6' },
-                  { x: farmChartData.xVals, y: farmChartData.stats.Div, type: 'scatter', mode: 'lines', stackgroup: 'farm', groupnorm: 'percent', name: 'Div', line: { color: '#f9a8d4', width: 1, shape: 'hv' }, xaxis: 'x5', yaxis: 'y6', legend: 'legend6' },
-                  { x: farmChartData.xVals, y: farmChartData.stats.Corr, type: 'scatter', mode: 'lines', stackgroup: 'farm', groupnorm: 'percent', name: 'Corr', line: { color: '#a855f7', width: 1, shape: 'hv' }, xaxis: 'x5', yaxis: 'y6', legend: 'legend6' },
-                  { x: farmChartData.xVals, y: farmChartData.stats.Unspent, type: 'scatter', mode: 'lines', stackgroup: 'farm', groupnorm: 'percent', name: 'Unspent', line: { color: '#ffffff', width: 1, dash: 'dash', shape: 'hv' }, fillcolor: 'rgba(255,255,255,0.1)', xaxis: 'x5', yaxis: 'y6', legend: 'legend6' },
+                  { x: farmChartData.xVals, y: farmChartData.stats.Str, type: 'scatter', mode: 'lines', stackgroup: 'farm', groupnorm: 'percent', name: 'Str (Dmg)', line: { color: '#ef4444', width: 1, shape: 'hv' }, xaxis: 'x5', yaxis: 'y6', legend: 'legend6' },
+                  { x: farmChartData.xVals, y: farmChartData.stats.Agi, type: 'scatter', mode: 'lines', stackgroup: 'farm', groupnorm: 'percent', name: 'Agi (Stamina)', line: { color: '#3b82f6', width: 1, shape: 'hv' }, xaxis: 'x5', yaxis: 'y6', legend: 'legend6' },
+                  { x: farmChartData.xVals, y: farmChartData.stats.Per, type: 'scatter', mode: 'lines', stackgroup: 'farm', groupnorm: 'percent', name: 'Per (Frags)', line: { color: '#eab308', width: 1, shape: 'hv' }, xaxis: 'x5', yaxis: 'y6', legend: 'legend6' },
+                  { x: farmChartData.xVals, y: farmChartData.stats.Int, type: 'scatter', mode: 'lines', stackgroup: 'farm', groupnorm: 'percent', name: 'Int (EXP)', line: { color: '#06b6d4', width: 1, shape: 'hv' }, xaxis: 'x5', yaxis: 'y6', legend: 'legend6' },
+                  { x: farmChartData.xVals, y: farmChartData.stats.Luck, type: 'scatter', mode: 'lines', stackgroup: 'farm', groupnorm: 'percent', name: 'Luck (Mods)', line: { color: '#22c55e', width: 1, shape: 'hv' }, xaxis: 'x5', yaxis: 'y6', legend: 'legend6' },
+                  { x: farmChartData.xVals, y: farmChartData.stats.Div, type: 'scatter', mode: 'lines', stackgroup: 'farm', groupnorm: 'percent', name: 'Div (Dmg/Auto)', line: { color: '#f9a8d4', width: 1, shape: 'hv' }, xaxis: 'x5', yaxis: 'y6', legend: 'legend6' },
+                  { x: farmChartData.xVals, y: farmChartData.stats.Corr, type: 'scatter', mode: 'lines', stackgroup: 'farm', groupnorm: 'percent', name: 'Corr (Mults)', line: { color: '#a855f7', width: 1, shape: 'hv' }, xaxis: 'x5', yaxis: 'y6', legend: 'legend6' },
+                  { x: farmChartData.xVals, y: farmChartData.stats.Unspent, type: 'scatter', mode: 'lines', stackgroup: 'farm', groupnorm: 'percent', name: 'Unspent (Crippled)', line: { color: '#ffffff', width: 1, dash: 'dash', shape: 'hv' }, fillcolor: 'rgba(255,255,255,0.1)', xaxis: 'x5', yaxis: 'y6', legend: 'legend6' },
 
                   // 7. Corr Mechanics (legend: 'legend7')
                   { x: corrDiagnosticsData.xVals, y: corrDiagnosticsData.armorCrackVals, type: 'scatter', mode: 'lines', name: 'Armor Crack', line: { color: '#ef4444', width: 2, shape: 'hv' }, xaxis: 'x6', yaxis: 'y7', legend: 'legend7' },
@@ -1105,6 +1105,13 @@ export default function PathfinderTab() {
                         layer: 'below',
                         line: { width: 0 }
                     })) || [ ]),
+                    ...(simulationInsights?.minorPivots.map(p => ({
+                        type: 'line',
+                        x0: p.sec, x1: p.sec,
+                        y0: 0, y1: 1, yref: 'paper',
+                        line: { color: '#9ca3af', width: 1, dash: 'dot' },
+                        layer: 'below'
+                    })) || [ ]),
                     ...(simulationInsights?.pivots.map(p => ({
                         type: 'line',
                         x0: p.sec, x1: p.sec,
@@ -1136,6 +1143,19 @@ export default function PathfinderTab() {
                         yanchor: 'top',
                         yshift: -5,
                         xshift: -5
+                    })) || [ ]),
+                    
+                    // Minor Pivot Labels (Opportunity Cost)
+                    ...(simulationInsights?.minorPivots.map(p => ({
+                        x: p.sec, y: 0.95, yref: 'paper',
+                        text: `${p.label}`,
+                        showarrow: false,
+                        font: { size: 8, color: '#9ca3af' },
+                        textangle: -90,
+                        xanchor: 'right',
+                        yanchor: 'top',
+                        yshift: -5,
+                        xshift: -2
                     })) || [ ])
                   ],
 
