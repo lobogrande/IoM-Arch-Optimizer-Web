@@ -454,10 +454,11 @@ export default function PathfinderTab() {
 
   const simulationInsights = useMemo(() => {
     if (!pathData) return null;
-    const insights =[ ];
-    const pivots =[ ];
-    const minorPivots =[ ];
-    const phases =[ ];
+    const insights = [];
+    const pivots = [];
+    const minorPivots = [];
+    const critPivots = [];
+    const phases = [];
     let corrVetoed = false;
     let crippledStarted = false;
     let masteryHit = false;
