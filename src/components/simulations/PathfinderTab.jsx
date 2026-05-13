@@ -1030,7 +1030,7 @@ export default function PathfinderTab() {
               </div>
 
               {/* FARM BUILD GUIDE OVERLAY (Opportunity Cost) */}
-              <div className="absolute right-[120px] z-10 max-w-2xl bg-[#111]/90 border border-st-border px-3 py-2 rounded shadow-sm backdrop-blur-sm flex items-center gap-3" style={{ top: '1560px' }}>
+              <div className="absolute left-[440px] z-10 max-w-3xl bg-[#111]/90 border border-st-border px-3 py-2 rounded shadow-sm backdrop-blur-sm flex items-center gap-3" style={{ top: '1555px' }}>
                   <div className="text-[11px] font-bold text-gray-200 whitespace-nowrap flex items-center gap-1.5 border-r border-st-border pr-3">
                       <span>📊</span> Reading the FARM Priority Charts
                   </div>
@@ -1040,7 +1040,7 @@ export default function PathfinderTab() {
               </div>
 
               {/* PUSH BUILD GUIDE OVERLAY (The Armor Veto) */}
-              <div className="absolute right-[120px] z-10 max-w-2xl bg-[#111]/90 border border-st-border px-3 py-2 rounded shadow-sm backdrop-blur-sm flex items-center gap-3" style={{ top: '1965px' }}>
+              <div className="absolute left-[440px] z-10 max-w-3xl bg-[#111]/90 border border-st-border px-3 py-2 rounded shadow-sm backdrop-blur-sm flex items-center gap-3" style={{ top: '1970px' }}>
                   <div className="text-[11px] font-bold text-gray-200 whitespace-nowrap flex items-center gap-1.5 border-r border-st-border pr-3">
                       <span>🛡️</span> Reading the PUSH Priority Charts
                   </div>
@@ -1050,7 +1050,7 @@ export default function PathfinderTab() {
               </div>
 
               {/* INTERACTIVE DIAGNOSTICS GUIDE OVERLAY */}
-              <div className="absolute right-[120px] z-10 max-w-2xl bg-[#111]/90 border border-st-border px-3 py-2 rounded shadow-sm backdrop-blur-sm flex items-center gap-3" style={{ top: '2385px' }}>
+              <div className="absolute left-[440px] z-10 max-w-5xl bg-[#111]/90 border border-st-border px-3 py-2 rounded shadow-sm backdrop-blur-sm flex items-center gap-3" style={{ top: '2375px' }}>
                   <div className="text-[11px] font-bold text-gray-200 whitespace-nowrap flex flex-col gap-1.5 border-r border-st-border pr-3">
                       <div className="flex items-center gap-1.5">
                           <span>⚙️</span> Engine Diagnostics
@@ -1070,7 +1070,7 @@ export default function PathfinderTab() {
                           <span>This chart dissects the <strong>Push Build (Chart 6)</strong>. <span className="text-[#a855f7] font-bold">Corruption (Purple)</span> acts as a multiplier for your <span className="text-[#4ade80] font-bold">Mod Base (Green)</span>. But if Block Armor gets too tough, the engine sacrifices Corruption to afford raw <span className="text-[#ef4444] font-bold">Armor Crack (Red)</span>.</span>
                       )}
                       {diagnosticView === 'push_crit' && (
-                          <div className="flex flex-col gap-1.5 py-1">
+                          <div className="flex flex-col gap-1 py-0.5">
                               <span>This chart dissects the 3 eras of the <strong>Push Build's</strong> crit engine lifecycle:</span>
                               <ul className="list-disc ml-4 space-y-0.5">
                                   <li><strong>Early (Base Dmg):</strong> <span className="text-[#f9a8d4] font-bold">Div</span> spikes instantly because its raw flat damage cracks early armor.</li>
