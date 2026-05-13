@@ -504,7 +504,7 @@ export default function PathfinderTab() {
                 if (!corrVetoed) {
                     insights.push({
                         icon: '🛡️', title: 'Armor Veto Triggered',
-                        desc: `At Floor ${ev.floor}, enemy armor outscaled your damage. The engine dynamically stripped Corruption to 0 to afford more Strength and Divinity for Armor Penetration.`
+                        desc: `At Floor ${ev.floor}, block armor outscaled your damage. The engine dynamically stripped Corruption to 0 to afford more Strength and Divinity for Armor Penetration.`
                     });
                     corrVetoed = true;
                 }
