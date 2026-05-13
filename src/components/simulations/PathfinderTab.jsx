@@ -990,9 +990,9 @@ export default function PathfinderTab() {
               </div>
 
               {/* BUILD PRIORITY GUIDE OVERLAY */}
-              <div className="absolute right-[150px] z-10 w-64 bg-[#111]/95 border border-st-border p-3 rounded shadow-md backdrop-blur-sm" style={{ top: '2060px' }}>
-                  <div className="text-[11px] font-bold text-gray-200 mb-1.5 flex items-center gap-1.5">
-                      <span>📊</span> How to Read the BUILD Priority Charts
+              <div className="absolute left-[60px] z-10 max-w-4xl bg-[#111]/90 border border-st-border px-3 py-2 rounded shadow-sm backdrop-blur-sm flex items-center gap-3" style={{ top: '1995px' }}>
+                  <div className="text-[11px] font-bold text-gray-200 whitespace-nowrap flex items-center gap-1.5 border-r border-st-border pr-3">
+                      <span>📊</span> Reading the BUILD Priority Charts
                   </div>
                   <div className="text-[10px] text-gray-400 leading-relaxed">
                       <span className="text-[#06b6d4] font-bold">Teal</span> represents Intelligence (EXP). <span className="text-[#eab308] font-bold">Gold</span> represents Perception (Fragments). Spikes in Perception indicate a switch in the farm build from EXP to Fragments to focus on farming for the expensive/major upgrades.
