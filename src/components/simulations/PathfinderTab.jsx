@@ -1210,7 +1210,14 @@ export default function PathfinderTab() {
                         y0: 0, y1: 1, yref: 'paper',
                         line: { color: '#f59e0b', width: 2, dash: 'dot' },
                         layer: 'below'
-                    })) || [ ])
+                    })) || [ ]),
+                    ...(diagnosticView.includes('crit') ? simulationInsights?.critPivots.map(p => ({
+                        type: 'line',
+                        x0: p.sec, x1: p.sec,
+                        y0: 0.129, y1: 0.224, yref: 'paper', // Locked exclusively to Plot 7's domain
+                        line: { color: '#f472b6', width: 1, dash: 'dash' },
+                        layer: 'above'
+                    })) : [ ])
                   ],
                   
                   // Annotations for Subplot Titles & Vertical Pivots
@@ -1248,7 +1255,20 @@ export default function PathfinderTab() {
                         yanchor: 'top',
                         yshift: -5,
                         xshift: -2
-                    })) || [ ])
+                    })) || [ ]),
+
+                    // Crit Engine Pivot Labels
+                    ...(diagnosticView.includes('crit') ? simulationInsights?.critPivots.map(p => ({
+                        x: p.sec, y: 0.224, yref: 'paper',
+                        text: `${p.label}`,
+                        showarrow: false,
+                        font: { size: 8, color: '#f472b6' },
+                        textangle: -90,
+                        xanchor: 'right',
+                        yanchor: 'top',
+                        yshift: -5,
+                        xshift: -2
+                    })) : [ ])
                   ],
 
                   // SPLIT LEGENDS (Anchored vertically to match each subplot's domain top)
