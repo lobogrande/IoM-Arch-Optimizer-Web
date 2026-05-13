@@ -989,10 +989,20 @@ export default function PathfinderTab() {
                   </select>
               </div>
 
-              {/* BUILD PRIORITY GUIDE OVERLAY */}
+              {/* PUSH BUILD GUIDE OVERLAY (The Armor Veto) */}
+              <div className="absolute left-[60px] z-10 max-w-4xl bg-[#111]/90 border border-st-border px-3 py-2 rounded shadow-sm backdrop-blur-sm flex items-center gap-3" style={{ top: '1605px' }}>
+                  <div className="text-[11px] font-bold text-gray-200 whitespace-nowrap flex items-center gap-1.5 border-r border-st-border pr-3">
+                      <span>🛡️</span> Reading the PUSH Priority Charts
+                  </div>
+                  <div className="text-[10px] text-gray-400 leading-relaxed">
+                      Notice the <span className="text-[#a855f7] font-bold">Purple</span> band (Corruption) occasionally vanishing? This is the <strong>Armor Veto</strong>. If enemy armor fully blocks your base damage, Corruption's multiplier becomes mathematically useless (<code className="bg-black px-1 rounded">0 * Mult = 0</code>). The engine drops it to 0 to afford more raw Armor Penetration (Str/Per/Div).
+                  </div>
+              </div>
+
+              {/* FARM BUILD GUIDE OVERLAY (Opportunity Cost) */}
               <div className="absolute left-[60px] z-10 max-w-4xl bg-[#111]/90 border border-st-border px-3 py-2 rounded shadow-sm backdrop-blur-sm flex items-center gap-3" style={{ top: '1995px' }}>
                   <div className="text-[11px] font-bold text-gray-200 whitespace-nowrap flex items-center gap-1.5 border-r border-st-border pr-3">
-                      <span>📊</span> Reading the BUILD Priority Charts
+                      <span>📊</span> Reading the FARM Priority Charts
                   </div>
                   <div className="text-[10px] text-gray-400 leading-relaxed">
                       <span className="text-[#06b6d4] font-bold">Teal</span> represents Intelligence (EXP). <span className="text-[#eab308] font-bold">Gold</span> represents Perception (Fragments). Spikes in Perception indicate a switch in the farm build from EXP to Fragments to focus on farming for the expensive/major upgrades.
