@@ -294,6 +294,29 @@ export default function PathfinderTab() {
     return { xVals, corrVals, armorCrackVals, modPowerVals };
   }, [pushChartData]);
 
+  const activeDiagnosticsTraces = useMemo(() => {
+      if (diagnosticView === 'push_corr' && corrDiagnosticsData) {
+          return [
+              { x: corrDiagnosticsData.xVals, y: corrDiagnosticsData.armorCrackVals, type: 'scatter', mode: 'lines', name: 'Armor Crack (Str+Div+Per)', line: { color: '#ef4444', width: 2, shape: 'hv' }, xaxis: 'x6', yaxis: 'y7', legend: 'legend7' },
+              { x: corrDiagnosticsData.xVals, y: corrDiagnosticsData.modPowerVals, type: 'scatter', mode: 'lines', name: 'Mod Base (Luck+Int/Per)', line: { color: '#4ade80', width: 2, shape: 'hv' }, xaxis: 'x6', yaxis: 'y7', legend: 'legend7' },
+              { x: corrDiagnosticsData.xVals, y: corrDiagnosticsData.corrVals, type: 'scatter', mode: 'none', fill: 'tozeroy', name: 'Corruption (Multiplier)', fillcolor: 'rgba(168, 85, 247, 0.25)', xaxis: 'x6', yaxis: 'y8', legend: 'legend7' }
+          ];
+      } else if (diagnosticView === 'push_crit' && pushChartData) {
+          return [
+              { x: pushChartData.xVals, y: pushChartData.stats.Str, type: 'scatter', mode: 'lines', name: 'Str (Crit Dmg)', line: { color: '#ef4444', width: 2, shape: 'hv' }, xaxis: 'x6', yaxis: 'y7', legend: 'legend7' },
+              { x: pushChartData.xVals, y: pushChartData.stats.Luck, type: 'scatter', mode: 'lines', name: 'Luck (Crit Chance)', line: { color: '#22c55e', width: 2, shape: 'hv' }, xaxis: 'x6', yaxis: 'y7', legend: 'legend7' },
+              { x: pushChartData.xVals, y: pushChartData.stats.Div, type: 'scatter', mode: 'lines', name: 'Div (Super Crit)', line: { color: '#f9a8d4', width: 2, shape: 'hv' }, xaxis: 'x6', yaxis: 'y7', legend: 'legend7' }
+          ];
+      } else if (diagnosticView === 'farm_crit' && farmChartData) {
+          return [
+              { x: farmChartData.xVals, y: farmChartData.stats.Str, type: 'scatter', mode: 'lines', name: 'Str (Crit Dmg)', line: { color: '#ef4444', width: 2, shape: 'hv' }, xaxis: 'x6', yaxis: 'y7', legend: 'legend7' },
+              { x: farmChartData.xVals, y: farmChartData.stats.Luck, type: 'scatter', mode: 'lines', name: 'Luck (Crit/Mods)', line: { color: '#22c55e', width: 2, shape: 'hv' }, xaxis: 'x6', yaxis: 'y7', legend: 'legend7' },
+              { x: farmChartData.xVals, y: farmChartData.stats.Div, type: 'scatter', mode: 'lines', name: 'Div (Super Crit)', line: { color: '#f9a8d4', width: 2, shape: 'hv' }, xaxis: 'x6', yaxis: 'y7', legend: 'legend7' }
+          ];
+      }
+      return [];
+  }, [diagnosticView, corrDiagnosticsData, pushChartData, farmChartData]);
+
   const fragDict = { 'com': 'Common', 'rare': 'Rare', 'epic': 'Epic', 'leg': 'Legendary', 'myth': 'Mythic', 'div': 'Divine' };
 
   const fragChartData = useMemo(() => {
