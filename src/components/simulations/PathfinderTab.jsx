@@ -1030,8 +1030,8 @@ export default function PathfinderTab() {
               </div>
 
               {/* FARM BUILD GUIDE OVERLAY (Opportunity Cost) */}
-              <div className="absolute left-[440px] z-10 max-w-3xl bg-[#111]/90 border border-st-border px-3 py-2 rounded shadow-sm backdrop-blur-sm flex items-center gap-3" style={{ top: '1555px' }}>
-                  <div className="text-[11px] font-bold text-gray-200 whitespace-nowrap flex items-center gap-1.5 border-r border-st-border pr-3">
+              <div className="absolute left-1/2 -translate-x-1/2 -translate-y-1/2 z-10 w-[850px] bg-[#111]/95 border border-st-border px-4 py-2 rounded shadow-sm backdrop-blur-sm flex items-center gap-4" style={{ top: '1603px' }}>
+                  <div className="text-[11px] font-bold text-gray-200 whitespace-nowrap flex items-center gap-1.5 border-r border-st-border pr-4 shrink-0">
                       <span>📊</span> Reading the FARM Priority Charts
                   </div>
                   <div className="text-[10px] text-gray-400 leading-relaxed">
@@ -1040,8 +1040,8 @@ export default function PathfinderTab() {
               </div>
 
               {/* PUSH BUILD GUIDE OVERLAY (The Armor Veto) */}
-              <div className="absolute left-[440px] z-10 max-w-3xl bg-[#111]/90 border border-st-border px-3 py-2 rounded shadow-sm backdrop-blur-sm flex items-center gap-3" style={{ top: '1970px' }}>
-                  <div className="text-[11px] font-bold text-gray-200 whitespace-nowrap flex items-center gap-1.5 border-r border-st-border pr-3">
+              <div className="absolute left-1/2 -translate-x-1/2 -translate-y-1/2 z-10 w-[850px] bg-[#111]/95 border border-st-border px-4 py-2 rounded shadow-sm backdrop-blur-sm flex items-center gap-4" style={{ top: '2016px' }}>
+                  <div className="text-[11px] font-bold text-gray-200 whitespace-nowrap flex items-center gap-1.5 border-r border-st-border pr-4 shrink-0">
                       <span>🛡️</span> Reading the PUSH Priority Charts
                   </div>
                   <div className="text-[10px] text-gray-400 leading-relaxed">
@@ -1050,8 +1050,8 @@ export default function PathfinderTab() {
               </div>
 
               {/* INTERACTIVE DIAGNOSTICS GUIDE OVERLAY */}
-              <div className="absolute left-[440px] z-10 max-w-5xl bg-[#111]/90 border border-st-border px-3 py-2 rounded shadow-sm backdrop-blur-sm flex items-center gap-3" style={{ top: '2375px' }}>
-                  <div className="text-[11px] font-bold text-gray-200 whitespace-nowrap flex flex-col gap-1.5 border-r border-st-border pr-3">
+              <div className="absolute left-1/2 -translate-x-1/2 -translate-y-1/2 z-10 w-[850px] bg-[#111]/95 border border-st-border px-4 py-2 rounded shadow-sm backdrop-blur-sm flex items-center gap-4" style={{ top: '2429px' }}>
+                  <div className="text-[11px] font-bold text-gray-200 whitespace-nowrap flex flex-col gap-1.5 border-r border-st-border pr-4 shrink-0">
                       <div className="flex items-center gap-1.5">
                           <span>⚙️</span> Engine Diagnostics
                       </div>
@@ -1065,19 +1065,12 @@ export default function PathfinderTab() {
                           <option value="farm_crit">FARM: Crit Engine Evol.</option>
                       </select>
                   </div>
-                  <div className="text-[10px] text-gray-400 leading-relaxed min-h-[30px] flex items-center">
+                  <div className="text-[10px] text-gray-400 leading-relaxed">
                       {diagnosticView === 'push_corr' && (
                           <span>This chart dissects the <strong>Push Build (Chart 6)</strong>. <span className="text-[#a855f7] font-bold">Corruption (Purple)</span> acts as a multiplier for your <span className="text-[#4ade80] font-bold">Mod Base (Green)</span>. But if Block Armor gets too tough, the engine sacrifices Corruption to afford raw <span className="text-[#ef4444] font-bold">Armor Crack (Red)</span>.</span>
                       )}
                       {diagnosticView === 'push_crit' && (
-                          <div className="flex flex-col gap-1 py-0.5">
-                              <span>This chart dissects the 3 eras of the <strong>Push Build's</strong> crit engine lifecycle:</span>
-                              <ul className="list-disc ml-4 space-y-0.5">
-                                  <li><strong>Early (Base Dmg):</strong> <span className="text-[#f9a8d4] font-bold">Div</span> spikes instantly because its raw flat damage cracks early armor.</li>
-                                  <li><strong>Mid (Crit Cap):</strong> <span className="text-[#22c55e] font-bold">Luck</span> rushes to max to secure base Crit Chance. <span className="text-[#f9a8d4] font-bold">Div</span> plunges because upgrades provide better flat damage, and Super Crits aren't strong enough yet.</li>
-                                  <li><strong>Late (Compounding):</strong> Once late-game multipliers unlock (Super/Ultra Crits, +5 Stat Caps), <span className="text-[#f9a8d4] font-bold">Div</span> surges back to fuel massive compounding criticals.</li>
-                              </ul>
-                          </div>
+                          <span>This chart dissects the 3 eras of the <strong>Push Build's</strong> crit engine lifecycle: <strong>1. Early (Base Dmg):</strong> <span className="text-[#f9a8d4] font-bold">Div</span> spikes instantly to crack early armor. <strong>2. Mid (Crit Cap):</strong> <span className="text-[#22c55e] font-bold">Luck</span> rushes to max to secure Crit Chance, while Div plunges. <strong>3. Late (Compounding):</strong> Once multipliers unlock (Super/Ultra Crits), <span className="text-[#f9a8d4] font-bold">Div</span> surges back to fuel massive compounding criticals.</span>
                       )}
                       {diagnosticView === 'farm_crit' && (
                           <span>This chart dissects the <strong>Farm Build's</strong> crit engine. Notice how <span className="text-[#22c55e] font-bold">Luck (Green)</span> is prioritized much earlier here than in the Push build? That's because Luck simultaneously drives Crit Chance <em>and</em> Modifier Chances (EXP/Loot), making it the ultimate dual-purpose farming stat.</span>
