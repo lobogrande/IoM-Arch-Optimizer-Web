@@ -170,7 +170,9 @@ const getShadowFragYields = async (pool, state, budget, caps) => {
     // Evaluate all candidates using a fast 2-sample batch
     // DYNAMIC TARGETING: Seek the fragment type of the NEXT unpurchased major upgrade!
     let metric = 'frag_1_per_min';
-    if ((state.external_levels[4] || 0) >= 3000) {
+    const majorUpgsBought = (state.upgrade_levels[41] > 0) && (state.upgrade_levels[42] > 0) && (state.upgrade_levels[43] > 0) && (state.upgrade_levels[45] > 0);
+    
+    if ((state.external_levels[4] || 0) >= 3000 && majorUpgsBought) {
         metric = 'frag_6_per_min';
     } else if (!(state.upgrade_levels[41] > 0)) {
         metric = 'frag_1_per_min';
@@ -576,8 +578,9 @@ export async function runPathfinderSimulation(startState, targetLevel, initialFr
     const determineFarmMetric = (expNeededCheck) => {
         // Endgame Phase 2: Hades Idol is maxed. Pivot to explicit Block hunting!
         const idolsMaxed = (state.external_levels[21] || 0) >= 6666;
+        const majorUpgsBought = (state.upgrade_levels[41] > 0) && (state.upgrade_levels[42] > 0) && (state.upgrade_levels[43] > 0) && (state.upgrade_levels[45] > 0);
                            
-        if ((state.external_levels[4] || 0) >= 3000) {
+        if ((state.external_levels[4] || 0) >= 3000 && majorUpgsBought) {
             if (idolsMaxed) {
                 // Hunt remaining un-maxed cards, strictly prioritizing highest tiers first
                 const targetCards =[
@@ -634,7 +637,8 @@ export async function runPathfinderSimulation(startState, targetLevel, initialFr
         state.base_stats = optFarm.bestBuild;
         currentFarmYields = optFarm.bestYields;
 
-        if ((state.external_levels[4] || 0) >= 3000) {
+        const majorUpgsBought = (state.upgrade_levels[41] > 0) && (state.upgrade_levels[42] > 0) && (state.upgrade_levels[43] > 0) && (state.upgrade_levels[45] > 0);
+        if ((state.external_levels[4] || 0) >= 3000 && majorUpgsBought) {
             currentFragPotential = currentFarmYields;
         } else {
             currentFragPotential = await getShadowFragYields(pool, state, budget, getEffectiveStatCaps(state));
@@ -986,7 +990,9 @@ export async function runPathfinderSimulation(startState, targetLevel, initialFr
                 if (bought > 0) {
                     frags.com -= (bought * 999);
                     state.external_levels = { ...state.external_levels, 4: currentHestia + bought };
+                    
                     const justMaxedHestia = (state.external_levels[4] || 0) >= 3000;
+                    const majorUpgsBought = (state.upgrade_levels[41] > 0) && (state.upgrade_levels[42] > 0) && (state.upgrade_levels[43] > 0) && (state.upgrade_levels[45] > 0);
                     
                     history.push({
                         type: "system",
@@ -1004,8 +1010,8 @@ export async function runPathfinderSimulation(startState, targetLevel, initialFr
                         state_snapshot: captureSnapshot(state)
                     });
 
-                    // Trigger the massive Endgame Pivot the exact moment Hestia caps out
-                    if (justMaxedHestia) {
+                    // Trigger the massive Endgame Pivot the exact moment Hestia caps out (provided major upgrades are secured)
+                    if (justMaxedHestia && majorUpgsBought) {
                         report(`Lvl ${state.arch_level}: Endgame Transition! Re-optimizing for Divine Fragments...`);
                         await pool.syncState(state);
                         
@@ -1280,15 +1286,16 @@ export async function runPathfinderSimulation(startState, targetLevel, initialFr
                 }
             } else {
                 // Gem Upgrades don't alter base breakpoints, just recalculate yields instantly
-                await pool.syncState(state);
-                currentFarmYields = await getSmoothedYields(pool, state, state.base_stats, 3);
-                
-                if ((state.external_levels[4] || 0) >= 3000) {
-                    currentFragPotential = currentFarmYields;
-                } else {
-                    const currentBudget = state.arch_level + (state.upgrade_levels[12] || 0);
-                    currentFragPotential = await getShadowFragYields(pool, state, currentBudget, getEffectiveStatCaps(state));
-                }
+            await pool.syncState(state);
+            currentFarmYields = await getSmoothedYields(pool, state, state.base_stats, 3);
+            
+            const majorUpgsBought = (state.upgrade_levels[41] > 0) && (state.upgrade_levels[42] > 0) && (state.upgrade_levels[43] > 0) && (state.upgrade_levels[45] > 0);
+            if ((state.external_levels[4] || 0) >= 3000 && majorUpgsBought) {
+                currentFragPotential = currentFarmYields;
+            } else {
+                const currentBudget = state.arch_level + (state.upgrade_levels[12] || 0);
+                currentFragPotential = await getShadowFragYields(pool, state, currentBudget, getEffectiveStatCaps(state));
+            }
                 
                 const pushActualTargetState = { ...state, current_max_floor: state.current_max_floor + 1 };
                 await pool.syncState(pushActualTargetState);
@@ -1463,7 +1470,8 @@ export async function runPathfinderSimulation(startState, targetLevel, initialFr
                     await pool.syncState(state);
                     currentFarmYields = await getSmoothedYields(pool, state, state.base_stats, 3);
                     
-                    if ((state.external_levels[4] || 0) >= 3000) {
+                    const majorUpgsBought = (state.upgrade_levels[41] > 0) && (state.upgrade_levels[42] > 0) && (state.upgrade_levels[43] > 0) && (state.upgrade_levels[45] > 0);
+                    if ((state.external_levels[4] || 0) >= 3000 && majorUpgsBought) {
                         currentFragPotential = currentFarmYields;
                     } else {
                         const currentBudget = state.arch_level + (state.upgrade_levels[12] || 0);

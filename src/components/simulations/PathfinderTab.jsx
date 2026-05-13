@@ -680,7 +680,7 @@ export default function PathfinderTab() {
               <p className="mt-2 text-[#FAFAFA] font-bold">Autonomous Endgame Director:</p>
               <ul className="list-disc ml-4 opacity-80 mt-1.5 text-[11px] space-y-1">
                 <li><strong className="text-red-400">Dual-Track Pushing:</strong> Maintains parallel Farm and Push builds, opportunistically brute-forcing max floors.</li>
-                <li><strong className="text-st-orange">Opportunity Cost:</strong> Dynamically swaps Farm build between EXP and Frag targets to snipe the expensive late-game fragment upgrades.</li>
+                <li><strong className="text-st-orange">Opportunity Cost:</strong> Dynamically swaps Farm build between EXP and Frag targets to snipe the expensive mid-game fragment upgrades.</li>
                 <li><strong className="text-blue-400">Phase 1 (Divine Pivot):</strong> Post-Hestia (3000). Abandons EXP to pure-farm Divine Frags for Hades.</li>
                 <li><strong className="text-purple-400">Phase 2 (Card Hunt):</strong> Post-Hades (6666). Abandons frags to target highest unmaxed block tiers.</li>
                 <li><strong className="text-green-400">Phase 3 (Crippled):</strong> Post-T4/T3. Starves stat budget to hyper-farm low-tier cards without overkilling.</li>
