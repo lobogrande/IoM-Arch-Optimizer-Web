@@ -1006,10 +1006,10 @@ export default function PathfinderTab() {
               {/* CORRUPTION MECHANICS GUIDE OVERLAY */}
               <div className="absolute right-[120px] z-10 max-w-2xl bg-[#111]/90 border border-st-border px-3 py-2 rounded shadow-sm backdrop-blur-sm flex items-center gap-3" style={{ top: '2405px' }}>
                   <div className="text-[11px] font-bold text-gray-200 whitespace-nowrap flex items-center gap-1.5 border-r border-st-border pr-3">
-                      <span>⚙️</span> The Corruption Tug-of-War
+                      <span>⚙️</span> The PUSH Build Tug-of-War
                   </div>
                   <div className="text-[10px] text-gray-400 leading-relaxed">
-                      <span className="text-[#a855f7] font-bold">Corruption (Purple)</span> acts as a multiplier for your <span className="text-[#4ade80] font-bold">Mod Base (Green)</span>. But if Block Armor gets too tough, the engine must sacrifice Corruption to afford raw <span className="text-[#ef4444] font-bold">Armor Crack (Red)</span>. When Armor Crack spikes, Corruption plunges.
+                      This chart dissects the <strong>Push Build (Chart 5)</strong>. <span className="text-[#a855f7] font-bold">Corruption (Purple)</span> acts as a multiplier for your <span className="text-[#4ade80] font-bold">Mod Base (Green)</span>. But if Block Armor gets too tough, the engine sacrifices Corruption to afford raw <span className="text-[#ef4444] font-bold">Armor Crack (Red)</span>. When Armor Crack spikes, Corruption plunges.
                   </div>
               </div>
 
