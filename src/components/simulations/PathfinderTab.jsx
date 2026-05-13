@@ -436,9 +436,19 @@ export default function PathfinderTab() {
     if (!pathData) return null;
     const insights =[ ];
     const pivots =[ ];
+    const phases =[ ];
     let corrVetoed = false;
     let crippledStarted = false;
     let masteryHit = false;
+
+    const phaseColors = {
+        'Phase 1: Divine': 'rgba(59, 130, 246, 0.08)',
+        'Phase 2: Cards': 'rgba(168, 85, 247, 0.08)',
+        'Phase 3: Crippled': 'rgba(74, 222, 128, 0.08)',
+        'Ultimate Mastery': 'rgba(250, 204, 21, 0.08)'
+    };
+    
+    let currentPhase = { label: 'Baseline', start: 0, color: 'rgba(255, 255, 255, 0.02)' };
 
     pathData.history.forEach((ev, idx) => {
         if (ev.type === 'system' && (ev.event.includes('Endgame Phase') || ev.event.includes('Ultimate Mastery'))) {
@@ -453,6 +463,10 @@ export default function PathfinderTab() {
                 label: shortName,
                 fullEvent: ev.event
             });
+
+            currentPhase.end = ev.arch_sec;
+            phases.push({ ...currentPhase });
+            currentPhase = { label: shortName, start: ev.arch_sec, color: phaseColors[shortName] || 'rgba(255, 255, 255, 0.02)' };
         }
 
         if (ev.type === 'floor' && ev.state_snapshot && ev.state_snapshot.base_stats) {
@@ -485,7 +499,12 @@ export default function PathfinderTab() {
         }
     });
 
-    return { insights, pivots };
+    if (pathData.history.length > 0) {
+        currentPhase.end = pathData.history[pathData.history.length - 1].arch_sec;
+        phases.push(currentPhase);
+    }
+
+    return { insights, pivots, phases };
   }, [ pathData ]);
 
   const templates = {
