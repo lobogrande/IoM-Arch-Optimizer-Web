@@ -990,7 +990,7 @@ export default function PathfinderTab() {
               </div>
 
               {/* PUSH BUILD GUIDE OVERLAY (The Armor Veto) */}
-              <div className="absolute right-[120px] z-10 max-w-2xl bg-[#111]/90 border border-st-border px-3 py-2 rounded shadow-sm backdrop-blur-sm flex items-center gap-3" style={{ top: '1590px' }}>
+              <div className="absolute right-[120px] z-10 max-w-2xl bg-[#111]/90 border border-st-border px-3 py-2 rounded shadow-sm backdrop-blur-sm flex items-center gap-3" style={{ top: '1560px' }}>
                   <div className="text-[11px] font-bold text-gray-200 whitespace-nowrap flex items-center gap-1.5 border-r border-st-border pr-3">
                       <span>🛡️</span> Reading the PUSH Priority Charts
                   </div>
