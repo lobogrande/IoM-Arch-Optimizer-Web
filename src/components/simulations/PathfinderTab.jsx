@@ -1110,10 +1110,8 @@ export default function PathfinderTab() {
                   { x: pushChartData.xVals, y: pushChartData.stats.Corr, type: 'scatter', mode: 'lines', stackgroup: 'push', groupnorm: 'percent', name: 'Corr (Mults)', line: { color: '#a855f7', width: 1, shape: 'hv' }, xaxis: 'x10', yaxis: 'y10', legend: 'legend6' },
                   { x: pushChartData.xVals, y: pushChartData.stats.Unspent, type: 'scatter', mode: 'lines', stackgroup: 'push', groupnorm: 'percent', name: 'Unspent (Crippled)', line: { color: '#ffffff', width: 1, dash: 'dash', shape: 'hv' }, fillcolor: 'rgba(255,255,255,0.1)', xaxis: 'x10', yaxis: 'y10', legend: 'legend6' },
 
-                  // 7. Corr Mechanics (legend: 'legend7')
-                  { x: corrDiagnosticsData.xVals, y: corrDiagnosticsData.armorCrackVals, type: 'scatter', mode: 'lines', name: 'Armor Crack (Str+Div+Per)', line: { color: '#ef4444', width: 2, shape: 'hv' }, xaxis: 'x6', yaxis: 'y7', legend: 'legend7' },
-                  { x: corrDiagnosticsData.xVals, y: corrDiagnosticsData.modPowerVals, type: 'scatter', mode: 'lines', name: 'Mod Base (Luck+Int/Per)', line: { color: '#4ade80', width: 2, shape: 'hv' }, xaxis: 'x6', yaxis: 'y7', legend: 'legend7' },
-                  { x: corrDiagnosticsData.xVals, y: corrDiagnosticsData.corrVals, type: 'scatter', mode: 'none', fill: 'tozeroy', name: 'Corruption (Multiplier)', fillcolor: 'rgba(168, 85, 247, 0.25)', xaxis: 'x6', yaxis: 'y8', legend: 'legend7' },
+                  // 7. Engine Diagnostics (legend: 'legend7')
+                  ...activeDiagnosticsTraces,
 
                   // 8. Cards (legend: 'legend8')
                   ...cardSwimlaneData.traces.map(t => ({ ...t, xaxis: 'x7', yaxis: 'y9', legend: 'legend8' }))
