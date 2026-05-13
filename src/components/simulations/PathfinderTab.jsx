@@ -995,7 +995,7 @@ export default function PathfinderTab() {
                       <span>🛡️</span> Reading the PUSH Priority Charts
                   </div>
                   <div className="text-[10px] text-gray-400 leading-relaxed">
-                      Notice the <span className="text-[#a855f7] font-bold">Purple</span> band (Corruption) occasionally vanishing? This is the <strong>Armor Veto</strong>. If enemy armor blocks your base damage, Corruption's multiplier is useless (<code className="bg-black px-1 rounded">0 * Mult = 0</code>). The engine drops it to afford raw Armor Pen.
+                      Notice the <span className="text-[#a855f7] font-bold">Purple</span> band (Corruption) occasionally vanishing? This is the <strong>Armor Veto</strong>. If a block's armor exceeds your Armor Penetration, it zeroes out your base damage making Corruption's multiplier useless (<code className="bg-black px-1 rounded">0 * Mult = 0</code>). The engine drops it to afford raw Armor Pen.
                   </div>
               </div>
 
