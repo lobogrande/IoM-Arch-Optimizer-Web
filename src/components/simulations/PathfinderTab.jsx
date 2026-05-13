@@ -1069,7 +1069,14 @@ export default function PathfinderTab() {
                           <span>This chart dissects the <strong>Push Build (Chart 6)</strong>. <span className="text-[#a855f7] font-bold">Corruption (Purple)</span> acts as a multiplier for your <span className="text-[#4ade80] font-bold">Mod Base (Green)</span>. But if Block Armor gets too tough, the engine sacrifices Corruption to afford raw <span className="text-[#ef4444] font-bold">Armor Crack (Red)</span>.</span>
                       )}
                       {diagnosticView === 'push_crit' && (
-                          <span>This chart dissects the <strong>Push Build's</strong> crit engine. <span className="text-[#ef4444] font-bold">Str (Red)</span> scales Crit Dmg, <span className="text-[#22c55e] font-bold">Luck (Green)</span> drives Crit Chance, and <span className="text-[#f9a8d4] font-bold">Div (Pink)</span> fuels Super Crits. Notice how Div spikes instantly? Its massive flat base damage is essential for cracking early armor. Luck climbs quickly to secure base Crit Chance, while Str violently adjusts to balance raw damage against compounding multipliers.</span>
+                          <div className="flex flex-col gap-1.5 py-1">
+                              <span>This chart dissects the 3 eras of the <strong>Push Build's</strong> crit engine lifecycle:</span>
+                              <ul className="list-disc ml-4 space-y-0.5">
+                                  <li><strong>Early (Base Dmg):</strong> <span className="text-[#f9a8d4] font-bold">Div</span> spikes instantly because its raw flat damage cracks early armor.</li>
+                                  <li><strong>Mid (Crit Cap):</strong> <span className="text-[#22c55e] font-bold">Luck</span> rushes to max to secure base Crit Chance. <span className="text-[#f9a8d4] font-bold">Div</span> plunges because upgrades provide better flat damage, and Super Crits aren't strong enough yet.</li>
+                                  <li><strong>Late (Compounding):</strong> Once late-game multipliers unlock (Super/Ultra Crits, +5 Stat Caps), <span className="text-[#f9a8d4] font-bold">Div</span> surges back to fuel massive compounding criticals.</li>
+                              </ul>
+                          </div>
                       )}
                       {diagnosticView === 'farm_crit' && (
                           <span>This chart dissects the <strong>Farm Build's</strong> crit engine. Notice how <span className="text-[#22c55e] font-bold">Luck (Green)</span> is prioritized much earlier here than in the Push build? That's because Luck simultaneously drives Crit Chance <em>and</em> Modifier Chances (EXP/Loot), making it the ultimate dual-purpose farming stat.</span>
