@@ -471,17 +471,29 @@ export default function PathfinderTab() {
         }
 
         // Detect Major Upgrade Snipes (Opportunity Cost Triggers)
-        if (ev.type === 'upgrade' && ev.event.includes('Bought')) {
-            const upgTargets = ['Poly Card Bonus', 'Frag Gain Mult', 'Sta Mod Gain', 'All Mod Chances', 'Stat Cap Inc.'];
-            const foundUpg = upgTargets.find(u => ev.event.includes(u));
-            if (foundUpg) {
-                // Ensure we don't spam the chart if it buys multiple levels; only mark Level 1 (or the single purchase)
-                if (ev.event.includes('(Lvl 1)')) {
-                    minorPivots.push({
-                        sec: ev.arch_sec,
-                        label: `Bought: ${foundUpg}`,
-                        fullEvent: ev.event
-                    });
+        if (ev.type === 'upgrade' && ev.state_snapshot && idx > 0) {
+            const prevEv = pathData.history[idx - 1];
+            if (prevEv && prevEv.state_snapshot) {
+                const curUpgs = ev.state_snapshot.upgrade_levels || {};
+                const prevUpgs = prevEv.state_snapshot.upgrade_levels || {};
+                
+                const majorUpgs = {
+                    41: 'Poly Card Bonus',
+                    42: 'Frag Gain Mult',
+                    43: 'Sta Mod Gain',
+                    44: 'All Mod Chances',
+                    45: 'Stat Cap Inc.'
+                };
+                
+                for (const [id, label] of Object.entries(majorUpgs)) {
+                    if ((curUpgs[id] || 0) === 1 && (prevUpgs[id] || 0) === 0) {
+                        minorPivots.push({
+                            sec: ev.arch_sec,
+                            label: `Bought: ${label}`,
+                            fullEvent: ev.event
+                        });
+                        break;
+                    }
                 }
             }
         }
