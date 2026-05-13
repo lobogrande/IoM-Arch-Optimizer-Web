@@ -1029,13 +1029,32 @@ export default function PathfinderTab() {
                   </div>
               </div>
 
-              {/* CORRUPTION MECHANICS GUIDE OVERLAY */}
-              <div className="absolute right-[120px] z-10 max-w-2xl bg-[#111]/90 border border-st-border px-3 py-2 rounded shadow-sm backdrop-blur-sm flex items-center gap-3" style={{ top: '2380px' }}>
-                  <div className="text-[11px] font-bold text-gray-200 whitespace-nowrap flex items-center gap-1.5 border-r border-st-border pr-3">
-                      <span>⚙️</span> The PUSH Build Tug-of-War
+              {/* INTERACTIVE DIAGNOSTICS GUIDE OVERLAY */}
+              <div className="absolute right-[120px] z-10 max-w-2xl bg-[#111]/90 border border-st-border px-3 py-2 rounded shadow-sm backdrop-blur-sm flex items-center gap-3" style={{ top: '2385px' }}>
+                  <div className="text-[11px] font-bold text-gray-200 whitespace-nowrap flex flex-col gap-1.5 border-r border-st-border pr-3">
+                      <div className="flex items-center gap-1.5">
+                          <span>⚙️</span> Engine Diagnostics
+                      </div>
+                      <select 
+                          value={diagnosticView} 
+                          onChange={(e) => setDiagnosticView(e.target.value)}
+                          className="bg-[#1a1a1a] border border-st-border rounded px-1.5 py-0.5 text-[10px] text-st-text outline-none cursor-pointer focus:border-st-orange w-full shadow-inner"
+                      >
+                          <option value="push_corr">PUSH: Corruption vs Armor</option>
+                          <option value="push_crit">PUSH: Crit Engine Evol.</option>
+                          <option value="farm_crit">FARM: Crit Engine Evol.</option>
+                      </select>
                   </div>
-                  <div className="text-[10px] text-gray-400 leading-relaxed">
-                      This chart dissects the <strong>Push Build (Chart 6)</strong>. <span className="text-[#a855f7] font-bold">Corruption (Purple)</span> acts as a multiplier for your <span className="text-[#4ade80] font-bold">Mod Base (Green)</span>. But if Block Armor gets too tough, the engine sacrifices Corruption to afford raw <span className="text-[#ef4444] font-bold">Armor Crack (Red)</span>. When Armor Crack spikes, Corruption plunges.
+                  <div className="text-[10px] text-gray-400 leading-relaxed min-h-[30px] flex items-center">
+                      {diagnosticView === 'push_corr' && (
+                          <span>This chart dissects the <strong>Push Build (Chart 6)</strong>. <span className="text-[#a855f7] font-bold">Corruption (Purple)</span> acts as a multiplier for your <span className="text-[#4ade80] font-bold">Mod Base (Green)</span>. But if Block Armor gets too tough, the engine sacrifices Corruption to afford raw <span className="text-[#ef4444] font-bold">Armor Crack (Red)</span>.</span>
+                      )}
+                      {diagnosticView === 'push_crit' && (
+                          <span>This chart dissects the <strong>Push Build's</strong> crit engine. <span className="text-[#ef4444] font-bold">Str (Red)</span> scales Crit Dmg, <span className="text-[#22c55e] font-bold">Luck (Green)</span> drives Crit Chance, and <span className="text-[#f9a8d4] font-bold">Div (Pink)</span> fuels Super Crits. The engine ignores these early on, but violently spikes them once mid-game Super and Ultra Crit multipliers are unlocked.</span>
+                      )}
+                      {diagnosticView === 'farm_crit' && (
+                          <span>This chart dissects the <strong>Farm Build's</strong> crit engine. Notice how <span className="text-[#22c55e] font-bold">Luck (Green)</span> is prioritized much earlier here than in the Push build? That's because Luck simultaneously drives Crit Chance <em>and</em> Modifier Chances (EXP/Loot), making it the ultimate dual-purpose farming stat.</span>
+                      )}
                   </div>
               </div>
 
