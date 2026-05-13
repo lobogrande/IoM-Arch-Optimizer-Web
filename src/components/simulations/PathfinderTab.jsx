@@ -436,6 +436,7 @@ export default function PathfinderTab() {
     if (!pathData) return null;
     const insights =[ ];
     const pivots =[ ];
+    const minorPivots =[ ];
     const phases =[ ];
     let corrVetoed = false;
     let crippledStarted = false;
@@ -467,6 +468,22 @@ export default function PathfinderTab() {
             currentPhase.end = ev.arch_sec;
             phases.push({ ...currentPhase });
             currentPhase = { label: shortName, start: ev.arch_sec, color: phaseColors[shortName] || 'rgba(255, 255, 255, 0.02)' };
+        }
+
+        // Detect Major Upgrade Snipes (Opportunity Cost Triggers)
+        if (ev.type === 'upgrade' && ev.event.includes('Bought')) {
+            const upgTargets = ['Poly Card Bonus', 'Frag Gain Mult', 'Sta Mod Gain', 'All Mod Chances', 'Stat Cap Inc.'];
+            const foundUpg = upgTargets.find(u => ev.event.includes(u));
+            if (foundUpg) {
+                // Ensure we don't spam the chart if it buys multiple levels; only mark Level 1 (or the single purchase)
+                if (ev.event.includes('(Lvl 1)')) {
+                    minorPivots.push({
+                        sec: ev.arch_sec,
+                        label: `Bought: ${foundUpg}`,
+                        fullEvent: ev.event
+                    });
+                }
+            }
         }
 
         if (ev.type === 'floor' && ev.state_snapshot && ev.state_snapshot.base_stats) {
@@ -504,7 +521,13 @@ export default function PathfinderTab() {
         phases.push(currentPhase);
     }
 
-    return { insights, pivots, phases };
+    // Add a permanent interpretation guide to the insights panel
+    insights.unshift({
+        icon: '📊', title: 'How to Read the Priority Charts',
+        desc: `Teal represents Intelligence (EXP). Gold represents Perception (Fragments). Jagged spikes indicate "Opportunity Cost" snipes where the engine briefly pauses EXP farming to buy a major upgrade.`
+    });
+
+    return { insights, pivots, minorPivots, phases };
   }, [ pathData ]);
 
   const templates = {
