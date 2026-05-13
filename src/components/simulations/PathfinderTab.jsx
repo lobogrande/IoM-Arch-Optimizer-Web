@@ -1126,8 +1126,8 @@ export default function PathfinderTab() {
                   yaxis5: { domain: [0.516, 0.611], title: { text: 'Bank Amt', font: { size: 11 } }, gridcolor: '#333', automargin: true },
                   yaxis10:{ domain:[0.387, 0.482], title: { text: 'Budget %', font: { size: 11 } }, range: [0, 100], gridcolor: '#333', automargin: true },
                   yaxis6: { domain:[0.258, 0.353], title: { text: 'Budget %', font: { size: 11 } }, range: [0, 100], gridcolor: '#333', automargin: true },
-                  yaxis7: { domain:[0.129, 0.224], title: { text: 'Combined', font: { size: 11 } }, gridcolor: '#333', automargin: true },
-                  yaxis8: { overlaying: 'y7', side: 'right', range:[ 0, 16 ], tickfont: { color: '#c084fc' }, title: { text: 'Corr Alloc', font: { color: '#c084fc', size: 11 } }, automargin: true },
+                  yaxis7: { domain:[0.129, 0.224], title: { text: 'Base Points', font: { size: 11 } }, gridcolor: '#333', automargin: true },
+                  yaxis8: { overlaying: 'y7', side: 'right', range:[ 0, 16 ], tickfont: { color: '#c084fc' }, title: { text: 'Corr Points', font: { color: '#c084fc', size: 11 } }, automargin: true },
                   yaxis9: { domain:[0.000, 0.095], title: { text: 'Block Tier', font: { size: 11 } }, gridcolor: '#333', categoryorder: 'array', categoryarray:[ 'Tier 1', 'Tier 2', 'Tier 3', 'Tier 4' ], automargin: true },
                   
                   // Background Shading for Strategy Phases & Vertical Pivot Lines
