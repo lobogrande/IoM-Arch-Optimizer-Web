@@ -30,6 +30,9 @@ export default function PathfinderTab() {
   // Card Plot Filters
   const [cardRarityFilter, setCardRarityFilter] = useState([ 'dirt', 'com', 'rare', 'epic', 'leg', 'myth', 'div' ]);
 
+  // Interactive Diagnostics Toggle
+  const [diagnosticView, setDiagnosticView] = useState('push_corr');
+
   // Sync workspace state inputs automatically when switching to "current" or applying a log state
   React.useEffect(() => {
     if (startMode === 'current') {
