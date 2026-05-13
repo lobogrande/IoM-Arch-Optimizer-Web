@@ -279,23 +279,17 @@ export default function PathfinderTab() {
   },[pathData]);
 
   const corrDiagnosticsData = useMemo(() => {
-    if (!pathData) return null;
-    const xVals =[ ];
-    const corrVals =[ ];
-    const armorCrackVals =[ ];
-    const modPowerVals =[ ];
-
-    pathData.history.forEach(ev => {
-      if (ev.state_snapshot && ev.state_snapshot.base_stats) {
-        xVals.push(ev.arch_sec);
-        const stats = ev.state_snapshot.base_stats;
-        corrVals.push(stats.Corr || 0);
-        armorCrackVals.push((stats.Str || 0) + (stats.Div || 0) + (stats.Per || 0));
-        modPowerVals.push((stats.Luck || 0) + Math.max(stats.Int || 0, stats.Per || 0));
-      }
-    });
+    if (!pushChartData) return null;
+    const xVals = pushChartData.xVals;
+    const corrVals = pushChartData.stats.Corr;
+    const armorCrackVals = pushChartData.stats.Str.map((str, i) => 
+        str + pushChartData.stats.Div[i] + pushChartData.stats.Per[i]
+    );
+    const modPowerVals = pushChartData.stats.Luck.map((luck, i) => 
+        luck + Math.max(pushChartData.stats.Int[i], pushChartData.stats.Per[i])
+    );
     return { xVals, corrVals, armorCrackVals, modPowerVals };
-  }, [pathData]);
+  }, [pushChartData]);
 
   const fragDict = { 'com': 'Common', 'rare': 'Rare', 'epic': 'Epic', 'leg': 'Legendary', 'myth': 'Mythic', 'div': 'Divine' };
 
