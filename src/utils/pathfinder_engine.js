@@ -170,7 +170,7 @@ const getShadowFragYields = async (pool, state, budget, caps) => {
     // Evaluate all candidates using a fast 2-sample batch
     // DYNAMIC TARGETING: Seek the fragment type of the NEXT unpurchased major upgrade!
     let metric = 'frag_1_per_min';
-    const majorUpgsBought = (state.upgrade_levels[41] > 0) && (state.upgrade_levels[42] > 0) && (state.upgrade_levels[43] > 0) && (state.upgrade_levels[45] > 0);
+    const majorUpgsBought = (state.upgrade_levels[41] > 0) && (state.upgrade_levels[42] > 0) && (state.upgrade_levels[43] > 0) && (state.upgrade_levels[44] > 0) && (state.upgrade_levels[45] > 0);
     
     if ((state.external_levels[4] || 0) >= 3000 && majorUpgsBought) {
         metric = 'frag_6_per_min';
@@ -180,6 +180,8 @@ const getShadowFragYields = async (pool, state, budget, caps) => {
         metric = 'frag_2_per_min';
     } else if (!(state.upgrade_levels[43] > 0)) {
         metric = 'frag_3_per_min';
+    } else if (!(state.upgrade_levels[44] > 0)) {
+        metric = 'frag_4_per_min';
     } else if (!(state.upgrade_levels[45] > 0)) {
         metric = 'frag_5_per_min';
     } else {
@@ -578,7 +580,7 @@ export async function runPathfinderSimulation(startState, targetLevel, initialFr
     const determineFarmMetric = (expNeededCheck) => {
         // Endgame Phase 2: Hades Idol is maxed. Pivot to explicit Block hunting!
         const idolsMaxed = (state.external_levels[21] || 0) >= 6666;
-        const majorUpgsBought = (state.upgrade_levels[41] > 0) && (state.upgrade_levels[42] > 0) && (state.upgrade_levels[43] > 0) && (state.upgrade_levels[45] > 0);
+        const majorUpgsBought = (state.upgrade_levels[41] > 0) && (state.upgrade_levels[42] > 0) && (state.upgrade_levels[43] > 0) && (state.upgrade_levels[44] > 0) && (state.upgrade_levels[45] > 0);
                            
         if ((state.external_levels[4] || 0) >= 3000 && majorUpgsBought) {
             if (idolsMaxed) {
@@ -601,6 +603,7 @@ export async function runPathfinderSimulation(startState, targetLevel, initialFr
         if (!(state.upgrade_levels[41] > 0)) target = { id: 41, frag: 'com', cost: 100000, key: 'frag_1_per_min' };
         else if (!(state.upgrade_levels[42] > 0)) target = { id: 42, frag: 'rare', cost: 90000, key: 'frag_2_per_min' };
         else if (!(state.upgrade_levels[43] > 0)) target = { id: 43, frag: 'epic', cost: 80000, key: 'frag_3_per_min' };
+        else if (!(state.upgrade_levels[44] > 0)) target = { id: 44, frag: 'leg', cost: 70000, key: 'frag_4_per_min' };
         else if (!(state.upgrade_levels[45] > 0)) target = { id: 45, frag: 'myth', cost: 50000, key: 'frag_5_per_min' };
 
         if (!target) return 'xp_per_min';
@@ -637,7 +640,7 @@ export async function runPathfinderSimulation(startState, targetLevel, initialFr
         state.base_stats = optFarm.bestBuild;
         currentFarmYields = optFarm.bestYields;
 
-        const majorUpgsBought = (state.upgrade_levels[41] > 0) && (state.upgrade_levels[42] > 0) && (state.upgrade_levels[43] > 0) && (state.upgrade_levels[45] > 0);
+        const majorUpgsBought = (state.upgrade_levels[41] > 0) && (state.upgrade_levels[42] > 0) && (state.upgrade_levels[43] > 0) && (state.upgrade_levels[44] > 0) && (state.upgrade_levels[45] > 0);
         if ((state.external_levels[4] || 0) >= 3000 && majorUpgsBought) {
             currentFragPotential = currentFarmYields;
         } else {
@@ -992,7 +995,7 @@ export async function runPathfinderSimulation(startState, targetLevel, initialFr
                     state.external_levels = { ...state.external_levels, 4: currentHestia + bought };
                     
                     const justMaxedHestia = (state.external_levels[4] || 0) >= 3000;
-                    const majorUpgsBought = (state.upgrade_levels[41] > 0) && (state.upgrade_levels[42] > 0) && (state.upgrade_levels[43] > 0) && (state.upgrade_levels[45] > 0);
+                    const majorUpgsBought = (state.upgrade_levels[41] > 0) && (state.upgrade_levels[42] > 0) && (state.upgrade_levels[43] > 0) && (state.upgrade_levels[44] > 0) && (state.upgrade_levels[45] > 0);
                     
                     history.push({
                         type: "system",
@@ -1289,7 +1292,7 @@ export async function runPathfinderSimulation(startState, targetLevel, initialFr
             await pool.syncState(state);
             currentFarmYields = await getSmoothedYields(pool, state, state.base_stats, 3);
             
-            const majorUpgsBought = (state.upgrade_levels[41] > 0) && (state.upgrade_levels[42] > 0) && (state.upgrade_levels[43] > 0) && (state.upgrade_levels[45] > 0);
+            const majorUpgsBought = (state.upgrade_levels[41] > 0) && (state.upgrade_levels[42] > 0) && (state.upgrade_levels[43] > 0) && (state.upgrade_levels[44] > 0) && (state.upgrade_levels[45] > 0);
             if ((state.external_levels[4] || 0) >= 3000 && majorUpgsBought) {
                 currentFragPotential = currentFarmYields;
             } else {
@@ -1470,7 +1473,7 @@ export async function runPathfinderSimulation(startState, targetLevel, initialFr
                     await pool.syncState(state);
                     currentFarmYields = await getSmoothedYields(pool, state, state.base_stats, 3);
                     
-                    const majorUpgsBought = (state.upgrade_levels[41] > 0) && (state.upgrade_levels[42] > 0) && (state.upgrade_levels[43] > 0) && (state.upgrade_levels[45] > 0);
+                    const majorUpgsBought = (state.upgrade_levels[41] > 0) && (state.upgrade_levels[42] > 0) && (state.upgrade_levels[43] > 0) && (state.upgrade_levels[44] > 0) && (state.upgrade_levels[45] > 0);
                     if ((state.external_levels[4] || 0) >= 3000 && majorUpgsBought) {
                         currentFragPotential = currentFarmYields;
                     } else {
