@@ -892,7 +892,7 @@ export default function PathfinderTab() {
             </div>
             <div className="bg-st-secondary/20 p-5 rounded border border-st-border hover:border-green-400 transition-colors">
               <div className="text-green-400 font-bold mb-2 flex items-center gap-2"><span className="text-xl">🛡️</span> The Armor Veto</div>
-              <div className="text-xs text-gray-400 leading-relaxed">See the exact floor where enemy armor forces the engine to abandon Corruption multipliers in favor of raw Strength and Perception.</div>
+              <div className="text-xs text-gray-400 leading-relaxed">See the exact floor where block armor forces the engine to abandon Corruption multipliers in favor of raw Strength and Perception.</div>
             </div>
           </div>
         </div>
