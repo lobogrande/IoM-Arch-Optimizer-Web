@@ -533,12 +533,6 @@ export default function PathfinderTab() {
         phases.push(currentPhase);
     }
 
-    // Add a permanent interpretation guide to the insights panel
-    insights.unshift({
-        icon: '📊', title: 'How to Read the Priority Charts',
-        desc: `Teal represents Intelligence (EXP). Gold represents Perception (Fragments). Jagged spikes indicate "Opportunity Cost" snipes where the engine briefly pauses EXP farming to buy a major upgrade.`
-    });
-
     return { insights, pivots, minorPivots, phases };
   }, [ pathData ]);
 
