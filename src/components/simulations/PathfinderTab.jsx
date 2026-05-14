@@ -590,7 +590,7 @@ export default function PathfinderTab() {
         if (ev.type === 'system' && ev.event.includes('Phase 2') && !phase2Hit) {
             insights.push({
                 icon: '🎴', title: 'Card Hunting Pivot',
-                desc: `At Arch Level ${ev.level}, Hades was maxed. Pure fragment farming was abandoned to brute-force the highest unmaxed block tiers.`
+                desc: `At Arch Level ${ev.level}, Hades was maxed. The engine switched to a Block Card Farming build to target high-tier (T3 and T4) card fragment drops, prioritizing highest rarity first.`
             });
             phase2Hit = true;
         }

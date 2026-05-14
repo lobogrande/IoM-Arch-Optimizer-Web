@@ -1160,7 +1160,7 @@ export async function runPathfinderSimulation(startState, targetLevel, initialFr
                             active_build_str: lastFarmStr,
                             level: state.arch_level,
                             floor: state.current_max_floor,
-                            desc: `Hades Idol maxed. Pure fragment farming abandoned. Build permanently optimized to brute-force highest unmaxed block tiers.`,
+                            desc: `Hades Idol maxed. Pure fragment farming abandoned. Build switched to Block Card Farming to target high-tier (T3 and T4) card fragment drops, prioritizing highest rarity first.`,
                             yields: { farm: currentFarmYields, push: currentPushYields, frag_potential: currentFragPotential },
                             frags: { ...frags },
                             card_progress: { ...card_progress },
