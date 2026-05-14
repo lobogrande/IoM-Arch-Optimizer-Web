@@ -1165,6 +1165,7 @@ export async function runPathfinderSimulation(startState, targetLevel, initialFr
                             card_progress: { ...card_progress },
                             state_snapshot: captureSnapshot(state)
                         });
+                        lastFarmStr = formatBuildStr(state.base_stats, state);
                     }
                 }
             }
