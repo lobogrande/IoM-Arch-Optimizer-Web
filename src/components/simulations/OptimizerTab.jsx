@@ -205,6 +205,7 @@ export default function OptimizerTab() {
         asc2_unlocked: store.asc2_unlocked,
         arch_level: store.arch_level,
         current_max_floor: store.current_max_floor,
+        starting_speed_pool: store.starting_speed_pool || 0,
         arch_ability_infernal_bonus: parseFloat(store.arch_ability_infernal_bonus) / 100.0,
         total_infernal_cards: store.total_infernal_cards,
         base_stats: store.base_stats,
