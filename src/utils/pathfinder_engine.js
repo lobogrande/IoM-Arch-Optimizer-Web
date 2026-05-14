@@ -578,20 +578,6 @@ export async function runPathfinderSimulation(startState, targetLevel, initialFr
 
     // --- AUTOMATED PIVOT LOGIC ---
     // Evaluates Opportunity Cost and dynamically swaps the active optimizer target
-    const isCrippledPhase = (s) => {
-        if ((s.external_levels[21] || 0) < 6666) return false;
-        if ((s.external_levels[4] || 0) < 3000) return false;
-        
-        // Phase 3 triggers the moment ALL Tier 4 and Tier 3 cards are maxed
-        const highTierCards =[
-            'div4', 'myth4', 'leg4', 'epic4', 'rare4', 'com4', 'dirt4',
-            'div3', 'myth3', 'leg3', 'epic3', 'rare3', 'com3', 'dirt3'
-        ];
-        for (const c of highTierCards) {
-            if ((s.cards[c] || 0) < 4) return false;
-        }
-        return true;
-    };
 
     const determineFarmMetric = (expNeededCheck) => {
         // Endgame Phase 2: Hades Idol is maxed. Pivot to explicit Block hunting!
