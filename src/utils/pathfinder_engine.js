@@ -217,8 +217,8 @@ async function runFastOptimizer(pool, state, targetMetric, budget, previousBuild
     await pool.syncState(state);
     const baseStats = getAvailableStatKeys(state);
     
-    // Inject "Unspent" as a virtual 8th stat so the optimizer can organically discover crippled builds
-    const stats = allowUnspent ? [ ...baseStats, 'Unspent' ] : baseStats;
+    // If not crippled, strictly strip Unspent so we don't explode the dimensionality of Push builds!
+    const stats = allowUnspent ? Array.from(new Set([ ...baseStats, 'Unspent' ])) : baseStats.filter(s => s !== 'Unspent');
     const caps = getEffectiveStatCaps(state);
     if (allowUnspent) caps['Unspent'] = budget;
     
