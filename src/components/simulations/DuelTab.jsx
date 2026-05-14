@@ -301,6 +301,7 @@ export default function DuelTab() {
                     { k: 'in_game_time', l: 'In-Game Seconds Passed', higherIsBetter: true },
                     { k: 'stamina_refunded_flurry', l: 'Stamina Refunded (Flurry)', higherIsBetter: true },
                     { k: 'stamina_refunded_mods', l: 'Stamina Refunded (Mods)', higherIsBetter: true },
+                    { k: 'stamina_wasted_overcap', l: 'Stamina Wasted (Hit Max Cap)', higherIsBetter: false },
                     { k: 'flurry_casts', l: 'Flurry Casts', higherIsBetter: true },
                     { k: 'enrage_casts', l: 'Enrage Casts', higherIsBetter: true },
                     { k: 'quake_casts', l: 'Quake Casts', higherIsBetter: true },

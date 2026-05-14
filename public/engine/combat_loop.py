@@ -36,6 +36,7 @@ class RunState:
         self.total_stamina_spent = 0.0
         self.stamina_refunded_flurry = 0.0
         self.stamina_refunded_mods = 0.0
+        self.stamina_wasted_overcap = 0.0
         self.crosshair_timer = 0.0
         self.total_xp = 0.0
         self.total_frags = {0:0, 1:0, 2:0, 3:0, 4:0, 5:0, 6:0}
@@ -96,6 +97,7 @@ class CombatSimulator:
             actual_gain = min(p_max_sta - state.stamina, sta_gain)
             state.stamina += actual_gain
             state.stamina_refunded_mods += actual_gain
+            state.stamina_wasted_overcap += (sta_gain - actual_gain)
             
         if block.modifiers.get('speed_active', False):
             state.speed_pool += block.modifiers.get('speed_gain', 0.0)
@@ -239,6 +241,7 @@ class CombatSimulator:
                         actual_gain = min(p_max_sta - state.stamina, events["stamina_restored"])
                         state.stamina += actual_gain
                         state.stamina_refunded_flurry += actual_gain
+                        state.stamina_wasted_overcap += (events["stamina_restored"] - actual_gain)
                         
                     crit_mult, crit_type = roll_crit(is_enrage)
                     state.hit_counts[crit_type] += 1
