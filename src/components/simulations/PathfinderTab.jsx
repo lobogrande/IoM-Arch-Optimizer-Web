@@ -997,10 +997,10 @@ export default function PathfinderTab() {
             </div>
 
             {/* MASTER PLOT (With embedded, absolutely positioned controls) */}
-            <div className="w-full mt-4 relative" style={{ height: '3200px' }}>
+            <div className="w-full mt-4 relative" style={{ height: '4000px' }}>
               
               {/* YIELDS CONTROLS */}
-              <div className="absolute right-[150px] z-10 flex items-center gap-3 bg-[#111] border border-st-border px-3 py-1.5 rounded shadow-md" style={{ top: '815px' }}>
+              <div className="absolute right-[150px] z-10 flex items-center gap-3 bg-[#111] border border-st-border px-3 py-1.5 rounded shadow-md" style={{ top: '825px' }}>
                   <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Filters:</span>
                   <label className="flex items-center gap-1 text-[11px] font-bold text-st-text cursor-pointer hover:text-[#4ade80] transition-colors">
                     <input type="checkbox" checked={showXpRates} onChange={(e) => setShowXpRates(e.target.checked)} className="accent-[#4ade80]" /> 
@@ -1026,7 +1026,7 @@ export default function PathfinderTab() {
               </div>
 
               {/* ECONOMY CONTROLS */}
-              <div className="absolute right-[150px] z-10 flex items-center gap-2 bg-[#111] border border-st-border px-3 py-1.5 rounded shadow-md" style={{ top: '1215px' }}>
+              <div className="absolute right-[150px] z-10 flex items-center gap-2 bg-[#111] border border-st-border px-3 py-1.5 rounded shadow-md" style={{ top: '1225px' }}>
                   <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Select Bank:</span>
                   <select
                     value={selectedFragPlot}
@@ -1042,8 +1042,8 @@ export default function PathfinderTab() {
                   </select>
               </div>
 
-              {/* FARM BUILD GUIDE OVERLAY (Opportunity Cost) */}
-              <div className="absolute left-1/2 -translate-x-1/2 -translate-y-1/2 z-10 w-[850px] bg-[#111]/95 border border-st-border px-4 py-2 rounded shadow-sm backdrop-blur-sm flex items-center gap-4" style={{ top: '1603px' }}>
+              {/* FARM BUILD GUIDE OVERLAY */}
+              <div className="absolute left-1/2 -translate-x-1/2 -translate-y-1/2 z-10 w-[850px] bg-[#111]/95 border border-st-border px-4 py-2 rounded shadow-sm backdrop-blur-sm flex items-center gap-4" style={{ top: '1588px' }}>
                   <div className="text-[11px] font-bold text-gray-200 whitespace-nowrap flex items-center gap-1.5 border-r border-st-border pr-4 shrink-0">
                       <span>📊</span> Reading the FARM Priority Charts
                   </div>
@@ -1052,8 +1052,8 @@ export default function PathfinderTab() {
                   </div>
               </div>
 
-              {/* PUSH BUILD GUIDE OVERLAY (The Armor Veto) */}
-              <div className="absolute left-1/2 -translate-x-1/2 -translate-y-1/2 z-10 w-[850px] bg-[#111]/95 border border-st-border px-4 py-2 rounded shadow-sm backdrop-blur-sm flex items-center gap-4" style={{ top: '2016px' }}>
+              {/* PUSH BUILD GUIDE OVERLAY */}
+              <div className="absolute left-1/2 -translate-x-1/2 -translate-y-1/2 z-10 w-[850px] bg-[#111]/95 border border-st-border px-4 py-2 rounded shadow-sm backdrop-blur-sm flex items-center gap-4" style={{ top: '2392px' }}>
                   <div className="text-[11px] font-bold text-gray-200 whitespace-nowrap flex items-center gap-1.5 border-r border-st-border pr-4 shrink-0">
                       <span>🛡️</span> Reading the PUSH Priority Charts
                   </div>
@@ -1063,7 +1063,7 @@ export default function PathfinderTab() {
               </div>
 
               {/* INTERACTIVE DIAGNOSTICS GUIDE OVERLAY */}
-              <div className="absolute left-1/2 -translate-x-1/2 -translate-y-1/2 z-10 w-[850px] bg-[#111]/95 border border-st-border px-4 py-2 rounded shadow-sm backdrop-blur-sm flex items-center gap-4" style={{ top: '2429px' }}>
+              <div className="absolute left-1/2 -translate-x-1/2 -translate-y-1/2 z-10 w-[850px] bg-[#111]/95 border border-st-border px-4 py-2 rounded shadow-sm backdrop-blur-sm flex items-center gap-4" style={{ top: '3195px' }}>
                   <div className="text-[11px] font-bold text-gray-200 whitespace-nowrap flex flex-col gap-1.5 border-r border-st-border pr-4 shrink-0">
                       <div className="flex items-center gap-1.5">
                           <span>⚙️</span> Engine Diagnostics
@@ -1080,7 +1080,7 @@ export default function PathfinderTab() {
                   </div>
                   <div className="text-[10px] text-gray-400 leading-relaxed">
                       {diagnosticView === 'push_corr' && (
-                          <span>This chart dissects the <strong>Push Build (Chart 6)</strong>. <span className="text-[#a855f7] font-bold">Corruption (Purple)</span> acts as a multiplier for your <span className="text-[#4ade80] font-bold">Mod Base (Green)</span>. But if Block Armor gets too tough, the engine sacrifices Corruption to afford raw <span className="text-[#ef4444] font-bold">Armor Crack (Red)</span>.</span>
+                          <span>This chart dissects the <strong>Push Build (Chart 8)</strong>. <span className="text-[#a855f7] font-bold">Corruption (Purple)</span> acts as a multiplier for your <span className="text-[#4ade80] font-bold">Mod Base (Green)</span>. But if Block Armor gets too tough, the engine sacrifices Corruption to afford raw <span className="text-[#ef4444] font-bold">Armor Crack (Red)</span>.</span>
                       )}
                       {diagnosticView === 'push_crit' && (
                           <span>This chart dissects the 3 eras of the <strong>Push Build's</strong> crit engine: <strong>1. Early (Armor):</strong> <span className="text-[#f9a8d4] font-bold">Div</span> spikes instantly to crack early block armor. <strong>2. Mid (Budget Starvation):</strong> As block HP scales, the engine MUST cap <span className="text-[#22c55e] font-bold">Luck</span> and heavily fund <span className="text-[#ef4444] font-bold">Str</span>. Due to a small budget, <span className="text-[#f9a8d4] font-bold">Div</span> is starved to near zero. <strong>3. Late (Overflow):</strong> Once Str/Luck hit optimal limits, the growing budget overflows back into <span className="text-[#f9a8d4] font-bold">Div</span> to fuel massive compounding Crits.</span>
@@ -1092,7 +1092,7 @@ export default function PathfinderTab() {
               </div>
 
               {/* CARD CONTROLS */}
-              <div className="absolute right-[150px] z-10 flex items-center gap-1.5 bg-[#111] border border-st-border px-3 py-1.5 rounded shadow-md" style={{ top: '2825px' }}>
+              <div className="absolute right-[150px] z-10 flex items-center gap-1.5 bg-[#111] border border-st-border px-3 py-1.5 rounded shadow-md" style={{ top: '3635px' }}>
                   <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mr-1">Tiers:</span>
                   {[ 
                     { id: 'dirt', label: 'Dirt', color: 'border-[#78716c] text-[#78716c]' },
@@ -1152,53 +1152,74 @@ export default function PathfinderTab() {
                   { x: farmChartData.xVals, y: farmChartData.stats.Corr, type: 'scatter', mode: 'lines', stackgroup: 'farm', groupnorm: 'percent', name: 'Corr (Mults)', line: { color: '#a855f7', width: 1, shape: 'hv' }, xaxis: 'x5', yaxis: 'y6', legend: 'legend5' },
                   { x: farmChartData.xVals, y: farmChartData.stats.Unspent, type: 'scatter', mode: 'lines', stackgroup: 'farm', groupnorm: 'percent', name: 'Unspent (Crippled)', line: { color: '#ffffff', width: 1, dash: 'dash', shape: 'hv' }, fillcolor: 'rgba(255,255,255,0.1)', xaxis: 'x5', yaxis: 'y6', legend: 'legend5' },
 
-                  // 6. Push Stats (100% Normalized)
-                  { x: pushChartData.xVals, y: pushChartData.stats.Str, type: 'scatter', mode: 'lines', stackgroup: 'push', groupnorm: 'percent', name: 'Str (Dmg)', line: { color: '#ef4444', width: 1, shape: 'hv' }, xaxis: 'x10', yaxis: 'y10', legend: 'legend6' },
-                  { x: pushChartData.xVals, y: pushChartData.stats.Agi, type: 'scatter', mode: 'lines', stackgroup: 'push', groupnorm: 'percent', name: 'Agi (Stamina)', line: { color: '#3b82f6', width: 1, shape: 'hv' }, xaxis: 'x10', yaxis: 'y10', legend: 'legend6' },
-                  { x: pushChartData.xVals, y: pushChartData.stats.Per, type: 'scatter', mode: 'lines', stackgroup: 'push', groupnorm: 'percent', name: 'Per (Armor Pen)', line: { color: '#eab308', width: 1, shape: 'hv' }, xaxis: 'x10', yaxis: 'y10', legend: 'legend6' },
-                  { x: pushChartData.xVals, y: pushChartData.stats.Int, type: 'scatter', mode: 'lines', stackgroup: 'push', groupnorm: 'percent', name: 'Int (EXP)', line: { color: '#06b6d4', width: 1, shape: 'hv' }, xaxis: 'x10', yaxis: 'y10', legend: 'legend6' },
-                  { x: pushChartData.xVals, y: pushChartData.stats.Luck, type: 'scatter', mode: 'lines', stackgroup: 'push', groupnorm: 'percent', name: 'Luck (Crits/Mods)', line: { color: '#22c55e', width: 1, shape: 'hv' }, xaxis: 'x10', yaxis: 'y10', legend: 'legend6' },
-                  { x: pushChartData.xVals, y: pushChartData.stats.Div, type: 'scatter', mode: 'lines', stackgroup: 'push', groupnorm: 'percent', name: 'Div (Dmg)', line: { color: '#f9a8d4', width: 1, shape: 'hv' }, xaxis: 'x10', yaxis: 'y10', legend: 'legend6' },
-                  { x: pushChartData.xVals, y: pushChartData.stats.Corr, type: 'scatter', mode: 'lines', stackgroup: 'push', groupnorm: 'percent', name: 'Corr (Mults)', line: { color: '#a855f7', width: 1, shape: 'hv' }, xaxis: 'x10', yaxis: 'y10', legend: 'legend6' },
-                  { x: pushChartData.xVals, y: pushChartData.stats.Unspent, type: 'scatter', mode: 'lines', stackgroup: 'push', groupnorm: 'percent', name: 'Unspent (Crippled)', line: { color: '#ffffff', width: 1, dash: 'dash', shape: 'hv' }, fillcolor: 'rgba(255,255,255,0.1)', xaxis: 'x10', yaxis: 'y10', legend: 'legend6' },
+                  // 6. Farm Stats (Raw Data)
+                  { x: farmChartData.xVals, y: farmChartData.stats.Str, type: 'scatter', mode: 'lines', name: 'Str (Dmg)', line: { color: '#ef4444', width: 2, shape: 'hv' }, xaxis: 'x6', yaxis: 'y7', legend: 'legend6' },
+                  { x: farmChartData.xVals, y: farmChartData.stats.Agi, type: 'scatter', mode: 'lines', name: 'Agi (Stamina)', line: { color: '#3b82f6', width: 2, shape: 'hv' }, xaxis: 'x6', yaxis: 'y7', legend: 'legend6' },
+                  { x: farmChartData.xVals, y: farmChartData.stats.Per, type: 'scatter', mode: 'lines', name: 'Per (Frags)', line: { color: '#eab308', width: 2, shape: 'hv' }, xaxis: 'x6', yaxis: 'y7', legend: 'legend6' },
+                  { x: farmChartData.xVals, y: farmChartData.stats.Int, type: 'scatter', mode: 'lines', name: 'Int (EXP)', line: { color: '#06b6d4', width: 2, shape: 'hv' }, xaxis: 'x6', yaxis: 'y7', legend: 'legend6' },
+                  { x: farmChartData.xVals, y: farmChartData.stats.Luck, type: 'scatter', mode: 'lines', name: 'Luck (Mods)', line: { color: '#22c55e', width: 2, shape: 'hv' }, xaxis: 'x6', yaxis: 'y7', legend: 'legend6' },
+                  { x: farmChartData.xVals, y: farmChartData.stats.Div, type: 'scatter', mode: 'lines', name: 'Div (Dmg/Auto)', line: { color: '#f9a8d4', width: 2, shape: 'hv' }, xaxis: 'x6', yaxis: 'y7', legend: 'legend6' },
+                  { x: farmChartData.xVals, y: farmChartData.stats.Corr, type: 'scatter', mode: 'lines', name: 'Corr (Mults)', line: { color: '#a855f7', width: 2, dash: 'dot', shape: 'hv' }, xaxis: 'x6', yaxis: 'y7', legend: 'legend6' },
+                  { x: farmChartData.xVals, y: farmChartData.stats.Unspent, type: 'scatter', mode: 'lines', name: 'Unspent (Crippled)', line: { color: '#ffffff', width: 2, dash: 'dash', shape: 'hv' }, xaxis: 'x6', yaxis: 'y7', legend: 'legend6' },
 
-                  // 7. Engine Diagnostics (legend: 'legend7')
-                  ...activeDiagnosticsTraces,
+                  // 7. Push Stats (100% Normalized)
+                  { x: pushChartData.xVals, y: pushChartData.stats.Str, type: 'scatter', mode: 'lines', stackgroup: 'push', groupnorm: 'percent', name: 'Str (Dmg)', line: { color: '#ef4444', width: 1, shape: 'hv' }, xaxis: 'x7', yaxis: 'y8', legend: 'legend7' },
+                  { x: pushChartData.xVals, y: pushChartData.stats.Agi, type: 'scatter', mode: 'lines', stackgroup: 'push', groupnorm: 'percent', name: 'Agi (Stamina)', line: { color: '#3b82f6', width: 1, shape: 'hv' }, xaxis: 'x7', yaxis: 'y8', legend: 'legend7' },
+                  { x: pushChartData.xVals, y: pushChartData.stats.Per, type: 'scatter', mode: 'lines', stackgroup: 'push', groupnorm: 'percent', name: 'Per (Armor Pen)', line: { color: '#eab308', width: 1, shape: 'hv' }, xaxis: 'x7', yaxis: 'y8', legend: 'legend7' },
+                  { x: pushChartData.xVals, y: pushChartData.stats.Int, type: 'scatter', mode: 'lines', stackgroup: 'push', groupnorm: 'percent', name: 'Int (EXP)', line: { color: '#06b6d4', width: 1, shape: 'hv' }, xaxis: 'x7', yaxis: 'y8', legend: 'legend7' },
+                  { x: pushChartData.xVals, y: pushChartData.stats.Luck, type: 'scatter', mode: 'lines', stackgroup: 'push', groupnorm: 'percent', name: 'Luck (Crits/Mods)', line: { color: '#22c55e', width: 1, shape: 'hv' }, xaxis: 'x7', yaxis: 'y8', legend: 'legend7' },
+                  { x: pushChartData.xVals, y: pushChartData.stats.Div, type: 'scatter', mode: 'lines', stackgroup: 'push', groupnorm: 'percent', name: 'Div (Dmg)', line: { color: '#f9a8d4', width: 1, shape: 'hv' }, xaxis: 'x7', yaxis: 'y8', legend: 'legend7' },
+                  { x: pushChartData.xVals, y: pushChartData.stats.Corr, type: 'scatter', mode: 'lines', stackgroup: 'push', groupnorm: 'percent', name: 'Corr (Mults)', line: { color: '#a855f7', width: 1, shape: 'hv' }, xaxis: 'x7', yaxis: 'y8', legend: 'legend7' },
+                  { x: pushChartData.xVals, y: pushChartData.stats.Unspent, type: 'scatter', mode: 'lines', stackgroup: 'push', groupnorm: 'percent', name: 'Unspent (Crippled)', line: { color: '#ffffff', width: 1, dash: 'dash', shape: 'hv' }, fillcolor: 'rgba(255,255,255,0.1)', xaxis: 'x7', yaxis: 'y8', legend: 'legend7' },
 
-                  // 8. Cards (legend: 'legend8')
-                  ...cardSwimlaneData.traces.map(t => ({ ...t, xaxis: 'x7', yaxis: 'y9', legend: 'legend8' }))
+                  // 8. Push Stats (Raw Data)
+                  { x: pushChartData.xVals, y: pushChartData.stats.Str, type: 'scatter', mode: 'lines', name: 'Str (Dmg)', line: { color: '#ef4444', width: 2, shape: 'hv' }, xaxis: 'x8', yaxis: 'y9', legend: 'legend8' },
+                  { x: pushChartData.xVals, y: pushChartData.stats.Agi, type: 'scatter', mode: 'lines', name: 'Agi (Stamina)', line: { color: '#3b82f6', width: 2, shape: 'hv' }, xaxis: 'x8', yaxis: 'y9', legend: 'legend8' },
+                  { x: pushChartData.xVals, y: pushChartData.stats.Per, type: 'scatter', mode: 'lines', name: 'Per (Armor Pen)', line: { color: '#eab308', width: 2, shape: 'hv' }, xaxis: 'x8', yaxis: 'y9', legend: 'legend8' },
+                  { x: pushChartData.xVals, y: pushChartData.stats.Int, type: 'scatter', mode: 'lines', name: 'Int (EXP)', line: { color: '#06b6d4', width: 2, shape: 'hv' }, xaxis: 'x8', yaxis: 'y9', legend: 'legend8' },
+                  { x: pushChartData.xVals, y: pushChartData.stats.Luck, type: 'scatter', mode: 'lines', name: 'Luck (Crits/Mods)', line: { color: '#22c55e', width: 2, shape: 'hv' }, xaxis: 'x8', yaxis: 'y9', legend: 'legend8' },
+                  { x: pushChartData.xVals, y: pushChartData.stats.Div, type: 'scatter', mode: 'lines', name: 'Div (Dmg)', line: { color: '#f9a8d4', width: 2, shape: 'hv' }, xaxis: 'x8', yaxis: 'y9', legend: 'legend8' },
+                  { x: pushChartData.xVals, y: pushChartData.stats.Corr, type: 'scatter', mode: 'lines', name: 'Corr (Mults)', line: { color: '#a855f7', width: 2, dash: 'dot', shape: 'hv' }, xaxis: 'x8', yaxis: 'y9', legend: 'legend8' },
+                  { x: pushChartData.xVals, y: pushChartData.stats.Unspent, type: 'scatter', mode: 'lines', name: 'Unspent (Crippled)', line: { color: '#ffffff', width: 2, dash: 'dash', shape: 'hv' }, xaxis: 'x8', yaxis: 'y9', legend: 'legend8' },
+
+                  // 9. Engine Diagnostics (legend: 'legend9')
+                  ...activeDiagnosticsTraces.map(t => ({ ...t, xaxis: 'x9', yaxis: t.yaxis === 'y10' ? 'y10' : 'y11', legend: 'legend9' })),
+
+                  // 10. Cards (legend: 'legend10')
+                  ...cardSwimlaneData.traces.map(t => ({ ...t, xaxis: 'x10', yaxis: 'y12', legend: 'legend10' }))
                  ]}
                 layout={{
                   uirevision: 'master_timeline_zoom',
                   paper_bgcolor: 'transparent',
                   plot_bgcolor: 'transparent',
                   font: { color: '#FAFAFA' },
-                  margin: { l: 60, r: 120, t: 30, b: 50 }, // Expanded r:120 margin to carve out a dedicated column for the 8 legends
+                  margin: { l: 60, r: 120, t: 30, b: 50 },
                   
                   // X-Axes (All synced together via matches: 'x')
                   xaxis:  { anchor: 'y',  matches: 'x', showticklabels: true, tickfont: { size: 10, color: '#888' }, gridcolor: '#333' },
                   xaxis2: { anchor: 'y2', matches: 'x', showticklabels: true, tickfont: { size: 10, color: '#888' }, gridcolor: '#333' },
                   xaxis3: { anchor: showXpRates ? 'y3' : 'y4', matches: 'x', showticklabels: true, tickfont: { size: 10, color: '#888' }, gridcolor: '#333' },
                   xaxis4: { anchor: 'y5', matches: 'x', showticklabels: true, tickfont: { size: 10, color: '#888' }, gridcolor: '#333' },
-                  xaxis10:{ anchor: 'y10',matches: 'x', showticklabels: true, tickfont: { size: 10, color: '#888' }, gridcolor: '#333' },
                   xaxis5: { anchor: 'y6', matches: 'x', showticklabels: true, tickfont: { size: 10, color: '#888' }, gridcolor: '#333' },
                   xaxis6: { anchor: 'y7', matches: 'x', showticklabels: true, tickfont: { size: 10, color: '#888' }, gridcolor: '#333' },
-                  xaxis7: { anchor: 'y9', matches: 'x', showticklabels: true, tickfont: { size: 12, color: '#eee' }, gridcolor: '#333', title: { text: 'Timeline (Arch Secs)', standoff: 15 } },
+                  xaxis7: { anchor: 'y8', matches: 'x', showticklabels: true, tickfont: { size: 10, color: '#888' }, gridcolor: '#333' },
+                  xaxis8: { anchor: 'y9', matches: 'x', showticklabels: true, tickfont: { size: 10, color: '#888' }, gridcolor: '#333' },
+                  xaxis9: { anchor: 'y10', matches: 'x', showticklabels: true, tickfont: { size: 10, color: '#888' }, gridcolor: '#333' },
+                  xaxis10:{ anchor: 'y12',matches: 'x', showticklabels: true, tickfont: { size: 12, color: '#eee' }, gridcolor: '#333', title: { text: 'Timeline (Arch Secs)', standoff: 15 } },
 
-                  // Y-Axes (Perfectly spaced mathematically: gap=0.034, height=0.095)
-                  yaxis:  { domain:[0.903, 0.998], title: { text: 'Milestone', font: { size: 11 } }, gridcolor: '#333', automargin: true },
-                  yaxis2: { domain:[0.774, 0.869], title: { text: 'Cost (Mins)', font: { size: 11 } }, type: 'log', gridcolor: '#333', automargin: true },
-                  
-                  // Dynamic Plot 3: Yields (y3 = XP, y4 = Frags)
-                  yaxis3: showXpRates ? { domain:[0.645, 0.740], title: { text: 'Yields (XP)', font: { size: 11 } }, gridcolor: '#333', automargin: true } : { domain:[0.645, 0.740], visible: false },
-                  yaxis4: showFragRates ? { domain: showXpRates ? undefined :[0.645, 0.740], overlaying: showXpRates ? 'y3' : undefined, side: showXpRates ? 'right' : 'left', title: { text: 'Frags/Min', font: { size: 11 } }, gridcolor: showXpRates ? undefined : '#333', automargin: true } : { domain:[0.645, 0.740], visible: false },
-                  
-                  yaxis5: { domain: [0.516, 0.611], title: { text: 'Bank Amt', font: { size: 11 } }, gridcolor: '#333', automargin: true },
-                  yaxis6: { domain:[0.387, 0.482], title: { text: 'Budget %', font: { size: 11 } }, range: [0, 100], gridcolor: '#333', automargin: true },
-                  yaxis10:{ domain:[0.258, 0.353], title: { text: 'Budget %', font: { size: 11 } }, range: [0, 100], gridcolor: '#333', automargin: true },
-                  yaxis7: { domain:[0.129, 0.224], title: { text: 'Base Points', font: { size: 11 } }, gridcolor: '#333', automargin: true },
-                  yaxis8: { overlaying: 'y7', side: 'right', range:[ 0, 16 ], tickfont: { color: '#c084fc' }, title: { text: 'Corr Points', font: { color: '#c084fc', size: 11 } }, automargin: true, visible: diagnosticView === 'push_corr' },
-                  yaxis9: { domain:[0.000, 0.095], title: { text: 'Block Tier', font: { size: 11 } }, gridcolor: '#333', categoryorder: 'array', categoryarray:[ 'Tier 1', 'Tier 2', 'Tier 3', 'Tier 4' ], automargin: true },
+                  // Y-Axes (10 Plots -> Domains mathematically spaced)
+                  yaxis:  { domain:[0.9225, 1.000], title: { text: 'Milestone', font: { size: 11 } }, gridcolor: '#333', automargin: true },
+                  yaxis2: { domain:[0.820, 0.8975], title: { text: 'Cost (Mins)', font: { size: 11 } }, type: 'log', gridcolor: '#333', automargin: true },
+                  yaxis3: showXpRates ? { domain:[0.7175, 0.795], title: { text: 'Yields (XP)', font: { size: 11 } }, gridcolor: '#333', automargin: true } : { domain:[0.7175, 0.795], visible: false },
+                  yaxis4: showFragRates ? { domain: showXpRates ? undefined :[0.7175, 0.795], overlaying: showXpRates ? 'y3' : undefined, side: showXpRates ? 'right' : 'left', title: { text: 'Frags/Min', font: { size: 11 } }, gridcolor: showXpRates ? undefined : '#333', automargin: true } : { domain:[0.7175, 0.795], visible: false },
+                  yaxis5: { domain:[0.615, 0.6925], title: { text: 'Bank Amt', font: { size: 11 } }, gridcolor: '#333', automargin: true },
+                  yaxis6: { domain:[0.5125, 0.590], title: { text: 'Budget %', font: { size: 11 } }, range: [0, 100], gridcolor: '#333', automargin: true },
+                  yaxis7: { domain:[0.410, 0.4875], title: { text: 'Base Points', font: { size: 11 } }, gridcolor: '#333', automargin: true },
+                  yaxis8: { domain:[0.3075, 0.385], title: { text: 'Budget %', font: { size: 11 } }, range: [0, 100], gridcolor: '#333', automargin: true },
+                  yaxis9: { domain:[0.205, 0.2825], title: { text: 'Base Points', font: { size: 11 } }, gridcolor: '#333', automargin: true },
+                  yaxis10:{ domain:[0.1025, 0.180], title: { text: 'Base Points', font: { size: 11 } }, gridcolor: '#333', automargin: true },
+                  yaxis11:{ overlaying: 'y10', side: 'right', range:[ 0, 16 ], tickfont: { color: '#c084fc' }, title: { text: 'Corr Points', font: { color: '#c084fc', size: 11 } }, automargin: true, visible: diagnosticView === 'push_corr' },
+                  yaxis12:{ domain:[0.000, 0.0775], title: { text: 'Block Tier', font: { size: 11 } }, gridcolor: '#333', categoryorder: 'array', categoryarray:[ 'Tier 1', 'Tier 2', 'Tier 3', 'Tier 4' ], automargin: true },
                   
                   // Background Shading for Strategy Phases & Vertical Pivot Lines
                   shapes:[
@@ -1228,7 +1249,7 @@ export default function PathfinderTab() {
                     ...(diagnosticView.includes('crit') ? simulationInsights?.critPivots.map(p => ({
                         type: 'line',
                         x0: p.sec, x1: p.sec,
-                        y0: 0.129, y1: 0.224, yref: 'paper', // Locked exclusively to Plot 7's domain
+                        y0: 0.1025, y1: 0.180, yref: 'paper', // Locked exclusively to Plot 9's domain
                         line: { color: '#f472b6', width: 1, dash: 'dash' },
                         layer: 'above'
                     })) : [ ])
@@ -1236,14 +1257,16 @@ export default function PathfinderTab() {
                   
                   // Annotations for Subplot Titles & Vertical Pivots
                   annotations:[
-                    { text: '<b>1. Progression Trends</b>', x: 0, y: 0.998, xref: 'paper', yref: 'paper', showarrow: false, font: {size: 14, color: '#fff'}, xanchor: 'left', yanchor: 'bottom', yshift: 5 },
-                    { text: '<b>2. Strategic Pivot Point (Opportunity Cost)</b>', x: 0, y: 0.869, xref: 'paper', yref: 'paper', showarrow: false, font: {size: 14, color: '#fff'}, xanchor: 'left', yanchor: 'bottom', yshift: 5 },
-                    { text: '<b>3. Yields: Farm vs Push</b>', x: 0, y: 0.740, xref: 'paper', yref: 'paper', showarrow: false, font: {size: 14, color: '#fff'}, xanchor: 'left', yanchor: 'bottom', yshift: 5 },
-                    { text: '<b>4. Fragment Economy & Milestones</b>', x: 0, y: 0.611, xref: 'paper', yref: 'paper', showarrow: false, font: {size: 14, color: '#fff'}, xanchor: 'left', yanchor: 'bottom', yshift: 5 },
-                    { text: '<b>5. Farm Build Priority Trends (100% Normalized)</b>', x: 0, y: 0.482, xref: 'paper', yref: 'paper', showarrow: false, font: {size: 14, color: '#fff'}, xanchor: 'left', yanchor: 'bottom', yshift: 5 },
-                    { text: '<b>6. Push Build Priority Trends (100% Normalized)</b>', x: 0, y: 0.353, xref: 'paper', yref: 'paper', showarrow: false, font: {size: 14, color: '#fff'}, xanchor: 'left', yanchor: 'bottom', yshift: 5 },
-                    { text: diagnosticView === 'push_corr' ? '<b>7. PUSH Mechanics: Corruption vs Armor Crack</b>' : diagnosticView === 'push_crit' ? '<b>7. PUSH Mechanics: The Critical Hit Engine</b>' : '<b>7. FARM Mechanics: The Critical Hit Engine</b>', x: 0, y: 0.224, xref: 'paper', yref: 'paper', showarrow: false, font: {size: 14, color: '#fff'}, xanchor: 'left', yanchor: 'bottom', yshift: 5 },
-                    { text: '<b>8. Card Drops (Swimlanes)</b>', x: 0, y: 0.095, xref: 'paper', yref: 'paper', showarrow: false, font: {size: 14, color: '#fff'}, xanchor: 'left', yanchor: 'bottom', yshift: 5 },
+                    { text: '<b>1. Progression Trends</b>', x: 0, y: 1.000, xref: 'paper', yref: 'paper', showarrow: false, font: {size: 14, color: '#fff'}, xanchor: 'left', yanchor: 'bottom', yshift: 5 },
+                    { text: '<b>2. Strategic Pivot Point (Opportunity Cost)</b>', x: 0, y: 0.8975, xref: 'paper', yref: 'paper', showarrow: false, font: {size: 14, color: '#fff'}, xanchor: 'left', yanchor: 'bottom', yshift: 5 },
+                    { text: '<b>3. Yields: Farm vs Push</b>', x: 0, y: 0.795, xref: 'paper', yref: 'paper', showarrow: false, font: {size: 14, color: '#fff'}, xanchor: 'left', yanchor: 'bottom', yshift: 5 },
+                    { text: '<b>4. Fragment Economy & Milestones</b>', x: 0, y: 0.6925, xref: 'paper', yref: 'paper', showarrow: false, font: {size: 14, color: '#fff'}, xanchor: 'left', yanchor: 'bottom', yshift: 5 },
+                    { text: '<b>5. Farm Build Priority Trends (100% Normalized)</b>', x: 0, y: 0.590, xref: 'paper', yref: 'paper', showarrow: false, font: {size: 14, color: '#fff'}, xanchor: 'left', yanchor: 'bottom', yshift: 5 },
+                    { text: '<b>6. Farm Build Stat Breakpoints (Raw Points)</b>', x: 0, y: 0.4875, xref: 'paper', yref: 'paper', showarrow: false, font: {size: 14, color: '#fff'}, xanchor: 'left', yanchor: 'bottom', yshift: 5 },
+                    { text: '<b>7. Push Build Priority Trends (100% Normalized)</b>', x: 0, y: 0.385, xref: 'paper', yref: 'paper', showarrow: false, font: {size: 14, color: '#fff'}, xanchor: 'left', yanchor: 'bottom', yshift: 5 },
+                    { text: '<b>8. Push Build Stat Breakpoints (Raw Points)</b>', x: 0, y: 0.2825, xref: 'paper', yref: 'paper', showarrow: false, font: {size: 14, color: '#fff'}, xanchor: 'left', yanchor: 'bottom', yshift: 5 },
+                    { text: diagnosticView === 'push_corr' ? '<b>9. PUSH Mechanics: Corruption vs Armor Crack</b>' : diagnosticView === 'push_crit' ? '<b>9. PUSH Mechanics: The Critical Hit Engine</b>' : '<b>9. FARM Mechanics: The Critical Hit Engine</b>', x: 0, y: 0.180, xref: 'paper', yref: 'paper', showarrow: false, font: {size: 14, color: '#fff'}, xanchor: 'left', yanchor: 'bottom', yshift: 5 },
+                    { text: '<b>10. Card Drops (Swimlanes)</b>', x: 0, y: 0.0775, xref: 'paper', yref: 'paper', showarrow: false, font: {size: 14, color: '#fff'}, xanchor: 'left', yanchor: 'bottom', yshift: 5 },
                     
                     // Pivot Labels
                     ...(simulationInsights?.pivots.map(p => ({
@@ -1273,7 +1296,7 @@ export default function PathfinderTab() {
 
                     // Crit Engine Pivot Labels
                     ...(diagnosticView.includes('crit') ? simulationInsights?.critPivots.map(p => ({
-                        x: p.sec, y: 0.224, yref: 'paper',
+                        x: p.sec, y: 0.180, yref: 'paper',
                         text: `${p.label}`,
                         showarrow: false,
                         font: { size: 8, color: '#f472b6' },
@@ -1285,16 +1308,18 @@ export default function PathfinderTab() {
                     })) : [ ])
                   ],
 
-                  // SPLIT LEGENDS (Anchored vertically to match each subplot's domain top)
+                  // SPLIT LEGENDS
                   showlegend: true,
-                  legend:  { orientation: 'v', x: 1.01, y: 0.998, yanchor: 'top', font: { size: 10, color: '#FAFAFA' }, bgcolor: 'transparent' },
-                  legend2: { orientation: 'v', x: 1.01, y: 0.869, yanchor: 'top', font: { size: 10, color: '#FAFAFA' }, bgcolor: 'transparent' },
-                  legend3: { orientation: 'v', x: 1.01, y: 0.740, yanchor: 'top', font: { size: 10, color: '#FAFAFA' }, bgcolor: 'transparent' },
-                  legend4: { orientation: 'v', x: 1.01, y: 0.611, yanchor: 'top', font: { size: 10, color: '#FAFAFA' }, bgcolor: 'transparent' },
-                  legend5: { orientation: 'v', x: 1.01, y: 0.482, yanchor: 'top', font: { size: 10, color: '#FAFAFA' }, bgcolor: 'transparent' },
-                  legend6: { orientation: 'v', x: 1.01, y: 0.353, yanchor: 'top', font: { size: 10, color: '#FAFAFA' }, bgcolor: 'transparent' },
-                  legend7: { orientation: 'v', x: 1.01, y: 0.224, yanchor: 'top', font: { size: 10, color: '#FAFAFA' }, bgcolor: 'transparent' },
-                  legend8: { orientation: 'v', x: 1.01, y: 0.095, yanchor: 'top', font: { size: 10, color: '#FAFAFA' }, bgcolor: 'transparent' },
+                  legend:  { orientation: 'v', x: 1.01, y: 1.000, yanchor: 'top', font: { size: 10, color: '#FAFAFA' }, bgcolor: 'transparent' },
+                  legend2: { orientation: 'v', x: 1.01, y: 0.8975, yanchor: 'top', font: { size: 10, color: '#FAFAFA' }, bgcolor: 'transparent' },
+                  legend3: { orientation: 'v', x: 1.01, y: 0.795, yanchor: 'top', font: { size: 10, color: '#FAFAFA' }, bgcolor: 'transparent' },
+                  legend4: { orientation: 'v', x: 1.01, y: 0.6925, yanchor: 'top', font: { size: 10, color: '#FAFAFA' }, bgcolor: 'transparent' },
+                  legend5: { orientation: 'v', x: 1.01, y: 0.590, yanchor: 'top', font: { size: 10, color: '#FAFAFA' }, bgcolor: 'transparent' },
+                  legend6: { orientation: 'v', x: 1.01, y: 0.4875, yanchor: 'top', font: { size: 10, color: '#FAFAFA' }, bgcolor: 'transparent' },
+                  legend7: { orientation: 'v', x: 1.01, y: 0.385, yanchor: 'top', font: { size: 10, color: '#FAFAFA' }, bgcolor: 'transparent' },
+                  legend8: { orientation: 'v', x: 1.01, y: 0.2825, yanchor: 'top', font: { size: 10, color: '#FAFAFA' }, bgcolor: 'transparent' },
+                  legend9: { orientation: 'v', x: 1.01, y: 0.180, yanchor: 'top', font: { size: 10, color: '#FAFAFA' }, bgcolor: 'transparent' },
+                  legend10:{ orientation: 'v', x: 1.01, y: 0.0775, yanchor: 'top', font: { size: 10, color: '#FAFAFA' }, bgcolor: 'transparent' },
                   
                   autosize: true,
                   hovermode: 'x' // Draws the vertical line through all charts!
