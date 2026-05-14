@@ -30,6 +30,7 @@ export default function PathfinderTab() {
   
   // Card Plot Filters
   const [cardRarityFilter, setCardRarityFilter] = useState([ 'dirt', 'com', 'rare', 'epic', 'leg', 'myth', 'div' ]);
+  const [showMasterChart, setShowMasterChart] = useState(true);
 
   // Interactive Diagnostics Toggle
   const [diagnosticView, setDiagnosticView] = useState('push_corr');
@@ -980,9 +981,17 @@ export default function PathfinderTab() {
         <>
           {/* EDUCATIONAL RULES & CONTROLS */}
           <div className="bg-[#0E1117] border border-st-border rounded p-4 shadow-sm animate-fade-in mb-6 mt-6">
-            <h3 className="text-xl font-bold text-st-text mb-4 border-b border-st-border pb-2 flex items-center gap-2">
-               <span className="text-purple-400">🧠</span> Master Timeline Analysis
-            </h3>
+            <div className="flex flex-col md:flex-row justify-between items-center border-b border-st-border pb-2 mb-4">
+              <h3 className="text-xl font-bold text-st-text flex items-center gap-2">
+                 <span className="text-purple-400">🧠</span> Master Timeline Analysis
+              </h3>
+              <button 
+                onClick={() => setShowMasterChart(!showMasterChart)}
+                className="px-4 py-1.5 bg-st-secondary border border-st-border text-st-text hover:text-st-orange hover:border-st-orange text-xs font-bold rounded transition-colors"
+              >
+                {showMasterChart ? "🙈 Hide 4000px Chart" : "👁️ Show Master Chart"}
+              </button>
+            </div>
             
             <div className="grid grid-cols-1 xl:grid-cols-3 gap-6 mb-6">
                 {simulationInsights && simulationInsights.insights.length > 0 ? (
@@ -1021,10 +1030,32 @@ export default function PathfinderTab() {
                 )}
             </div>
 
-            {/* MASTER PLOT (With embedded, absolutely positioned controls) */}
-            <div className="w-full mt-4 relative" style={{ height: '4000px' }}>
+            {showMasterChart && (
+              <div className="flex relative mt-4">
+                {/* STICKY ELEVATOR NAV */}
+                <div className="hidden xl:block w-32 shrink-0 relative mr-4">
+                  <div className="sticky top-20 flex flex-col gap-2 p-3 bg-[#111]/90 backdrop-blur-md border border-st-border rounded shadow-lg z-40">
+                    <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider text-center border-b border-st-border pb-1 mb-1">Quick Jump</span>
+                    <button onClick={() => document.getElementById('chart-prog').scrollIntoView({behavior: 'smooth'})} className="text-xs font-bold text-left text-st-text-light hover:text-st-orange transition-colors">📈 Progression</button>
+                    <button onClick={() => document.getElementById('chart-econ').scrollIntoView({behavior: 'smooth'})} className="text-xs font-bold text-left text-st-text-light hover:text-st-orange transition-colors">💰 Economy</button>
+                    <button onClick={() => document.getElementById('chart-farm').scrollIntoView({behavior: 'smooth'})} className="text-xs font-bold text-left text-st-text-light hover:text-st-orange transition-colors">🚜 Farm Build</button>
+                    <button onClick={() => document.getElementById('chart-push').scrollIntoView({behavior: 'smooth'})} className="text-xs font-bold text-left text-st-text-light hover:text-st-orange transition-colors">🛡️ Push Build</button>
+                    <button onClick={() => document.getElementById('chart-diag').scrollIntoView({behavior: 'smooth'})} className="text-xs font-bold text-left text-st-text-light hover:text-st-orange transition-colors">⚙️ Diagnostics</button>
+                    <button onClick={() => document.getElementById('chart-card').scrollIntoView({behavior: 'smooth'})} className="text-xs font-bold text-left text-st-text-light hover:text-st-orange transition-colors">🎴 Card Drops</button>
+                  </div>
+                </div>
+
+                {/* MASTER PLOT (With embedded, absolutely positioned controls) */}
+                <div className="w-full relative flex-1" style={{ height: '4000px' }}>
+                  {/* Anchor Divs for Elevator */}
+                  <div id="chart-prog" className="absolute top-0 w-full h-px pointer-events-none" />
+                  <div id="chart-econ" className="absolute top-[25%] w-full h-px pointer-events-none" />
+                  <div id="chart-farm" className="absolute top-[40%] w-full h-px pointer-events-none" />
+                  <div id="chart-push" className="absolute top-[60%] w-full h-px pointer-events-none" />
+                  <div id="chart-diag" className="absolute top-[80%] w-full h-px pointer-events-none" />
+                  <div id="chart-card" className="absolute top-[92%] w-full h-px pointer-events-none" />
               
-              {/* YIELDS CONTROLS */}
+                  {/* YIELDS CONTROLS */}
               <div className="absolute right-[150px] z-10 flex items-center gap-3 bg-[#111] border border-st-border px-3 py-1.5 rounded shadow-md" style={{ top: '825px' }}>
                   <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Filters:</span>
                   <label className="flex items-center gap-1 text-[11px] font-bold text-st-text cursor-pointer hover:text-[#4ade80] transition-colors">
@@ -1352,7 +1383,9 @@ export default function PathfinderTab() {
                 useResizeHandler={true}
                 style={{ width: '100%', height: '100%' }}
               />
-            </div>
+                </div>
+              </div>
+            )}
           </div>
 
           {/* PUSH BUILD STATS (FLOOR-BASED X-AXIS) */}
@@ -1391,7 +1424,30 @@ export default function PathfinderTab() {
 
           <div className="bg-st-bg border border-st-border rounded p-4 shadow-sm animate-fade-in">
             <div className="flex flex-col md:flex-row justify-between items-center mb-4 border-b border-st-border pb-2 gap-3">
-              <h3 className="text-lg font-bold text-st-text shrink-0">Node-Graph Timeline</h3>
+              <div className="flex flex-col gap-2 shrink-0">
+                <h3 className="text-lg font-bold text-st-text">Node-Graph Timeline</h3>
+                <div className="flex flex-wrap gap-1">
+                  {[
+                    { label: '🔥 Idols', term: 'Idol' },
+                    { label: '🎴 Cards', term: 'Card' },
+                    { label: '⚔️ Pivots', term: 'Phase' },
+                    { label: '🛒 Upgrades', term: 'Bought' },
+                    { label: '🚀 Floors', term: 'Max Floor Pushed' }
+                  ].map(pf => (
+                    <button 
+                      key={pf.term}
+                      onClick={() => setSearchFilter(searchFilter === pf.term ? '' : pf.term)}
+                      className={`px-2 py-0.5 rounded text-[10px] font-bold border transition-colors ${
+                        searchFilter === pf.term 
+                          ? 'bg-st-orange text-[#2b2b2b] border-st-orange' 
+                          : 'bg-st-secondary/50 text-st-text-light border-st-border hover:text-st-text hover:border-gray-400'
+                      }`}
+                    >
+                      {pf.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
               
               <div className="flex flex-col md:flex-row items-center gap-3 w-full md:w-auto">
                 <div className="relative w-full md:w-64">
