@@ -646,8 +646,6 @@ export async function runPathfinderSimulation(startState, targetLevel, initialFr
             currentFragPotential = await getShadowFragYields(pool, state, budget, getEffectiveStatCaps(state));
         }
         
-        lastFarmStr = formatBuildStr(state.base_stats, state);
-        
         if (crippled && !phase3Active) {
             phase3Active = true;
             history.push({
