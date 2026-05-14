@@ -1491,7 +1491,7 @@ export default function PathfinderTab() {
                   acc[ key ].push(node);
                   return acc;
                 }, { })
-              ).map(([ groupKey, nodes ]) => {
+              ).map(([ groupKey, nodes ], groupIndex) => {
                 
                 // 1. Pre-batch the events to group timestamps
                 const batches = nodes.reduce((acc, node) => {
@@ -1520,8 +1520,8 @@ export default function PathfinderTab() {
                 // 3. Hide the entire structural group if no events inside it match the search
                 if (filteredBatches.length === 0) return null;
 
-                // 4. Auto-expand the accordion if actively searching, otherwise use default logic
-                const isGroupOpen = searchFilter ? true : (groupKey === "1" || groupKey === "30" || groupKey === "2");
+                // 4. Auto-expand the accordion if actively searching, otherwise only expand the very first node
+                const isGroupOpen = searchFilter ? true : (groupIndex === 0);
 
                 return (
                   <details 
