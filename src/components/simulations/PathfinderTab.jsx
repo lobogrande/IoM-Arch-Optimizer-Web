@@ -1048,14 +1048,14 @@ export default function PathfinderTab() {
 
                 {/* MASTER PLOT (With embedded, absolutely positioned controls) */}
                 <div className="w-full relative flex-1" style={{ height: '4000px' }}>
-                  {/* Anchor Divs for Elevator */}
+                  {/* Anchor Divs for Elevator (Mathematically mapped to Plotly Domains with a 60px viewport buffer) */}
                   <div id="chart-prog" className="absolute top-0 w-full h-px pointer-events-none" />
-                  <div id="chart-yields" className="absolute top-[10%] w-full h-px pointer-events-none" />
-                  <div id="chart-econ" className="absolute top-[25%] w-full h-px pointer-events-none" />
-                  <div id="chart-farm" className="absolute top-[40%] w-full h-px pointer-events-none" />
-                  <div id="chart-push" className="absolute top-[60%] w-full h-px pointer-events-none" />
-                  <div id="chart-diag" className="absolute top-[80%] w-full h-px pointer-events-none" />
-                  <div id="chart-card" className="absolute top-[92%] w-full h-px pointer-events-none" />
+                  <div id="chart-yields" className="absolute top-[370px] w-full h-px pointer-events-none" />
+                  <div id="chart-econ" className="absolute top-[1175px] w-full h-px pointer-events-none" />
+                  <div id="chart-farm" className="absolute top-[1575px] w-full h-px pointer-events-none" />
+                  <div id="chart-push" className="absolute top-[2380px] w-full h-px pointer-events-none" />
+                  <div id="chart-diag" className="absolute top-[3185px] w-full h-px pointer-events-none" />
+                  <div id="chart-card" className="absolute top-[3585px] w-full h-px pointer-events-none" />
               
                   {/* YIELDS CONTROLS */}
               <div className="absolute right-[150px] z-10 flex items-center gap-3 bg-[#111] border border-st-border px-3 py-1.5 rounded shadow-md" style={{ top: '425px' }}>
