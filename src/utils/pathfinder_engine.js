@@ -1066,6 +1066,7 @@ export async function runPathfinderSimulation(startState, targetLevel, initialFr
                 let curSis = state.sisyphus_level || 0;
                 
                 const idolsWereMaxed = curHades >= 6666;
+                let oldFarmStr = lastFarmStr; // Capture the build used to farm the fragments before we overwrite it!
                 
                 while (frags.div >= 999) {
                     const pool =[];
@@ -1134,7 +1135,7 @@ export async function runPathfinderSimulation(startState, targetLevel, initialFr
                         arch_sec: cumulativeArchSecs,
                         time_delta: 0,
                         active_build: "Farm",
-                        active_build_str: lastFarmStr,
+                        active_build_str: oldFarmStr,
                         level: state.arch_level,
                         floor: state.current_max_floor,
                         desc: `Auto-spent Divine Fragments. Hades: ${state.external_levels[21]}, Prom: ${state.prometheus_level}, Sis: ${state.sisyphus_level}.${reoptMsg}`,
