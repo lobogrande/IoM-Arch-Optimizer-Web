@@ -20,6 +20,7 @@ export default function PathfinderTab() {
   const [startFrags, setStartFrags] = useState(store.frags || { com: 0, rare: 0, epic: 0, leg: 0, myth: 0, div: 0 });
   const [startCardProgress, setStartCardProgress] = useState(store.card_progress || { });
   const [startExp, setStartExp] = useState(store.current_exp || 0);
+  const [startSpeedPool, setStartSpeedPool] = useState(store.starting_speed_pool || 0);
   const [selectedFragPlot, setSelectedFragPlot] = useState('com');
   
   // Yield Rates Chart Filters
@@ -39,8 +40,9 @@ export default function PathfinderTab() {
       setStartFrags(store.frags || { com: 0, rare: 0, epic: 0, leg: 0, myth: 0, div: 0 });
       setStartCardProgress(store.card_progress || { });
       setStartExp(store.current_exp || 0);
+      setStartSpeedPool(store.starting_speed_pool || 0);
     }
-  }, [ store.frags, store.card_progress, store.current_exp, startMode ]);
+  }, [ store.frags, store.card_progress, store.current_exp, store.starting_speed_pool, startMode ]);
 
   const handleFragChange = (key, val) => {
     setStartFrags(prev => ({ ...prev, [key]: parseFloat(val) || 0 }));
@@ -67,6 +69,7 @@ export default function PathfinderTab() {
     useStore.setState({
       arch_level: snap.arch_level,
       current_max_floor: snap.current_max_floor,
+      starting_speed_pool: snap.starting_speed_pool || 0,
       base_stats: { ...snap.base_stats },
       upgrade_levels: { ...snap.upgrade_levels },
       external_levels: snap.external_levels ? { ...snap.external_levels } : useStore.getState().external_levels,
@@ -594,6 +597,7 @@ export default function PathfinderTab() {
       name: "Founder_Asc2_Start",
       arch_level: 1,
       current_max_floor: 1,
+      starting_speed_pool: 0,
       geoduck_unlocked: true,
       arch_ability_infernal_bonus: -0.14,
       total_infernal_cards: 299,
@@ -606,6 +610,7 @@ export default function PathfinderTab() {
       name: "F2p_Asc2_Start",
       arch_level: 1,
       current_max_floor: 1,
+      starting_speed_pool: 0,
       geoduck_unlocked: true,
       arch_ability_infernal_bonus: -0.14,
       total_infernal_cards: 299,
@@ -641,6 +646,7 @@ export default function PathfinderTab() {
         asc2_unlocked: store.asc2_unlocked,
         arch_level: store.arch_level,
         current_max_floor: store.current_max_floor,
+        starting_speed_pool: startSpeedPool,
         arch_ability_infernal_bonus: parseFloat(store.arch_ability_infernal_bonus) / 100.0,
         total_infernal_cards: store.total_infernal_cards,
         base_stats: store.base_stats,
@@ -802,6 +808,15 @@ export default function PathfinderTab() {
                     min="0"
                     value={startExp === 0 ? '' : startExp}
                     onChange={(e) => setStartExp(parseFloat(e.target.value) || 0)}
+                    className="bg-st-bg border border-st-border rounded px-2 py-1.5 text-st-text focus:border-st-orange outline-none text-xs w-48 font-mono"
+                    placeholder="0"
+                  />
+                  <label className="block text-[10px] font-bold text-st-text-light mb-1 mt-3 uppercase tracking-wider">Starting Speed Pool:</label>
+                  <input 
+                    type="number" 
+                    min="0"
+                    value={startSpeedPool === 0 ? '' : startSpeedPool}
+                    onChange={(e) => setStartSpeedPool(parseInt(e.target.value) || 0)}
                     className="bg-st-bg border border-st-border rounded px-2 py-1.5 text-st-text focus:border-st-orange outline-none text-xs w-48 font-mono"
                     placeholder="0"
                   />

@@ -10,7 +10,7 @@ import {
 import { INTERNAL_UPGRADE_CAPS, UPGRADE_NAMES, ASC1_LOCKED_UPGS, ASC2_LOCKED_UPGS, CARD_TYPES, INFERNAL_CARD_BONUSES, EXTERNAL_UI_GROUPS, UPGRADE_LEVEL_REQS } from '../game_data';
 
 export default function PlayerSetup() {
-  const { asc1_unlocked, asc2_unlocked, arch_level, current_max_floor, base_stats, upgrade_levels, external_levels, cards, arch_ability_infernal_bonus, total_infernal_cards, geoduck_unlocked, calculated_stats, setSetting, setBaseStat, setUpgradeLevel, setCardLevel, setExternalGroup, loadStateFromJson, setSandboxStat, hideMaxed, setHideMaxed, activeSubTab, setActiveSubTab, setActiveTab, setSimActiveSubTab, profiles, activeProfileId, createProfile, loadProfile, saveToProfile, renameProfile, deleteProfile, resetState } = useStore();
+  const { asc1_unlocked, asc2_unlocked, arch_level, current_max_floor, starting_speed_pool, base_stats, upgrade_levels, external_levels, cards, arch_ability_infernal_bonus, total_infernal_cards, geoduck_unlocked, calculated_stats, setSetting, setBaseStat, setUpgradeLevel, setCardLevel, setExternalGroup, loadStateFromJson, setSandboxStat, hideMaxed, setHideMaxed, activeSubTab, setActiveSubTab, setActiveTab, setSimActiveSubTab, profiles, activeProfileId, createProfile, loadProfile, saveToProfile, renameProfile, deleteProfile, resetState } = useStore();
   const [isDragging, setIsDragging] = useState(false);
   const [showDiffModal, setShowDiffModal] = useState(false);
 
@@ -29,6 +29,7 @@ export default function PlayerSetup() {
     check('Global Settings', 'Ascension 2 Unlocked', d.asc2_unlocked, asc2_unlocked, () => setSetting('asc2_unlocked', !!d.asc2_unlocked));
     check('Global Settings', 'Arch Level', d.arch_level, arch_level, () => setSetting('arch_level', d.arch_level || 1));
     check('Global Settings', 'Max Floor', d.current_max_floor, current_max_floor, () => setSetting('current_max_floor', d.current_max_floor || 1));
+    check('Global Settings', 'Starting Speed Pool', d.starting_speed_pool, starting_speed_pool, () => setSetting('starting_speed_pool', d.starting_speed_pool || 0));
     check('Global Settings', 'Geoduck Unlocked', !!d.geoduck_unlocked, !!geoduck_unlocked, () => setSetting('geoduck_unlocked', !!d.geoduck_unlocked));
     check('Global Settings', 'Infernal Arch Bonus %', parseFloat(d.arch_ability_infernal_bonus || 0), parseFloat(arch_ability_infernal_bonus || 0), () => setSetting('arch_ability_infernal_bonus', d.arch_ability_infernal_bonus || 0));
     check('Global Settings', 'Total Infernal Cards', d.total_infernal_cards || 0, total_infernal_cards || 0, () => setSetting('total_infernal_cards', d.total_infernal_cards || 0));[ 'Str', 'Agi', 'Per', 'Int', 'Luck', 'Div', 'Corr' ].forEach(s => {
@@ -74,6 +75,7 @@ export default function PlayerSetup() {
     if (asc2_unlocked !== active.data.asc2_unlocked) return true;
     if (arch_level !== active.data.arch_level) return true;
     if (current_max_floor !== active.data.current_max_floor) return true;
+    if ((starting_speed_pool || 0) !== (active.data.starting_speed_pool || 0)) return true;
     if (!!geoduck_unlocked !== !!active.data.geoduck_unlocked) return true;
     if (parseFloat(arch_ability_infernal_bonus || 0) !== parseFloat(active.data.arch_ability_infernal_bonus || 0)) return true;
     if ((total_infernal_cards || 0) !== (active.data.total_infernal_cards || 0)) return true;
@@ -182,6 +184,7 @@ export default function PlayerSetup() {
         asc2_unlocked: state.asc2_unlocked,
         arch_level: state.arch_level,
         current_max_floor: state.current_max_floor,
+        starting_speed_pool: state.starting_speed_pool,
         total_infernal_cards: state.total_infernal_cards
       },
       base_stats: state.base_stats,
@@ -324,6 +327,7 @@ export default function PlayerSetup() {
                           asc2_unlocked: asc2_unlocked,
                           arch_level: arch_level,
                           current_max_floor: current_max_floor,
+                          starting_speed_pool: starting_speed_pool,
                           geoduck_unlocked: geoduck_unlocked,
                           arch_ability_infernal_bonus: arch_ability_infernal_bonus,
                           total_infernal_cards: total_infernal_cards,
@@ -422,7 +426,7 @@ export default function PlayerSetup() {
             />
           </div>
 
-          <div data-tour="setup-max-floor">
+          <div data-tour="setup-max-floor" className="mb-4">
             <label className="text-sm text-st-text-light block mb-1">Max Floor Reached</label>
             <input 
               type="number" className="st-input" 
@@ -430,6 +434,17 @@ export default function PlayerSetup() {
               onFocus={(e) => e.target.select()}
               onChange={(e) => setSetting('current_max_floor', e.target.value === '' ? '' : parseInt(e.target.value))}
               onBlur={(e) => setSetting('current_max_floor', Math.max(1, parseInt(e.target.value) || 1))}
+            />
+          </div>
+
+          <div data-tour="setup-speed-pool">
+            <label className="text-sm text-st-text-light block mb-1">Starting Speed Mod Hit Pool</label>
+            <input 
+              type="number" className="st-input" 
+              value={starting_speed_pool || 0} 
+              onFocus={(e) => e.target.select()}
+              onChange={(e) => setSetting('starting_speed_pool', e.target.value === '' ? '' : parseInt(e.target.value))}
+              onBlur={(e) => setSetting('starting_speed_pool', Math.max(0, parseInt(e.target.value) || 0))}
             />
           </div>
         </div>

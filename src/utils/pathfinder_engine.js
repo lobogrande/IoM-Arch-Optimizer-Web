@@ -509,6 +509,7 @@ export async function runPathfinderSimulation(startState, targetLevel, initialFr
     const captureSnapshot = (s) => ({
         arch_level: s.arch_level,
         current_max_floor: s.current_max_floor,
+        starting_speed_pool: s.starting_speed_pool || 0,
         base_stats: { ...s.base_stats },
         upgrade_levels: { ...s.upgrade_levels },
         external_levels: { ...s.external_levels },
