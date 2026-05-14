@@ -1037,6 +1037,7 @@ export default function PathfinderTab() {
                   <div className="sticky top-20 flex flex-col gap-2 p-3 bg-[#111]/90 backdrop-blur-md border border-st-border rounded shadow-lg z-40">
                     <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider text-center border-b border-st-border pb-1 mb-1">Quick Jump</span>
                     <button onClick={() => document.getElementById('chart-prog').scrollIntoView({behavior: 'smooth'})} className="text-xs font-bold text-left text-st-text-light hover:text-st-orange transition-colors">📈 Progression</button>
+                    <button onClick={() => document.getElementById('chart-yields').scrollIntoView({behavior: 'smooth'})} className="text-xs font-bold text-left text-st-text-light hover:text-st-orange transition-colors">🌾 Yields</button>
                     <button onClick={() => document.getElementById('chart-econ').scrollIntoView({behavior: 'smooth'})} className="text-xs font-bold text-left text-st-text-light hover:text-st-orange transition-colors">💰 Economy</button>
                     <button onClick={() => document.getElementById('chart-farm').scrollIntoView({behavior: 'smooth'})} className="text-xs font-bold text-left text-st-text-light hover:text-st-orange transition-colors">🚜 Farm Build</button>
                     <button onClick={() => document.getElementById('chart-push').scrollIntoView({behavior: 'smooth'})} className="text-xs font-bold text-left text-st-text-light hover:text-st-orange transition-colors">🛡️ Push Build</button>
@@ -1049,6 +1050,7 @@ export default function PathfinderTab() {
                 <div className="w-full relative flex-1" style={{ height: '4000px' }}>
                   {/* Anchor Divs for Elevator */}
                   <div id="chart-prog" className="absolute top-0 w-full h-px pointer-events-none" />
+                  <div id="chart-yields" className="absolute top-[10%] w-full h-px pointer-events-none" />
                   <div id="chart-econ" className="absolute top-[25%] w-full h-px pointer-events-none" />
                   <div id="chart-farm" className="absolute top-[40%] w-full h-px pointer-events-none" />
                   <div id="chart-push" className="absolute top-[60%] w-full h-px pointer-events-none" />
@@ -1056,7 +1058,7 @@ export default function PathfinderTab() {
                   <div id="chart-card" className="absolute top-[92%] w-full h-px pointer-events-none" />
               
                   {/* YIELDS CONTROLS */}
-              <div className="absolute right-[150px] z-10 flex items-center gap-3 bg-[#111] border border-st-border px-3 py-1.5 rounded shadow-md" style={{ top: '825px' }}>
+              <div className="absolute right-[150px] z-10 flex items-center gap-3 bg-[#111] border border-st-border px-3 py-1.5 rounded shadow-md" style={{ top: '425px' }}>
                   <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Filters:</span>
                   <label className="flex items-center gap-1 text-[11px] font-bold text-st-text cursor-pointer hover:text-[#4ade80] transition-colors">
                     <input type="checkbox" checked={showXpRates} onChange={(e) => setShowXpRates(e.target.checked)} className="accent-[#4ade80]" /> 
@@ -1180,19 +1182,19 @@ export default function PathfinderTab() {
                   { x: chartData.xVals, y: chartData.levelVals, type: 'scatter', mode: 'lines', name: 'Arch Level', line: { color: '#3b82f6', shape: 'hv', width: 2 }, xaxis: 'x', yaxis: 'y', legend: 'legend' },
                   { x: chartData.xVals, y: chartData.floorVals, type: 'scatter', mode: 'lines', name: 'Max Floor', line: { color: '#ef4444', shape: 'hv', width: 2 }, xaxis: 'x', yaxis: 'y', legend: 'legend' },
                   
-                  // 2. Opp Cost (legend: 'legend2')
-                  { x: chartData.pivotXVals, y: chartData.ttnlVals, type: 'scatter', mode: 'lines', name: 'Mins to Level (XP)', line: { color: '#f87171', shape: 'hv', width: 2 }, xaxis: 'x2', yaxis: 'y2', legend: 'legend2' },
-                  { x: chartData.pivotXVals, y: chartData.ttfVals, type: 'scatter', mode: 'lines', name: 'Mins to Major Upg', line: { color: '#a3e635', shape: 'hv', width: 2 }, xaxis: 'x2', yaxis: 'y2', legend: 'legend2' },
-                  
-                  // 3. Yields (legend: 'legend3')
+                  // 2. Yields (legend: 'legend2')
                   ...(showXpRates ?[
-                      { x: chartData.xVals, y: chartData.xpVals, type: 'scatter', mode: 'lines', name: 'Farm XP', line: { color: '#4ade80', shape: 'hv', width: 2 }, xaxis: 'x3', yaxis: 'y3', legend: 'legend3' },
-                      { x: chartData.xVals, y: chartData.pushXpVals, type: 'scatter', mode: 'lines', name: 'Push XP', line: { color: '#ef4444', shape: 'hv', width: 1.5, dash: 'dot' }, xaxis: 'x3', yaxis: 'y3', legend: 'legend3' }
+                      { x: chartData.xVals, y: chartData.xpVals, type: 'scatter', mode: 'lines', name: 'Farm XP', line: { color: '#4ade80', shape: 'hv', width: 2 }, xaxis: 'x2', yaxis: 'y2', legend: 'legend2' },
+                      { x: chartData.xVals, y: chartData.pushXpVals, type: 'scatter', mode: 'lines', name: 'Push XP', line: { color: '#ef4444', shape: 'hv', width: 1.5, dash: 'dot' }, xaxis: 'x2', yaxis: 'y2', legend: 'legend2' }
                   ] : [ ]),
                   ...(showFragRates ?[
-                      { x: chartData.xVals, y: chartData.farmFragVals, type: 'scatter', mode: 'lines', name: `Farm ${chartData.fragUIName}/Min`, line: { color: '#facc15', shape: 'hv', width: 2 }, xaxis: 'x3', yaxis: 'y4', legend: 'legend3' },
-                      { x: chartData.xVals, y: chartData.pushFragVals, type: 'scatter', mode: 'lines', name: `Push ${chartData.fragUIName}/Min`, line: { color: '#ca8a04', shape: 'hv', width: 1.5, dash: 'dot' }, xaxis: 'x3', yaxis: 'y4', legend: 'legend3' }
+                      { x: chartData.xVals, y: chartData.farmFragVals, type: 'scatter', mode: 'lines', name: `Farm ${chartData.fragUIName}/Min`, line: { color: '#facc15', shape: 'hv', width: 2 }, xaxis: 'x2', yaxis: 'y3', legend: 'legend2' },
+                      { x: chartData.xVals, y: chartData.pushFragVals, type: 'scatter', mode: 'lines', name: `Push ${chartData.fragUIName}/Min`, line: { color: '#ca8a04', shape: 'hv', width: 1.5, dash: 'dot' }, xaxis: 'x2', yaxis: 'y3', legend: 'legend2' }
                   ] : [ ]),
+
+                  // 3. Opp Cost (legend: 'legend3')
+                  { x: chartData.pivotXVals, y: chartData.ttnlVals, type: 'scatter', mode: 'lines', name: 'Mins to Level (XP)', line: { color: '#f87171', shape: 'hv', width: 2 }, xaxis: 'x3', yaxis: 'y4', legend: 'legend3' },
+                  { x: chartData.pivotXVals, y: chartData.ttfVals, type: 'scatter', mode: 'lines', name: 'Mins to Major Upg', line: { color: '#a3e635', shape: 'hv', width: 2 }, xaxis: 'x3', yaxis: 'y4', legend: 'legend3' },
 
                   // 4. Economy (legend: 'legend4')
                   { x: fragChartData.xVals, y: fragChartData.yVals, type: 'scatter', mode: 'lines', name: `${fragDict[selectedFragPlot]} Bank`, line: { color: fragChartData.color, width: 2, shape: 'hv' }, fill: 'tozeroy', fillcolor: fragChartData.color + '20', xaxis: 'x4', yaxis: 'y5', legend: 'legend4' },
@@ -1253,8 +1255,8 @@ export default function PathfinderTab() {
                   
                   // X-Axes (All synced together via matches: 'x')
                   xaxis:  { anchor: 'y',  matches: 'x', showticklabels: true, tickfont: { size: 10, color: '#888' }, gridcolor: '#333' },
-                  xaxis2: { anchor: 'y2', matches: 'x', showticklabels: true, tickfont: { size: 10, color: '#888' }, gridcolor: '#333' },
-                  xaxis3: { anchor: showXpRates ? 'y3' : 'y4', matches: 'x', showticklabels: true, tickfont: { size: 10, color: '#888' }, gridcolor: '#333' },
+                  xaxis2: { anchor: showXpRates ? 'y2' : 'y3', matches: 'x', showticklabels: true, tickfont: { size: 10, color: '#888' }, gridcolor: '#333' },
+                  xaxis3: { anchor: 'y4', matches: 'x', showticklabels: true, tickfont: { size: 10, color: '#888' }, gridcolor: '#333' },
                   xaxis4: { anchor: 'y5', matches: 'x', showticklabels: true, tickfont: { size: 10, color: '#888' }, gridcolor: '#333' },
                   xaxis5: { anchor: 'y6', matches: 'x', showticklabels: true, tickfont: { size: 10, color: '#888' }, gridcolor: '#333' },
                   xaxis6: { anchor: 'y7', matches: 'x', showticklabels: true, tickfont: { size: 10, color: '#888' }, gridcolor: '#333' },
@@ -1265,9 +1267,9 @@ export default function PathfinderTab() {
 
                   // Y-Axes (10 Plots -> Domains mathematically spaced)
                   yaxis:  { domain:[0.9225, 1.000], title: { text: 'Milestone', font: { size: 11 } }, gridcolor: '#333', automargin: true },
-                  yaxis2: { domain:[0.820, 0.8975], title: { text: 'Cost (Mins)', font: { size: 11 } }, type: 'log', gridcolor: '#333', automargin: true },
-                  yaxis3: showXpRates ? { domain:[0.7175, 0.795], title: { text: 'Yields (XP)', font: { size: 11 } }, gridcolor: '#333', automargin: true } : { domain:[0.7175, 0.795], visible: false },
-                  yaxis4: showFragRates ? { domain: showXpRates ? undefined :[0.7175, 0.795], overlaying: showXpRates ? 'y3' : undefined, side: showXpRates ? 'right' : 'left', title: { text: 'Frags/Min', font: { size: 11 } }, gridcolor: showXpRates ? undefined : '#333', automargin: true } : { domain:[0.7175, 0.795], visible: false },
+                  yaxis2: showXpRates ? { domain:[0.820, 0.8975], title: { text: 'Yields (XP)', font: { size: 11 } }, gridcolor: '#333', automargin: true } : { domain:[0.820, 0.8975], visible: false },
+                  yaxis3: showFragRates ? { domain: showXpRates ? undefined :[0.820, 0.8975], overlaying: showXpRates ? 'y2' : undefined, side: showXpRates ? 'right' : 'left', title: { text: 'Frags/Min', font: { size: 11 } }, gridcolor: showXpRates ? undefined : '#333', automargin: true } : { domain:[0.820, 0.8975], visible: false },
+                  yaxis4: { domain:[0.7175, 0.795], title: { text: 'Cost (Mins)', font: { size: 11 } }, type: 'log', gridcolor: '#333', automargin: true },
                   yaxis5: { domain:[0.615, 0.6925], title: { text: 'Bank Amt', font: { size: 11 } }, gridcolor: '#333', automargin: true },
                   yaxis6: { domain:[0.5125, 0.590], title: { text: 'Budget %', font: { size: 11 } }, range: [0, 100], gridcolor: '#333', automargin: true },
                   yaxis7: { domain:[0.410, 0.4875], title: { text: 'Base Points', font: { size: 11 } }, gridcolor: '#333', automargin: true },
@@ -1314,8 +1316,8 @@ export default function PathfinderTab() {
                   // Annotations for Subplot Titles & Vertical Pivots
                   annotations:[
                     { text: '<b>1. Progression Trends</b>', x: 0, y: 1.000, xref: 'paper', yref: 'paper', showarrow: false, font: {size: 14, color: '#fff'}, xanchor: 'left', yanchor: 'bottom', yshift: 5 },
-                    { text: '<b>2. Strategic Pivot Point (Opportunity Cost)</b>', x: 0, y: 0.8975, xref: 'paper', yref: 'paper', showarrow: false, font: {size: 14, color: '#fff'}, xanchor: 'left', yanchor: 'bottom', yshift: 5 },
-                    { text: '<b>3. Yields: Farm vs Push</b>', x: 0, y: 0.795, xref: 'paper', yref: 'paper', showarrow: false, font: {size: 14, color: '#fff'}, xanchor: 'left', yanchor: 'bottom', yshift: 5 },
+                    { text: '<b>2. Yields: Farm vs Push</b>', x: 0, y: 0.8975, xref: 'paper', yref: 'paper', showarrow: false, font: {size: 14, color: '#fff'}, xanchor: 'left', yanchor: 'bottom', yshift: 5 },
+                    { text: '<b>3. Strategic Pivot Point (Opportunity Cost)</b>', x: 0, y: 0.795, xref: 'paper', yref: 'paper', showarrow: false, font: {size: 14, color: '#fff'}, xanchor: 'left', yanchor: 'bottom', yshift: 5 },
                     { text: '<b>4. Fragment Economy & Milestones</b>', x: 0, y: 0.6925, xref: 'paper', yref: 'paper', showarrow: false, font: {size: 14, color: '#fff'}, xanchor: 'left', yanchor: 'bottom', yshift: 5 },
                     { text: '<b>5. Farm Build Priority Trends (100% Normalized)</b>', x: 0, y: 0.590, xref: 'paper', yref: 'paper', showarrow: false, font: {size: 14, color: '#fff'}, xanchor: 'left', yanchor: 'bottom', yshift: 5 },
                     { text: '<b>6. Farm Build Stat Breakpoints (Raw Points)</b>', x: 0, y: 0.4875, xref: 'paper', yref: 'paper', showarrow: false, font: {size: 14, color: '#fff'}, xanchor: 'left', yanchor: 'bottom', yshift: 5 },
