@@ -904,7 +904,7 @@ export default function PathfinderTab() {
                     );
                   })}
                 </div>
-              </div>
+              </details>
             </div>
           )}
         </div>
