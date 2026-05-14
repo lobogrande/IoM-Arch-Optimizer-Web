@@ -123,7 +123,8 @@ def execute_simulation(test_stats_proxy, test_upgrades_proxy, test_external_prox
         "enrage_casts": result.skills_tracker.total_enrage_casts,
         "quake_casts": result.skills_tracker.total_quake_casts,
         "stamina_refunded_flurry": result.stamina_refunded_flurry,
-        "stamina_refunded_mods": result.stamina_refunded_mods
+        "stamina_refunded_mods": result.stamina_refunded_mods,
+        "stamina_wasted_overcap": result.stamina_wasted_overcap
     }
     
     for frag_tier, amt in result.total_frags.items():
