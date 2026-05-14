@@ -462,6 +462,7 @@ export default function PathfinderTab() {
     let corrVetoed = false;
     let crippledStarted = false;
     let masteryHit = false;
+    let lastFloorWall = 0;
 
     const phaseColors = {
         'Phase 1: Divine': 'rgba(59, 130, 246, 0.08)',
@@ -539,6 +540,18 @@ export default function PathfinderTab() {
         }
 
         if (ev.type === 'floor' && ev.state_snapshot && ev.state_snapshot.base_stats) {
+            // Track massive game difficulty spikes
+            if (ev.floor >= 50 && lastFloorWall < 50) {
+                critPivots.push({ sec: ev.arch_sec, label: 'Floor 50 (HP x2 / Armor x1.5)' });
+                lastFloorWall = 50;
+            } else if (ev.floor >= 100 && lastFloorWall < 100) {
+                critPivots.push({ sec: ev.arch_sec, label: 'Floor 100 (HP x2 / Armor x1.5)' });
+                lastFloorWall = 100;
+            } else if (ev.floor >= 150 && lastFloorWall < 150) {
+                critPivots.push({ sec: ev.arch_sec, label: 'Floor 150 (HP x2 / Armor x1.5)' });
+                lastFloorWall = 150;
+            }
+
             const prevEv = pathData.history[ idx - 1 ];
             if (prevEv && prevEv.state_snapshot && prevEv.state_snapshot.base_stats && prevEv.state_snapshot.base_stats.Corr > 0 && ev.state_snapshot.base_stats.Corr === 0) {
                 if (!corrVetoed) {
@@ -1070,7 +1083,7 @@ export default function PathfinderTab() {
                           <span>This chart dissects the <strong>Push Build (Chart 6)</strong>. <span className="text-[#a855f7] font-bold">Corruption (Purple)</span> acts as a multiplier for your <span className="text-[#4ade80] font-bold">Mod Base (Green)</span>. But if Block Armor gets too tough, the engine sacrifices Corruption to afford raw <span className="text-[#ef4444] font-bold">Armor Crack (Red)</span>.</span>
                       )}
                       {diagnosticView === 'push_crit' && (
-                          <span>This chart dissects the 3 eras of the <strong>Push Build's</strong> crit engine lifecycle: <strong>1. Early (Base Dmg):</strong> <span className="text-[#f9a8d4] font-bold">Div</span> spikes instantly to crack early armor. <strong>2. Mid (Crit Cap):</strong> <span className="text-[#22c55e] font-bold">Luck</span> rushes to max to secure Crit Chance, while Div plunges. <strong>3. Late (Compounding):</strong> Once multipliers unlock (Super/Ultra Crits), <span className="text-[#f9a8d4] font-bold">Div</span> surges back to fuel massive compounding criticals.</span>
+                          <span>This chart dissects the 3 eras of the <strong>Push Build's</strong> crit engine: <strong>1. Early (Armor):</strong> <span className="text-[#f9a8d4] font-bold">Div</span> spikes instantly to crack early block armor. <strong>2. Mid (Budget Starvation):</strong> As block HP scales, the engine MUST cap <span className="text-[#22c55e] font-bold">Luck</span> and heavily fund <span className="text-[#ef4444] font-bold">Str</span>. Due to a small budget, <span className="text-[#f9a8d4] font-bold">Div</span> is starved to near zero. <strong>3. Late (Overflow):</strong> Once Str/Luck hit optimal limits, the growing budget overflows back into <span className="text-[#f9a8d4] font-bold">Div</span> to fuel massive compounding Crits.</span>
                       )}
                       {diagnosticView === 'farm_crit' && (
                           <span>This chart dissects the <strong>Farm Build's</strong> crit engine. Notice how <span className="text-[#22c55e] font-bold">Luck (Green)</span> is prioritized much earlier here than in the Push build? That's because Luck simultaneously drives Crit Chance <em>and</em> Modifier Chances (EXP/Loot), making it the ultimate dual-purpose farming stat.</span>
