@@ -741,7 +741,7 @@ export default function PathfinderTab() {
             />
           </div>
           <div>
-            <label className="block text-sm font-bold text-st-text mb-2">Push Confidence Threshold (%):</label>
+            <label className="block text-sm font-bold text-st-text mb-2">Floor Push Safety (Win Rate %):</label>
             <input 
               type="number" 
               min="1"
@@ -751,10 +751,10 @@ export default function PathfinderTab() {
               className="w-full bg-[#0E1117] border border-st-border rounded p-2 text-st-text focus:border-st-orange outline-none"
               placeholder="e.g. 20"
             />
-            <span className="text-[10px] text-st-text-light block mt-1">Min. Win Rate to attempt max floor push.</span>
+            <span className="text-[10px] text-st-text-light block mt-1">Minimum combat success rate required to push.</span>
           </div>
           <div>
-            <label className="block text-sm font-bold text-st-text mb-2">Initial Time (Arch Secs):</label>
+            <label className="block text-sm font-bold text-st-text mb-2">Starting Clock Offset (Seconds):</label>
             <input 
               type="number" 
               min="0"
@@ -824,9 +824,14 @@ export default function PathfinderTab() {
               </div>
               <p className="mt-3 text-st-text-light">Targeting remaining goals based on current state...</p>
               
-              <div className="mt-4 border-t border-st-border pt-4">
-                <label className="block text-sm font-bold text-[#FAFAFA] mb-2">Starting Fragment Bank (Raw Amounts):</label>
-                <div className="grid grid-cols-3 md:grid-cols-6 gap-3">
+              <details className="mt-4 border-t border-st-border pt-4 group cursor-pointer marker:text-st-orange">
+                <summary className="text-sm font-bold text-[#FAFAFA] select-none outline-none">
+                  Starting Fragment Bank 
+                  <span className="text-xs text-st-text-light font-normal ml-2">
+                    ({Object.values(startFrags).reduce((a, b) => a + (b||0), 0) > 0 ? "Bank populated" : "Empty"})
+                  </span>
+                </summary>
+                <div className="grid grid-cols-3 md:grid-cols-6 gap-3 mt-4 cursor-default">
                   {[
                     { id: 'com', label: 'Common' }, { id: 'rare', label: 'Rare' }, 
                     { id: 'epic', label: 'Epic' }, { id: 'leg', label: 'Legendary' }, { id: 'myth', label: 'Mythic' }, 
@@ -846,12 +851,17 @@ export default function PathfinderTab() {
                     </div>
                   ))}
                 </div>
-              </div>
+              </details>
 
-              <div className="mt-4 border-t border-st-border pt-4">
-                <label className="block text-sm font-bold text-[#FAFAFA] mb-2">Card Fragment Progress (Current Fragments Owned 0-9):</label>
-                <div className="grid grid-cols-4 md:grid-cols-9 gap-2 max-h-64 overflow-y-auto pr-1">
-                  {[ 
+              <details className="mt-4 border-t border-st-border pt-4 group cursor-pointer marker:text-st-orange">
+                <summary className="text-sm font-bold text-[#FAFAFA] select-none outline-none">
+                  Pending Card Fragment Drops 
+                  <span className="text-xs text-st-text-light font-normal ml-2">
+                    ({Object.values(startCardProgress).filter(v => v > 0).length} partial cards pending)
+                  </span>
+                </summary>
+                <div className="grid grid-cols-4 md:grid-cols-9 gap-2 max-h-64 overflow-y-auto pr-1 mt-4 cursor-default">
+                  {[
                     'dirt1', 'dirt2', 'dirt3', 'dirt4',
                     'com1', 'com2', 'com3', 'com4',
                     'rare1', 'rare2', 'rare3', 'rare4',
