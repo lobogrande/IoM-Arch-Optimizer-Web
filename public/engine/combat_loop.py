@@ -31,7 +31,7 @@ PATH_ORDER =[
 class RunState:
     def __init__(self, player):
         self.stamina = player.max_sta
-        self.speed_pool = 0
+        self.speed_pool = getattr(player, 'starting_speed_pool', 0)
         self.total_time = 0.0
         self.total_stamina_spent = 0.0
         self.stamina_refunded_flurry = 0.0

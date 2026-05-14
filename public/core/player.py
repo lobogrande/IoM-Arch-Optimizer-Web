@@ -93,6 +93,7 @@ class Player:
         self.hades_idol_level = 0
         self.total_infernal_cards = 0
         self.arch_ability_infernal_bonus = 0.0 
+        self.starting_speed_pool = 0
         
         self.base_stats = {
             'Str': 0, 'Agi': 0, 'Per': 0, 'Int': 0, 'Luck': 0, 'Div': 0, 'Corr': 0

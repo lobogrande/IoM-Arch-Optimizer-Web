@@ -51,6 +51,7 @@ def sync_base_player(state_proxy):
     p.hades_idol_level = int(state_dict.get('hades_idol_level', 0))
     p.arch_ability_infernal_bonus = float(state_dict.get('arch_ability_infernal_bonus', 0.0))
     p.total_infernal_cards = int(state_dict.get('total_infernal_cards', 0))
+    p.starting_speed_pool = int(state_dict.get('starting_speed_pool', 0))
     
     for k, v in state_dict.get('base_stats', {}).items():
         p.base_stats[str(k)] = int(v)
