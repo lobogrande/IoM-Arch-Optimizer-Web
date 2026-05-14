@@ -464,9 +464,12 @@ export default function PathfinderTab() {
     const critPivots = [];
     const phases = [];
     let corrVetoed = false;
+    let phase1Hit = false;
+    let phase2Hit = false;
     let crippledStarted = false;
     let masteryHit = false;
     let lastFloorWall = 0;
+    let lastPushCorr = 0;
 
     const phaseColors = {
         'Phase 1: Divine': 'rgba(59, 130, 246, 0.08)',
@@ -543,7 +546,7 @@ export default function PathfinderTab() {
             }
         }
 
-        if (ev.type === 'floor' && ev.state_snapshot && ev.state_snapshot.base_stats) {
+        if (ev.type === 'floor' && ev.state_snapshot) {
             // Track massive game difficulty spikes
             if (ev.floor >= 50 && lastFloorWall < 50) {
                 critPivots.push({ sec: ev.arch_sec, label: 'Floor 50 (HP x2 / Armor x1.5)' });
@@ -556,16 +559,40 @@ export default function PathfinderTab() {
                 lastFloorWall = 150;
             }
 
-            const prevEv = pathData.history[ idx - 1 ];
-            if (prevEv && prevEv.state_snapshot && prevEv.state_snapshot.base_stats && prevEv.state_snapshot.base_stats.Corr > 0 && ev.state_snapshot.base_stats.Corr === 0) {
-                if (!corrVetoed) {
-                    insights.push({
-                        icon: '🛡️', title: 'Armor Veto Triggered',
-                        desc: `At Floor ${ev.floor}, block armor outscaled your damage. The engine dynamically stripped Corruption to 0 to afford more Strength and Divinity for Armor Penetration.`
-                    });
-                    corrVetoed = true;
+            // Parse the Push Build string specifically to track the Armor Veto!
+            if (ev.active_build_str && ev.active_build === 'Push') {
+                const match = ev.active_build_str.match(/\[(.*?)\]/);
+                if (match) {
+                    const parts = match[1].split('/');
+                    if (parts.length >= 7) {
+                        const currentPushCorr = parseInt(parts[6]) || 0;
+                        if (lastPushCorr > 0 && currentPushCorr === 0 && !corrVetoed) {
+                            insights.push({
+                                icon: '🛡️', title: 'Armor Veto Triggered',
+                                desc: `At Floor ${ev.floor}, block armor outscaled your damage. The engine dropped Corruption to 0 to afford raw Strength and Divinity for Armor Crack.`
+                            });
+                            corrVetoed = true;
+                        }
+                        lastPushCorr = currentPushCorr;
+                    }
                 }
             }
+        }
+
+        if (ev.type === 'system' && ev.event.includes('Phase 1') && !phase1Hit) {
+            insights.push({
+                icon: '💎', title: 'Divine Idol Pivot',
+                desc: `At Arch Level ${ev.level}, Hestia was maxed. The engine abandoned XP progression to permanently optimize the Farm Build for Divine/Infernal Cards.`
+            });
+            phase1Hit = true;
+        }
+
+        if (ev.type === 'system' && ev.event.includes('Phase 2') && !phase2Hit) {
+            insights.push({
+                icon: '🎴', title: 'Card Hunting Pivot',
+                desc: `At Arch Level ${ev.level}, Hades was maxed. Pure fragment farming was abandoned to brute-force the highest unmaxed block tiers.`
+            });
+            phase2Hit = true;
         }
 
         if (ev.type === 'system' && ev.event.includes('Phase 3') && !crippledStarted) {
@@ -1000,7 +1027,7 @@ export default function PathfinderTab() {
               </button>
             </div>
             
-            <div className="grid grid-cols-1 xl:grid-cols-3 gap-6 mb-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 mb-6">
                 {simulationInsights && simulationInsights.insights.length > 0 ? (
                   simulationInsights.insights.map((insight, i) => (
                     <div key={i} className="bg-[#1a1a1a] p-3 rounded border border-st-border border-l-2 border-l-st-orange shadow-md relative overflow-hidden">
