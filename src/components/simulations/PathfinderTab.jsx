@@ -737,9 +737,16 @@ export default function PathfinderTab() {
               min="2"
               value={targetLevel}
               onChange={(e) => setTargetLevel(e.target.value)}
-              className="w-full bg-[#0E1117] border border-st-border rounded p-2 text-st-text focus:border-st-orange outline-none"
+              className={`w-full bg-[#0E1117] border rounded p-2 text-st-text outline-none focus:border-st-orange ${
+                parseInt(targetLevel) <= (startMode === 'template' ? asc2Template.arch_level : store.arch_level) 
+                  ? 'border-red-500' 
+                  : 'border-st-border'
+              }`}
               placeholder="e.g. 50"
             />
+            {parseInt(targetLevel) <= (startMode === 'template' ? asc2Template.arch_level : store.arch_level) && (
+              <span className="text-[10px] text-red-400 font-bold block mt-1">Must be greater than starting level!</span>
+            )}
           </div>
           <div>
             <label className="block text-sm font-bold text-st-text mb-2">Floor Push Safety (Win Rate %):</label>
@@ -1463,8 +1470,17 @@ export default function PathfinderTab() {
                     value={searchFilter}
                     onChange={(e) => setSearchFilter(e.target.value)}
                     placeholder="Search logs (e.g. 'Gleaming')..." 
-                    className="w-full bg-st-secondary/30 border border-st-border rounded py-1.5 pl-8 pr-2 text-xs text-st-text focus:border-st-orange outline-none"
+                    className="w-full bg-st-secondary/30 border border-st-border rounded py-1.5 pl-8 pr-8 text-xs text-st-text focus:border-st-orange outline-none"
                   />
+                  {searchFilter && (
+                    <button 
+                      onClick={() => setSearchFilter('')}
+                      className="absolute inset-y-0 right-0 pr-2 flex items-center text-st-text-light hover:text-st-orange transition-colors font-bold text-lg"
+                      title="Clear search"
+                    >
+                      &times;
+                    </button>
+                  )}
                 </div>
                 <div className="flex bg-st-secondary/50 rounded border border-st-border text-xs font-bold overflow-hidden shrink-0">
                   <button 
