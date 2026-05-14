@@ -33,10 +33,25 @@ const FRAG_RATE_KEYS = {
 /**
  * The Macro-Stepper Engine for Ascension 2
  */
+const isCrippledPhase = (s) => {
+    if ((s.external_levels[21] || 0) < 6666) return false;
+    if ((s.external_levels[4] || 0) < 3000) return false;
+    
+    const highTierCards =[
+        'div4', 'myth4', 'leg4', 'epic4', 'rare4', 'com4', 'dirt4',
+        'div3', 'myth3', 'leg3', 'epic3', 'rare3', 'com3', 'dirt3'
+    ];
+    for (const c of highTierCards) {
+        if ((s.cards[c] || 0) < 4) return false;
+    }
+    return true;
+};
+
 const getAvailableStatKeys = (state) => {
     const keys =['Str', 'Agi', 'Per', 'Int', 'Luck'];
-    if (state.asc1_unlocked) keys.push('Div'); // CRITICAL FIX: Restored missing Divinity stat
+    if (state.asc1_unlocked) keys.push('Div'); 
     if (state.asc2_unlocked) keys.push('Corr');
+    if (isCrippledPhase(state)) keys.push('Unspent');
     return keys;
 };
 
@@ -50,7 +65,8 @@ const getEffectiveStatCaps = (state) => {
         Int: 25 + capBonus,
         Luck: 25 + capBonus,
         Div: 10 + capBonus,
-        Corr: 10 + capBonus
+        Corr: 10 + capBonus,
+        Unspent: 9999 // Unlimited capacity for absorbing unspent points
     };
 };
 
