@@ -582,7 +582,7 @@ export default function PathfinderTab() {
         if (ev.type === 'system' && ev.event.includes('Phase 1') && !phase1Hit) {
             insights.push({
                 icon: '💎', title: 'Divine Idol Pivot',
-                desc: `At Arch Level ${ev.level}, Hestia was maxed. The engine abandoned XP progression to permanently optimize the Farm Build for Divine/Infernal Cards.`
+                desc: `At Arch Level ${ev.level}, Hestia was maxed. The engine abandoned XP progression to farm Divine Fragments for Hades Idol levels, while passively acquiring Infernal fragments and finishing remaining upgrades.`
             });
             phase1Hit = true;
         }

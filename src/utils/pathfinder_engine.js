@@ -1028,7 +1028,7 @@ export async function runPathfinderSimulation(startState, targetLevel, initialFr
                             active_build_str: lastFarmStr,
                             level: state.arch_level,
                             floor: state.current_max_floor,
-                            desc: `Hestia maxed. XP progression abandoned. Build permanently optimized for Divine/Infernal Cards.`,
+                            desc: `Hestia maxed. XP progression abandoned. Build optimized to farm Divine Fragments for Hades Idol levels, while passively finishing remaining tech.`,
                             yields: { farm: currentFarmYields, push: currentPushYields, frag_potential: currentFragPotential },
                             frags: { ...frags },
                             card_progress: { ...card_progress },
