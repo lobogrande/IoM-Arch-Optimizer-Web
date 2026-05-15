@@ -735,6 +735,9 @@ export default function PathfinderTab() {
             <p><strong>3. Run the Timeline:</strong> The engine will dual-track your Farm and Push builds, automatically fast-forwarding time to snipe upgrades, farm cards, and push floors as efficiently as mathematically possible.</p>
             <p><strong>4. Analyze the Results:</strong> Use the Master Timeline charts and the Node-Graph log to see exactly <em>when</em> the engine pivots its strategies. Use these insights to guide your real in-game decisions!</p>
           </div>
+          <div className="mt-3 p-2 bg-red-900/20 border-l-2 border-red-500 rounded text-xs text-red-400">
+            ⚠️ <strong>Performance Warning:</strong> Because this tool simulates entire timelines of upgrades and floor pushes, it takes <em>significantly</em> longer than a standard optimization sprint. I strongly recommend projecting no more than <strong>5 to 10 levels at a time</strong> to prevent extreme compute times (though jumping from 1 to 20 is generally safe for a fresh start). Please be patient while the engine computes!
+          </div>
         </div>
       </div>
 
@@ -780,8 +783,10 @@ export default function PathfinderTab() {
               }`}
               placeholder="e.g. 50"
             />
-            {parseInt(targetLevel) <= (startMode === 'template' ? asc2Template.arch_level : store.arch_level) && (
+            {parseInt(targetLevel) <= (startMode === 'template' ? asc2Template.arch_level : store.arch_level) ? (
               <span className="text-[10px] text-red-400 font-bold block mt-1">Must be greater than starting level!</span>
+            ) : (
+              <span className="text-[10px] text-st-orange font-bold block mt-1">⚠️ Keep jumps to 5-10 levels max to prevent extreme compute times!</span>
             )}
           </div>
           <div>
