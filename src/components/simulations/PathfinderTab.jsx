@@ -88,6 +88,10 @@ export default function PathfinderTab() {
     }
 
     setSimStatus(`Workspace updated to Level ${snap.arch_level} / Floor ${snap.current_max_floor}!`);
+    
+    // Auto-scroll the user back up to the control panel so they can immediately run the next chunk!
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    
     setTimeout(() => setSimStatus(''), 3000);
   };
 
@@ -993,9 +997,9 @@ export default function PathfinderTab() {
               <div className="text-purple-400 font-bold mb-2 flex items-center gap-2"><span className="text-xl">📉</span> Crippled Builds</div>
               <div className="text-xs text-gray-400 leading-relaxed">Watch the engine organically discover that it needs to starve its own stats (Unspent &gt; 0) to efficiently farm Tier 1/2 cards in the extreme endgame.</div>
             </div>
-            <div className="bg-st-secondary/20 p-5 rounded border border-st-border hover:border-green-400 transition-colors">
-              <div className="text-green-400 font-bold mb-2 flex items-center gap-2"><span className="text-xl">🛡️</span> The Armor Veto</div>
-              <div className="text-xs text-gray-400 leading-relaxed">See the exact floor where block armor forces the engine to abandon Corruption multipliers in favor of raw Strength and Divinity.</div>
+            <div className="bg-st-secondary/20 p-5 rounded border border-st-border hover:border-pink-400 transition-colors">
+              <div className="text-pink-400 font-bold mb-2 flex items-center gap-2"><span className="text-xl">⚔️</span> The Critical Hit Engine</div>
+              <div className="text-xs text-gray-400 leading-relaxed">See exactly how the optimizer shifts points between Strength, Luck, and Divinity to trigger compounding Super and Ultra crits as block HP scales up.</div>
             </div>
           </div>
         </div>
