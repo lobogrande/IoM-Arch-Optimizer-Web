@@ -731,9 +731,10 @@ export default function PathfinderTab() {
           <h4 className="font-bold text-st-orange mb-2">💡 How to use the Pathfinder:</h4>
           <div className="text-sm text-st-text-light space-y-2">
             <p><strong>1. Set the Starting Point:</strong> Choose a fresh template or your Current Workspace. If using your workspace, make sure to fill out your current Fragment Bank and pending Card Fragments below.</p>
-            <p><strong>2. Define the Goal:</strong> Enter the Target Arch Level where you want the simulation to stop. Set your Floor Push Safety (Win Rate) to dictate how aggressive the engine should be when climbing.</p>
-            <p><strong>3. Run the Timeline:</strong> The engine will dual-track your Farm and Push builds, automatically fast-forwarding time to snipe upgrades, farm cards, and push floors as efficiently as mathematically possible.</p>
-            <p><strong>4. Analyze the Results:</strong> Use the Master Timeline charts and the Node-Graph log to see exactly <em>when</em> the engine pivots its strategies. Use these insights to guide your real in-game decisions!</p>
+            <p><strong>2. Define the Goal:</strong> Enter the Target Arch Level (keep it 5-10 levels ahead) and set your Floor Push Safety (Win Rate).</p>
+            <p><strong>3. Run the Timeline:</strong> The engine will dual-track your Farm and Push builds, automatically fast-forwarding time to snipe upgrades, farm cards, and push floors.</p>
+            <p><strong>4. Export & Analyze:</strong> <span className="text-st-orange font-bold">⚠️ Data is NOT auto-saved!</span> Click <strong>Export Chunk</strong> in the Timeline Data Tools below to save your run. Use the charts and logs to guide your real in-game decisions.</p>
+            <p><strong>5. Leapfrog & Stitch:</strong> To simulate further, hover over the very last event in the Node-Graph log and click the <strong>Apply Player State</strong> icon. This loads the exact end-state into your workspace so you can run the next 5-10 level batch. Later, use <strong>Stitch Chunks</strong> to combine all your downloaded files into one massive Master Timeline!</p>
           </div>
           <div className="mt-3 p-2 bg-red-900/20 border-l-2 border-red-500 rounded text-xs text-red-400">
             ⚠️ <strong>Performance Warning:</strong> Because this tool simulates entire timelines of upgrades and floor pushes, it takes <em>significantly</em> longer than a standard optimization sprint. I strongly recommend projecting no more than <strong>5 to 10 levels at a time</strong> to prevent extreme compute times (though jumping from 1 to 20 is generally safe for a fresh start). Please be patient while the engine computes!
