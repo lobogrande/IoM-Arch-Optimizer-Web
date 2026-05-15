@@ -1118,7 +1118,7 @@ export default function PathfinderTab() {
               </div>
 
               {/* ETA PREDICTOR GUIDE OVERLAY */}
-              <div className="absolute left-1/2 -translate-x-1/2 -translate-y-1/2 z-10 w-[850px] bg-[#111]/95 border border-st-border px-4 py-2 rounded shadow-sm backdrop-blur-sm flex items-center gap-4" style={{ top: '840px' }}>
+              <div className="absolute left-1/2 -translate-x-1/2 -translate-y-1/2 z-10 w-[850px] bg-[#111]/95 border border-st-border px-4 py-2 rounded shadow-sm backdrop-blur-sm flex items-center gap-4" style={{ top: '785px' }}>
                   <div className="text-[11px] font-bold text-gray-200 whitespace-nowrap flex items-center gap-1.5 border-r border-st-border pr-4 shrink-0">
                       <span>⏱️</span> Reading the ETA Predictor
                   </div>
