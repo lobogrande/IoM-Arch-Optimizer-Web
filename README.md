@@ -4,13 +4,13 @@
 ![Vite](https://img.shields.io/badge/Bundler-Vite-646CFF.svg?logo=vite)
 ![Pyodide](https://img.shields.io/badge/Engine-Pyodide_(Wasm)-3776AB.svg?logo=python)
 ![Tailwind](https://img.shields.io/badge/UI-Tailwind_CSS-38B2AC.svg?logo=tailwind-css)
-![Status](https://img.shields.io/badge/Status-v1.8.0_Live-4CAF50.svg)
+![Status](https://img.shields.io/badge/Status-v2.0.0_Live-4CAF50.svg)
 
 A high-performance, 100% client-side **Monte Carlo Simulator and AI Build Optimizer** for the Archaeology mini-game in *Idle Obelisk Miner*. 
 
-🌐 **[Play Live / Use the Optimizer Here](https://iom-arch-optimizer.pages.dev/)**
+🌐 **[Play Live / Use the Optimizer Here](https://iom-arch-optimizer-web.pages.dev/#/welcome)**
 
-> **🎉 v1.8.0 Update:** Features the massive Forecaster UX overhaul! The app now calculates true Cumulative Binomial Budgets (50% Coin Flip vs. 90% Safe) for max floor pushes, introduces dynamic AI bottleneck diagnostics, safely handles Ascension stat wipes, and allows cross-profile workspace syncing!
+> **🚀 v2.0.0 Update:** Introducing the **Ascension Pathfinder (Macro-Stepper)**! A massive new engine addition that dual-tracks your Farm and Push builds, simulating thousands of micro-runs to fast-forward in-game time. It automatically navigates Opportunity Cost, discovers "Crippled" low-tier farming loops, and generates an interactive 4,000px Master Timeline plotting the absolute mathematical limits of your account!
 
 This tool evaluates your player stats, upgrades, and block card collections to compute the absolute perfect stat distribution for your account. Whether you are pushing for a new Max Floor, farming late-game Block Cards, or maximizing EXP yields, this engine mathematically eliminates the guesswork—all running locally in your browser at near-native speeds.
 
@@ -20,9 +20,9 @@ This tool evaluates your player stats, upgrades, and block card collections to c
 
 Idle Obelisk Miner has a deceptively complex combat engine. Finding the perfect stat distribution manually is nearly impossible due to three mathematical realities encoded into the game:
 
-1. **The Stat Plateau & 32-bit Math:** The game runs in GameMaker (GML), which compiles decimal constants as 32-bit floats and uses Banker's Rounding. Because blocks only take whole hits, having 50 Strength and 54 Strength might both result in the exact same "3-hit kill". Any stat points spent that do not mathematically push you past the next *Breakpoint* are completely wasted.
+1. **The Stat Plateau & 32-bit Float Drift:** The game runs in GameMaker (GML), which compiles math as 32-bit IEEE-754 floats. We rigorously emulate GM's memory drift (e.g., upward float drift on Max Stamina, downward drift on Base Damage) before Banker's Rounding. Because blocks only take whole hits, any stat points that do not mathematically push you past the next native *Breakpoint* are completely wasted.
 2. **Multiplicative Menus:** In-game stats combine percentage bonuses from different menus multiplicatively, not additively. 
-3. **The "Suicide Farming Paradox":** Because the game has zero death-delay, buying survival stats (Agility/Stamina) when farming early-game blocks (e.g., Dirt Cards) pushes the player to deeper floors where block HP is exponentially higher. This causes your kills-per-minute to mathematically *plummet*. 
+3. **The "Suicide Farming Paradox":** Because the game has zero death-delay, buying survival stats (Agility) when farming early-game blocks pushes you to deeper floors where block HP is exponentially higher, actively destroying your kills-per-minute. The AI circumvents this by unlocking an 8th Dimension (**Unspent Points**) and weaponizing the **Corruption** stat's penalty to intentionally shrink your gas tank. It builds "glass cannons" that speed-run early floors at infinite attack speed and instantly detonate to reset the run!
 
 **The Solution:** This engine emulates the GameMaker source code exactly (down to the microscopic 32-bit compilation drift epsilons), executing hundreds of thousands of micro-tick combat simulations to find the optimal breakpoints for your specific target.
 
@@ -38,10 +38,12 @@ Originally built as a heavy, server-bound Streamlit application, this project ha
 * **The Math Engine (`public/core`):** The exact 1:1 GameMaker (GML) to Python translations (`player.py`, `block.py`, `combat_loop.py`) are preserved and executed natively in the browser.
 * **The Orchestrator (`src/utils/optimizer.js`):** A Javascript-native Web Worker Pool that automatically scales to the user's `navigator.hardwareConcurrency` to max out their CPU cores during Monte Carlo grid searches.
 
+// -> REPLACE WITH
 ---
 
 ## 🚀 Key Features
 
+* **The Ascension Pathfinder:** Set a Target Arch Level, and the Macro-Stepper will automatically simulate your journey through time. It evaluates Opportunity Cost (XP vs Fragments), brute-forces multi-floor pushes, and automatically buys upgrades and idols. The entire run is mapped onto a beautiful, interactive Node-Graph and Plotly visualization.
 * **Progression Forecaster:** Set a target floor and budget, and the Oracle will calculate exact cumulative binomial probabilities (50% Coin Flip vs 90% Safe bounds) to tell you if a push is viable. If you are failing, the dynamic AI will read your stamina-deficit ratios and explicitly tell you *why* (e.g. bleeding stamina vs. lacking armor penetration).
 * **Hardware-Aware Auto-Scaling:** The Javascript orchestrator dynamically benchmarks your device's CPU speed and adjusts the "Step Size" leaps the AI takes via a **3-Phase Successive Halving Algorithm** to ensure deep mathematical precision without freezing your browser.
 * **Marginal ROI Analyzer:** Evaluates your current character and tests adding `+1` to every possible stat and un-maxed upgrade, ranking them by their raw output gain to tell you exactly what to buy next.
