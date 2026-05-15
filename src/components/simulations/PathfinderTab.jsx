@@ -17,7 +17,7 @@ export default function PathfinderTab() {
   const[simStatus, setSimStatus] = useState('');
   const [simProgress, setSimProgress] = useState(0);
   const [groupBy, setGroupBy] = useState('floor'); // 'floor' or 'level'
-  const [targetLevel, setTargetLevel] = useState("30"); // Absolute target level
+  const [targetLevel, setTargetLevel] = useState("20"); // Absolute target level
   const [startFrags, setStartFrags] = useState(store.frags || { com: 0, rare: 0, epic: 0, leg: 0, myth: 0, div: 0 });
   const [startCardProgress, setStartCardProgress] = useState(store.card_progress || { });
   const [startExp, setStartExp] = useState(store.current_exp || 0);
