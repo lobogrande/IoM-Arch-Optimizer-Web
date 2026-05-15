@@ -19,7 +19,7 @@ The game does not use standard RPG stat definitions. Stats often dual-scale and 
 *   **Corruption (Corr):** **(Locked pre-Ascension 2).** The Ultimate Endgame Stat. 
     *   *The Buff:* Provides a massive damage multiplier (`0.06 * Corr` base, explicitly boosted by Upgrade 52) AND multiplies the yield of all Triggered Mods (`exp_mod_gain`, `loot_mod_gain`, etc.).
     *   *The Curse:* Reduces `max_sta` by 3% per point (`1 - 0.03 * Corr`).
-*   **Float Drift & Banker's Rounding:** The game natively calculates stats using 32-bit floating-point math. To maintain perfect accuracy, the simulator forcefully replicates GameMaker's memory drift: Max Stamina and Enrage values artificially drift *upward* before rounding, while Base Damage drifts *downward*. This ensures calculated breakpoint math never misses by a rounding error of 1.
+*   **Float Drift & Banker's Rounding:** The game natively calculates stats using 32-bit floating-point math. To maintain perfect accuracy, the simulator forcefully replicates GameMaker's memory drift: Max Stamina, Enrage values, and Base Damage all artificially drift *upward* before rounding. This ensures calculated breakpoint math never misses by a rounding error of 1.
 
 ## 2. THE COMBAT LOOP & DAMAGE RESOLUTION
 Combat is a micro-tick simulated timeline. Damage resolution strictly follows a specific order of operations, and critically, **Armor acts differently depending on the damage source.**
