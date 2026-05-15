@@ -34,7 +34,7 @@ export default function PathfinderTab() {
   const [showMasterChart, setShowMasterChart] = useState(true);
 
   // Interactive Diagnostics Toggle
-  const [diagnosticView, setDiagnosticView] = useState('push_corr');
+  const [diagnosticView, setDiagnosticView] = useState('push_crit');
 
   // Sync workspace state inputs automatically when switching to "current" or applying a log state
   React.useEffect(() => {
@@ -286,27 +286,8 @@ export default function PathfinderTab() {
     return { xVals, stats };
   },[pathData]);
 
-  const corrDiagnosticsData = useMemo(() => {
-    if (!pushChartData) return null;
-    const xVals = pushChartData.xVals;
-    const corrVals = pushChartData.stats.Corr;
-    const armorCrackVals = pushChartData.stats.Str.map((str, i) => 
-        str + pushChartData.stats.Div[i] + pushChartData.stats.Per[i]
-    );
-    const modPowerVals = pushChartData.stats.Luck.map((luck, i) => 
-        luck + Math.max(pushChartData.stats.Int[i], pushChartData.stats.Per[i])
-    );
-    return { xVals, corrVals, armorCrackVals, modPowerVals };
-  }, [pushChartData]);
-
   const activeDiagnosticsTraces = useMemo(() => {
-      if (diagnosticView === 'push_corr' && corrDiagnosticsData) {
-          return [
-              { x: corrDiagnosticsData.xVals, y: corrDiagnosticsData.armorCrackVals, type: 'scatter', mode: 'lines', name: 'Damage & Pen (Str+Div+Per)', line: { color: '#ef4444', width: 2, shape: 'hv' }, xaxis: 'x9', yaxis: 'y10', legend: 'legend9' },
-              { x: corrDiagnosticsData.xVals, y: corrDiagnosticsData.modPowerVals, type: 'scatter', mode: 'lines', name: 'Mod Base (Luck+Int/Per)', line: { color: '#4ade80', width: 2, shape: 'hv' }, xaxis: 'x9', yaxis: 'y10', legend: 'legend9' },
-              { x: corrDiagnosticsData.xVals, y: corrDiagnosticsData.corrVals, type: 'scatter', mode: 'none', fill: 'tozeroy', name: 'Corruption (Multiplier)', fillcolor: 'rgba(168, 85, 247, 0.25)', xaxis: 'x9', yaxis: 'y11', legend: 'legend9' }
-          ];
-      } else if (diagnosticView === 'push_crit' && pushChartData) {
+      if (diagnosticView === 'push_crit' && pushChartData) {
           return [
               { x: pushChartData.xVals, y: pushChartData.stats.Str, type: 'scatter', mode: 'lines', name: 'Str (Crit Dmg)', line: { color: '#ef4444', width: 2, shape: 'hv' }, xaxis: 'x9', yaxis: 'y10', legend: 'legend9' },
               { x: pushChartData.xVals, y: pushChartData.stats.Luck, type: 'scatter', mode: 'lines', name: 'Luck (Crit Chance)', line: { color: '#22c55e', width: 2, shape: 'hv' }, xaxis: 'x9', yaxis: 'y10', legend: 'legend9' },
@@ -320,7 +301,7 @@ export default function PathfinderTab() {
           ];
       }
       return [];
-  }, [diagnosticView, corrDiagnosticsData, pushChartData, farmChartData]);
+  }, [diagnosticView, pushChartData, farmChartData]);
 
   const fragDict = { 'com': 'Common', 'rare': 'Rare', 'epic': 'Epic', 'leg': 'Legendary', 'myth': 'Mythic', 'div': 'Divine' };
 
@@ -463,15 +444,12 @@ export default function PathfinderTab() {
     const pivots = [];
     const minorPivots = [];
     const critPivots = [];
-    const armorPivots = [];
     const phases = [];
-    let corrVetoed = false;
     let phase1Hit = false;
     let phase2Hit = false;
     let crippledStarted = false;
     let masteryHit = false;
     let lastFloorWall = 0;
-    let lastPushCorr = 0;
 
     const phaseColors = {
         'Phase 1: Divine': 'rgba(59, 130, 246, 0.08)',
@@ -560,28 +538,6 @@ export default function PathfinderTab() {
                 critPivots.push({ sec: ev.arch_sec, label: 'Floor 150 (HP x2 / Armor x1.5)' });
                 lastFloorWall = 150;
             }
-
-            // Parse the Push Build string specifically to track the Armor Veto!
-            if (ev.active_build_str && ev.active_build === 'Push') {
-                const match = ev.active_build_str.match(/\[(.*?)\]/);
-                if (match) {
-                    const parts = match[1].split('/');
-                    if (parts.length >= 7) {
-                        const currentPushCorr = parseInt(parts[6]) || 0;
-                        if (lastPushCorr > 0 && currentPushCorr === 0 && !corrVetoed) {
-                            insights.push({
-                                icon: '🛡️', title: 'Armor Veto Triggered',
-                                desc: `At Floor ${ev.floor}, block armor outscaled your damage. The engine dropped Corruption to 0 to afford raw Strength and Divinity to penetrate armor and maintain damage.`,
-                                actionText: 'See Plot 9 (Diagnostics)',
-                                actionTarget: 'chart-diag'
-                            });
-                            armorPivots.push({ sec: ev.arch_sec, label: `Armor Veto (Flr ${ev.floor})` });
-                            corrVetoed = true;
-                        }
-                        lastPushCorr = currentPushCorr;
-                    }
-                }
-            }
         }
 
         if (ev.type === 'system' && ev.event.includes('Phase 1') && !phase1Hit) {
@@ -630,7 +586,7 @@ export default function PathfinderTab() {
         phases.push(currentPhase);
     }
 
-    return { insights, pivots, minorPivots, critPivots, armorPivots, phases };
+    return { insights, pivots, minorPivots, critPivots, phases };
   }, [ pathData ]);
 
   const templates = {
@@ -1208,15 +1164,11 @@ export default function PathfinderTab() {
                           onChange={(e) => setDiagnosticView(e.target.value)}
                           className="bg-[#1a1a1a] border border-st-border rounded px-1.5 py-0.5 text-[10px] text-st-text outline-none cursor-pointer focus:border-st-orange w-full shadow-inner"
                       >
-                          <option value="push_corr">PUSH: Corruption vs Armor</option>
                           <option value="push_crit">PUSH: Crit Engine Evol.</option>
                           <option value="farm_crit">FARM: Crit Engine Evol.</option>
                       </select>
                   </div>
                   <div className="text-[10px] text-gray-400 leading-relaxed">
-                      {diagnosticView === 'push_corr' && (
-                          <span>This chart dissects the <strong>Push Build (Chart 8)</strong>. <span className="text-[#a855f7] font-bold">Corruption (Purple)</span> acts as a multiplier for your <span className="text-[#4ade80] font-bold">Mod Base (Green)</span>. But if Block Armor gets too tough, the engine sacrifices Corruption to afford raw <span className="text-[#ef4444] font-bold">Damage & Penetration (Red)</span>.</span>
-                      )}
                       {diagnosticView === 'push_crit' && (
                           <span>This chart dissects the 3 eras of the <strong>Push Build's</strong> crit engine: <strong>1. Early (Armor):</strong> <span className="text-[#f9a8d4] font-bold">Div</span> spikes instantly to crack early block armor. <strong>2. Mid (Budget Starvation):</strong> As block HP scales, the engine MUST cap <span className="text-[#22c55e] font-bold">Luck</span> and heavily fund <span className="text-[#ef4444] font-bold">Str</span>. Due to a small budget, <span className="text-[#f9a8d4] font-bold">Div</span> is starved to near zero. <strong>3. Late (Overflow):</strong> Once Str/Luck hit optimal limits, the growing budget overflows back into <span className="text-[#f9a8d4] font-bold">Div</span> to fuel massive compounding Crits.</span>
                       )}
@@ -1353,7 +1305,6 @@ export default function PathfinderTab() {
                   yaxis8: { domain:[0.3075, 0.385], title: { text: 'Budget %', font: { size: 11 } }, range: [0, 100], gridcolor: '#333', automargin: true },
                   yaxis9: { domain:[0.205, 0.2825], title: { text: 'Base Points', font: { size: 11 } }, gridcolor: '#333', automargin: true },
                   yaxis10:{ domain:[0.1025, 0.180], title: { text: 'Base Points', font: { size: 11 } }, gridcolor: '#333', automargin: true },
-                  yaxis11:{ overlaying: 'y10', side: 'right', range:[ 0, 16 ], tickfont: { color: '#c084fc' }, title: { text: 'Corr Points', font: { color: '#c084fc', size: 11 } }, automargin: true, visible: diagnosticView === 'push_corr' },
                   yaxis12:{ domain:[0.000, 0.0775], title: { text: 'Block Tier', font: { size: 11 } }, gridcolor: '#333', categoryorder: 'array', categoryarray:[ 'Tier 1', 'Tier 2', 'Tier 3', 'Tier 4' ], automargin: true },
                   
                   // Background Shading for Strategy Phases & Vertical Pivot Lines
@@ -1387,13 +1338,6 @@ export default function PathfinderTab() {
                         y0: 0.1025, y1: 0.180, yref: 'paper', // Locked exclusively to Plot 9's domain
                         line: { color: '#f472b6', width: 1, dash: 'dash' },
                         layer: 'above'
-                    })) : [ ]),
-                    ...(diagnosticView === 'push_corr' ? simulationInsights?.armorPivots.map(p => ({
-                        type: 'line',
-                        x0: p.sec, x1: p.sec,
-                        y0: 0.1025, y1: 0.180, yref: 'paper', // Locked exclusively to Plot 9's domain
-                        line: { color: '#ef4444', width: 1, dash: 'dash' },
-                        layer: 'above'
                     })) : [ ])
                   ],
                   
@@ -1407,7 +1351,7 @@ export default function PathfinderTab() {
                     { text: '<b>6. Farm Build Stat Breakpoints (Raw Points)</b>', x: 0, y: 0.4875, xref: 'paper', yref: 'paper', showarrow: false, font: {size: 14, color: '#fff'}, xanchor: 'left', yanchor: 'bottom', yshift: 5 },
                     { text: '<b>7. Push Build Priority Trends (100% Normalized)</b>', x: 0, y: 0.385, xref: 'paper', yref: 'paper', showarrow: false, font: {size: 14, color: '#fff'}, xanchor: 'left', yanchor: 'bottom', yshift: 5 },
                     { text: '<b>8. Push Build Stat Breakpoints (Raw Points)</b>', x: 0, y: 0.2825, xref: 'paper', yref: 'paper', showarrow: false, font: {size: 14, color: '#fff'}, xanchor: 'left', yanchor: 'bottom', yshift: 5 },
-                    { text: diagnosticView === 'push_corr' ? '<b>9. PUSH Mechanics: Corruption vs Damage & Armor Pen</b>' : diagnosticView === 'push_crit' ? '<b>9. PUSH Mechanics: The Critical Hit Engine</b>' : '<b>9. FARM Mechanics: The Critical Hit Engine</b>', x: 0, y: 0.180, xref: 'paper', yref: 'paper', showarrow: false, font: {size: 14, color: '#fff'}, xanchor: 'left', yanchor: 'bottom', yshift: 5 },
+                    { text: diagnosticView === 'push_crit' ? '<b>9. PUSH Mechanics: The Critical Hit Engine</b>' : '<b>9. FARM Mechanics: The Critical Hit Engine</b>', x: 0, y: 0.180, xref: 'paper', yref: 'paper', showarrow: false, font: {size: 14, color: '#fff'}, xanchor: 'left', yanchor: 'bottom', yshift: 5 },
                     { text: '<b>10. Card Drops (Swimlanes)</b>', x: 0, y: 0.0775, xref: 'paper', yref: 'paper', showarrow: false, font: {size: 14, color: '#fff'}, xanchor: 'left', yanchor: 'bottom', yshift: 5 },
                     
                     // Pivot Labels
@@ -1442,19 +1386,6 @@ export default function PathfinderTab() {
                         text: `${p.label}`,
                         showarrow: false,
                         font: { size: 8, color: '#f472b6' },
-                        textangle: -90,
-                        xanchor: 'right',
-                        yanchor: 'top',
-                        yshift: -5,
-                        xshift: -2
-                    })) : [ ]),
-
-                    // Armor Veto Pivot Labels
-                    ...(diagnosticView === 'push_corr' ? simulationInsights?.armorPivots.map(p => ({
-                        x: p.sec, y: 0.180, yref: 'paper',
-                        text: `${p.label}`,
-                        showarrow: false,
-                        font: { size: 8, color: '#ef4444' },
                         textangle: -90,
                         xanchor: 'right',
                         yanchor: 'top',
