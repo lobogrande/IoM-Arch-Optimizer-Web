@@ -444,6 +444,7 @@ export default function PathfinderTab() {
     const pivots = [];
     const minorPivots = [];
     const critPivots = [];
+    const floorPivots = [];
     const phases = [];
     let phase1Hit = false;
     let phase2Hit = false;
@@ -529,13 +530,13 @@ export default function PathfinderTab() {
         if (ev.type === 'floor' && ev.state_snapshot) {
             // Track massive game difficulty spikes
             if (ev.floor >= 50 && lastFloorWall < 50) {
-                critPivots.push({ sec: ev.arch_sec, label: 'Floor 50 (HP x2 / Armor x1.5)' });
+                floorPivots.push({ sec: ev.arch_sec, label: 'Floor 50 (HP x2 / Armor x1.5)' });
                 lastFloorWall = 50;
             } else if (ev.floor >= 100 && lastFloorWall < 100) {
-                critPivots.push({ sec: ev.arch_sec, label: 'Floor 100 (HP x2 / Armor x1.5)' });
+                floorPivots.push({ sec: ev.arch_sec, label: 'Floor 100 (HP x2 / Armor x1.5)' });
                 lastFloorWall = 100;
             } else if (ev.floor >= 150 && lastFloorWall < 150) {
-                critPivots.push({ sec: ev.arch_sec, label: 'Floor 150 (HP x2 / Armor x1.5)' });
+                floorPivots.push({ sec: ev.arch_sec, label: 'Floor 150 (HP x2 / Armor x1.5)' });
                 lastFloorWall = 150;
             }
         }
@@ -586,7 +587,7 @@ export default function PathfinderTab() {
         phases.push(currentPhase);
     }
 
-    return { insights, pivots, minorPivots, critPivots, phases };
+    return { insights, pivots, minorPivots, critPivots, floorPivots, phases };
   }, [ pathData ]);
 
   const templates = {
@@ -1338,6 +1339,13 @@ export default function PathfinderTab() {
                         y0: 0.1025, y1: 0.180, yref: 'paper', // Locked exclusively to Plot 9's domain
                         line: { color: '#f472b6', width: 1, dash: 'dash' },
                         layer: 'above'
+                    })) : [ ]),
+                    ...(diagnosticView.includes('crit') ? simulationInsights?.floorPivots.map(p => ({
+                        type: 'line',
+                        x0: p.sec, x1: p.sec,
+                        y0: 0.1025, y1: 0.180, yref: 'paper', // Locked exclusively to Plot 9's domain
+                        line: { color: '#ef4444', width: 1, dash: 'dot' },
+                        layer: 'above'
                     })) : [ ])
                   ],
                   
@@ -1354,31 +1362,35 @@ export default function PathfinderTab() {
                     { text: diagnosticView === 'push_crit' ? '<b>9. PUSH Mechanics: The Critical Hit Engine</b>' : '<b>9. FARM Mechanics: The Critical Hit Engine</b>', x: 0, y: 0.180, xref: 'paper', yref: 'paper', showarrow: false, font: {size: 14, color: '#fff'}, xanchor: 'left', yanchor: 'bottom', yshift: 5 },
                     { text: '<b>10. Card Drops (Swimlanes)</b>', x: 0, y: 0.0775, xref: 'paper', yref: 'paper', showarrow: false, font: {size: 14, color: '#fff'}, xanchor: 'left', yanchor: 'bottom', yshift: 5 },
                     
-                    // Pivot Labels
-                    ...(simulationInsights?.pivots.map(p => ({
-                        x: p.sec, y: 1.0, yref: 'paper',
-                        text: `<b>${p.label}</b>`,
-                        showarrow: false,
-                        font: { size: 10, color: '#fba918' },
-                        textangle: -90,
-                        xanchor: 'right',
-                        yanchor: 'top',
-                        yshift: -5,
-                        xshift: -5
-                    })) || [ ]),
+                    // Pivot Labels (Replicated across all Subplot Tops)
+                    ...([1.000, 0.8975, 0.795, 0.6925, 0.590, 0.4875, 0.385, 0.2825, 0.180, 0.0775].flatMap(yPos => 
+                      simulationInsights?.pivots.map(p => ({
+                          x: p.sec, y: yPos, yref: 'paper',
+                          text: `<b>${p.label}</b>`,
+                          showarrow: false,
+                          font: { size: 10, color: '#fba918' },
+                          textangle: -90,
+                          xanchor: 'right',
+                          yanchor: 'top',
+                          yshift: -5,
+                          xshift: -5
+                      })) || []
+                    )),
                     
-                    // Minor Pivot Labels (Opportunity Cost)
-                    ...(simulationInsights?.minorPivots.map(p => ({
-                        x: p.sec, y: 0.95, yref: 'paper',
-                        text: `${p.label}`,
-                        showarrow: false,
-                        font: { size: 8, color: '#9ca3af' },
-                        textangle: -90,
-                        xanchor: 'right',
-                        yanchor: 'top',
-                        yshift: -5,
-                        xshift: -2
-                    })) || [ ]),
+                    // Minor Pivot Labels (Replicated across all Subplot Tops)
+                    ...([1.000, 0.8975, 0.795, 0.6925, 0.590, 0.4875, 0.385, 0.2825, 0.180, 0.0775].flatMap(yPos => 
+                      simulationInsights?.minorPivots.map(p => ({
+                          x: p.sec, y: yPos, yref: 'paper',
+                          text: `${p.label}`,
+                          showarrow: false,
+                          font: { size: 8, color: '#9ca3af' },
+                          textangle: -90,
+                          xanchor: 'right',
+                          yanchor: 'top',
+                          yshift: -5,
+                          xshift: -2
+                      })) || []
+                    )),
 
                     // Crit Engine Pivot Labels
                     ...(diagnosticView.includes('crit') ? simulationInsights?.critPivots.map(p => ({
@@ -1386,6 +1398,19 @@ export default function PathfinderTab() {
                         text: `${p.label}`,
                         showarrow: false,
                         font: { size: 8, color: '#f472b6' },
+                        textangle: -90,
+                        xanchor: 'right',
+                        yanchor: 'top',
+                        yshift: -5,
+                        xshift: -2
+                    })) : [ ]),
+
+                    // Floor Milestone Pivot Labels
+                    ...(diagnosticView.includes('crit') ? simulationInsights?.floorPivots.map(p => ({
+                        x: p.sec, y: 0.180, yref: 'paper',
+                        text: `${p.label}`,
+                        showarrow: false,
+                        font: { size: 8, color: '#ef4444' },
                         textangle: -90,
                         xanchor: 'right',
                         yanchor: 'top',
