@@ -463,6 +463,7 @@ export default function PathfinderTab() {
     const pivots = [];
     const minorPivots = [];
     const critPivots = [];
+    const armorPivots = [];
     const phases = [];
     let corrVetoed = false;
     let phase1Hit = false;
@@ -574,6 +575,7 @@ export default function PathfinderTab() {
                                 actionText: 'See Plot 9 (Diagnostics)',
                                 actionTarget: 'chart-diag'
                             });
+                            armorPivots.push({ sec: ev.arch_sec, label: `Armor Veto (Flr ${ev.floor})` });
                             corrVetoed = true;
                         }
                         lastPushCorr = currentPushCorr;
@@ -628,7 +630,7 @@ export default function PathfinderTab() {
         phases.push(currentPhase);
     }
 
-    return { insights, pivots, minorPivots, critPivots, phases };
+    return { insights, pivots, minorPivots, critPivots, armorPivots, phases };
   }, [ pathData ]);
 
   const templates = {
@@ -1385,6 +1387,13 @@ export default function PathfinderTab() {
                         y0: 0.1025, y1: 0.180, yref: 'paper', // Locked exclusively to Plot 9's domain
                         line: { color: '#f472b6', width: 1, dash: 'dash' },
                         layer: 'above'
+                    })) : [ ]),
+                    ...(diagnosticView === 'push_corr' ? simulationInsights?.armorPivots.map(p => ({
+                        type: 'line',
+                        x0: p.sec, x1: p.sec,
+                        y0: 0.1025, y1: 0.180, yref: 'paper', // Locked exclusively to Plot 9's domain
+                        line: { color: '#ef4444', width: 1, dash: 'dash' },
+                        layer: 'above'
                     })) : [ ])
                   ],
                   
@@ -1433,6 +1442,19 @@ export default function PathfinderTab() {
                         text: `${p.label}`,
                         showarrow: false,
                         font: { size: 8, color: '#f472b6' },
+                        textangle: -90,
+                        xanchor: 'right',
+                        yanchor: 'top',
+                        yshift: -5,
+                        xshift: -2
+                    })) : [ ]),
+
+                    // Armor Veto Pivot Labels
+                    ...(diagnosticView === 'push_corr' ? simulationInsights?.armorPivots.map(p => ({
+                        x: p.sec, y: 0.180, yref: 'paper',
+                        text: `${p.label}`,
+                        showarrow: false,
+                        font: { size: 8, color: '#ef4444' },
                         textangle: -90,
                         xanchor: 'right',
                         yanchor: 'top',
