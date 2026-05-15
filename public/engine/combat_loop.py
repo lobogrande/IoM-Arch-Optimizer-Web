@@ -31,11 +31,12 @@ PATH_ORDER =[
 class RunState:
     def __init__(self, player):
         self.stamina = player.max_sta
-        self.speed_pool = 0
+        self.speed_pool = getattr(player, 'starting_speed_pool', 0)
         self.total_time = 0.0
         self.total_stamina_spent = 0.0
         self.stamina_refunded_flurry = 0.0
         self.stamina_refunded_mods = 0.0
+        self.stamina_wasted_overcap = 0.0
         self.crosshair_timer = 0.0
         self.total_xp = 0.0
         self.total_frags = {0:0, 1:0, 2:0, 3:0, 4:0, 5:0, 6:0}
@@ -96,6 +97,7 @@ class CombatSimulator:
             actual_gain = min(p_max_sta - state.stamina, sta_gain)
             state.stamina += actual_gain
             state.stamina_refunded_mods += actual_gain
+            state.stamina_wasted_overcap += (sta_gain - actual_gain)
             
         if block.modifiers.get('speed_active', False):
             state.speed_pool += block.modifiers.get('speed_gain', 0.0)
@@ -213,18 +215,17 @@ class CombatSimulator:
                         # Did it roll an Auto-Tap?
                         if random.random() < p_crosshair_auto_tap:
                             ch_base_dmg = p_enraged_damage if is_enrage else p_damage
+                            ch_eff_armor = max(0, target_block.armor - p_armor_pen)
                             
                             # Did it roll a Gold (Crit) Crosshair?
                             if random.random() < p_gold_crosshair_chance:
                                 ch_crit_mult, ch_crit_type = roll_crit(is_enrage)
                                 state.hit_counts[ch_crit_type] += 1
-                                ch_dmg = ch_base_dmg * p_gold_crosshair_mult * ch_crit_mult
+                                # Fix: Apply armor BEFORE crit and gold multipliers!
+                                ch_actual_dmg = max(1.0, (ch_base_dmg - ch_eff_armor) * p_gold_crosshair_mult * ch_crit_mult)
                             else:
-                                ch_dmg = ch_base_dmg
+                                ch_actual_dmg = max(1.0, ch_base_dmg - ch_eff_armor)
                                 
-                            ch_eff_armor = max(0, target_block.armor - p_armor_pen)
-                            ch_actual_dmg = max(1.0, ch_dmg - ch_eff_armor)
-                            
                             eff_ch = min(ch_actual_dmg, target_block.hp)
                             state.overkill_damage += (ch_actual_dmg - eff_ch)
                             state.crosshair_damage += ch_actual_dmg
@@ -240,6 +241,7 @@ class CombatSimulator:
                         actual_gain = min(p_max_sta - state.stamina, events["stamina_restored"])
                         state.stamina += actual_gain
                         state.stamina_refunded_flurry += actual_gain
+                        state.stamina_wasted_overcap += (events["stamina_restored"] - actual_gain)
                         
                     crit_mult, crit_type = roll_crit(is_enrage)
                     state.hit_counts[crit_type] += 1

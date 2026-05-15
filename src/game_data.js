@@ -100,9 +100,9 @@ export const UPGRADE_COST_DATA = {
   4: { currency: 'gems', base:[400, 20000, 40000], mult: 1.05, cap: [1000, null, null] },
   5: { currency: 'gems', base:[500, 25000, 50000], mult: 1.05, cap: [1000, null, null] },
   8: { type: 'custom', costs: [
-      { currency: 'com', amount:[100000, 500000, 1000000] },
-      { currency: 'rare', amount:[750000, 3750000, 7500000] },
-      { currency: 'epic', amount:[1500000, 7500000, 15000000] }
+      { currency: 'com', amount:[0.10, 0.50, 1.00] },
+      { currency: 'rare', amount:[0.75, 3.75, 7.50] },
+      { currency: 'epic', amount:[1.50, 7.50, 15.00] }
   ]},
   9:  { currency: 'com', base:[0.5, 2.5, 5], mult: 1.2 },
   10: { currency: 'com', base:[0.75, 3.75, 7.5], mult: 1.2 },

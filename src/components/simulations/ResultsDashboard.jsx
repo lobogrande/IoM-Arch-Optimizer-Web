@@ -615,18 +615,21 @@ export default function ResultsDashboard({ context }) {
                         
                         let runs50 = Infinity, cost50 = Infinity;
                         let runs90 = Infinity, cost90 = Infinity;
+                        let runs99 = Infinity, cost99 = Infinity;
 
                         if (prob >= 1) {
-                          runs50 = 1; runs90 = 1;
+                          runs50 = 1; runs90 = 1; runs99 = 1;
                         } else if (prob > 0) {
                           runs50 = Math.ceil(Math.log(1 - 0.50) / Math.log(1 - prob));
                           runs90 = Math.ceil(Math.log(1 - 0.90) / Math.log(1 - prob));
+                          runs99 = Math.ceil(Math.log(1 - 0.99) / Math.log(1 - prob));
                         }
 
                         if (runs50 !== Infinity) cost50 = (runs50 * maxSta) / 1000.0;
                         if (runs90 !== Infinity) cost90 = (runs90 * maxSta) / 1000.0;
+                        if (runs99 !== Infinity) cost99 = (runs99 * maxSta) / 1000.0;
                         
-                        return { floor: targetFloor, prob, runs50, cost50, runs90, cost90 };
+                        return { floor: targetFloor, prob, runs50, cost50, runs90, cost90, runs99, cost99 };
                       };
 
                       const tiers =[
@@ -652,7 +655,8 @@ export default function ResultsDashboard({ context }) {
                                 <th className="py-2 pr-2">Probability</th>
                                 <th className="py-2 pr-2">Floor</th>
                                 <th className="py-2 pr-2">50% Chance <span className="text-xs font-normal">(Coin Flip)</span></th>
-                                <th className="py-2">90% Chance <span className="text-xs font-normal">(Safe Budget)</span></th>
+                                <th className="py-2 pr-2">90% Chance <span className="text-xs font-normal">(Highly Likely)</span></th>
+                                <th className="py-2">99% Chance <span className="text-xs font-normal">(Near Certain)</span></th>
                               </tr>
                             </thead>
                             <tbody>
@@ -663,8 +667,11 @@ export default function ResultsDashboard({ context }) {
                                   <td className="py-2 pr-2 text-st-text-light whitespace-nowrap">
                                     {t.data.runs50 === Infinity ? "N/A" : <>{t.data.runs50} run{t.data.runs50 !== 1 ? 's' : ''} <br className="md:hidden"/><span className="text-xs">(~{t.data.cost50.toFixed(1)}k Secs)</span></>}
                                   </td>
-                                  <td className="py-2 text-st-text-light whitespace-nowrap">
+                                  <td className="py-2 pr-2 text-st-text-light whitespace-nowrap">
                                     {t.data.runs90 === Infinity ? "N/A" : <>{t.data.runs90} run{t.data.runs90 !== 1 ? 's' : ''} <br className="md:hidden"/><span className="text-xs">(~{t.data.cost90.toFixed(1)}k Secs)</span></>}
+                                  </td>
+                                  <td className="py-2 text-st-text-light whitespace-nowrap">
+                                    {t.data.runs99 === Infinity ? "N/A" : <>{t.data.runs99} run{t.data.runs99 !== 1 ? 's' : ''} <br className="md:hidden"/><span className="text-xs">(~{t.data.cost99.toFixed(1)}k Secs)</span></>}
                                   </td>
                                 </tr>
                               ))}
@@ -891,9 +898,9 @@ export default function ResultsDashboard({ context }) {
                                 
                                 {valMins > 0 ? (
                                   <div className="space-y-3 text-sm">
-                                    <div><strong>50% (Lucky):</strong><br/>~{rt50.rt} | ~{rt50.arch.toFixed(1)}k Arch Secs</div>
-                                    <div><strong>90% (Safe):</strong><br/>~{rt90.rt} | ~{rt90.arch.toFixed(1)}k Arch Secs</div>
-                                    <div><strong>99% (Guaranteed):</strong><br/>~{rt99.rt} | ~{rt99.arch.toFixed(1)}k Arch Secs</div>
+                                    <div><strong>50% (Coin Flip):</strong><br/>~{rt50.rt} | ~{rt50.arch.toFixed(1)}k Arch Secs</div>
+                                    <div><strong>90% (Highly Likely):</strong><br/>~{rt90.rt} | ~{rt90.arch.toFixed(1)}k Arch Secs</div>
+                                    <div><strong>99% (Near Certain):</strong><br/>~{rt99.rt} | ~{rt99.arch.toFixed(1)}k Arch Secs</div>
                                   </div>
                                 ) : (
                                   <div className="text-st-text-light text-sm py-8">N/A (0 kills)</div>
@@ -936,85 +943,143 @@ export default function ResultsDashboard({ context }) {
             </div>
           )}
 
-          {dataTab === 'wall' && (
-            <div data-tour="res-data-wall" className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <div className="w-full h-full border border-st-border rounded bg-st-bg p-4 flex flex-col">
-                <div className="mb-2">
-                  <h4 className="font-bold text-lg">📊 Simulation Outcome Distribution</h4>
-                  <p className="text-xs text-st-text-light">Histogram of floors reached across all simulated runs.</p>
-                </div>
-                <div className="w-full h-[300px]">
-                  <Plot
-                    data={[{
-                      x: Object.keys(store.opt_results.chart_hist),
-                      y: Object.values(store.opt_results.chart_hist),
-                      type: 'bar',
-                      marker: { color: '#ff4b4b' },
-                      text: Object.values(store.opt_results.chart_hist),
-                      textposition: 'outside'
-                    }]}
-                    layout={{
-                      font: { color: store.theme === 'dark' ? '#FAFAFA' : '#31333F' },
-                      paper_bgcolor: 'rgba(0,0,0,0)', plot_bgcolor: 'rgba(0,0,0,0)',
-                      margin: { t: 10, b: 50, l: 60, r: 20 },
-                      xaxis: { type: 'category', title: { text: 'Floor Reached', standoff: 15 }, color: chartFontColor, gridcolor: chartGridColor }, 
-                      yaxis: { title: { text: 'Number of Runs', standoff: 15 }, color: chartFontColor, gridcolor: chartGridColor }
-                    }}
-                    useResizeHandler={true} style={{ width: '100%', height: '100%' }} config={{ displayModeBar: false }}
-                  />
-                </div>
-              </div>
-              {(store.opt_results.final_summary_out.stamina_trace || store.opt_results.final_summary_out.stamina_trace_median) && (() => {
-                const out = store.opt_results.final_summary_out;
-                const traces = [ ];
+          {dataTab === 'wall' && (() => {
+            const histKeys = Object.keys(store.opt_results.chart_hist).map(Number);
+            const histValues = Object.values(store.opt_results.chart_hist);
+            const floors = finalSum.floors || [ ];
+            const tot = floors.length;
+            
+            const maxSta = (finalSum.avg_metrics && finalSum.avg_metrics.in_game_time) 
+              ? finalSum.avg_metrics.in_game_time 
+              : ((finalSum.stamina_trace && finalSum.stamina_trace.stamina && finalSum.stamina_trace.stamina.length > 0) 
+                ? finalSum.stamina_trace.stamina[0] 
+                : 0);
+
+            const customHoverText = histKeys.map(floor => {
+                const count = floors.filter(f => f >= floor).length;
+                const prob = count / (tot || 1);
                 
-                const medTrace = out.stamina_trace_median || out.stamina_trace;
-                if (medTrace) {
-                  traces.push({
-                    x: medTrace.floor,
-                    y: medTrace.stamina,
-                    name: 'Median Run',
-                    type: 'scatter', mode: 'lines', fill: 'tozeroy',
-                    line: { color: '#ffa229', width: 2 }, fillcolor: 'rgba(255, 162, 41, 0.2)'
-                  });
-                }
-                
-                if (out.stamina_trace_max && out.stamina_trace_max !== medTrace) {
-                  traces.push({
-                    x: out.stamina_trace_max.floor,
-                    y: out.stamina_trace_max.stamina,
-                    name: 'Peak Run',
-                    type: 'scatter', mode: 'lines',
-                    line: { color: '#4CAF50', width: 3 }
-                  });
+                let runs50 = Infinity, cost50 = Infinity;
+                let runs90 = Infinity, cost90 = Infinity;
+                let runs99 = Infinity, cost99 = Infinity;
+
+                if (prob >= 1) {
+                  runs50 = 1; runs90 = 1; runs99 = 1;
+                } else if (prob > 0) {
+                  runs50 = Math.ceil(Math.log(1 - 0.50) / Math.log(1 - prob));
+                  runs90 = Math.ceil(Math.log(1 - 0.90) / Math.log(1 - prob));
+                  runs99 = Math.ceil(Math.log(1 - 0.99) / Math.log(1 - prob));
                 }
 
-                return (
-                  <div className="w-full h-full border border-st-border rounded bg-st-bg p-4 flex flex-col">
-                    <div className="mb-2">
-                      <h4 className="font-bold text-lg">📉 Stamina Depletion Traces</h4>
-                      <p className="text-xs text-st-text-light">Remaining stamina at each floor checkpoint.</p>
-                    </div>
-                    <div className="w-full h-[300px]">
-                      <Plot
-                        data={traces}
-                        layout={{
-                          font: { color: store.theme === 'dark' ? '#FAFAFA' : '#31333F' },
-                          paper_bgcolor: 'rgba(0,0,0,0)', plot_bgcolor: 'rgba(0,0,0,0)',
-                          margin: { t: 10, b: 70, l: 60, r: 20 },
-                          showlegend: traces.length > 1,
-                          legend: { orientation: 'h', y: -0.35, x: 0.5, xanchor: 'center' },
-                          xaxis: { title: { text: 'Floor Level', standoff: 15 }, color: chartFontColor, gridcolor: chartGridColor }, 
-                          yaxis: { title: { text: 'Stamina Remaining', standoff: 15 }, color: chartFontColor, gridcolor: chartGridColor }
-                        }}
-                        useResizeHandler={true} style={{ width: '100%', height: '100%' }} config={{ displayModeBar: false }}
-                      />
-                    </div>
+                if (runs50 !== Infinity) cost50 = (runs50 * maxSta) / 1000.0;
+                if (runs90 !== Infinity) cost90 = (runs90 * maxSta) / 1000.0;
+                if (runs99 !== Infinity) cost99 = (runs99 * maxSta) / 1000.0;
+                
+                const probStr = (prob * 100).toFixed(1);
+                
+                let hoverHtml = `<b>Floor ${floor}</b><br>`;
+                hoverHtml += `Runs Ended Here: ${store.opt_results.chart_hist[floor]}<br>`;
+                hoverHtml += `Cumul. Probability (≥ ${floor}): ${probStr}%<br><br>`;
+                
+                if (prob > 0 && prob < 1) {
+                   hoverHtml += `<b>50% Chance (Coin Flip)</b><br>`;
+                   hoverHtml += `Runs: ${runs50} (~${cost50.toFixed(1)}k Secs)<br>`;
+                   hoverHtml += `<b>90% Chance (Highly Likely)</b><br>`;
+                   hoverHtml += `Runs: ${runs90} (~${cost90.toFixed(1)}k Secs)<br>`;
+                   hoverHtml += `<b>99% Chance (Near Certain)</b><br>`;
+                   hoverHtml += `Runs: ${runs99} (~${cost99.toFixed(1)}k Secs)`;
+                } else if (prob === 1) {
+                   hoverHtml += `100% Expected (1 Run)`;
+                } else {
+                   hoverHtml += `Not Reached`;
+                }
+                
+                return hoverHtml;
+              });
+
+            return (
+              <div data-tour="res-data-wall" className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <div className="w-full h-full border border-st-border rounded bg-st-bg p-4 flex flex-col">
+                  <div className="mb-2">
+                    <h4 className="font-bold text-lg">📊 Simulation Outcome Distribution</h4>
+                    <p className="text-xs text-st-text-light">Histogram of floors reached. Hover over bars for dynamic push costs.</p>
                   </div>
-                );
-              })()}
-            </div>
-          )}
+                  <div className="w-full h-[300px]">
+                    <Plot
+                      data={[{
+                        x: histKeys,
+                        y: histValues,
+                        type: 'bar',
+                        marker: { color: '#ff4b4b' },
+                        text: histValues,
+                        textposition: 'outside',
+                        customdata: customHoverText,
+                        hovertemplate: '%{customdata}<extra></extra>'
+                      }]}
+                      layout={{
+                        font: { color: store.theme === 'dark' ? '#FAFAFA' : '#31333F' },
+                        paper_bgcolor: 'rgba(0,0,0,0)', plot_bgcolor: 'rgba(0,0,0,0)',
+                        margin: { t: 10, b: 50, l: 60, r: 20 },
+                        xaxis: { type: 'category', title: { text: 'Floor Reached', standoff: 15 }, color: chartFontColor, gridcolor: chartGridColor }, 
+                        yaxis: { title: { text: 'Number of Runs', standoff: 15 }, color: chartFontColor, gridcolor: chartGridColor },
+                        hoverlabel: { bgcolor: store.theme === 'dark' ? '#1e1e1e' : '#ffffff', font: { color: store.theme === 'dark' ? '#FAFAFA' : '#31333F' }, bordercolor: '#ffa229' }
+                      }}
+                      useResizeHandler={true} style={{ width: '100%', height: '100%' }} config={{ displayModeBar: false }}
+                    />
+                  </div>
+                </div>
+                {(store.opt_results.final_summary_out.stamina_trace || store.opt_results.final_summary_out.stamina_trace_median) && (() => {
+                  const out = store.opt_results.final_summary_out;
+                  const traces = [ ];
+                  
+                  const medTrace = out.stamina_trace_median || out.stamina_trace;
+                  if (medTrace) {
+                    traces.push({
+                      x: medTrace.floor,
+                      y: medTrace.stamina,
+                      name: 'Median Run',
+                      type: 'scatter', mode: 'lines', fill: 'tozeroy',
+                      line: { color: '#ffa229', width: 2 }, fillcolor: 'rgba(255, 162, 41, 0.2)'
+                    });
+                  }
+                  
+                  if (out.stamina_trace_max && out.stamina_trace_max !== medTrace) {
+                    traces.push({
+                      x: out.stamina_trace_max.floor,
+                      y: out.stamina_trace_max.stamina,
+                      name: 'Peak Run',
+                      type: 'scatter', mode: 'lines',
+                      line: { color: '#4CAF50', width: 3 }
+                    });
+                  }
+
+                  return (
+                    <div className="w-full h-full border border-st-border rounded bg-st-bg p-4 flex flex-col">
+                      <div className="mb-2">
+                        <h4 className="font-bold text-lg">📉 Stamina Depletion Traces</h4>
+                        <p className="text-xs text-st-text-light">Remaining stamina at each floor checkpoint.</p>
+                      </div>
+                      <div className="w-full h-[300px]">
+                        <Plot
+                          data={traces}
+                          layout={{
+                            font: { color: store.theme === 'dark' ? '#FAFAFA' : '#31333F' },
+                            paper_bgcolor: 'rgba(0,0,0,0)', plot_bgcolor: 'rgba(0,0,0,0)',
+                            margin: { t: 10, b: 70, l: 60, r: 20 },
+                            showlegend: traces.length > 1,
+                            legend: { orientation: 'h', y: -0.35, x: 0.5, xanchor: 'center' },
+                            xaxis: { title: { text: 'Floor Level', standoff: 15 }, color: chartFontColor, gridcolor: chartGridColor }, 
+                            yaxis: { title: { text: 'Stamina Remaining', standoff: 15 }, color: chartFontColor, gridcolor: chartGridColor }
+                          }}
+                          useResizeHandler={true} style={{ width: '100%', height: '100%' }} config={{ displayModeBar: false }}
+                        />
+                      </div>
+                    </div>
+                  );
+                })()}
+              </div>
+            );
+          })()}
         </div>
       )}
 

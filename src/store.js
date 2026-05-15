@@ -29,13 +29,16 @@ const getWorkspaceSnapshot = (state) => ({
   asc2_unlocked: state.asc2_unlocked,
   arch_level: state.arch_level,
   current_max_floor: state.current_max_floor,
+  starting_speed_pool: state.starting_speed_pool,
   geoduck_unlocked: state.geoduck_unlocked,
   arch_ability_infernal_bonus: state.arch_ability_infernal_bonus,
   total_infernal_cards: state.total_infernal_cards,
   base_stats: { ...state.base_stats },
   upgrade_levels: { ...state.upgrade_levels },
   external_levels: { ...state.external_levels },
-  cards: { ...state.cards }
+  cards: { ...state.cards },
+  card_progress: { ...state.card_progress },
+  frags: { ...state.frags }
 });
 
 const useStore = create(
@@ -62,6 +65,7 @@ const useStore = create(
   asc2_unlocked: false,
   arch_level: 45,
   current_max_floor: 40,
+  starting_speed_pool: 0,
   geoduck_unlocked: false,
   
   // Base Stats
@@ -73,6 +77,8 @@ const useStore = create(
   upgrade_levels: {},
   external_levels: {},
   cards: {},
+  card_progress: {},
+  frags: { com: 0, rare: 0, epic: 0, leg: 0, myth: 0, div: 0 },
   arch_ability_infernal_bonus: "0",
   total_infernal_cards: 0,
 
@@ -113,7 +119,10 @@ const useStore = create(
   activeTourId: null,
   tourStepIndex: 0,
 
+  pathfinder_data: null,
+
   // Actions (Equivalent to updating st.session_state)
+  setPathfinderData: (data) => set({ pathfinder_data: data }),
   setSetting: (key, value) => set((state) => {
     const updates = { [key]: value };
 
@@ -273,11 +282,14 @@ const useStore = create(
       asc2_unlocked: false,
       arch_level: 1,
       current_max_floor: 1,
+      starting_speed_pool: 0,
       geoduck_unlocked: false,
       base_stats: { Str: 0, Agi: 0, Per: 0, Int: 0, Luck: 0, Div: 0, Corr: 0 },
       upgrade_levels: { },
       external_levels: defaultExt,
       cards: { },
+      card_progress: { },
+      frags: { com: 0, rare: 0, epic: 0, leg: 0, myth: 0, div: 0 },
       arch_ability_infernal_bonus: "0",
       total_infernal_cards: 0,
       sandbox_stats: { Str: 0, Agi: 0, Per: 0, Int: 0, Luck: 0, Div: 0, Corr: 0 },
@@ -297,7 +309,8 @@ const useStore = create(
       timeLimit: 60,
       simsPerSec: 15,
       cpuProfile: isMobileDevice() ? 'eco' : 'balanced',
-      allowUnspent: false
+      allowUnspent: false,
+      pathfinder_data: null
     };
   }),
 
@@ -346,6 +359,7 @@ const useStore = create(
       if (data.settings.asc2_unlocked !== undefined) newState.asc2_unlocked = data.settings.asc2_unlocked;
       if (data.settings.arch_level !== undefined) newState.arch_level = data.settings.arch_level;
       if (data.settings.current_max_floor !== undefined) newState.current_max_floor = data.settings.current_max_floor;
+      if (data.settings.starting_speed_pool !== undefined) newState.starting_speed_pool = data.settings.starting_speed_pool;
       if (data.settings.total_infernal_cards !== undefined) newState.total_infernal_cards = data.settings.total_infernal_cards;
       
       }
@@ -469,6 +483,7 @@ const useStore = create(
           newState.asc2_unlocked === snap.asc2_unlocked &&
           newState.arch_level === snap.arch_level &&
           newState.current_max_floor === snap.current_max_floor &&
+          (newState.starting_speed_pool || 0) === (snap.starting_speed_pool || 0) &&
           !!newState.geoduck_unlocked === !!snap.geoduck_unlocked &&
           parseFloat(newState.arch_ability_infernal_bonus || 0) === parseFloat(snap.arch_ability_infernal_bonus || 0) &&
           (newState.total_infernal_cards || 0) === (snap.total_infernal_cards || 0) &&
@@ -491,6 +506,7 @@ const useStore = create(
         newState.asc2_unlocked = matchedProfile.data.asc2_unlocked;
         newState.arch_level = matchedProfile.data.arch_level;
         newState.current_max_floor = matchedProfile.data.current_max_floor;
+        newState.starting_speed_pool = matchedProfile.data.starting_speed_pool;
         newState.geoduck_unlocked = matchedProfile.data.geoduck_unlocked;
         newState.arch_ability_infernal_bonus = matchedProfile.data.arch_ability_infernal_bonus;
         newState.total_infernal_cards = matchedProfile.data.total_infernal_cards;
@@ -515,7 +531,7 @@ const useStore = create(
       storage: createJSONStorage(() => idbStorage),
       partialize: (state) => {
         // Prevent ephemeral states (like the active tour) from saving to IndexedDB
-        const { tourActive, activeTourId, tourStepIndex, ...rest } = state;
+        const { tourActive, activeTourId, tourStepIndex, pathfinder_data, ...rest } = state;
         return rest;
       },
     }

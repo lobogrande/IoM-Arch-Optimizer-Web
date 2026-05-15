@@ -41,7 +41,7 @@ export class EngineWorkerPool {
 
     // Spawns Pyodide workers and waits for them to compile the Python environment
     init(onReady, onProgress) {
-        return new Promise((resolve) => {
+        return new Promise((resolve, reject) => {
             // Pass version into the worker to explicitly cache-bust Python stat engine payloads
             const APP_VERSION = "1.6.7"; 
             for (let i = 0; i < this.size; i++) {
@@ -57,7 +57,21 @@ export class EngineWorkerPool {
                             resolve(); // Unblocks React's 'await pool.init()'
                         }
                         this.pump();
-                    } else if (e.data.type === 'RESULT' || e.data.type === 'ERROR') {
+                    } else if (e.data.type === 'ERROR') {
+                        console.error("Worker Error:", e.data.payload);
+                        if (!e.data.taskId) {
+                            // Boot-time error! Reject the promise so the UI doesn't hang!
+                            reject(new Error("Worker Boot Error: " + e.data.payload));
+                            return;
+                        }
+                        const cb = this.callbacks.get(e.data.taskId);
+                        if (cb) {
+                            this.callbacks.delete(e.data.taskId);
+                            cb(e.data);
+                        }
+                        this.idleWorkers.push(w);
+                        this.pump();
+                    } else if (e.data.type === 'RESULT') {
                         const cb = this.callbacks.get(e.data.taskId);
                         if (cb) {
                             this.callbacks.delete(e.data.taskId);

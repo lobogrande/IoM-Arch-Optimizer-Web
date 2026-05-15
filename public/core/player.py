@@ -93,6 +93,7 @@ class Player:
         self.hades_idol_level = 0
         self.total_infernal_cards = 0
         self.arch_ability_infernal_bonus = 0.0 
+        self.starting_speed_pool = 0
         
         self.base_stats = {
             'Str': 0, 'Agi': 0, 'Per': 0, 'Int': 0, 'Luck': 0, 'Div': 0, 'Corr': 0
@@ -275,7 +276,7 @@ class Player:
         bb_mult = 1.0 + (self.w('W12') * min(100, self.current_max_floor))
         
         val = (base_calc + stat_calc1 + stat_calc2 + self.base_damage_const) * (mult1 + mult2) * bb_mult
-        return self._gm_int(val, drift=-1) # Native downward float drift
+        return self._gm_int(val, drift=1) # Native upward float drift
 
     @property
     def enraged_damage(self):

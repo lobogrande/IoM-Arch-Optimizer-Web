@@ -7,6 +7,7 @@ import SynthesisTab from './simulations/SynthesisTab';
 import DuelTab from './simulations/DuelTab';
 import SandboxTab from './simulations/SandboxTab';
 import ForecasterTab from './simulations/ForecasterTab';
+import PathfinderTab from './simulations/PathfinderTab';
 
 export default function Simulations() {
   const store = useStore();
@@ -136,7 +137,8 @@ export default function Simulations() {
           { id: 'synth', label: '🧬 Build Synthesis & History' },
           { id: 'duel', label: '⚔️ Build Duel' },
           { id: 'sandbox', label: '🧪 Hit Calculator (Sandbox)' },
-          { id: 'forecaster', label: '🎯 Milestone Forecaster[Beta]' }
+          { id: 'forecaster', label: '🎯 Milestone Forecaster[Beta]' },
+          { id: 'pathfinder', label: '🗺️ Ascension Pathfinder[Alpha]' }
         ].map((tab) => (
           <button
             key={tab.id}
@@ -192,6 +194,7 @@ export default function Simulations() {
       {activeSubTab === 'duel' && <DuelTab />}
       {activeSubTab === 'sandbox' && <SandboxTab />}
       {activeSubTab === 'forecaster' && <ForecasterTab />}
+      {activeSubTab === 'pathfinder' && <PathfinderTab />}
 
     </div>
   );

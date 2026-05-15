@@ -205,6 +205,7 @@ export default function OptimizerTab() {
         asc2_unlocked: store.asc2_unlocked,
         arch_level: store.arch_level,
         current_max_floor: store.current_max_floor,
+        starting_speed_pool: store.starting_speed_pool || 0,
         arch_ability_infernal_bonus: parseFloat(store.arch_ability_infernal_bonus) / 100.0,
         total_infernal_cards: store.total_infernal_cards,
         base_stats: store.base_stats,
@@ -521,8 +522,10 @@ export default function OptimizerTab() {
       </div>
       
       {allowUnspent && optGoal !== "Max Floor Push" && (
-        <div className="bg-red-900/20 border-l-4 border-red-500 p-3 rounded text-sm text-red-500 mt-4">
-          ⚠️ <strong>Dimensionality Warning:</strong> You have activated the "Unspent Points" bucket! The AI must now search an extra mathematical dimension. This increases the total possible combinations exponentially. To prevent timeouts or garbage low-precision data, you <strong>MUST</strong> lock at least 1 or 2 stats (like Strength or Agility) to 0 in the constraints below!
+        <div className="bg-purple-900/20 border-l-4 border-purple-500 p-3 rounded text-sm text-purple-300 mt-4 space-y-2">
+          <p>📉 <strong>Crippled Farming Strategy:</strong> You have unlocked the "Unspent Points" bucket! This allows the AI to intentionally starve its own stat budget.</p>
+          <p><strong>Why do this?</strong> If your target is on an early floor (like Dirt or Common cards), having high Max Stamina is a trap—you will overshoot your target and waste time slowly dying on deep floors. By leaving points unspent (and using Corruption's stamina penalty), the AI can build a "glass cannon" that speed-runs the early floors and runs out of stamina quickly to intentionally stop on lower max floors.</p>
+          <p className="text-purple-400">⚠️ <strong>Math Warning:</strong> Because this adds an extra dimension to the search grid, you should set as many strict limits on your stats as possible below! For example, set a <strong>Max</strong> of 10 or 15 for most stats, and set a <strong>Min</strong> constraint on Unspent Points (e.g., Min 95) to restrict the massive search space and prevent the engine from timing out.</p>
         </div>
       )}
 

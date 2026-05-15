@@ -51,6 +51,7 @@ def sync_base_player(state_proxy):
     p.hades_idol_level = int(state_dict.get('hades_idol_level', 0))
     p.arch_ability_infernal_bonus = float(state_dict.get('arch_ability_infernal_bonus', 0.0))
     p.total_infernal_cards = int(state_dict.get('total_infernal_cards', 0))
+    p.starting_speed_pool = int(state_dict.get('starting_speed_pool', 0))
     
     for k, v in state_dict.get('base_stats', {}).items():
         p.base_stats[str(k)] = int(v)
@@ -122,7 +123,8 @@ def execute_simulation(test_stats_proxy, test_upgrades_proxy, test_external_prox
         "enrage_casts": result.skills_tracker.total_enrage_casts,
         "quake_casts": result.skills_tracker.total_quake_casts,
         "stamina_refunded_flurry": result.stamina_refunded_flurry,
-        "stamina_refunded_mods": result.stamina_refunded_mods
+        "stamina_refunded_mods": result.stamina_refunded_mods,
+        "stamina_wasted_overcap": result.stamina_wasted_overcap
     }
     
     for frag_tier, amt in result.total_frags.items():
@@ -130,8 +132,18 @@ def execute_simulation(test_stats_proxy, test_upgrades_proxy, test_external_prox
         
     if hasattr(result, 'specific_blocks_mined'):
         for block_id, count in result.specific_blocks_mined.items():
-            metrics[f"block_{block_id}_per_min"] = count / arch_mins
+            b_pm = count / arch_mins
+            metrics[f"block_{block_id}_per_min"] = b_pm
             metrics[f"raw_block_{block_id}"] = count
+            
+            is_t4 = block_id.endswith('4')
+            base_odds = 15000 if is_t4 else 1500
+            poly_odds = 75000 if is_t4 else 7500
+            inf_odds  = 200000
+            
+            metrics[f"card_base_{block_id}_per_min"] = b_pm / base_odds
+            metrics[f"card_poly_{block_id}_per_min"] = b_pm / poly_odds
+            metrics[f"card_inf_{block_id}_per_min"] = b_pm / inf_odds
             
     if hasattr(result, 'specific_blocks_frags'):
         for block_id, frags in result.specific_blocks_frags.items():

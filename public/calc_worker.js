@@ -42,6 +42,7 @@ def calculate_all_stats(js_data):
     p.hades_idol_level = int(data.get('hades_idol_level', 0))
     p.arch_ability_infernal_bonus = float(data.get('arch_ability_infernal_bonus', 0.0))
     p.total_infernal_cards = int(data.get('total_infernal_cards', 0))
+    p.starting_speed_pool = int(data.get('starting_speed_pool', 0))
     
     # Inject Dictionaries
     p.base_stats = data.get('base_stats', {})
