@@ -119,7 +119,10 @@ const useStore = create(
   activeTourId: null,
   tourStepIndex: 0,
 
+  pathfinder_data: null,
+
   // Actions (Equivalent to updating st.session_state)
+  setPathfinderData: (data) => set({ pathfinder_data: data }),
   setSetting: (key, value) => set((state) => {
     const updates = { [key]: value };
 
@@ -306,7 +309,8 @@ const useStore = create(
       timeLimit: 60,
       simsPerSec: 15,
       cpuProfile: isMobileDevice() ? 'eco' : 'balanced',
-      allowUnspent: false
+      allowUnspent: false,
+      pathfinder_data: null
     };
   }),
 
@@ -527,7 +531,7 @@ const useStore = create(
       storage: createJSONStorage(() => idbStorage),
       partialize: (state) => {
         // Prevent ephemeral states (like the active tour) from saving to IndexedDB
-        const { tourActive, activeTourId, tourStepIndex, ...rest } = state;
+        const { tourActive, activeTourId, tourStepIndex, pathfinder_data, ...rest } = state;
         return rest;
       },
     }
