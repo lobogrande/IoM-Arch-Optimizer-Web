@@ -818,7 +818,7 @@ export default function PathfinderTab() {
               </div>
               <p>Loaded Profile: <span className="text-st-orange font-bold">{asc2Template.name}</span></p>
               <p>Arch Level: {asc2Template.arch_level} | Max Floor: {asc2Template.current_max_floor}</p>
-              <p>Total Cards: {asc2Template.total_infernal_cards} | Hades Lvl: {asc2Template.external_levels[21]}</p>
+              <p>Total Infernal Cards: {asc2Template.total_infernal_cards} | Hades Lvl: {asc2Template.external_levels[21]}</p>
               <p className="mt-2 text-[#FAFAFA] font-bold">Autonomous Endgame Director:</p>
               <ul className="list-disc ml-4 opacity-80 mt-1.5 text-[11px] space-y-1">
                 <li><strong className="text-red-400">Dual-Track Pushing:</strong> Maintains parallel Farm and Push builds, opportunistically brute-forcing max floors.</li>
@@ -846,7 +846,7 @@ export default function PathfinderTab() {
                     className="bg-st-bg border border-st-border rounded px-2 py-1.5 text-st-text focus:border-st-orange outline-none text-xs w-48 font-mono"
                     placeholder="0"
                   />
-                  <label className="block text-[10px] font-bold text-st-text-light mb-1 mt-3 uppercase tracking-wider">Starting Speed Pool:</label>
+                  <label className="block text-[10px] font-bold text-st-text-light mb-1 mt-3 uppercase tracking-wider">Starting Speed Mod Charge Pool:</label>
                   <input 
                     type="number" 
                     min="0"

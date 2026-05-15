@@ -138,7 +138,7 @@ export default function Simulations() {
           { id: 'duel', label: '⚔️ Build Duel' },
           { id: 'sandbox', label: '🧪 Hit Calculator (Sandbox)' },
           { id: 'forecaster', label: '🎯 Milestone Forecaster[Beta]' },
-          { id: 'pathfinder', label: '🗺️ Ascension Pathfinder' }
+          { id: 'pathfinder', label: '🗺️ Ascension Pathfinder[Alpha]' }
         ].map((tab) => (
           <button
             key={tab.id}
