@@ -1294,7 +1294,7 @@ export default function PathfinderTab() {
                   margin: { l: 60, r: 120, t: 30, b: 50 },
                   
                   // X-Axes (All synced together via matches: 'x')
-                  xaxis:  { anchor: 'y',  matches: 'x', showticklabels: true, tickfont: { size: 10, color: '#888' }, gridcolor: '#333' },
+                  xaxis:  { anchor: 'y',  matches: 'x', showticklabels: true, tickfont: { size: 10, color: '#888' }, gridcolor: '#333', title: { text: 'Timeline (Arch Secs)', font: { size: 10, color: '#888' }, standoff: 5 } },
                   xaxis2: { anchor: showXpRates ? 'y2' : 'y3', matches: 'x', showticklabels: true, tickfont: { size: 10, color: '#888' }, gridcolor: '#333' },
                   xaxis3: { anchor: 'y4', matches: 'x', showticklabels: true, tickfont: { size: 10, color: '#888' }, gridcolor: '#333' },
                   xaxis4: { anchor: 'y5', matches: 'x', showticklabels: true, tickfont: { size: 10, color: '#888' }, gridcolor: '#333' },
@@ -1361,7 +1361,7 @@ export default function PathfinderTab() {
                   
                   // Annotations for Subplot Titles & Vertical Pivots
                   annotations:[
-                    { text: '<b>1. Progression Trends</b>', x: 0, y: 1.000, xref: 'paper', yref: 'paper', showarrow: false, font: {size: 14, color: '#fff'}, xanchor: 'left', yanchor: 'bottom', yshift: 5 },
+                    { text: '<b>1. Core Progression: Arch Level & Max Floor</b>', x: 0, y: 1.000, xref: 'paper', yref: 'paper', showarrow: false, font: {size: 14, color: '#fff'}, xanchor: 'left', yanchor: 'bottom', yshift: 5 },
                     { text: '<b>2. Yields: Farm vs Push</b>', x: 0, y: 0.8975, xref: 'paper', yref: 'paper', showarrow: false, font: {size: 14, color: '#fff'}, xanchor: 'left', yanchor: 'bottom', yshift: 5 },
                     { text: '<b>3. ETA Predictor: Next Level vs Next Major Upgrade</b>', x: 0, y: 0.795, xref: 'paper', yref: 'paper', showarrow: false, font: {size: 14, color: '#fff'}, xanchor: 'left', yanchor: 'bottom', yshift: 5 },
                     { text: '<b>4. Fragment Economy & Milestones</b>', x: 0, y: 0.6925, xref: 'paper', yref: 'paper', showarrow: false, font: {size: 14, color: '#fff'}, xanchor: 'left', yanchor: 'bottom', yshift: 5 },
