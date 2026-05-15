@@ -93,10 +93,10 @@ export default function About() {
           <div className="st-container">
             <h4 className="text-xl font-bold mb-2">⚙️ Architecture & Telemetry</h4>
             <p className="text-st-text-light mb-4 text-sm">
-              This app runs a <strong>Python WebAssembly Engine (Pyodide)</strong> to emulate the exact GameMaker (GML) source code math of the live game. It uses <strong>Monte Carlo Simulations</strong> combined with a <strong>3-Phase Successive Halving</strong> algorithm to narrow down the perfect stat distribution.
+              This app runs a <strong>Python WebAssembly Engine (Pyodide)</strong> to emulate the exact GameMaker (GML) source code math of the live game. It houses two massive simulation engines: The <strong>Monte Carlo Optimizer</strong> (which uses a 3-Phase Successive Halving algorithm to find perfect stat plateaus) and the <strong>Ascension Pathfinder</strong> (a Macro-Stepper that dual-tracks Farm/Push builds to project your optimal trajectory through time).
             </p>
             <p className="text-st-text-light mb-6 text-sm">
-              Recently upgraded to a <strong>True-Time Architecture</strong>, the engine now measures combat loops in absolute real-world seconds (TTK) rather than just stamina usage. It also features built-in <strong>Build Duel Telemetry</strong>, allowing you to pit two stat distributions head-to-head in a zero-variance vacuum to see mathematically why one beats the other.
+              Recently upgraded to a <strong>True-Time Architecture</strong>, the engine now natively tracks the late-game "Speed Pool" charges and measures combat loops in absolute real-world seconds. It also features built-in <strong>Build Duel Telemetry</strong>, allowing you to pit two stat distributions head-to-head in a zero-variance vacuum to see mathematically why one beats the other.
             </p>
 
             <div className="bg-st-secondary border border-st-border rounded-lg p-6 font-mono text-sm text-center flex flex-col items-center gap-3">
@@ -133,21 +133,31 @@ export default function About() {
             
             <details className="group border border-st-border rounded p-3 cursor-pointer hover:border-st-orange transition-colors">
               <summary className="font-bold outline-none list-none flex justify-between">
-                <span>What is a "Stat Plateau"?</span>
+                <span>Why does the optimizer tell me to leave points unspent? (Crippled Farming)</span>
                 <span className="text-st-orange transition-transform group-open:rotate-180">▼</span>
               </summary>
               <p className="mt-3 text-sm text-st-text-light border-t border-st-border pt-3">
-                Because blocks in the game only take "whole hits," having enough damage to bring a block to 1 HP requires the exact same number of hits as doing no extra damage at all. The optimizer actively looks for these <strong>Stat Plateaus</strong> and stops recommending stats the instant you hit a "hits-to-kill" breakpoint, saving your stat points for other upgrades.
+                Because the game has zero death-delay, having high survival stats (like Agility) when farming early-game blocks (e.g., Tier 1/2 cards) is a trap. You will overshoot your target and waste time slowly dying on deep floors. The AI circumvents this by using <strong>Unspent Points</strong> and weaponizing the <strong>Corruption</strong> stat's Max Stamina penalty to intentionally shrink your gas tank. It builds a "glass cannon" that speed-runs early floors at 2.0x attack speed and instantly runs out of stamina to reset the run!
               </p>
             </details>
 
             <details className="group border border-st-border rounded p-3 cursor-pointer hover:border-st-orange transition-colors">
               <summary className="font-bold outline-none list-none flex justify-between">
-                <span>Why does the game yield less than the simulator? (Engine Slippage)</span>
+                <span>What is 32-bit Float Drift?</span>
                 <span className="text-st-orange transition-transform group-open:rotate-180">▼</span>
               </summary>
               <p className="mt-3 text-sm text-st-text-light border-t border-st-border pt-3">
-                The Python engine is a <em>0.000-delay perfect mathematical simulation</em>. In the live game, particularly in "Rabbit Mode," the GameMaker engine is forced to fast-forward. This causes dropped frames and slight delays in the physics of step-event, block attack, etc. This <strong>Game Engine Slippage</strong> may account for a consistent efficiency loss in the live game compared to the raw mathematical maximum.
+                GameMaker (the engine Idle Obelisk Miner is built on) compiles math as 32-bit IEEE-754 floats. This means seemingly clean numbers actually have microscopic decimal drift before Banker's Rounding is applied. This simulator rigorously emulates GM's native memory drift (e.g., upward float drift on Max Stamina, downward drift on Base Damage) to ensure the exact hit-to-kill breakpoints it recommends are 100% mathematically identical to the live game.
+              </p>
+            </details>
+
+            <details className="group border border-st-border rounded p-3 cursor-pointer hover:border-st-orange transition-colors">
+              <summary className="font-bold outline-none list-none flex justify-between">
+                <span>What is a "Stat Plateau"?</span>
+                <span className="text-st-orange transition-transform group-open:rotate-180">▼</span>
+              </summary>
+              <p className="mt-3 text-sm text-st-text-light border-t border-st-border pt-3">
+                Because blocks in the game only take "whole hits," having enough damage to bring a block to 1 HP requires the exact same number of hits as doing no extra damage at all. The optimizer actively looks for these <strong>Stat Plateaus</strong> and stops recommending stats the instant you hit a "hits-to-kill" breakpoint, saving your stat points for other upgrades.
               </p>
             </details>
             
