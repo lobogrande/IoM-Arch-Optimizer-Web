@@ -1160,7 +1160,7 @@ export default function PathfinderTab() {
                       <span>🛡️</span> Reading the PUSH Priority Charts
                   </div>
                   <div className="text-[10px] text-gray-400 leading-relaxed">
-                      Notice the <span className="text-[#a855f7] font-bold">Purple</span> band (Corruption) occasionally vanishing? This is the <strong>Armor Veto</strong>. If a block's armor exceeds your Armor Penetration, it zeroes out your base damage making Corruption's multiplier useless (<code className="bg-black px-1 rounded">0 * Mult = 0</code>). The engine drops it to afford raw Armor Pen.
+                      In Push builds, <span className="text-[#a855f7] font-bold">Corruption (Purple)</span> and <span className="text-[#eab308] font-bold">Perception (Gold)</span> are largely ignored. Why? Corruption's multiplier is useless if scaling block armor reduces your base damage to 1. Instead, the engine aggressively funds <span className="text-[#ef4444] font-bold">Strength</span>, <span className="text-[#22c55e] font-bold">Luck</span>, and <span className="text-[#f9a8d4] font-bold">Divinity</span> to crack block HP using compounding Critical Hits.
                   </div>
               </div>
 
