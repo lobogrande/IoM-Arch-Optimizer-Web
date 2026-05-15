@@ -726,7 +726,7 @@ export default function PathfinderTab() {
         <h2 className="text-xl font-bold text-st-text mb-2">Ascension Pathfinder (Alpha)</h2>
         <p className="text-sm text-st-text-light mb-4">
           My experimental macro-optimizer. This tool attempts to project your optimal trajectory through Ascension 2 
-          by forecasting milestones, fragment accumulation, and upgrade purchases over Expected Arch Time.
+          by forecasting milestones, fragment accumulation, card drops, and upgrade purchases over Expected Arch Time.
         </p>
         <div className="mt-4 border-t border-st-border pt-4">
           <h4 className="font-bold text-st-orange mb-2">💡 How to use the Pathfinder:</h4>
