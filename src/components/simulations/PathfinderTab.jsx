@@ -1117,6 +1117,16 @@ export default function PathfinderTab() {
                   </select>
               </div>
 
+              {/* ETA PREDICTOR GUIDE OVERLAY */}
+              <div className="absolute left-1/2 -translate-x-1/2 -translate-y-1/2 z-10 w-[850px] bg-[#111]/95 border border-st-border px-4 py-2 rounded shadow-sm backdrop-blur-sm flex items-center gap-4" style={{ top: '840px' }}>
+                  <div className="text-[11px] font-bold text-gray-200 whitespace-nowrap flex items-center gap-1.5 border-r border-st-border pr-4 shrink-0">
+                      <span>⏱️</span> Reading the ETA Predictor
+                  </div>
+                  <div className="text-[10px] text-gray-400 leading-relaxed">
+                      When the <span className="text-[#a3e635] font-bold">Green Line</span> (Time to Next Upgrade) drops below the <span className="text-[#f87171] font-bold">Red Line</span> (Time to Next Level), the engine predicts you can afford an expensive mid-game milestone (like Stat Caps +5) <em>before</em> you naturally level up. This mathematically triggers the engine to instantly pivot your Farm Build from XP to Fragments!
+                  </div>
+              </div>
+
               {/* ECONOMY CONTROLS */}
               <div className="absolute right-[150px] z-10 flex items-center gap-2 bg-[#111] border border-st-border px-3 py-1.5 rounded shadow-md" style={{ top: '1225px' }}>
                   <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Select Bank:</span>
@@ -1223,8 +1233,8 @@ export default function PathfinderTab() {
                   ] : [ ]),
 
                   // 3. Opp Cost (legend: 'legend3')
-                  { x: chartData.pivotXVals, y: chartData.ttnlVals, type: 'scatter', mode: 'lines', name: 'Mins to Level (XP)', line: { color: '#f87171', shape: 'hv', width: 2 }, xaxis: 'x3', yaxis: 'y4', legend: 'legend3' },
-                  { x: chartData.pivotXVals, y: chartData.ttfVals, type: 'scatter', mode: 'lines', name: 'Mins to Major Upg', line: { color: '#a3e635', shape: 'hv', width: 2 }, xaxis: 'x3', yaxis: 'y4', legend: 'legend3' },
+                  { x: chartData.pivotXVals, y: chartData.ttnlVals, type: 'scatter', mode: 'lines', name: 'ETA: Next Arch Level', line: { color: '#f87171', shape: 'hv', width: 2 }, xaxis: 'x3', yaxis: 'y4', legend: 'legend3' },
+                  { x: chartData.pivotXVals, y: chartData.ttfVals, type: 'scatter', mode: 'lines', name: 'ETA: Major Upgrade', line: { color: '#a3e635', shape: 'hv', width: 2 }, xaxis: 'x3', yaxis: 'y4', legend: 'legend3' },
 
                   // 4. Economy (legend: 'legend4')
                   { x: fragChartData.xVals, y: fragChartData.yVals, type: 'scatter', mode: 'lines', name: `${fragDict[selectedFragPlot]} Bank`, line: { color: fragChartData.color, width: 2, shape: 'hv' }, fill: 'tozeroy', fillcolor: fragChartData.color + '20', xaxis: 'x4', yaxis: 'y5', legend: 'legend4' },
@@ -1299,7 +1309,7 @@ export default function PathfinderTab() {
                   yaxis:  { domain:[0.9225, 1.000], title: { text: 'Milestone', font: { size: 11 } }, gridcolor: '#333', automargin: true },
                   yaxis2: showXpRates ? { domain:[0.820, 0.8975], title: { text: 'Yields (XP)', font: { size: 11 } }, gridcolor: '#333', automargin: true } : { domain:[0.820, 0.8975], visible: false },
                   yaxis3: showFragRates ? { domain: showXpRates ? undefined :[0.820, 0.8975], overlaying: showXpRates ? 'y2' : undefined, side: showXpRates ? 'right' : 'left', title: { text: 'Frags/Min', font: { size: 11 } }, gridcolor: showXpRates ? undefined : '#333', automargin: true } : { domain:[0.820, 0.8975], visible: false },
-                  yaxis4: { domain:[0.7175, 0.795], title: { text: 'Cost (Mins)', font: { size: 11 } }, type: 'log', gridcolor: '#333', automargin: true },
+                  yaxis4: { domain:[0.7175, 0.795], title: { text: 'ETA (Mins)', font: { size: 11 } }, type: 'log', gridcolor: '#333', automargin: true },
                   yaxis5: { domain:[0.615, 0.6925], title: { text: 'Bank Amt', font: { size: 11 } }, gridcolor: '#333', automargin: true },
                   yaxis6: { domain:[0.5125, 0.590], title: { text: 'Budget %', font: { size: 11 } }, range: [0, 100], gridcolor: '#333', automargin: true },
                   yaxis7: { domain:[0.410, 0.4875], title: { text: 'Base Points', font: { size: 11 } }, gridcolor: '#333', automargin: true },
@@ -1353,7 +1363,7 @@ export default function PathfinderTab() {
                   annotations:[
                     { text: '<b>1. Progression Trends</b>', x: 0, y: 1.000, xref: 'paper', yref: 'paper', showarrow: false, font: {size: 14, color: '#fff'}, xanchor: 'left', yanchor: 'bottom', yshift: 5 },
                     { text: '<b>2. Yields: Farm vs Push</b>', x: 0, y: 0.8975, xref: 'paper', yref: 'paper', showarrow: false, font: {size: 14, color: '#fff'}, xanchor: 'left', yanchor: 'bottom', yshift: 5 },
-                    { text: '<b>3. Strategic Pivot Point (Opportunity Cost)</b>', x: 0, y: 0.795, xref: 'paper', yref: 'paper', showarrow: false, font: {size: 14, color: '#fff'}, xanchor: 'left', yanchor: 'bottom', yshift: 5 },
+                    { text: '<b>3. ETA Predictor: Next Level vs Next Major Upgrade</b>', x: 0, y: 0.795, xref: 'paper', yref: 'paper', showarrow: false, font: {size: 14, color: '#fff'}, xanchor: 'left', yanchor: 'bottom', yshift: 5 },
                     { text: '<b>4. Fragment Economy & Milestones</b>', x: 0, y: 0.6925, xref: 'paper', yref: 'paper', showarrow: false, font: {size: 14, color: '#fff'}, xanchor: 'left', yanchor: 'bottom', yshift: 5 },
                     { text: '<b>5. Farm Build Priority Trends (100% Normalized)</b>', x: 0, y: 0.590, xref: 'paper', yref: 'paper', showarrow: false, font: {size: 14, color: '#fff'}, xanchor: 'left', yanchor: 'bottom', yshift: 5 },
                     { text: '<b>6. Farm Build Stat Breakpoints (Raw Points)</b>', x: 0, y: 0.4875, xref: 'paper', yref: 'paper', showarrow: false, font: {size: 14, color: '#fff'}, xanchor: 'left', yanchor: 'bottom', yshift: 5 },
