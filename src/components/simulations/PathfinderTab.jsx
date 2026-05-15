@@ -1092,7 +1092,7 @@ export default function PathfinderTab() {
                   <div id="chart-card" className="absolute top-[3585px] w-full h-px pointer-events-none" />
               
                   {/* YIELDS CONTROLS */}
-              <div className="absolute right-[150px] z-10 flex items-center gap-3 bg-[#111] border border-st-border px-3 py-1.5 rounded shadow-md" style={{ top: '425px' }}>
+              <div className="absolute right-[150px] z-10 flex items-center gap-3 bg-[#111] border border-st-border px-3 py-1.5 rounded shadow-md" style={{ top: '370px' }}>
                   <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Filters:</span>
                   <label className="flex items-center gap-1 text-[11px] font-bold text-st-text cursor-pointer hover:text-[#4ade80] transition-colors">
                     <input type="checkbox" checked={showXpRates} onChange={(e) => setShowXpRates(e.target.checked)} className="accent-[#4ade80]" /> 
@@ -1190,7 +1190,7 @@ export default function PathfinderTab() {
               </div>
 
               {/* CARD CONTROLS */}
-              <div className="absolute right-[150px] z-10 flex items-center gap-1.5 bg-[#111] border border-st-border px-3 py-1.5 rounded shadow-md" style={{ top: '3635px' }}>
+              <div className="absolute right-[150px] z-10 flex items-center gap-1.5 bg-[#111] border border-st-border px-3 py-1.5 rounded shadow-md" style={{ top: '3575px' }}>
                   <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mr-1">Tiers:</span>
                   {[ 
                     { id: 'dirt', label: 'Dirt', color: 'border-[#78716c] text-[#78716c]' },
