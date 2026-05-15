@@ -723,10 +723,19 @@ export default function PathfinderTab() {
       {/* HEADER */}
       <div className="bg-st-secondary/30 border-l-4 border-st-orange p-4 rounded shadow-sm">
         <h2 className="text-xl font-bold text-st-text mb-2">Ascension Pathfinder (Alpha)</h2>
-        <p className="text-sm text-st-text-light">
+        <p className="text-sm text-st-text-light mb-4">
           My experimental macro-optimizer. This tool attempts to project your optimal trajectory through Ascension 2 
           by forecasting milestones, fragment accumulation, and upgrade purchases over Expected Arch Time.
         </p>
+        <div className="mt-4 border-t border-st-border pt-4">
+          <h4 className="font-bold text-st-orange mb-2">💡 How to use the Pathfinder:</h4>
+          <div className="text-sm text-st-text-light space-y-2">
+            <p><strong>1. Set the Starting Point:</strong> Choose a fresh template or your Current Workspace. If using your workspace, make sure to fill out your current Fragment Bank and pending Card Fragments below.</p>
+            <p><strong>2. Define the Goal:</strong> Enter the Target Arch Level where you want the simulation to stop. Set your Floor Push Safety (Win Rate) to dictate how aggressive the engine should be when climbing.</p>
+            <p><strong>3. Run the Timeline:</strong> The engine will dual-track your Farm and Push builds, automatically fast-forwarding time to snipe upgrades, farm cards, and push floors as efficiently as mathematically possible.</p>
+            <p><strong>4. Analyze the Results:</strong> Use the Master Timeline charts and the Node-Graph log to see exactly <em>when</em> the engine pivots its strategies. Use these insights to guide your real in-game decisions!</p>
+          </div>
+        </div>
       </div>
 
       {/* SETUP DASHBOARD */}
@@ -895,7 +904,11 @@ export default function PathfinderTab() {
                     ({Object.values(startCardProgress).filter(v => v > 0).length} partial cards pending)
                   </span>
                 </summary>
-                <div className="grid grid-cols-4 md:grid-cols-9 gap-2 max-h-64 overflow-y-auto pr-1 mt-4 cursor-default">
+                <div className="text-[11px] text-st-text-light mt-2 mb-4 italic cursor-default">
+                  Enter your current fragment count (0 to 9) for any Polychrome (L3) or Infernal (L4) cards you are actively hunting. 
+                  Base and Gilded cards only require 1 drop, so they are not tracked here.
+                </div>
+                <div className="grid grid-cols-4 md:grid-cols-9 gap-2 max-h-64 overflow-y-auto pr-1 cursor-default">
                   {[
                     'dirt1', 'dirt2', 'dirt3', 'dirt4',
                     'com1', 'com2', 'com3', 'com4',
@@ -1005,7 +1018,7 @@ export default function PathfinderTab() {
             </div>
             <div className="bg-st-secondary/20 p-5 rounded border border-st-border hover:border-green-400 transition-colors">
               <div className="text-green-400 font-bold mb-2 flex items-center gap-2"><span className="text-xl">🛡️</span> The Armor Veto</div>
-              <div className="text-xs text-gray-400 leading-relaxed">See the exact floor where block armor forces the engine to abandon Corruption multipliers in favor of raw Strength and Perception.</div>
+              <div className="text-xs text-gray-400 leading-relaxed">See the exact floor where block armor forces the engine to abandon Corruption multipliers in favor of raw Strength and Divinity.</div>
             </div>
           </div>
         </div>
