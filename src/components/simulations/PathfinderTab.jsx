@@ -155,7 +155,7 @@ export default function PathfinderTab() {
     
     // Map the dropdown selection to the Pyodide dictionary keys
     const fragRateKey = { com: 'frag_1_per_min', rare: 'frag_2_per_min', epic: 'frag_3_per_min', leg: 'frag_4_per_min', myth: 'frag_5_per_min', div: 'frag_6_per_min' }[selectedRateFrag] || 'frag_6_per_min';
-    const fragUIName = { com: 'Common', rare: 'Rare', epic: 'Epic', leg: 'Legendary', myth: 'Mythic', div: 'Divine' }[selectedRateFrag] || 'Divine';
+    const fragUIName = { com: 'Common', rare: 'Rare', epic: 'Epic', leg: 'Legendary', myth: 'Mythic', div: 'Divine' }[selectedRateFrag] || 'Common';
 
     // Decouple the Pivot X-axis so we can truncate it without breaking the Progression chart
     const pivotXVals =[ ];
@@ -1118,7 +1118,7 @@ export default function PathfinderTab() {
               </div>
 
               {/* ETA PREDICTOR GUIDE OVERLAY */}
-              <div className="absolute left-1/2 -translate-x-1/2 -translate-y-1/2 z-10 w-[850px] bg-[#111]/95 border border-st-border px-4 py-2 rounded shadow-sm backdrop-blur-sm flex items-center gap-4" style={{ top: '785px' }}>
+              <div className="absolute left-1/2 -translate-x-1/2 -translate-y-1/2 z-10 w-[1000px] bg-[#111]/95 border border-st-border px-4 py-2 rounded shadow-sm backdrop-blur-sm flex items-center gap-4" style={{ top: '765px' }}>
                   <div className="text-[11px] font-bold text-gray-200 whitespace-nowrap flex items-center gap-1.5 border-r border-st-border pr-4 shrink-0">
                       <span>⏱️</span> Reading the ETA Predictor
                   </div>
