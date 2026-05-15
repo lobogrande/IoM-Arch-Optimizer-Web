@@ -302,7 +302,7 @@ export default function PathfinderTab() {
   const activeDiagnosticsTraces = useMemo(() => {
       if (diagnosticView === 'push_corr' && corrDiagnosticsData) {
           return [
-              { x: corrDiagnosticsData.xVals, y: corrDiagnosticsData.armorCrackVals, type: 'scatter', mode: 'lines', name: 'Armor Crack (Str+Div+Per)', line: { color: '#ef4444', width: 2, shape: 'hv' }, xaxis: 'x9', yaxis: 'y10', legend: 'legend9' },
+              { x: corrDiagnosticsData.xVals, y: corrDiagnosticsData.armorCrackVals, type: 'scatter', mode: 'lines', name: 'Damage & Pen (Str+Div+Per)', line: { color: '#ef4444', width: 2, shape: 'hv' }, xaxis: 'x9', yaxis: 'y10', legend: 'legend9' },
               { x: corrDiagnosticsData.xVals, y: corrDiagnosticsData.modPowerVals, type: 'scatter', mode: 'lines', name: 'Mod Base (Luck+Int/Per)', line: { color: '#4ade80', width: 2, shape: 'hv' }, xaxis: 'x9', yaxis: 'y10', legend: 'legend9' },
               { x: corrDiagnosticsData.xVals, y: corrDiagnosticsData.corrVals, type: 'scatter', mode: 'none', fill: 'tozeroy', name: 'Corruption (Multiplier)', fillcolor: 'rgba(168, 85, 247, 0.25)', xaxis: 'x9', yaxis: 'y11', legend: 'legend9' }
           ];
@@ -570,7 +570,9 @@ export default function PathfinderTab() {
                         if (lastPushCorr > 0 && currentPushCorr === 0 && !corrVetoed) {
                             insights.push({
                                 icon: '🛡️', title: 'Armor Veto Triggered',
-                                desc: `At Floor ${ev.floor}, block armor outscaled your damage. The engine dropped Corruption to 0 to afford raw Strength and Divinity for Armor Crack.`
+                                desc: `At Floor ${ev.floor}, block armor outscaled your damage. The engine dropped Corruption to 0 to afford raw Strength and Divinity to penetrate armor and maintain damage.`,
+                                actionText: 'See Plot 9 (Diagnostics)',
+                                actionTarget: 'chart-diag'
                             });
                             corrVetoed = true;
                         }
@@ -583,7 +585,9 @@ export default function PathfinderTab() {
         if (ev.type === 'system' && ev.event.includes('Phase 1') && !phase1Hit) {
             insights.push({
                 icon: '💎', title: 'Divine Idol Pivot',
-                desc: `At Arch Level ${ev.level}, Hestia was maxed. The engine abandoned XP progression to farm Divine Fragments for Hades Idol levels, while passively acquiring Infernal fragments and finishing remaining upgrades.`
+                desc: `At Arch Level ${ev.level}, Hestia was maxed. The engine abandoned XP progression to farm Divine Fragments for Hades Idol levels, while passively acquiring Infernal fragments and finishing remaining upgrades.`,
+                actionText: 'See Plot 4 (Economy)',
+                actionTarget: 'chart-econ'
             });
             phase1Hit = true;
         }
@@ -591,7 +595,9 @@ export default function PathfinderTab() {
         if (ev.type === 'system' && ev.event.includes('Phase 2') && !phase2Hit) {
             insights.push({
                 icon: '🎴', title: 'Card Hunting Pivot',
-                desc: `At Arch Level ${ev.level}, Hades was maxed. The engine switched to a Block Card Farming build to target high-tier (T3 and T4) card fragment drops, prioritizing highest rarity first.`
+                desc: `At Arch Level ${ev.level}, Hades was maxed. The engine switched to a Block Card Farming build to target high-tier (T3 and T4) card fragment drops, prioritizing highest rarity first.`,
+                actionText: 'See Plot 10 (Card Drops)',
+                actionTarget: 'chart-card'
             });
             phase2Hit = true;
         }
@@ -599,7 +605,9 @@ export default function PathfinderTab() {
         if (ev.type === 'system' && ev.event.includes('Phase 3') && !crippledStarted) {
             insights.push({
                 icon: '📉', title: 'Crippled Farm Engaged',
-                desc: `At Arch Level ${ev.level}, the engine detected all high-tier cards were maxed. It intentionally abandoned your stat budget to farm low-tier blocks without wasting time on overkill.`
+                desc: `At Arch Level ${ev.level}, the engine detected all high-tier cards were maxed. It intentionally abandoned your stat budget to farm low-tier blocks without wasting time on overkill.`,
+                actionText: 'See Plot 5 (Farm Stats)',
+                actionTarget: 'chart-farm'
             });
             crippledStarted = true;
         }
@@ -607,7 +615,9 @@ export default function PathfinderTab() {
         if (ev.type === 'system' && ev.event.includes('Tech Tree Exhausted') && !masteryHit) {
             insights.push({
                 icon: '🏆', title: 'Tech Tree Exhausted',
-                desc: `At Arch Level ${ev.level}, all Upgrades, Cards, and Idols were mathematically maxed. The optimizer locked the build and fast-forwarded the remaining timeline.`
+                desc: `At Arch Level ${ev.level}, all Upgrades, Cards, and Idols were mathematically maxed. The optimizer locked the build and fast-forwarded the remaining timeline.`,
+                actionText: 'See Plot 1 (Progression)',
+                actionTarget: 'chart-prog'
             });
             masteryHit = true;
         }
@@ -1051,14 +1061,24 @@ export default function PathfinderTab() {
             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 mb-6">
                 {simulationInsights && simulationInsights.insights.length > 0 ? (
                   simulationInsights.insights.map((insight, i) => (
-                    <div key={i} className="bg-[#1a1a1a] p-3 rounded border border-st-border border-l-2 border-l-st-orange shadow-md relative overflow-hidden">
-                      <div className="absolute -right-4 -top-4 text-5xl opacity-5">{insight.icon}</div>
-                      <h4 className="text-xs font-bold text-gray-200 mb-1 flex items-center gap-1">
-                        <span>{insight.icon}</span> {insight.title}
-                      </h4>
-                      <p className="text-[10px] text-gray-400 leading-relaxed">
-                        {insight.desc}
-                      </p>
+                    <div key={i} className="bg-[#1a1a1a] p-3 rounded border border-st-border border-l-2 border-l-st-orange shadow-md relative overflow-hidden flex flex-col justify-between">
+                      <div>
+                        <div className="absolute -right-4 -top-4 text-5xl opacity-5">{insight.icon}</div>
+                        <h4 className="text-xs font-bold text-gray-200 mb-1 flex items-center gap-1">
+                          <span>{insight.icon}</span> {insight.title}
+                        </h4>
+                        <p className="text-[10px] text-gray-400 leading-relaxed mb-3">
+                          {insight.desc}
+                        </p>
+                      </div>
+                      {insight.actionText && (
+                        <button 
+                          onClick={() => document.getElementById(insight.actionTarget)?.scrollIntoView({behavior: 'smooth'})}
+                          className="text-[10px] text-st-orange font-bold text-left hover:text-[#4ade80] transition-colors self-start flex items-center gap-1 mt-auto z-10 relative"
+                        >
+                          ⬇️ {insight.actionText}
+                        </button>
+                      )}
                     </div>
                   ))
                 ) : (
@@ -1193,7 +1213,7 @@ export default function PathfinderTab() {
                   </div>
                   <div className="text-[10px] text-gray-400 leading-relaxed">
                       {diagnosticView === 'push_corr' && (
-                          <span>This chart dissects the <strong>Push Build (Chart 8)</strong>. <span className="text-[#a855f7] font-bold">Corruption (Purple)</span> acts as a multiplier for your <span className="text-[#4ade80] font-bold">Mod Base (Green)</span>. But if Block Armor gets too tough, the engine sacrifices Corruption to afford raw <span className="text-[#ef4444] font-bold">Armor Crack (Red)</span>.</span>
+                          <span>This chart dissects the <strong>Push Build (Chart 8)</strong>. <span className="text-[#a855f7] font-bold">Corruption (Purple)</span> acts as a multiplier for your <span className="text-[#4ade80] font-bold">Mod Base (Green)</span>. But if Block Armor gets too tough, the engine sacrifices Corruption to afford raw <span className="text-[#ef4444] font-bold">Damage & Penetration (Red)</span>.</span>
                       )}
                       {diagnosticView === 'push_crit' && (
                           <span>This chart dissects the 3 eras of the <strong>Push Build's</strong> crit engine: <strong>1. Early (Armor):</strong> <span className="text-[#f9a8d4] font-bold">Div</span> spikes instantly to crack early block armor. <strong>2. Mid (Budget Starvation):</strong> As block HP scales, the engine MUST cap <span className="text-[#22c55e] font-bold">Luck</span> and heavily fund <span className="text-[#ef4444] font-bold">Str</span>. Due to a small budget, <span className="text-[#f9a8d4] font-bold">Div</span> is starved to near zero. <strong>3. Late (Overflow):</strong> Once Str/Luck hit optimal limits, the growing budget overflows back into <span className="text-[#f9a8d4] font-bold">Div</span> to fuel massive compounding Crits.</span>
@@ -1378,7 +1398,7 @@ export default function PathfinderTab() {
                     { text: '<b>6. Farm Build Stat Breakpoints (Raw Points)</b>', x: 0, y: 0.4875, xref: 'paper', yref: 'paper', showarrow: false, font: {size: 14, color: '#fff'}, xanchor: 'left', yanchor: 'bottom', yshift: 5 },
                     { text: '<b>7. Push Build Priority Trends (100% Normalized)</b>', x: 0, y: 0.385, xref: 'paper', yref: 'paper', showarrow: false, font: {size: 14, color: '#fff'}, xanchor: 'left', yanchor: 'bottom', yshift: 5 },
                     { text: '<b>8. Push Build Stat Breakpoints (Raw Points)</b>', x: 0, y: 0.2825, xref: 'paper', yref: 'paper', showarrow: false, font: {size: 14, color: '#fff'}, xanchor: 'left', yanchor: 'bottom', yshift: 5 },
-                    { text: diagnosticView === 'push_corr' ? '<b>9. PUSH Mechanics: Corruption vs Armor Crack</b>' : diagnosticView === 'push_crit' ? '<b>9. PUSH Mechanics: The Critical Hit Engine</b>' : '<b>9. FARM Mechanics: The Critical Hit Engine</b>', x: 0, y: 0.180, xref: 'paper', yref: 'paper', showarrow: false, font: {size: 14, color: '#fff'}, xanchor: 'left', yanchor: 'bottom', yshift: 5 },
+                    { text: diagnosticView === 'push_corr' ? '<b>9. PUSH Mechanics: Corruption vs Damage & Armor Pen</b>' : diagnosticView === 'push_crit' ? '<b>9. PUSH Mechanics: The Critical Hit Engine</b>' : '<b>9. FARM Mechanics: The Critical Hit Engine</b>', x: 0, y: 0.180, xref: 'paper', yref: 'paper', showarrow: false, font: {size: 14, color: '#fff'}, xanchor: 'left', yanchor: 'bottom', yshift: 5 },
                     { text: '<b>10. Card Drops (Swimlanes)</b>', x: 0, y: 0.0775, xref: 'paper', yref: 'paper', showarrow: false, font: {size: 14, color: '#fff'}, xanchor: 'left', yanchor: 'bottom', yshift: 5 },
                     
                     // Pivot Labels
