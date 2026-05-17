@@ -489,7 +489,7 @@ async function attemptMultiFloorPush(pool, state, maxTimePenaltySecs, minWinRate
     }
 }
 
-export async function runPathfinderSimulation(startState, targetLevel, initialFrags, pool, minWinRate, initialArchSecs = 0, initialExp = 0, onProgress) {
+export async function runPathfinderSimulation(startState, targetLevel, initialFrags, pool, minWinRate, initialArchSecs = 0, initialExp = 0, onProgress, autoBuyGems = true, abortConfig = { abort: false }) {
     // 1. Initialize Tracked State (Dual-Track the base stats!)
     let state = { 
         ...startState, 
@@ -712,10 +712,30 @@ export async function runPathfinderSimulation(startState, targetLevel, initialFr
 
     try {
         while (state.arch_level < targetLevel && eventCount < MAX_EVENTS) {
+            if (abortConfig.abort) {
+                report(`Simulation aborted early at Lvl ${state.arch_level}. Gathering partial results...`);
+                history.push({
+                    type: "system",
+                    event: "⏹️ User Aborted Simulation",
+                    arch_sec: cumulativeArchSecs,
+                    time_delta: 0,
+                    active_build: "None",
+                    active_build_str: "",
+                    level: state.arch_level,
+                    floor: state.current_max_floor,
+                    desc: `Simulation was manually stopped. Yields reflect partial progress up to Arch Level ${state.arch_level}.`,
+                    yields: { farm: currentFarmYields, push: currentPushYields, frag_potential: currentFragPotential },
+                    frags: { ...frags },
+                    card_progress: { ...card_progress },
+                    state_snapshot: captureSnapshot(state)
+                });
+                break;
+            }
+            
             eventCount++;
 
             // --- ULTIMATE MASTERY CHECK ---
-        // If the entire tech tree is exhausted, we stop running expensive grid searches!
+        // If all Asc2 progression goals are exhausted, we stop running expensive grid searches!
         if (!techTreeExhaustedAnnounced) {
             const idolsMaxed = (state.external_levels[4] >= 3000) && (state.external_levels[21] >= 6666) && (state.prometheus_level >= 1000) && (state.sisyphus_level >= 7777);
             
@@ -741,7 +761,7 @@ export async function runPathfinderSimulation(startState, targetLevel, initialFr
                 techTreeExhaustedAnnounced = true;
                 history.push({
                     type: "system",
-                    event: `🏆 Ultimate Mastery: Tech Tree Exhausted!`,
+                    event: `🏆 Ultimate Mastery: Asc2 Goals Completed!`,
                     arch_sec: cumulativeArchSecs,
                     time_delta: 0,
                     active_build: "Farm",
@@ -833,7 +853,10 @@ export async function runPathfinderSimulation(startState, targetLevel, initialFr
             const currentLvl = state.upgrade_levels[ upgId ] || 0;
             
             // Gem Upgrades are strictly capped by Arch Level
-            if ((upgId === 3 || upgId === 4 || upgId === 5) && currentLvl >= state.arch_level) continue;
+            if (upgId === 3 || upgId === 4 || upgId === 5) {
+                if (!autoBuyGems) continue;
+                if (currentLvl >= state.arch_level) continue;
+            }
 
             // Enforce Max Level Caps
             const cap = INTERNAL_UPGRADE_CAPS[upgId];
@@ -964,7 +987,7 @@ export async function runPathfinderSimulation(startState, targetLevel, initialFr
         }
 
         // --- HESTIA IDOL AUTO-TRIBUTE ---
-        // Sweeps excess Common Fragments into Idol Levels once the tech tree is fully exhausted
+        // Sweeps excess Common Fragments into Idol Levels once the core upgrades are fully maxed
         if ((state.upgrade_levels[41] || 0) > 0 && frags.com >= 999 && (state.external_levels[4] || 0) < 3000) {
             const comUpgs =[ 9, 10, 11, 12, 13, 19, 25, 41 ];
             let comMaxed = true;
@@ -1041,7 +1064,7 @@ export async function runPathfinderSimulation(startState, targetLevel, initialFr
         }
 
         // --- DIVINE IDOLS AUTO-TRIBUTE ---
-        // Sweeps excess Divine Fragments into the RNG Idol pool once tech tree is exhausted
+        // Sweeps excess Divine Fragments into the RNG Idol pool once the core upgrades are fully maxed
         if (frags.div >= 999) {
             const divUpgs =[47, 48, 49, 50, 51, 55];
             let divMaxed = true;
@@ -1397,7 +1420,10 @@ export async function runPathfinderSimulation(startState, targetLevel, initialFr
         let hasInstantUpgrade = false;
         for (const upgId of upgradeTargets) {
             const currentLvl = state.upgrade_levels[ upgId ] || 0;
-            if ((upgId === 3 || upgId === 4 || upgId === 5) && currentLvl >= state.arch_level) continue;
+            if (upgId === 3 || upgId === 4 || upgId === 5) {
+                if (!autoBuyGems) continue;
+                if (currentLvl >= state.arch_level) continue;
+            }
             
             const cap = INTERNAL_UPGRADE_CAPS[upgId];
             if (cap !== undefined && currentLvl >= cap) continue;
