@@ -799,7 +799,7 @@ export default function PathfinderTab() {
             My experimental macro-optimizer. Rather than a strict step-by-step guide, I built this as a data-mining tool to project your optimal trajectory over short bursts (5-10 Arch Levels) from your current state.
           </p>
           <p>
-            By forecasting milestones, fragment accumulation, and card drops over Expected Arch Time, you can use these timelines to set realistic progression expectations. It's designed to help you estimate how long it will take to farm missing cards, discover exactly when to stop buying cheap upgrades to save for expensive ones, or identify massive power spikes where you can push multiple max floors at once. Dive in, explore the data, and uncover the endgame trends for yourself.
+            By forecasting milestones, fragment accumulation, and card drops over Expected Arch Time, you can use these timelines to set realistic progression expectations. It's designed to help you estimate how long it will take to farm missing cards, discover exactly when to stop buying cheap upgrades to save for expensive ones, or identify massive power spikes where you can push multiple max floors at once. You can also stitch together multiple exported chunks to aggregate data across huge Arch Level gaps, revealing sweeping, long-term macroeconomic shifts. Dive in, explore the data, and uncover the endgame trends for yourself.
           </p>
         </div>
         <div className="mt-4 border-t border-st-border pt-4">
