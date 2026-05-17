@@ -893,7 +893,7 @@ export default function PathfinderTab() {
               />
               <span className="text-sm text-st-text">Buy instantly</span>
             </label>
-            <span className="text-[10px] text-st-text-light block mt-1">Disable if gem poor.</span>
+            <span className="text-[10px] text-st-text-light block mt-1">Disable if you still need to spend Gems elsewhere.</span>
           </div>
         </div>
 
