@@ -124,7 +124,8 @@ def execute_simulation(test_stats_proxy, test_upgrades_proxy, test_external_prox
         "quake_casts": result.skills_tracker.total_quake_casts,
         "stamina_refunded_flurry": result.stamina_refunded_flurry,
         "stamina_refunded_mods": result.stamina_refunded_mods,
-        "stamina_wasted_overcap": result.stamina_wasted_overcap
+        "stamina_wasted_overcap": result.stamina_wasted_overcap,
+        "speed_pool_delta_per_min": (result.speed_pool - p.starting_speed_pool) / arch_mins
     }
     
     for frag_tier, amt in result.total_frags.items():

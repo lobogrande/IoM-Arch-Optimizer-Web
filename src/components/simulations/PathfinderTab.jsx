@@ -1817,9 +1817,10 @@ export default function PathfinderTab() {
                                     E: {(((finalEvent.yields.push?.frag_3_per_min || 0) / 60) * 1000).toFixed(2)}
                                   </div>
 
-                                  {/* Bank */}
+                                  {/* Bank & Resources */}
                                   <div>
-                                    <strong className="text-st-text-light border-b border-st-border pb-0.5 mb-1 block">Fragment Bank</strong>
+                                    <strong className="text-st-text-light border-b border-st-border pb-0.5 mb-1 block">Bank & Resources</strong>
+                                    Speed Pool: {formatNum(finalEvent.state_snapshot?.starting_speed_pool || 0)}<br/>
                                     C: {(finalEvent.frags?.com || 0).toFixed(2)} | R: {(finalEvent.frags?.rare || 0).toFixed(2)}<br/>
                                     E: {(finalEvent.frags?.epic || 0).toFixed(2)} | L: {(finalEvent.frags?.leg || 0).toFixed(2)}<br/>
                                     M: {(finalEvent.frags?.myth || 0).toFixed(2)} | D: {(finalEvent.frags?.div || 0).toFixed(2)}
