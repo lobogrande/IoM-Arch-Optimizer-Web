@@ -627,7 +627,7 @@ export default function PlayerSetup() {
             </div>
             <hr className="border-st-border mb-6" />
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div className="w-full md:w-1/2 lg:w-1/3 mx-auto flex flex-col gap-4">
               {Object.entries(INTERNAL_UPGRADE_CAPS).map(([upg_id, default_max_lvl]) => {
                   const id = parseInt(upg_id);
                   if (!asc1_unlocked && ASC1_LOCKED_UPGS.includes(id)) return null;
