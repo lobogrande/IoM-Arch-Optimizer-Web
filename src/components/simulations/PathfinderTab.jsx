@@ -175,11 +175,16 @@ export default function PathfinderTab() {
   };
 
   const handleExportTimeline = () => {
-    if (!pathData) return;
+    if (!pathData || !pathData.history || pathData.history.length === 0) return;
+    
+    // Dynamically pull the actual start and end levels from the timeline data itself
+    const firstLevel = pathData.history[ 0 ]?.level || 1;
+    const lastLevel = pathData.history[ pathData.history.length - 1 ]?.level || firstLevel;
+    
     const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(pathData.history, null, 2));
     const downloadAnchorNode = document.createElement('a');
     downloadAnchorNode.setAttribute("href", dataStr);
-    downloadAnchorNode.setAttribute("download", `pathfinder_chunk_lvl${pathData.history[0]?.level || 1}_to_${targetLevel}.json`);
+    downloadAnchorNode.setAttribute("download", `pathfinder_timeline_lvl${firstLevel}_to_${lastLevel}.json`);
     document.body.appendChild(downloadAnchorNode);
     downloadAnchorNode.click();
     downloadAnchorNode.remove();
