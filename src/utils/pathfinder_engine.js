@@ -966,6 +966,8 @@ export async function runPathfinderSimulation(startState, targetLevel, initialFr
         // Apply Time & Accrue Resources
         cumulativeArchSecs += t_step * 60; // Convert minutes to Arch Seconds
         currentExp += yields.xp_per_min * t_step;
+        state.starting_speed_pool = Math.max(0, Math.round((state.starting_speed_pool || 0) + (yields.speed_pool_delta_per_min || 0) * t_step));
+        
         Object.keys(frags).forEach(k => {
             const rKey = FRAG_RATE_KEYS[ k ];
             if (yields[ rKey ]) frags[ k ] += yields[ rKey ] * t_step;
@@ -1476,6 +1478,8 @@ export async function runPathfinderSimulation(startState, targetLevel, initialFr
                     
                     const penaltyMins = pushResult.timePenaltySecs / 60.0;
                     currentExp += (pushResult.pushYields.xp_per_min || 0) * penaltyMins;
+                    state.starting_speed_pool = Math.max(0, Math.round((state.starting_speed_pool || 0) + (pushResult.pushYields.speed_pool_delta_per_min || 0) * penaltyMins));
+                    
                     Object.keys(frags).forEach(k => {
                         const rKey = FRAG_RATE_KEYS[k];
                         if (pushResult.pushYields[rKey]) frags[k] += pushResult.pushYields[rKey] * penaltyMins;

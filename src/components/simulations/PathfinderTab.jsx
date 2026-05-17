@@ -169,7 +169,12 @@ export default function PathfinderTab() {
     setSimStatus(`Workspace updated to Level ${snap.arch_level} / Floor ${snap.current_max_floor}!`);
     
     // Auto-scroll the user back up to the control panel so they can immediately run the next chunk!
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    const target = document.getElementById('pathfinder-starting-point');
+    if (target) {
+      target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    } else {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
     
     setTimeout(() => setSimStatus(''), 3000);
   };
@@ -819,7 +824,7 @@ export default function PathfinderTab() {
       </div>
 
       {/* SETUP DASHBOARD */}
-      <div className="bg-st-bg border border-st-border rounded p-4 shadow-sm">
+      <div id="pathfinder-starting-point" className="bg-st-bg border border-st-border rounded p-4 shadow-sm">
         <h3 className="text-lg font-bold text-st-text mb-4 border-b border-st-border pb-2">1. Starting Point</h3>
         
         <div className="flex gap-4 mb-6">
@@ -1817,9 +1822,10 @@ export default function PathfinderTab() {
                                     E: {(((finalEvent.yields.push?.frag_3_per_min || 0) / 60) * 1000).toFixed(2)}
                                   </div>
 
-                                  {/* Bank */}
+                                  {/* Bank & Resources */}
                                   <div>
-                                    <strong className="text-st-text-light border-b border-st-border pb-0.5 mb-1 block">Fragment Bank</strong>
+                                    <strong className="text-st-text-light border-b border-st-border pb-0.5 mb-1 block">Bank & Resources</strong>
+                                    Speed Pool: {formatNum(finalEvent.state_snapshot?.starting_speed_pool || 0)}<br/>
                                     C: {(finalEvent.frags?.com || 0).toFixed(2)} | R: {(finalEvent.frags?.rare || 0).toFixed(2)}<br/>
                                     E: {(finalEvent.frags?.epic || 0).toFixed(2)} | L: {(finalEvent.frags?.leg || 0).toFixed(2)}<br/>
                                     M: {(finalEvent.frags?.myth || 0).toFixed(2)} | D: {(finalEvent.frags?.div || 0).toFixed(2)}

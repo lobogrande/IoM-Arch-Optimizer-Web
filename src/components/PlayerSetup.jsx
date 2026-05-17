@@ -7,7 +7,7 @@ import {
   UI_EXT_CARD_CBLOCK_X_OFFSET, UI_EXT_CARD_CBLOCK_Y_OFFSET,
   UI_CARD_CBLOCK_SCALE
 } from '../ui_config';
-import { INTERNAL_UPGRADE_CAPS, UPGRADE_NAMES, ASC1_LOCKED_UPGS, ASC2_LOCKED_UPGS, CARD_TYPES, INFERNAL_CARD_BONUSES, EXTERNAL_UI_GROUPS, UPGRADE_LEVEL_REQS } from '../game_data';
+import { INTERNAL_UPGRADE_CAPS, UPGRADE_NAMES, ASC1_LOCKED_UPGS, ASC2_LOCKED_UPGS, CARD_TYPES, INFERNAL_CARD_BONUSES, EXTERNAL_UI_GROUPS, UPGRADE_LEVEL_REQS, calculateUpgradeCost } from '../game_data';
 
 export default function PlayerSetup() {
   const { asc1_unlocked, asc2_unlocked, arch_level, current_max_floor, starting_speed_pool, base_stats, upgrade_levels, external_levels, cards, arch_ability_infernal_bonus, total_infernal_cards, geoduck_unlocked, calculated_stats, setSetting, setBaseStat, setUpgradeLevel, setCardLevel, setExternalGroup, loadStateFromJson, setSandboxStat, hideMaxed, setHideMaxed, activeSubTab, setActiveSubTab, setActiveTab, setSimActiveSubTab, profiles, activeProfileId, createProfile, loadProfile, saveToProfile, renameProfile, deleteProfile, resetState } = useStore();
@@ -628,34 +628,70 @@ export default function PlayerSetup() {
             <hr className="border-st-border mb-6" />
 
             <div className="w-full md:w-1/2 lg:w-1/3 mx-auto flex flex-col gap-4">
-              {Object.entries(INTERNAL_UPGRADE_CAPS).map(([upg_id, max_lvl]) => {
+              {Object.entries(INTERNAL_UPGRADE_CAPS).map(([upg_id, default_max_lvl]) => {
                   const id = parseInt(upg_id);
                   if (!asc1_unlocked && ASC1_LOCKED_UPGS.includes(id)) return null;
                   if (!asc2_unlocked && ASC2_LOCKED_UPGS.includes(id)) return null;
                   
-                 const currentFloor = Number(current_max_floor) || 1;
+                  const currentFloor = Number(current_max_floor) || 1;
                   if (currentFloor < (UPGRADE_LEVEL_REQS[id] || 0)) return null;
+                  
+                  let max_lvl = default_max_lvl;
+                  if (id === 3 || id === 4 || id === 5) {
+                      max_lvl = Math.min(max_lvl, parseInt(arch_level) || 1);
+                  }
                   
                   const current_lvl = upgrade_levels[id] ?? 0;
                   if (hideMaxed && current_lvl >= max_lvl) return null;
 
                   const name = UPGRADE_NAMES[id] || `Upgrade ${id}`;
+                  const ascTier = asc2_unlocked ? 2 : (asc1_unlocked ? 1 : 0);
+
+                  let nextCostStr = "Maxed";
+                  let totalCostStr = "-";
+                  
+                  if (current_lvl < max_lvl) {
+                      const next = calculateUpgradeCost(id, current_lvl + 1, ascTier);
+                      if (next) {
+                          const formatCost = (val) => {
+                              if (val >= 1000000000) return (val / 1000000000).toFixed(2) + "b";
+                              if (val >= 1000000) return (val / 1000000).toFixed(2) + "m";
+                              if (val >= 1000) return (val / 1000).toFixed(1) + "k";
+                              return Number(val.toFixed(2)).toString();
+                          };
+                          
+                          const currUI = { gems: 'Gems', com: 'Com', rare: 'Rare', epic: 'Epic', leg: 'Leg', myth: 'Myth', div: 'Div' }[next.currency] || next.currency;
+                          nextCostStr = `${formatCost(next.amount)} ${currUI}`;
+                          
+                          let totalAmount = 0;
+                          for (let lvl = current_lvl + 1; lvl <= max_lvl; lvl++) {
+                              const c = calculateUpgradeCost(id, lvl, ascTier);
+                              if (c) totalAmount += c.amount;
+                          }
+                          totalCostStr = `${formatCost(totalAmount)} ${currUI}`;
+                      }
+                  }
 
                   return (
                     <div key={id} id={`setup-upg-${id}`} className="st-container flex flex-col items-center justify-center p-4">
-                      <div className="text-center mb-2">
+                      <div className="text-center mb-2 h-10">
                         <span className="font-bold text-sm">{name}</span><br/>
                         <span className="text-xs text-st-text-light">(Max: {max_lvl})</span>
                       </div>
                       
-                      <div className="w-full flex justify-center mb-4">
+                      <div className="w-full flex justify-center mb-3 h-16">
                         <img 
                           src={`/assets/upgrades/internal/${id}.png`} 
                           alt={name}
-                          className="w-full h-auto object-contain"
+                          className="h-full w-auto object-contain"
                           style={{ imageRendering: 'pixelated' }}
                           onError={(e) => { e.target.style.display = 'none'; }}
                         />
+                      </div>
+
+                      <div className="w-full mb-3 text-[10px] text-st-text-light flex flex-col gap-0.5 bg-[#0E1117] p-1.5 rounded border border-st-border">
+                         <div className="flex justify-between"><span>Next Lvl:</span> <span className="font-bold text-st-text">{nextCostStr}</span></div>
+                         <div className="flex justify-between"><span>To Max:</span> <span className="font-bold text-st-orange">{totalCostStr}</span></div>
                       </div>
 
                       <input 
