@@ -794,10 +794,14 @@ export default function PathfinderTab() {
       {/* HEADER */}
       <div className="bg-st-secondary/30 border-l-4 border-st-orange p-4 rounded shadow-sm">
         <h2 className="text-xl font-bold text-st-text mb-2">Ascension Pathfinder (Alpha)</h2>
-        <p className="text-sm text-st-text-light mb-4">
-          My experimental macro-optimizer. This tool attempts to project your optimal trajectory through Ascension 2 
-          by forecasting milestones, fragment accumulation, card drops, and upgrade purchases over Expected Arch Time.
-        </p>
+        <div className="text-sm text-st-text-light mb-4 space-y-2">
+          <p>
+            My experimental macro-optimizer. Rather than a strict step-by-step guide, I built this as a data-mining tool to project your optimal trajectory over short bursts (5-10 Arch Levels) from your current state.
+          </p>
+          <p>
+            By forecasting milestones, fragment accumulation, and card drops over Expected Arch Time, you can use these timelines to set realistic progression expectations. It's designed to help you estimate how long it will take to farm missing cards, discover exactly when to stop buying cheap upgrades to save for expensive ones, or identify massive power spikes where you can push multiple max floors at once. Dive in, explore the data, and uncover the endgame trends for yourself.
+          </p>
+        </div>
         <div className="mt-4 border-t border-st-border pt-4">
           <h4 className="font-bold text-st-orange mb-2">💡 How to use the Pathfinder:</h4>
           <div className="text-sm text-st-text-light space-y-2">
