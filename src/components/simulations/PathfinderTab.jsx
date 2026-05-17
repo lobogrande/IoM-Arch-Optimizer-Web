@@ -12,6 +12,8 @@ export default function PathfinderTab() {
   const store = useStore();
   const[startMode, setStartMode] = useState('template');
   const [isSimulating, setIsSimulating] = useState(false);
+  const [autoBuyGems, setAutoBuyGems] = useState(true);
+  const abortConfigRef = React.useRef({ abort: false });
   const pathData = store.pathfinder_data;
   const setPathData = store.setPathfinderData;
   const[simStatus, setSimStatus] = useState('');
@@ -48,6 +50,83 @@ export default function PathfinderTab() {
 
   const handleFragChange = (key, val) => {
     setStartFrags(prev => ({ ...prev, [key]: parseFloat(val) || 0 }));
+  };
+  
+  const handleAbort = () => {
+    abortConfigRef.current.abort = true;
+    setSimStatus('Aborting... Completing current step...');
+  };
+
+  const getCardSummary = (cards) => {
+    let counts = { base: 0, gilded: 0, poly: 0, infernal: 0 };
+    Object.values(cards || {}).forEach(v => {
+      if (v === 1) counts.base++;
+      else if (v === 2) counts.gilded++;
+      else if (v === 3) counts.poly++;
+      else if (v === 4) counts.infernal++;
+    });
+    return `Cards: ${counts.infernal} Inf, ${counts.poly} Poly, ${counts.gilded} Gild, ${counts.base} Base`;
+  };
+
+  const renderDirectorSummary = (state) => {
+    const hestia = state.external_levels?.[ 4 ] || 0;
+    const hades = state.external_levels?.[ 21 ] || 0;
+    const upgs = state.upgrade_levels || { };
+    const majorUpgsBought = (upgs[ 41 ] > 0) && (upgs[ 42 ] > 0) && (upgs[ 43 ] > 0) && (upgs[ 44 ] > 0) && (upgs[ 45 ] > 0);
+    const crippled = (() => {
+        if (hades < 6666) return false;
+        if (hestia < 3000) return false;
+        const highTierCards =[
+            'div4', 'myth4', 'leg4', 'epic4', 'rare4', 'com4', 'dirt4',
+            'div3', 'myth3', 'leg3', 'epic3', 'rare3', 'com3', 'dirt3'
+        ];
+        for (const c of highTierCards) {
+            if ((state.cards?.[ c ] || 0) < 4) return false;
+        }
+        return true;
+    })();
+    
+    let phase = 0;
+    if (crippled) phase = 3;
+    else if (hades >= 6666) phase = 2;
+    else if (hestia >= 3000 && majorUpgsBought) phase = 1;
+    
+    return (
+      <>
+        <p className="mt-2 text-[#FAFAFA] font-bold">Autonomous Endgame Director:</p>
+        <ul className="list-disc ml-4 opacity-80 mt-1.5 text-[11px] space-y-1">
+          <li><strong className="text-red-400">Dual-Track Pushing:</strong> Maintains parallel Farm and Push builds, opportunistically brute-forcing max floors.</li>
+          {phase === 0 && (
+              <>
+                  <li><strong className="text-st-orange">Opportunity Cost:</strong> Dynamically swaps Farm build between EXP and Frag targets to snipe the expensive mid-game fragment upgrades.</li>
+                  <li><strong className="text-blue-400">Phase 1 (Divine Pivot):</strong> Post-Hestia (3000) & Upgrades Secured. Abandons EXP to pure-farm Divine Frags for Hades.</li>
+                  <li><strong className="text-purple-400">Phase 2 (Card Hunt):</strong> Post-Hades (6666). Abandons frags to target highest unmaxed block tiers.</li>
+                  <li><strong className="text-green-400">Phase 3 (Crippled):</strong> Post-T4/T3. Starves stat budget to hyper-farm low-tier cards without overkilling.</li>
+                  <li><strong className="text-yellow-400">Ultimate Mastery:</strong> Locks build and engages O(1) fast-forward once entire tech tree is maxed.</li>
+              </>
+          )}
+          {phase === 1 && (
+              <>
+                  <li><strong className="text-blue-400 text-st-text bg-blue-900/40 px-1 rounded">Active - Phase 1 (Divine Pivot):</strong> Hestia (3000) & Upgrades Secured. Abandoning EXP to pure-farm Divine Frags for Hades.</li>
+                  <li><strong className="text-purple-400">Phase 2 (Card Hunt):</strong> Post-Hades (6666). Abandons frags to target highest unmaxed block tiers.</li>
+                  <li><strong className="text-green-400">Phase 3 (Crippled):</strong> Post-T4/T3. Starves stat budget to hyper-farm low-tier cards without overkilling.</li>
+              </>
+          )}
+          {phase === 2 && (
+              <>
+                  <li><strong className="text-purple-400 text-st-text bg-purple-900/40 px-1 rounded">Active - Phase 2 (Card Hunt):</strong> Hades (6666) maxed. Abandoning pure frags to target highest unmaxed block tiers.</li>
+                  <li><strong className="text-green-400">Phase 3 (Crippled):</strong> Post-T4/T3. Starves stat budget to hyper-farm low-tier cards without overkilling.</li>
+              </>
+          )}
+          {phase === 3 && (
+              <>
+                  <li><strong className="text-green-400 text-st-text bg-green-900/40 px-1 rounded">Active - Phase 3 (Crippled):</strong> T4/T3 Maxed. Starving stat budget to hyper-farm low-tier cards without overkilling.</li>
+                  <li><strong className="text-yellow-400">Ultimate Mastery:</strong> Locks build and engages O(1) fast-forward once entire tech tree is maxed.</li>
+              </>
+          )}
+        </ul>
+      </>
+    );
   };
 
   // Generic Number Formatter to keep the UI clean
@@ -626,10 +705,23 @@ export default function PathfinderTab() {
   const asc2Template = templates[templateType];
 
   const handleStartPathfinder = async () => {
+    const parsedTarget = parseInt(targetLevel);
+    const startLevel = startMode === 'template' ? asc2Template.arch_level : store.arch_level;
+    const targetArch = (!isNaN(parsedTarget) && parsedTarget > startLevel) 
+      ? parsedTarget 
+      : startLevel + 1; 
+      
+    if (targetArch - startLevel > 10) {
+        if (!window.confirm(`Warning: You are attempting to simulate ${targetArch - startLevel} Arch Levels at once.\n\nBecause this tool simulates entire timelines of upgrades and floor pushes, doing more than 5-10 levels can take a VERY long time and may crash your browser.\n\nAre you sure you want to proceed?`)) {
+            return;
+        }
+    }
+      
     setIsSimulating(true);
     setPathData(null);
     setSimProgress(0);
     setSimStatus('Booting Engine...');
+    abortConfigRef.current = { abort: false };
     
     try {
       await new Promise(r => setTimeout(r, 50)); // Yield to allow React to paint the status
@@ -678,7 +770,7 @@ export default function PathfinderTab() {
       const result = await runPathfinderSimulation(activeState, targetArch, initialFrags, pool, parsedMinWinRate, parsedArchSecs, parsedExp, (prog) => {
         setSimProgress(prog.progress);
         setSimStatus(prog.status);
-      });
+      }, autoBuyGems, abortConfigRef.current);
 
       pool.terminate();
       setPathData(result);
@@ -744,9 +836,9 @@ export default function PathfinderTab() {
           </button>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
           <div>
-            <label className="block text-sm font-bold text-st-text mb-2">Target Arch Level (Stopping Point):</label>
+            <label className="block text-sm font-bold text-st-text mb-2">Target Arch Level:</label>
             <input 
               type="number" 
               min="2"
@@ -762,11 +854,11 @@ export default function PathfinderTab() {
             {parseInt(targetLevel) <= (startMode === 'template' ? asc2Template.arch_level : store.arch_level) ? (
               <span className="text-[10px] text-red-400 font-bold block mt-1">Must be greater than starting level!</span>
             ) : (
-              <span className="text-[10px] text-st-orange font-bold block mt-1">⚠️ Keep jumps to 5-10 levels max to prevent extreme compute times!</span>
+              <span className="text-[10px] text-st-orange font-bold block mt-1">⚠️ Target ARCH LEVEL, not Max Floor! Keep jumps to 5-10 max.</span>
             )}
           </div>
           <div>
-            <label className="block text-sm font-bold text-st-text mb-2">Floor Push Safety (Win Rate %):</label>
+            <label className="block text-sm font-bold text-st-text mb-2">Push Safety (Win %):</label>
             <input 
               type="number" 
               min="1"
@@ -776,10 +868,10 @@ export default function PathfinderTab() {
               className="w-full bg-[#0E1117] border border-st-border rounded p-2 text-st-text focus:border-st-orange outline-none"
               placeholder="e.g. 20"
             />
-            <span className="text-[10px] text-st-text-light block mt-1">Minimum combat success rate required to push.</span>
+            <span className="text-[10px] text-st-text-light block mt-1">Min success required to push.</span>
           </div>
           <div>
-            <label className="block text-sm font-bold text-st-text mb-2">Starting Clock Offset (Seconds):</label>
+            <label className="block text-sm font-bold text-st-text mb-2">Starting Clock (Secs):</label>
             <input 
               type="number" 
               min="0"
@@ -788,7 +880,20 @@ export default function PathfinderTab() {
               className="w-full bg-[#0E1117] border border-st-border rounded p-2 text-st-text focus:border-st-orange outline-none"
               placeholder="e.g. 0"
             />
-            <span className="text-[10px] text-st-text-light block mt-1">Offset for chunked simulations.</span>
+            <span className="text-[10px] text-st-text-light block mt-1">Offset for chunked sims.</span>
+          </div>
+          <div>
+            <label className="block text-sm font-bold text-st-text mb-2">Auto-Buy Gem Upgs:</label>
+            <label className="flex items-center gap-2 cursor-pointer mt-3">
+              <input 
+                type="checkbox" 
+                checked={autoBuyGems}
+                onChange={(e) => setAutoBuyGems(e.target.checked)}
+                className="w-4 h-4 accent-st-orange cursor-pointer"
+              />
+              <span className="text-sm text-st-text">Buy instantly</span>
+            </label>
+            <span className="text-[10px] text-st-text-light block mt-1">Disable if gem poor.</span>
           </div>
         </div>
 
@@ -808,16 +913,9 @@ export default function PathfinderTab() {
               </div>
               <p>Loaded Profile: <span className="text-st-orange font-bold">{asc2Template.name}</span></p>
               <p>Arch Level: {asc2Template.arch_level} | Max Floor: {asc2Template.current_max_floor}</p>
-              <p>Total Infernal Cards: {asc2Template.total_infernal_cards} | Hades Lvl: {asc2Template.external_levels[21]}</p>
-              <p className="mt-2 text-[#FAFAFA] font-bold">Autonomous Endgame Director:</p>
-              <ul className="list-disc ml-4 opacity-80 mt-1.5 text-[11px] space-y-1">
-                <li><strong className="text-red-400">Dual-Track Pushing:</strong> Maintains parallel Farm and Push builds, opportunistically brute-forcing max floors.</li>
-                <li><strong className="text-st-orange">Opportunity Cost:</strong> Dynamically swaps Farm build between EXP and Frag targets to snipe the expensive mid-game fragment upgrades.</li>
-                <li><strong className="text-blue-400">Phase 1 (Divine Pivot):</strong> Post-Hestia (3000) & Upgrades Secured. Abandons EXP to pure-farm Divine Frags for Hades.</li>
-                <li><strong className="text-purple-400">Phase 2 (Card Hunt):</strong> Post-Hades (6666). Abandons frags to target highest unmaxed block tiers.</li>
-                <li><strong className="text-green-400">Phase 3 (Crippled):</strong> Post-T4/T3. Starves stat budget to hyper-farm low-tier cards without overkilling.</li>
-                <li><strong className="text-yellow-400">Ultimate Mastery:</strong> Locks build and engages O(1) fast-forward once entire tech tree is maxed.</li>
-              </ul>
+              <p>Hestia Lvl: {asc2Template.external_levels[ 4 ]} | Hades Lvl: {asc2Template.external_levels[ 21 ]}</p>
+              <p>Total Infernal Cards: {asc2Template.total_infernal_cards} | {getCardSummary(asc2Template.cards)}</p>
+              {renderDirectorSummary(asc2Template)}
             </div>
           ) : (
             <div>
@@ -825,6 +923,8 @@ export default function PathfinderTab() {
                 <div>
                   <p className="text-st-text font-bold">Arch Level: <span className="text-st-orange">{store.arch_level}</span></p>
                   <p className="text-st-text font-bold">Max Floor: <span className="text-st-orange">{store.current_max_floor}</span></p>
+                  <p className="text-st-text font-bold text-xs mt-1">Hestia Lvl: <span className="text-st-orange">{store.external_levels[ 4 ] || 0}</span> | Hades Lvl: <span className="text-st-orange">{store.external_levels[ 21 ] || 0}</span></p>
+                  <p className="text-st-text font-bold text-xs mt-1">Infernals: <span className="text-st-orange">{store.total_infernal_cards || 0}</span> | {getCardSummary(store.cards)}</p>
                 </div>
                 <div className="border-l border-st-border pl-6">
                   <label className="block text-[10px] font-bold text-st-text-light mb-1 uppercase tracking-wider">Current EXP towards Lvl {store.arch_level + 1}:</label>
@@ -847,7 +947,9 @@ export default function PathfinderTab() {
                   />
                 </div>
               </div>
-              <p className="mt-3 text-st-text-light">Targeting remaining goals based on current state...</p>
+              <div className="mt-4 border-t border-st-border pt-2">
+                {renderDirectorSummary(store)}
+              </div>
               
               <details className="mt-4 border-t border-st-border pt-4 group cursor-pointer marker:text-st-orange">
                 <summary className="text-sm font-bold text-[#FAFAFA] select-none outline-none">
@@ -938,18 +1040,28 @@ export default function PathfinderTab() {
           )}
         </div>
 
-        <button
-          onClick={handleStartPathfinder}
-          disabled={isSimulating}
-          className="w-full py-3 bg-st-orange text-st-bg rounded font-bold text-lg hover:bg-opacity-90 transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-md flex flex-col items-center justify-center"
-        >
-          <span>{isSimulating ? simStatus : 'Run Path Simulation'}</span>
+        <div className="flex flex-col md:flex-row gap-4 mt-6">
+          <button
+            onClick={handleStartPathfinder}
+            disabled={isSimulating}
+            className="w-full py-3 bg-st-orange text-st-bg rounded font-bold text-lg hover:bg-opacity-90 transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-md flex flex-col items-center justify-center"
+          >
+            <span>{isSimulating ? simStatus : 'Run Path Simulation'}</span>
+            {isSimulating && (
+              <div className="w-1/2 bg-st-bg/20 rounded h-1.5 mt-2 overflow-hidden">
+                <div className="bg-white h-full transition-all duration-300" style={{ width: `${simProgress}%` }} />
+              </div>
+            )}
+          </button>
           {isSimulating && (
-            <div className="w-1/2 bg-st-bg/20 rounded h-1.5 mt-2 overflow-hidden">
-              <div className="bg-white h-full transition-all duration-300" style={{ width: `${simProgress}%` }} />
-            </div>
+            <button
+              onClick={handleAbort}
+              className="py-3 px-6 bg-red-600 text-white rounded font-bold text-lg hover:bg-opacity-90 transition-all shadow-md shrink-0 flex items-center justify-center gap-2"
+            >
+              <span>🛑</span> Stop & Save Partial
+            </button>
           )}
-        </button>
+        </div>
       </div>
 
       {/* TIMELINE TOOLS (ALWAYS VISIBLE) */}
