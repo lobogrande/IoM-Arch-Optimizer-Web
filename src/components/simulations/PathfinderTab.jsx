@@ -169,7 +169,12 @@ export default function PathfinderTab() {
     setSimStatus(`Workspace updated to Level ${snap.arch_level} / Floor ${snap.current_max_floor}!`);
     
     // Auto-scroll the user back up to the control panel so they can immediately run the next chunk!
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    const target = document.getElementById('pathfinder-starting-point');
+    if (target) {
+      target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    } else {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
     
     setTimeout(() => setSimStatus(''), 3000);
   };
@@ -819,7 +824,7 @@ export default function PathfinderTab() {
       </div>
 
       {/* SETUP DASHBOARD */}
-      <div className="bg-st-bg border border-st-border rounded p-4 shadow-sm">
+      <div id="pathfinder-starting-point" className="bg-st-bg border border-st-border rounded p-4 shadow-sm">
         <h3 className="text-lg font-bold text-st-text mb-4 border-b border-st-border pb-2">1. Starting Point</h3>
         
         <div className="flex gap-4 mb-6">
