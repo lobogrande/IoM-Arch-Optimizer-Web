@@ -735,7 +735,7 @@ export async function runPathfinderSimulation(startState, targetLevel, initialFr
             eventCount++;
 
             // --- ULTIMATE MASTERY CHECK ---
-        // If the entire tech tree is exhausted, we stop running expensive grid searches!
+        // If all Asc2 progression goals are exhausted, we stop running expensive grid searches!
         if (!techTreeExhaustedAnnounced) {
             const idolsMaxed = (state.external_levels[4] >= 3000) && (state.external_levels[21] >= 6666) && (state.prometheus_level >= 1000) && (state.sisyphus_level >= 7777);
             
@@ -761,7 +761,7 @@ export async function runPathfinderSimulation(startState, targetLevel, initialFr
                 techTreeExhaustedAnnounced = true;
                 history.push({
                     type: "system",
-                    event: `🏆 Ultimate Mastery: Tech Tree Exhausted!`,
+                    event: `🏆 Ultimate Mastery: Asc2 Goals Completed!`,
                     arch_sec: cumulativeArchSecs,
                     time_delta: 0,
                     active_build: "Farm",
@@ -987,7 +987,7 @@ export async function runPathfinderSimulation(startState, targetLevel, initialFr
         }
 
         // --- HESTIA IDOL AUTO-TRIBUTE ---
-        // Sweeps excess Common Fragments into Idol Levels once the tech tree is fully exhausted
+        // Sweeps excess Common Fragments into Idol Levels once the core upgrades are fully maxed
         if ((state.upgrade_levels[41] || 0) > 0 && frags.com >= 999 && (state.external_levels[4] || 0) < 3000) {
             const comUpgs =[ 9, 10, 11, 12, 13, 19, 25, 41 ];
             let comMaxed = true;
@@ -1064,7 +1064,7 @@ export async function runPathfinderSimulation(startState, targetLevel, initialFr
         }
 
         // --- DIVINE IDOLS AUTO-TRIBUTE ---
-        // Sweeps excess Divine Fragments into the RNG Idol pool once tech tree is exhausted
+        // Sweeps excess Divine Fragments into the RNG Idol pool once the core upgrades are fully maxed
         if (frags.div >= 999) {
             const divUpgs =[47, 48, 49, 50, 51, 55];
             let divMaxed = true;

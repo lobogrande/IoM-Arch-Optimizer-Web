@@ -102,7 +102,7 @@ export default function PathfinderTab() {
                   <li><strong className="text-blue-400">Phase 1 (Divine Pivot):</strong> Post-Hestia (3000) & Upgrades Secured. Abandons EXP to pure-farm Divine Frags for Hades.</li>
                   <li><strong className="text-purple-400">Phase 2 (Card Hunt):</strong> Post-Hades (6666). Abandons frags to target highest unmaxed block tiers.</li>
                   <li><strong className="text-green-400">Phase 3 (Crippled):</strong> Post-T4/T3. Starves stat budget to hyper-farm low-tier cards without overkilling.</li>
-                  <li><strong className="text-yellow-400">Ultimate Mastery:</strong> Locks build and engages O(1) fast-forward once entire tech tree is maxed.</li>
+                  <li><strong className="text-yellow-400">Ultimate Mastery:</strong> Locks build and engages rapid fast-forward once all Asc2 goals (Upgrades, Cards, Idols) are maxed.</li>
               </>
           )}
           {phase === 1 && (
@@ -121,7 +121,7 @@ export default function PathfinderTab() {
           {phase === 3 && (
               <>
                   <li><strong className="text-green-400 text-st-text bg-green-900/40 px-1 rounded">Active - Phase 3 (Crippled):</strong> T4/T3 Maxed. Starving stat budget to hyper-farm low-tier cards without overkilling.</li>
-                  <li><strong className="text-yellow-400">Ultimate Mastery:</strong> Locks build and engages O(1) fast-forward once entire tech tree is maxed.</li>
+                  <li><strong className="text-yellow-400">Ultimate Mastery:</strong> Locks build and engages rapid fast-forward once all Asc2 goals (Upgrades, Cards, Idols) are maxed.</li>
               </>
           )}
         </ul>
@@ -659,9 +659,9 @@ export default function PathfinderTab() {
             crippledStarted = true;
         }
 
-        if (ev.type === 'system' && ev.event.includes('Tech Tree Exhausted') && !masteryHit) {
+        if (ev.type === 'system' && (ev.event.includes('Tech Tree Exhausted') || ev.event.includes('Asc2 Goals Completed')) && !masteryHit) {
             insights.push({
-                icon: '🏆', title: 'Tech Tree Exhausted',
+                icon: '🏆', title: 'Asc2 Goals Completed',
                 desc: `At Arch Level ${ev.level}, all Upgrades, Cards, and Idols were mathematically maxed. The optimizer locked the build and fast-forwarded the remaining timeline.`,
                 actionText: 'See Plot 1 (Progression)',
                 actionTarget: 'chart-prog'
