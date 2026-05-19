@@ -591,34 +591,52 @@ export default function OptimizerTab() {
                   </select>
 
                   {(!lockObj || lockObj.type !== 'range') ? (
-                    <input
-                      data-tour={`opt-lock-val-${stat}`}
-                      type="number"
-                      value={lockObj ? lockObj.val : (store.base_stats[stat] || 0)}
-                      onFocus={(e) => e.target.select()}
-                      onChange={(e) => handleLockChange(stat, 'val', e.target.value)}
-                      disabled={!isLocked}
-                      className="w-full bg-st-secondary border border-transparent rounded p-1 text-xs text-center focus:border-st-orange focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed h-7"
-                    />
+                    <>
+                      <input
+                        data-tour={`opt-lock-val-${stat}`}
+                        type="number"
+                        value={lockObj ? lockObj.val : (store.base_stats[stat] || 0)}
+                        onFocus={(e) => e.target.select()}
+                        onChange={(e) => handleLockChange(stat, 'val', e.target.value)}
+                        disabled={!isLocked}
+                        className="w-full bg-st-secondary border border-transparent rounded p-1 text-xs text-center focus:border-st-orange focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed h-7"
+                      />
+                      <div className="flex flex-wrap justify-center gap-1 mt-1 w-full">
+                        <button onClick={() => handleLockChange(stat, 'val', Math.max(0, (lockObj ? lockObj.val : (store.base_stats[stat] || 0)) - 1))} disabled={!isLocked} className="flex-1 min-w-10 px-1 py-0.5 text-[10px] bg-st-secondary text-st-text rounded border border-st-border hover:border-st-orange transition-colors disabled:opacity-50 disabled:cursor-not-allowed">-1</button>
+                        <button onClick={() => handleLockChange(stat, 'val', Math.min(MAX_STAT_CAPS[stat], (lockObj ? lockObj.val : (store.base_stats[stat] || 0)) + 1))} disabled={!isLocked} className="flex-1 min-w-10 px-1 py-0.5 text-[10px] bg-st-secondary text-st-text rounded border border-st-border hover:border-st-orange transition-colors disabled:opacity-50 disabled:cursor-not-allowed">+1</button>
+                      </div>
+                    </>
                   ) : (
-                    <div className="flex items-center gap-1">
-                      <input
-                        type="number"
-                        value={lockObj.min}
-                        onFocus={(e) => e.target.select()}
-                        onChange={(e) => handleLockChange(stat, 'min', e.target.value)}
-                        className="w-full bg-st-secondary border border-transparent rounded p-1 text-xs text-center focus:border-st-orange focus:outline-none h-7"
-                        style={{ minWidth: 0 }}
-                      />
-                      <span className="text-xs text-st-text-light font-bold">-</span>
-                      <input
-                        type="number"
-                        value={lockObj.max}
-                        onFocus={(e) => e.target.select()}
-                        onChange={(e) => handleLockChange(stat, 'max', e.target.value)}
-                        className="w-full bg-st-secondary border border-transparent rounded p-1 text-xs text-center focus:border-st-orange focus:outline-none h-7"
-                        style={{ minWidth: 0 }}
-                      />
+                    <div className="flex flex-col gap-1">
+                      <div className="flex items-center gap-1">
+                        <input
+                          type="number"
+                          value={lockObj.min}
+                          onFocus={(e) => e.target.select()}
+                          onChange={(e) => handleLockChange(stat, 'min', e.target.value)}
+                          className="w-full bg-st-secondary border border-transparent rounded p-1 text-xs text-center focus:border-st-orange focus:outline-none h-7"
+                          style={{ minWidth: 0 }}
+                        />
+                        <span className="text-xs text-st-text-light font-bold">-</span>
+                        <input
+                          type="number"
+                          value={lockObj.max}
+                          onFocus={(e) => e.target.select()}
+                          onChange={(e) => handleLockChange(stat, 'max', e.target.value)}
+                          className="w-full bg-st-secondary border border-transparent rounded p-1 text-xs text-center focus:border-st-orange focus:outline-none h-7"
+                          style={{ minWidth: 0 }}
+                        />
+                      </div>
+                      <div className="flex gap-1">
+                        <div className="flex-1 flex gap-0.5">
+                          <button onClick={() => handleLockChange(stat, 'min', Math.max(0, lockObj.min - 1))} className="flex-1 px-0.5 py-0.5 text-[9px] bg-st-secondary text-st-text rounded border border-st-border hover:border-st-orange transition-colors">-1</button>
+                          <button onClick={() => handleLockChange(stat, 'min', Math.min(MAX_STAT_CAPS[stat], lockObj.min + 1))} className="flex-1 px-0.5 py-0.5 text-[9px] bg-st-secondary text-st-text rounded border border-st-border hover:border-st-orange transition-colors">+1</button>
+                        </div>
+                        <div className="flex-1 flex gap-0.5">
+                          <button onClick={() => handleLockChange(stat, 'max', Math.max(0, lockObj.max - 1))} className="flex-1 px-0.5 py-0.5 text-[9px] bg-st-secondary text-st-text rounded border border-st-border hover:border-st-orange transition-colors">-1</button>
+                          <button onClick={() => handleLockChange(stat, 'max', Math.min(MAX_STAT_CAPS[stat], lockObj.max + 1))} className="flex-1 px-0.5 py-0.5 text-[9px] bg-st-secondary text-st-text rounded border border-st-border hover:border-st-orange transition-colors">+1</button>
+                        </div>
+                      </div>
                     </div>
                   )}
                 </div>

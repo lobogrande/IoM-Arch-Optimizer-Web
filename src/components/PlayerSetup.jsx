@@ -238,9 +238,11 @@ export default function PlayerSetup() {
           onBlur={(e) => setBaseStat(statKey, Math.min(STAT_CAPS[statKey], Math.max(0, parseInt(e.target.value) || 0)))}
         />
         <div className="flex flex-wrap justify-center gap-1 mt-2 w-full">
-          <button onClick={() => setBaseStat(statKey, Math.max(0, (base_stats[statKey] || 0) - 5))} className="flex-1 px-1 py-1 text-xs bg-st-secondary text-st-text rounded border border-st-border hover:border-st-orange transition-colors">-5</button>
-          <button onClick={() => setBaseStat(statKey, Math.min(STAT_CAPS[statKey], (base_stats[statKey] || 0) + 5))} className="flex-1 px-1 py-1 text-xs bg-st-secondary text-st-text rounded border border-st-border hover:border-st-orange transition-colors">+5</button>
-          <button onClick={() => setBaseStat(statKey, STAT_CAPS[statKey])} className="flex-1 px-1 py-1 text-xs font-bold bg-st-secondary text-st-text rounded border border-st-border hover:border-st-orange transition-colors">Max</button>
+          <button onClick={() => setBaseStat(statKey, Math.max(0, (base_stats[statKey] || 0) - 5))} className="flex-1 min-w-10 px-1 py-1 text-xs bg-st-secondary text-st-text rounded border border-st-border hover:border-st-orange transition-colors">-5</button>
+          <button onClick={() => setBaseStat(statKey, Math.max(0, (base_stats[statKey] || 0) - 1))} className="flex-1 min-w-10 px-1 py-1 text-xs bg-st-secondary text-st-text rounded border border-st-border hover:border-st-orange transition-colors">-1</button>
+          <button onClick={() => setBaseStat(statKey, Math.min(STAT_CAPS[statKey], (base_stats[statKey] || 0) + 1))} className="flex-1 min-w-10 px-1 py-1 text-xs bg-st-secondary text-st-text rounded border border-st-border hover:border-st-orange transition-colors">+1</button>
+          <button onClick={() => setBaseStat(statKey, Math.min(STAT_CAPS[statKey], (base_stats[statKey] || 0) + 5))} className="flex-1 min-w-10 px-1 py-1 text-xs bg-st-secondary text-st-text rounded border border-st-border hover:border-st-orange transition-colors">+5</button>
+          <button onClick={() => setBaseStat(statKey, STAT_CAPS[statKey])} className="flex-1 min-w-10 px-1 py-1 text-xs font-bold bg-st-secondary text-st-text rounded border border-st-border hover:border-st-orange transition-colors">Max</button>
         </div>
       </div>
     );
@@ -399,7 +401,7 @@ export default function PlayerSetup() {
                   });
                 }
               }
-            }} className="w-4 h-4 accent-st-orange" />
+            }} className="w-5 h-5 accent-st-orange" />
             <span>Ascension 1 Unlocked</span>
           </label>
 
@@ -415,7 +417,7 @@ export default function PlayerSetup() {
                   });
                 }
               }
-            }} className="w-4 h-4 accent-st-orange" />
+            }} className="w-5 h-5 accent-st-orange" />
             <span className={!asc1_unlocked ? "opacity-50" : ""}>Ascension 2 Unlocked</span>
           </label>
 
@@ -428,6 +430,10 @@ export default function PlayerSetup() {
               onChange={(e) => setSetting('arch_level', e.target.value === '' ? '' : parseInt(e.target.value))}
               onBlur={(e) => setSetting('arch_level', Math.max(1, parseInt(e.target.value) || 1))}
             />
+            <div className="flex flex-wrap justify-center gap-1 mt-2 w-full">
+              <button onClick={() => setSetting('arch_level', Math.max(1, arch_level - 1))} className="flex-1 min-w-10 px-1 py-1 text-xs bg-st-secondary text-st-text rounded border border-st-border hover:border-st-orange transition-colors">-1</button>
+              <button onClick={() => setSetting('arch_level', arch_level + 1)} className="flex-1 min-w-10 px-1 py-1 text-xs bg-st-secondary text-st-text rounded border border-st-border hover:border-st-orange transition-colors">+1</button>
+            </div>
           </div>
 
           <div data-tour="setup-max-floor" className="mb-4">
@@ -439,6 +445,10 @@ export default function PlayerSetup() {
               onChange={(e) => setSetting('current_max_floor', e.target.value === '' ? '' : parseInt(e.target.value))}
               onBlur={(e) => setSetting('current_max_floor', Math.max(1, parseInt(e.target.value) || 1))}
             />
+            <div className="flex flex-wrap justify-center gap-1 mt-2 w-full">
+              <button onClick={() => setSetting('current_max_floor', Math.max(1, current_max_floor - 1))} className="flex-1 min-w-10 px-1 py-1 text-xs bg-st-secondary text-st-text rounded border border-st-border hover:border-st-orange transition-colors">-1</button>
+              <button onClick={() => setSetting('current_max_floor', current_max_floor + 1)} className="flex-1 min-w-10 px-1 py-1 text-xs bg-st-secondary text-st-text rounded border border-st-border hover:border-st-orange transition-colors">+1</button>
+            </div>
           </div>
 
           <div data-tour="setup-speed-pool">
@@ -450,6 +460,10 @@ export default function PlayerSetup() {
               onChange={(e) => setSetting('starting_speed_pool', e.target.value === '' ? '' : parseInt(e.target.value))}
               onBlur={(e) => setSetting('starting_speed_pool', Math.max(0, parseInt(e.target.value) || 0))}
             />
+            <div className="flex flex-wrap justify-center gap-1 mt-2 w-full">
+              <button onClick={() => setSetting('starting_speed_pool', Math.max(0, (starting_speed_pool || 0) - 1))} className="flex-1 min-w-10 px-1 py-1 text-xs bg-st-secondary text-st-text rounded border border-st-border hover:border-st-orange transition-colors">-1</button>
+              <button onClick={() => setSetting('starting_speed_pool', (starting_speed_pool || 0) + 1)} className="flex-1 min-w-10 px-1 py-1 text-xs bg-st-secondary text-st-text rounded border border-st-border hover:border-st-orange transition-colors">+1</button>
+            </div>
           </div>
         </div>
 
@@ -517,13 +531,13 @@ export default function PlayerSetup() {
       <div className="w-full md:w-3/4">
         
         <div data-tour="setup-tabs" className="flex flex-wrap items-center justify-between border-b border-st-border mb-4">
-          <div className="flex flex-wrap flex-1">
+          <div className="flex overflow-x-auto md:flex-wrap flex-1 scrollbar-thin">
             {[ '📊 Base Stats', '⬆️ Int. Upgrades', '🌟 Ext. Upgrades', '🎴 Block Cards', '🗿 Arch Idols' ].map((tab, idx) => {
               const tabId =[ 'stats', 'upgrades_int', 'upgrades_ext', 'cards', 'idols' ][idx];
               const isActive = activeSubTab === tabId;
               return (
                 <button key={tabId} id={`setup-tab-${tabId}`} onClick={() => setActiveSubTab(tabId)}
-                  className={`px-4 py-2 font-medium border-b-2 transition-colors ${isActive ? 'border-st-orange text-st-text' : 'border-transparent text-st-text hover:text-st-orange hover:border-gray-300'}`}>
+                  className={`px-4 py-2 font-medium border-b-2 transition-colors whitespace-nowrap flex-shrink-0 ${isActive ? 'border-st-orange text-st-text' : 'border-transparent text-st-text hover:text-st-orange hover:border-gray-300'}`}>
                   {tab}
                 </button>
               )
@@ -707,9 +721,11 @@ export default function PlayerSetup() {
                         onBlur={(e) => setUpgradeLevel(id, Math.min(max_lvl, Math.max(0, parseInt(e.target.value) || 0)))}
                       />
                       <div className="flex flex-wrap justify-center gap-1 mt-2 w-full">
-                        <button onClick={() => setUpgradeLevel(id, Math.max(0, current_lvl - 5))} className="flex-1 px-1 py-1 text-xs bg-st-secondary text-st-text rounded border border-st-border hover:border-st-orange transition-colors">-5</button>
-                        <button onClick={() => setUpgradeLevel(id, Math.min(max_lvl, current_lvl + 5))} className="flex-1 px-1 py-1 text-xs bg-st-secondary text-st-text rounded border border-st-border hover:border-st-orange transition-colors">+5</button>
-                        <button onClick={() => setUpgradeLevel(id, max_lvl)} className="flex-1 px-1 py-1 text-xs font-bold bg-st-secondary text-st-text rounded border border-st-border hover:border-st-orange transition-colors">Max</button>
+                        <button onClick={() => setUpgradeLevel(id, Math.max(0, current_lvl - 5))} className="flex-1 min-w-10 px-1 py-1 text-xs bg-st-secondary text-st-text rounded border border-st-border hover:border-st-orange transition-colors">-5</button>
+                        <button onClick={() => setUpgradeLevel(id, Math.max(0, current_lvl - 1))} className="flex-1 min-w-10 px-1 py-1 text-xs bg-st-secondary text-st-text rounded border border-st-border hover:border-st-orange transition-colors">-1</button>
+                        <button onClick={() => setUpgradeLevel(id, Math.min(max_lvl, current_lvl + 1))} className="flex-1 min-w-10 px-1 py-1 text-xs bg-st-secondary text-st-text rounded border border-st-border hover:border-st-orange transition-colors">+1</button>
+                        <button onClick={() => setUpgradeLevel(id, Math.min(max_lvl, current_lvl + 5))} className="flex-1 min-w-10 px-1 py-1 text-xs bg-st-secondary text-st-text rounded border border-st-border hover:border-st-orange transition-colors">+5</button>
+                        <button onClick={() => setUpgradeLevel(id, max_lvl)} className="flex-1 min-w-10 px-1 py-1 text-xs font-bold bg-st-secondary text-st-text rounded border border-st-border hover:border-st-orange transition-colors">Max</button>
                       </div>
                     </div>
                   );
@@ -749,7 +765,7 @@ export default function PlayerSetup() {
                         {group.id === 'geoduck' && (
                           <>
                             <label className="flex items-start gap-2 cursor-pointer font-bold mb-1 text-xs mt-2 text-left leading-tight">
-                              <input type="checkbox" checked={geoduck_unlocked} onChange={(e) => setSetting('geoduck_unlocked', e.target.checked)} className="w-4 h-4 accent-st-orange shrink-0 mt-0.5" />
+                              <input type="checkbox" checked={geoduck_unlocked} onChange={(e) => setSetting('geoduck_unlocked', e.target.checked)} className="w-5 h-5 accent-st-orange shrink-0 mt-0.5" />
                               <span>Geoduck Leg Fish T1 Tribute Completed</span>
                             </label>
                             <span className="text-xs text-st-text-light mt-1 text-center">Enter Number of Mythic Chests Owned</span>
@@ -758,15 +774,36 @@ export default function PlayerSetup() {
                       </div>
 
                       {(group.ui_type === 'number' || group.ui_type === 'pet' || group.ui_type === 'card') && (
-                        <input 
-                          type="number"
-                          className={`st-input ${group.id === 'geoduck' && !geoduck_unlocked ? 'opacity-30 cursor-not-allowed' : ''}`} 
-                          value={current_val} 
-                          disabled={group.id === 'geoduck' && !geoduck_unlocked} 
-                          onFocus={(e) => e.target.select()}
-                          onChange={(e) => setExternalGroup(group.rows, e.target.value === '' ? '' : parseInt(e.target.value))} 
-                          onBlur={(e) => setExternalGroup(group.rows, Math.min(group.max !== undefined ? group.max : 9999, Math.max(group.ui_type === 'pet' ? -1 : 0, parseInt(e.target.value) || 0)))}
-                        />
+                        <>
+                          <input 
+                            type="number"
+                            className={`st-input ${group.id === 'geoduck' && !geoduck_unlocked ? 'opacity-30 cursor-not-allowed' : ''}`} 
+                            value={current_val} 
+                            disabled={group.id === 'geoduck' && !geoduck_unlocked} 
+                            onFocus={(e) => e.target.select()}
+                            onChange={(e) => setExternalGroup(group.rows, e.target.value === '' ? '' : parseInt(e.target.value))} 
+                            onBlur={(e) => setExternalGroup(group.rows, Math.min(group.max !== undefined ? group.max : 9999, Math.max(group.ui_type === 'pet' ? -1 : 0, parseInt(e.target.value) || 0)))}
+                          />
+                          <div className="flex flex-wrap justify-center gap-1 mt-2 w-full">
+                            <button 
+                              onClick={() => setExternalGroup(group.rows, Math.max(group.ui_type === 'pet' ? -1 : 0, current_val - 1))} 
+                              disabled={group.id === 'geoduck' && !geoduck_unlocked}
+                              className="flex-1 min-w-10 px-1 py-1 text-xs bg-st-secondary text-st-text rounded border border-st-border hover:border-st-orange transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                            >-1</button>
+                            <button 
+                              onClick={() => setExternalGroup(group.rows, Math.min(group.max !== undefined ? group.max : 9999, current_val + 1))} 
+                              disabled={group.id === 'geoduck' && !geoduck_unlocked}
+                              className="flex-1 min-w-10 px-1 py-1 text-xs bg-st-secondary text-st-text rounded border border-st-border hover:border-st-orange transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                            >+1</button>
+                            {(group.id === 'axolotl' || group.id === 'dinosaur') && (
+                              <button 
+                                onClick={() => setExternalGroup(group.rows, group.max)} 
+                                disabled={group.id === 'geoduck' && !geoduck_unlocked}
+                                className="flex-1 min-w-10 px-1 py-1 text-xs font-bold bg-st-secondary text-st-text rounded border border-st-border hover:border-st-orange transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                              >Max</button>
+                            )}
+                          </div>
+                        </>
                       )}
                       
                       {(group.ui_type === 'skill' || group.ui_type === 'bundle') && (
@@ -823,6 +860,10 @@ export default function PlayerSetup() {
                   onChange={(e) => setSetting('total_infernal_cards', e.target.value === '' ? '' : parseInt(e.target.value))}
                   onBlur={(e) => setSetting('total_infernal_cards', Math.max(0, parseInt(e.target.value) || 0))}
                 />
+                <div className="flex flex-wrap justify-center gap-1 mt-2 w-full">
+                  <button onClick={() => setSetting('total_infernal_cards', Math.max(0, total_infernal_cards - 1))} className="flex-1 min-w-10 px-1 py-1 text-xs bg-st-secondary text-st-text rounded border border-st-border hover:border-st-orange transition-colors">-1</button>
+                  <button onClick={() => setSetting('total_infernal_cards', total_infernal_cards + 1)} className="flex-1 min-w-10 px-1 py-1 text-xs bg-st-secondary text-st-text rounded border border-st-border hover:border-st-orange transition-colors">+1</button>
+                </div>
               </div>
               <div className="w-full sm:w-1/2 sm:border-l border-st-border sm:pl-6 text-center sm:text-left">
                 <span className="text-sm font-bold block mb-1">🔥 Infernal Arch Card Bonus</span>
@@ -949,6 +990,11 @@ export default function PlayerSetup() {
                       onChange={(e) => setExternalGroup([4], e.target.value === '' ? '' : parseInt(e.target.value))} 
                       onBlur={(e) => setExternalGroup([4], Math.min(3000, Math.max(0, parseInt(e.target.value) || 0)))}
                     />
+                    <div className="flex flex-wrap justify-center gap-1 mt-2 w-full">
+                      <button onClick={() => setExternalGroup([4], Math.max(0, (external_levels[4] || 0) - 1))} className="flex-1 min-w-10 px-1 py-1 text-xs bg-st-secondary text-st-text rounded border border-st-border hover:border-st-orange transition-colors">-1</button>
+                      <button onClick={() => setExternalGroup([4], Math.min(3000, (external_levels[4] || 0) + 1))} className="flex-1 min-w-10 px-1 py-1 text-xs bg-st-secondary text-st-text rounded border border-st-border hover:border-st-orange transition-colors">+1</button>
+                      <button onClick={() => setExternalGroup([4], 3000)} className="flex-1 min-w-10 px-1 py-1 text-xs font-bold bg-st-secondary text-st-text rounded border border-st-border hover:border-st-orange transition-colors">Max</button>
+                    </div>
                   </div>
                 </div>
 
@@ -965,7 +1011,7 @@ export default function PlayerSetup() {
                         type="checkbox" 
                         checked={hades_unlocked} 
                         onChange={(e) => setSetting('hades_unlocked', e.target.checked)} 
-                        className="w-4 h-4 accent-st-orange shrink-0 mt-0.5" 
+                        className="w-5 h-5 accent-st-orange shrink-0 mt-0.5" 
                       />
                       <span>Hades Idol Unlocked (Arch Lv 85 + Blackened Basker Leg Fish T2)</span>
                     </label>
@@ -979,6 +1025,11 @@ export default function PlayerSetup() {
                       onChange={(e) => setExternalGroup([21], e.target.value === '' ? '' : parseInt(e.target.value))}
                       onBlur={(e) => setExternalGroup([21], Math.min(6666, Math.max(0, parseInt(e.target.value) || 0)))}
                     />
+                    <div className="flex flex-wrap justify-center gap-1 mt-2 w-full">
+                      <button onClick={() => setExternalGroup([21], Math.max(0, (external_levels[21] || 0) - 1))} disabled={!hades_unlocked} className="flex-1 min-w-10 px-1 py-1 text-xs bg-st-secondary text-st-text rounded border border-st-border hover:border-st-orange transition-colors disabled:opacity-30 disabled:cursor-not-allowed">-1</button>
+                      <button onClick={() => setExternalGroup([21], Math.min(6666, (external_levels[21] || 0) + 1))} disabled={!hades_unlocked} className="flex-1 min-w-10 px-1 py-1 text-xs bg-st-secondary text-st-text rounded border border-st-border hover:border-st-orange transition-colors disabled:opacity-30 disabled:cursor-not-allowed">+1</button>
+                      <button onClick={() => setExternalGroup([21], 6666)} disabled={!hades_unlocked} className="flex-1 min-w-10 px-1 py-1 text-xs font-bold bg-st-secondary text-st-text rounded border border-st-border hover:border-st-orange transition-colors disabled:opacity-30 disabled:cursor-not-allowed">Max</button>
+                    </div>
                   </div>
                 </div>
               </div>

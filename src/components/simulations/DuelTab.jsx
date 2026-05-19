@@ -200,6 +200,10 @@ export default function DuelTab() {
                   }}
                   className="st-input p-2 text-sm"
                 />
+                <div className="flex flex-wrap justify-center gap-0.5 mt-1 w-full">
+                  <button onClick={() => setDuelStatsA({...duelStatsA, [stat]: Math.max(0, (duelStatsA[stat] || 0) - 1)})} className="flex-1 min-w-8 px-0.5 py-0.5 text-[10px] bg-st-secondary text-st-text rounded border border-st-border hover:border-st-orange transition-colors">-1</button>
+                  <button onClick={() => setDuelStatsA({...duelStatsA, [stat]: Math.min(MAX_STAT_CAPS[stat], (duelStatsA[stat] || 0) + 1)})} className="flex-1 min-w-8 px-0.5 py-0.5 text-[10px] bg-st-secondary text-st-text rounded border border-st-border hover:border-st-orange transition-colors">+1</button>
+                </div>
               </div>
             ))}
           </div>
@@ -228,6 +232,10 @@ export default function DuelTab() {
                   }}
                   className="st-input p-2 text-sm"
                 />
+                <div className="flex flex-wrap justify-center gap-0.5 mt-1 w-full">
+                  <button onClick={() => setDuelStatsB({...duelStatsB, [stat]: Math.max(0, (duelStatsB[stat] || 0) - 1)})} className="flex-1 min-w-8 px-0.5 py-0.5 text-[10px] bg-st-secondary text-st-text rounded border border-st-border hover:border-st-orange transition-colors">-1</button>
+                  <button onClick={() => setDuelStatsB({...duelStatsB, [stat]: Math.min(MAX_STAT_CAPS[stat], (duelStatsB[stat] || 0) + 1)})} className="flex-1 min-w-8 px-0.5 py-0.5 text-[10px] bg-st-secondary text-st-text rounded border border-st-border hover:border-st-orange transition-colors">+1</button>
+                </div>
               </div>
             ))}
           </div>
