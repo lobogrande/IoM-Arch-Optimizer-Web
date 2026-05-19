@@ -97,6 +97,14 @@ function App() {
     return () => window.removeEventListener('hashchange', handleHashChange);
   }, [ ]);
 
+  // Scroll active primary tab into view when it changes
+  useEffect(() => {
+    const activeTabButton = document.querySelector(`[data-tour="main-tab-${activeTab}"]`);
+    if (activeTabButton) {
+      activeTabButton.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+    }
+  }, [activeTab]);
+
   // Initialize the Calculation Worker
   useEffect(() => {
     calcWorkerRef.current = new Worker(`/calc_worker.js?v=${APP_VERSION}`);
@@ -195,8 +203,10 @@ function App() {
             <button
               key={tab.id}
               data-tour={`main-tab-${tab.id}`}
-              onClick={() => {
+              onClick={(e) => {
                 setActiveTab(tab.id);
+                // Scroll the clicked tab button into view
+                e.currentTarget.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
               }}
               className={`px-4 py-2 font-medium whitespace-nowrap transition-colors duration-200 border-b-2 ${
                 isActive 

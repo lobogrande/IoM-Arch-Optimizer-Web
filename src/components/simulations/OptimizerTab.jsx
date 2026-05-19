@@ -4,6 +4,7 @@ import useStore from '../../store';
 import { EngineWorkerPool, getOptimalStepProfile, runOptimizationPhase, topUpBuild } from '../../utils/optimizer';
 import ResultsDashboard from './ResultsDashboard';
 import { BLOCK_MIN_FLOORS } from '../../game_data';
+import MobileSelect from '../MobileSelect';
 
 const OPT_GOALS =[
   "Max Floor Push", 
@@ -124,11 +125,11 @@ export default function OptimizerTab() {
       if (lock !== undefined) {
         let bMin = 0, bMax = STAT_CAPS[s];
         if (typeof lock === 'number') {
-          bMin = lock; bMax = lock; 
+          bMin = lock; bMax = lock;
         } else {
           if (lock.type === 'exact') { bMin = lock.val; bMax = lock.val; }
-          else if (lock.type === 'min') { bMin = lock.val; bMax = STAT_CAPS[s]; }
-          else if (lock.type === 'max') { bMin = 0; bMax = lock.val; }
+          else if (lock.type === 'min') { bMin = lock.min; bMax = STAT_CAPS[s]; }
+          else if (lock.type === 'max') { bMin = 0; bMax = lock.max; }
           else if (lock.type === 'range') { bMin = lock.min; bMax = lock.max; }
         }
         b[s] = [ Math.max(0, bMin), Math.min(bMax, STAT_CAPS[s]) ];
@@ -173,20 +174,32 @@ export default function OptimizerTab() {
     const lockObj = current !== undefined ? (typeof current === 'number' ? { type: 'exact', val: current } : current) : { type: 'exact', val: 0 };
     
     if (field === 'type') {
-       const baseVal = lockObj.val !== undefined ? lockObj.val : (lockObj.min !== undefined ? lockObj.min : 0);
+       const baseVal = lockObj.val !== undefined ? lockObj.val : (lockObj.min !== undefined ? lockObj.min : (lockObj.max !== undefined ? lockObj.max : 0));
        if (val === 'range') {
          setLockedStats({ ...lockedStats, [stat]: { type: val, min: baseVal, max: STAT_CAPS[stat] } });
+       } else if (val === 'min') {
+         setLockedStats({ ...lockedStats, [stat]: { type: val, min: baseVal } });
+       } else if (val === 'max') {
+         setLockedStats({ ...lockedStats, [stat]: { type: val, max: baseVal } });
        } else {
          setLockedStats({ ...lockedStats, [stat]: { type: val, val: baseVal } });
        }
        return;
     }
 
-    const newLock = { ...lockObj, [field]: parsed };
-    
-    if (newLock.type === 'range') {
-       if (field === 'min' && newLock.min > newLock.max) newLock.max = newLock.min;
-       if (field === 'max' && newLock.max < newLock.min) newLock.min = newLock.max;
+    // Build a clean lock object with only the appropriate fields for the type
+    let newLock;
+    if (lockObj.type === 'range') {
+      newLock = { type: 'range', min: lockObj.min, max: lockObj.max, [field]: parsed };
+      // Ensure min <= max
+      if (field === 'min' && newLock.min > newLock.max) newLock.max = newLock.min;
+      if (field === 'max' && newLock.max < newLock.min) newLock.min = newLock.max;
+    } else if (lockObj.type === 'min') {
+      newLock = { type: 'min', min: parsed };
+    } else if (lockObj.type === 'max') {
+      newLock = { type: 'max', max: parsed };
+    } else {
+      newLock = { type: 'exact', val: parsed };
     }
 
     setLockedStats({ ...lockedStats, [stat]: newLock });
@@ -448,14 +461,13 @@ export default function OptimizerTab() {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
           <label className="block text-sm font-bold mb-1">Optimization Target</label>
-          <select 
+          <MobileSelect
             data-tour="opt-goal"
             value={optGoal} 
             onChange={(e) => setOptGoal(e.target.value)}
+            options={OPT_GOALS.map(g => ({ value: g, label: g }))}
             className="w-full bg-st-bg border border-st-border rounded p-2 text-st-text focus:border-st-orange focus:outline-none"
-          >
-            {OPT_GOALS.map(g => <option key={g} value={g}>{g}</option>)}
-          </select>
+          />
           
           {optGoal !== "Max Floor Push" && (
             <label data-tour="opt-allow-unspent" className="flex items-center space-x-2 mt-4 cursor-pointer text-st-text-light hover:text-st-orange transition-colors">
@@ -474,40 +486,35 @@ export default function OptimizerTab() {
           {optGoal === "Fragment Farming" && (
             <div data-tour="opt-target-frag">
               <label className="block text-sm font-bold mb-1">Target Fragment</label>
-              <select 
+              <MobileSelect
                 value={targetFrag} 
                 onChange={(e) => setTargetFrag(parseInt(e.target.value))}
-                className="w-full bg-st-bg border border-st-border rounded p-2 text-st-text focus:border-st-orange focus:outline-none"
-              >
-                {Object.entries(FRAG_NAMES)
+                options={Object.entries(FRAG_NAMES)
                   .filter(([val]) => {
                     const fragTier = parseInt(val);
                     if (fragTier === 0) return false; 
                     if (fragTier === 6 && !store.asc1_unlocked) return false; 
                     return true;
                   })
-                  .map(([val, name]) => (
-                    <option key={val} value={val}>{name}</option>
-                ))}
-              </select>
+                  .map(([val, name]) => ({ value: parseInt(val), label: name }))}
+                className="w-full bg-st-bg border border-st-border rounded p-2 text-st-text focus:border-st-orange focus:outline-none"
+              />
             </div>
           )}
           {optGoal === "Block Card Farming" && (
             <div data-tour="opt-target-block">
               <label className="block text-sm font-bold mb-1">Target Block ID</label>
-              <select 
+              <MobileSelect
                 value={availableBlocks.includes(targetBlock) ? targetBlock : (availableBlocks[availableBlocks.length - 1] || "dirt1")} 
                 onChange={(e) => setTargetBlock(e.target.value)}
+                options={availableBlocks.length === 0 ? 
+                  [{ value: 'dirt1', label: 'Dirt1' }] :
+                  availableBlocks.map(b => ({ 
+                    value: b, 
+                    label: `${b.charAt(0).toUpperCase() + b.slice(1)} (Min Floor ${BLOCK_MIN_FLOORS[b]})`
+                  }))}
                 className="w-full bg-st-bg border border-st-border rounded p-2 text-st-text focus:border-st-orange focus:outline-none"
-              >
-                {availableBlocks.length === 0 ? (
-                  <option value="dirt1">Dirt1</option>
-                ) : (
-                  availableBlocks.map(b => (
-                    <option key={b} value={b}>{b.charAt(0).toUpperCase() + b.slice(1)} (Min Floor {BLOCK_MIN_FLOORS[b]})</option>
-                  ))
-                )}
-              </select>
+              />
             </div>
           )}
         </div>
@@ -577,33 +584,53 @@ export default function OptimizerTab() {
                 </label>
                 
                 <div className="w-full flex flex-col gap-1 mt-auto">
-                  <select 
+                  <MobileSelect
                     data-tour={`opt-lock-type-${stat}`}
                     value={lockObj ? lockObj.type : 'exact'}
                     onChange={(e) => handleLockChange(stat, 'type', e.target.value)}
                     disabled={!isLocked}
+                    options={[
+                      { value: 'exact', label: '= Exact' },
+                      { value: 'min', label: '≥ Min' },
+                      { value: 'max', label: '≤ Max' },
+                      { value: 'range', label: '↔ Range' }
+                    ]}
                     className="w-full bg-st-secondary border border-st-border rounded p-1 text-xs text-st-text focus:border-st-orange focus:outline-none text-center disabled:opacity-50 disabled:cursor-not-allowed h-7"
-                  >
-                    <option value="exact">= Exact</option>
-                    <option value="min">≥ Min</option>
-                    <option value="max">≤ Max</option>
-                    <option value="range">↔ Range</option>
-                  </select>
+                  />
 
                   {(!lockObj || lockObj.type !== 'range') ? (
                     <>
                       <input
                         data-tour={`opt-lock-val-${stat}`}
                         type="number"
-                        value={lockObj ? lockObj.val : (store.base_stats[stat] || 0)}
+                        value={lockObj ? (lockObj.type === 'min' ? lockObj.min : lockObj.type === 'max' ? lockObj.max : lockObj.val) : (store.base_stats[stat] || 0)}
                         onFocus={(e) => e.target.select()}
-                        onChange={(e) => handleLockChange(stat, 'val', e.target.value)}
+                        onChange={(e) => {
+                          const field = lockObj && lockObj.type === 'min' ? 'min' : lockObj && lockObj.type === 'max' ? 'max' : 'val';
+                          handleLockChange(stat, field, e.target.value);
+                        }}
                         disabled={!isLocked}
                         className="w-full bg-st-secondary border border-transparent rounded p-1 text-xs text-center focus:border-st-orange focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed h-7"
                       />
                       <div className="flex flex-wrap justify-center gap-1 mt-1 w-full">
-                        <button onClick={() => handleLockChange(stat, 'val', Math.max(0, (lockObj ? lockObj.val : (store.base_stats[stat] || 0)) - 1))} disabled={!isLocked} className="flex-1 min-w-10 px-1 py-0.5 text-[10px] bg-st-secondary text-st-text rounded border border-st-border hover:border-st-orange transition-colors disabled:opacity-50 disabled:cursor-not-allowed">-1</button>
-                        <button onClick={() => handleLockChange(stat, 'val', Math.min(MAX_STAT_CAPS[stat], (lockObj ? lockObj.val : (store.base_stats[stat] || 0)) + 1))} disabled={!isLocked} className="flex-1 min-w-10 px-1 py-0.5 text-[10px] bg-st-secondary text-st-text rounded border border-st-border hover:border-st-orange transition-colors disabled:opacity-50 disabled:cursor-not-allowed">+1</button>
+                        <button 
+                          onClick={() => {
+                            const field = lockObj && lockObj.type === 'min' ? 'min' : lockObj && lockObj.type === 'max' ? 'max' : 'val';
+                            const currentVal = lockObj ? (lockObj.type === 'min' ? lockObj.min : lockObj.type === 'max' ? lockObj.max : lockObj.val) : (store.base_stats[stat] || 0);
+                            handleLockChange(stat, field, Math.max(0, currentVal - 1));
+                          }} 
+                          disabled={!isLocked} 
+                          className="flex-1 min-w-10 px-1 py-0.5 text-[10px] bg-st-secondary text-st-text rounded border border-st-border hover:border-st-orange transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                        >-1</button>
+                        <button 
+                          onClick={() => {
+                            const field = lockObj && lockObj.type === 'min' ? 'min' : lockObj && lockObj.type === 'max' ? 'max' : 'val';
+                            const currentVal = lockObj ? (lockObj.type === 'min' ? lockObj.min : lockObj.type === 'max' ? lockObj.max : lockObj.val) : (store.base_stats[stat] || 0);
+                            handleLockChange(stat, field, Math.min(STAT_CAPS[stat], currentVal + 1));
+                          }} 
+                          disabled={!isLocked} 
+                          className="flex-1 min-w-10 px-1 py-0.5 text-[10px] bg-st-secondary text-st-text rounded border border-st-border hover:border-st-orange transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                        >+1</button>
                       </div>
                     </>
                   ) : (
@@ -630,11 +657,11 @@ export default function OptimizerTab() {
                       <div className="flex gap-1">
                         <div className="flex-1 flex gap-0.5">
                           <button onClick={() => handleLockChange(stat, 'min', Math.max(0, lockObj.min - 1))} className="flex-1 px-0.5 py-0.5 text-[9px] bg-st-secondary text-st-text rounded border border-st-border hover:border-st-orange transition-colors">-1</button>
-                          <button onClick={() => handleLockChange(stat, 'min', Math.min(MAX_STAT_CAPS[stat], lockObj.min + 1))} className="flex-1 px-0.5 py-0.5 text-[9px] bg-st-secondary text-st-text rounded border border-st-border hover:border-st-orange transition-colors">+1</button>
+                          <button onClick={() => handleLockChange(stat, 'min', Math.min(STAT_CAPS[stat], lockObj.min + 1))} className="flex-1 px-0.5 py-0.5 text-[9px] bg-st-secondary text-st-text rounded border border-st-border hover:border-st-orange transition-colors">+1</button>
                         </div>
                         <div className="flex-1 flex gap-0.5">
                           <button onClick={() => handleLockChange(stat, 'max', Math.max(0, lockObj.max - 1))} className="flex-1 px-0.5 py-0.5 text-[9px] bg-st-secondary text-st-text rounded border border-st-border hover:border-st-orange transition-colors">-1</button>
-                          <button onClick={() => handleLockChange(stat, 'max', Math.min(MAX_STAT_CAPS[stat], lockObj.max + 1))} className="flex-1 px-0.5 py-0.5 text-[9px] bg-st-secondary text-st-text rounded border border-st-border hover:border-st-orange transition-colors">+1</button>
+                          <button onClick={() => handleLockChange(stat, 'max', Math.min(STAT_CAPS[stat], lockObj.max + 1))} className="flex-1 px-0.5 py-0.5 text-[9px] bg-st-secondary text-st-text rounded border border-st-border hover:border-st-orange transition-colors">+1</button>
                         </div>
                       </div>
                     </div>

@@ -254,6 +254,14 @@ export default function PlayerSetup() {
     );
   };
 
+  // Scroll active tab into view when it changes (for URL navigation or programmatic changes)
+  useEffect(() => {
+    const activeTabButton = document.getElementById(`setup-tab-${activeSubTab}`);
+    if (activeTabButton) {
+      activeTabButton.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+    }
+  }, [activeSubTab]);
+
   return (
     <div className="flex flex-col md:flex-row gap-6">
       
@@ -532,14 +540,21 @@ export default function PlayerSetup() {
       {/* RIGHT COLUMN: Setup Data Sub-Tabs */}
       <div className="w-full md:w-3/4">
         
-        <div data-tour="setup-tabs" className="flex flex-wrap items-center justify-between border-b border-st-border mb-4">
+        <div data-tour="setup-tabs" className="flex flex-wrap items-center justify-between border-b border-st-border mb-6 md:mb-4">
           <div className="flex overflow-x-auto md:flex-wrap flex-1 scrollbar-thin">
             {[ '📊 Base Stats', '⬆️ Int. Upgrades', '🌟 Ext. Upgrades', '🎴 Block Cards', '🗿 Arch Idols' ].map((tab, idx) => {
               const tabId =[ 'stats', 'upgrades_int', 'upgrades_ext', 'cards', 'idols' ][idx];
               const isActive = activeSubTab === tabId;
               return (
-                <button key={tabId} id={`setup-tab-${tabId}`} onClick={() => setActiveSubTab(tabId)}
-                  className={`px-4 py-2 font-medium border-b-2 transition-colors whitespace-nowrap flex-shrink-0 ${isActive ? 'border-st-orange text-st-text' : 'border-transparent text-st-text hover:text-st-orange hover:border-gray-300'}`}>
+                <button 
+                  key={tabId} 
+                  id={`setup-tab-${tabId}`} 
+                  onClick={(e) => {
+                    setActiveSubTab(tabId);
+                    // Scroll the clicked tab button into view
+                    e.currentTarget.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+                  }}
+                  className={`px-3 py-1.5 md:px-4 md:py-2 text-sm md:text-base font-medium border-b-2 transition-colors whitespace-nowrap flex-shrink-0 ${isActive ? 'border-st-orange text-st-text' : 'border-transparent text-st-text hover:text-st-orange hover:border-gray-300'}`}>
                   {tab}
                 </button>
               )
@@ -553,7 +568,7 @@ export default function PlayerSetup() {
                 useStore.getState().startTour('setup');
               }, 50);
             }}
-            className="mb-2 ml-4 whitespace-nowrap text-sm bg-st-orange text-[#2b2b2b] px-3 py-1.5 rounded font-bold hover:bg-[#ffa229] transition-colors shadow-sm cursor-pointer"
+            className="mb-2 ml-2 md:ml-4 whitespace-nowrap text-xs md:text-sm bg-st-orange text-[#2b2b2b] px-2 py-1 md:px-3 md:py-1.5 rounded font-bold hover:bg-[#ffa229] transition-colors shadow-sm cursor-pointer"
           >
             ❓ Help / Tour
           </button>
@@ -699,7 +714,7 @@ export default function PlayerSetup() {
                         <span className="text-xs text-st-text-light">(Max: {max_lvl})</span>
                       </div>
                       
-                      <div className="w-full flex justify-center mb-3 h-16">
+                      <div className="w-full flex justify-center mb-3 h-20">
                         <img 
                           src={`/assets/upgrades/internal/${id}.png`} 
                           alt={name}
@@ -709,7 +724,7 @@ export default function PlayerSetup() {
                         />
                       </div>
 
-                      <div className="w-full mb-3 text-[10px] text-st-text-light flex flex-col gap-0.5 bg-[#0E1117] p-1.5 rounded border border-st-border">
+                      <div className="w-full mb-3 text-xs text-st-text-light flex flex-col gap-1 bg-[#0E1117] p-2 rounded border border-st-border">
                          <div className="flex justify-between"><span>Next Lvl:</span> <span className="font-bold text-st-text">{nextCostStr}</span></div>
                          <div className="flex justify-between"><span>To Max:</span> <span className="font-bold text-st-orange">{totalCostStr}</span></div>
                       </div>
@@ -797,7 +812,7 @@ export default function PlayerSetup() {
                               disabled={group.id === 'geoduck' && !geoduck_unlocked}
                               className="flex-1 min-w-10 px-1 py-1 text-xs bg-st-secondary text-st-text rounded border border-st-border hover:border-st-orange transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
                             >+1</button>
-                            {(group.id === 'axolotl' || group.id === 'dinosaur') && (
+                            {(group.id === 'axolotl' || group.id === 'dino') && (
                               <button 
                                 onClick={() => setExternalGroup(group.rows, group.max)} 
                                 disabled={group.id === 'geoduck' && !geoduck_unlocked}

@@ -119,4 +119,12 @@ input[type="number"] {
   .st-input {
     font-size: 16px !important;
   }
+  
+  /* Fix select dropdown positioning on mobile by removing animations/transforms */
+  /* These create new stacking contexts that break native select dropdown positioning */
+  .animate-fade-in {
+    animation: none !important;
+    transform: none !important;
+    will-change: auto !important;
+  }
 }

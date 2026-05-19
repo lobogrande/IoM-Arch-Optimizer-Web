@@ -1,5 +1,5 @@
 // src/components/Simulations.jsx
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import useStore from '../store';
 import { EngineWorkerPool } from '../utils/optimizer';
 import OptimizerTab from './simulations/OptimizerTab';
@@ -8,6 +8,7 @@ import DuelTab from './simulations/DuelTab';
 import SandboxTab from './simulations/SandboxTab';
 import ForecasterTab from './simulations/ForecasterTab';
 import PathfinderTab from './simulations/PathfinderTab';
+import MobileSelect from './MobileSelect';
 
 export default function Simulations() {
   const store = useStore();
@@ -65,6 +66,14 @@ export default function Simulations() {
     }
     setIsBenchmarking(false);
   };
+
+  // Scroll active tab into view when it changes (for URL navigation or programmatic changes)
+  useEffect(() => {
+    const activeTabButton = document.getElementById(`sim-tab-${activeSubTab}`);
+    if (activeTabButton) {
+      activeTabButton.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+    }
+  }, [activeSubTab]);
 
   return (
     <div className="animate-fade-in pb-24">
@@ -131,7 +140,7 @@ export default function Simulations() {
       `}</style>
       
       {/* SUB-TABS ROUTING */}
-      <div className="flex overflow-x-auto md:flex-wrap border-b border-st-border mb-6 scrollbar-thin">
+      <div className="flex overflow-x-auto md:flex-wrap border-b border-st-border mb-8 md:mb-6 scrollbar-thin">
         {[
           { id: 'optimizer', label: '🚀 Optimizer' },
           { id: 'synth', label: '🧬 Build Synthesis & History' },
@@ -142,9 +151,14 @@ export default function Simulations() {
         ].map((tab) => (
           <button
             key={tab.id}
+            id={`sim-tab-${tab.id}`}
             data-tour={`main-tab-${tab.id}`}
-            onClick={() => setActiveSubTab(tab.id)}
-            className={`px-4 py-2 font-medium whitespace-nowrap transition-colors duration-200 border-b-2 flex-shrink-0 ${
+            onClick={(e) => {
+              setActiveSubTab(tab.id);
+              // Scroll the clicked tab button into view
+              e.currentTarget.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+            }}
+            className={`px-3 py-1.5 md:px-4 md:py-2 text-sm md:text-base font-medium whitespace-nowrap transition-colors duration-200 border-b-2 flex-shrink-0 ${
               activeSubTab === tab.id 
                 ? 'border-st-orange text-st-text' 
                 : 'border-transparent text-st-text hover:text-st-orange hover:border-gray-300'
@@ -160,15 +174,16 @@ export default function Simulations() {
         <div className="st-container mb-8 flex flex-col md:flex-row gap-6 justify-between items-start md:items-center border-l-4 border-l-st-orange bg-st-secondary/30">
           <div className="w-full md:w-2/3">
             <label className="block text-sm font-bold mb-2">🔥 Global CPU Thermal Profile</label>
-            <select 
+            <MobileSelect
               value={cpuProfile} 
               onChange={(e) => setCpuProfile(e.target.value)}
+              options={[
+                { value: 'eco', label: 'Eco Mode / Mobile (Max 1-2 Cores) - Saves Battery' },
+                { value: 'balanced', label: 'Balanced (Up to 6 Cores) - Safe for PCs' },
+                { value: 'max', label: 'Max Performance (All Cores) - ⚠️ Thermal Warning' }
+              ]}
               className="w-full bg-st-bg border border-st-border rounded p-2 text-sm text-st-text focus:border-st-orange focus:outline-none"
-            >
-              <option value="eco">Eco Mode / Mobile (Max 1-2 Cores) - Saves Battery</option>
-              <option value="balanced">Balanced (Up to 6 Cores) - Safe for PCs</option>
-              <option value="max">Max Performance (All Cores) - ⚠️ Thermal Warning</option>
-            </select>
+            />
             <div className="text-xs text-st-text-light mt-2">
               Caps the engine's background Web Workers to prevent your device from thermal-throttling or draining battery during Monte Carlo simulations.
             </div>

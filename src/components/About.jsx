@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { APP_VERSION } from '../ui_config';
+import MobileSelect from './MobileSelect';
 
 export default function About() {
   const[ fbType, setFbType ] = useState('Bug Report');
@@ -263,16 +264,17 @@ export default function About() {
             <div className="space-y-4">
               <div>
                 <label className="block text-sm font-bold text-st-text mb-1">Type</label>
-                <select 
-                  className="w-full bg-st-secondary border border-transparent rounded-lg p-2 text-st-text focus:border-st-orange focus:outline-none transition-colors"
+                <MobileSelect
                   value={fbType}
                   onChange={(e) => setFbType(e.target.value)}
-                >
-                  <option>Bug Report</option>
-                  <option>Feature Request</option>
-                  <option>UI/UX Suggestion</option>
-                  <option>General Feedback</option>
-                </select>
+                  options={[
+                    { value: 'Bug Report', label: 'Bug Report' },
+                    { value: 'Feature Request', label: 'Feature Request' },
+                    { value: 'UI/UX Suggestion', label: 'UI/UX Suggestion' },
+                    { value: 'General Feedback', label: 'General Feedback' }
+                  ]}
+                  className="w-full bg-st-secondary border border-transparent rounded-lg p-2 text-st-text focus:border-st-orange focus:outline-none transition-colors"
+                />
               </div>
 
               <div>

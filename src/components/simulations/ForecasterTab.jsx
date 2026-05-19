@@ -3,6 +3,7 @@ import { useState, useEffect, useRef } from 'react';
 import useStore from '../../store';
 import PlotWrapper from 'react-plotly.js';
 import { EngineWorkerPool, runOptimizationPhase, topUpBuild, getOptimalStepProfile } from '../../utils/optimizer';
+import MobileSelect from '../MobileSelect';
 import { INTERNAL_UPGRADE_CAPS, UPGRADE_NAMES, ASC1_LOCKED_UPGS, ASC2_LOCKED_UPGS, UPGRADE_LEVEL_REQS, EXTERNAL_UI_GROUPS, calculateUpgradeCost, CURRENCY_TYPES, INFERNAL_CARD_BONUSES } from '../../game_data';
 
 const Plot = PlotWrapper.default || PlotWrapper;
@@ -964,15 +965,16 @@ export default function ForecasterTab() {
           </div>
           <div>
             <label className="block text-sm font-bold mb-1">Simulation Precision</label>
-            <select 
+            <MobileSelect
               value={simPrecision} 
               onChange={(e) => setSimPrecision(parseInt(e.target.value))}
+              options={[
+                { value: 100, label: '100 Runs (Fast / High Noise)' },
+                { value: 500, label: '500 Runs (Balanced)' },
+                { value: 1000, label: '1,000 Runs (Deep Verification)' }
+              ]}
               className="w-full bg-st-bg border border-st-border rounded p-2 text-st-text focus:border-st-orange focus:outline-none"
-            >
-              <option value={100}>100 Runs (Fast / High Noise)</option>
-              <option value={500}>500 Runs (Balanced)</option>
-              <option value={1000}>1,000 Runs (Deep Verification)</option>
-            </select>
+            />
             <div className="text-xs text-st-text-light mt-1">Higher runs increase accuracy by removing RNG noise.</div>
           </div>
         </div>
@@ -1024,43 +1026,46 @@ export default function ForecasterTab() {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
                 <label className="block text-sm font-bold mb-1">Target Economy Resource</label>
-                <select 
+                <MobileSelect
                   value={pivotTargetFrag} 
                   onChange={(e) => setPivotTargetFrag(parseInt(e.target.value))}
+                  options={[
+                    { value: 1, label: 'Common Fragments' },
+                    { value: 2, label: 'Rare Fragments' },
+                    { value: 3, label: 'Epic Fragments' },
+                    { value: 4, label: 'Legendary Fragments' },
+                    { value: 5, label: 'Mythic Fragments' },
+                    ...(store.asc1_unlocked ? [{ value: 6, label: 'Divine Fragments' }] : [])
+                  ]}
                   className="w-full bg-st-bg border border-st-border rounded p-2 text-st-text focus:border-st-orange focus:outline-none"
-                >
-                  <option value={1}>Common Fragments</option>
-                  <option value={2}>Rare Fragments</option>
-                  <option value={3}>Epic Fragments</option>
-                  <option value={4}>Legendary Fragments</option>
-                  <option value={5}>Mythic Fragments</option>
-                  {store.asc1_unlocked && <option value={6}>Divine Fragments</option>}
-                </select>
+                />
               </div>
               <div>
                 <label className="block text-sm font-bold mb-1">Strategy Precision</label>
-                <select 
+                <MobileSelect
                   value={simPrecision} 
                   onChange={(e) => setSimPrecision(parseInt(e.target.value))}
+                  options={[
+                    { value: 100, label: '100 Runs (Fast / High Noise)' },
+                    { value: 500, label: '500 Runs (Balanced)' }
+                  ]}
                   className="w-full bg-st-bg border border-st-border rounded p-2 text-st-text focus:border-st-orange focus:outline-none"
-                >
-                  <option value={100}>100 Runs (Fast / High Noise)</option>
-                  <option value={500}>500 Runs (Balanced)</option>
-                </select>
+                />
                 <div className="text-xs text-st-text-light mt-1">Evaluates the base strategies.</div>
               </div>
               <div>
                 <label className="block text-sm font-bold mb-1">ROI Precision</label>
-                <select 
+                <MobileSelect
                   value={pivotRoiPrecision} 
                   onChange={(e) => setPivotRoiPrecision(parseInt(e.target.value))}
+                  options={[
+                    { value: 15, label: '15 Runs (Fast, High Variance)' },
+                    { value: 30, label: '30 Runs (Balanced)' },
+                    { value: 50, label: '50 Runs (Accurate, Slower)' },
+                    { value: 100, label: '100 Runs (Max Precision)' }
+                  ]}
                   className="w-full bg-st-bg border border-st-border rounded p-2 text-st-text focus:border-st-orange focus:outline-none"
-                >
-                  <option value={15}>15 Runs (Fast, High Variance)</option>
-                  <option value={30}>30 Runs (Balanced)</option>
-                  <option value={50}>50 Runs (Accurate, Slower)</option>
-                  <option value={100}>100 Runs (Max Precision)</option>
-                </select>
+                />
                 <div className="text-xs text-st-text-light mt-1">Evaluates individual shopping list items.</div>
               </div>
             </div>
