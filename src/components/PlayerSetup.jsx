@@ -849,7 +849,7 @@ export default function PlayerSetup() {
                   if (o_type === 'div' && !asc1_unlocked) is_locked = true;
 
                   const user_tier = cards[card_id] ?? 0;
-                  const max_card_level = asc1_unlocked ? 4 : 3;
+                  const max_card_level = hades_unlocked ? 4 : 3;
                   const infData = INFERNAL_CARD_BONUSES[card_id];
                   const infMult = calculated_stats?.infernal_multiplier || 1.0;
 
@@ -879,13 +879,13 @@ export default function PlayerSetup() {
                           <option value={1}>Regular</option>
                           <option value={2}>Gilded</option>
                           {max_card_level >= 3 && <option value={3}>Poly</option>}
-                          {max_card_level >= 4 && <option value={4}>Infernal</option>}
+                          {hades_unlocked && <option value={4}>Infernal</option>}
                         </select>
                       </div>
                       
                       {infData && (
                         <div id={`setup-card-info-${card_id}`} className="h-10 mt-3 flex flex-col items-center justify-center w-full text-center border-t border-st-border/50 pt-2">
-                          {user_tier >= 3 && !is_locked ? (() => {
+                          {user_tier >= 3 ? (() => {
                             // Override the legacy 1.126 reverse-engineering hack with the true 1.0 base
                             const trueBase = (card_id === 'div3' && infData.base === 1.126) ? 1.0 : infData.base;
                             const rawVal = trueBase * infMult;

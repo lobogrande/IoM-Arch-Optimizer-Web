@@ -443,6 +443,29 @@ const useStore = create(
       }
     }
 
+    // --- BACKWARDS COMPATIBILITY & SANITIZATION FOR HADES UNLOCK ---
+    // If JSON has Infernal cards but no "Hades Unlocked" field, assume legacy file
+    // and auto-enable hades_unlocked to preserve existing player state
+    const hasHadesUnlockedField = data.external_upgrades && 
+                                   data.external_upgrades["Hades Unlocked"] !== undefined;
+    
+    if (!hasHadesUnlockedField && newState.cards) {
+      const hasInfernalCards = Object.keys(newState.cards).some(c => newState.cards[c] === 4);
+      if (hasInfernalCards) {
+        newState.hades_unlocked = true; // Auto-enable for legacy files with Infernal cards
+      }
+    }
+    
+    // Sanitize Infernal cards if Hades not unlocked (only for files with explicit flag)
+    if (!newState.hades_unlocked && hasHadesUnlockedField) {
+      if (newState.cards) {
+        Object.keys(newState.cards).forEach(c => {
+          if (newState.cards[c] === 4) newState.cards[c] = 3; // Downgrade Infernal to Poly
+        });
+      }
+      if (newState.total_infernal_cards > 0) newState.total_infernal_cards = 0;
+    }
+
     if (!newState.asc1_unlocked) {
       if (newState.base_stats) {
         newState.base_stats.Div = 0;

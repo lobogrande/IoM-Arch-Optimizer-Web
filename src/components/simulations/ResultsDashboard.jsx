@@ -417,7 +417,7 @@ export default function ResultsDashboard({ context }) {
         if (store.current_max_floor < BLOCK_MIN_FLOORS[cardId]) return;
 
         const currentLvl = store.cards[cardId] || 0;
-        const maxLvl = store.asc1_unlocked ? 4 : 3;
+        const maxLvl = store.hades_unlocked ? 4 : 3;
         if (currentLvl >= maxLvl) return;
 
         let targetLvlName = "";

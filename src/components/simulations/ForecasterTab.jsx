@@ -480,7 +480,7 @@ export default function ForecasterTab() {
         if (store.current_max_floor < ORE_MIN_FLOORS[cardId]) continue;
 
         const currentLvl = effState.cards[cardId] || 0;
-        const maxLvl = store.asc1_unlocked ? 4 : 3;
+        const maxLvl = store.hades_unlocked ? 4 : 3;
         if (currentLvl >= maxLvl) continue;
 
         const lvlNames =[ "Not Obtained", "Regular", "Gilded", "Poly", "Infernal" ];
