@@ -13,6 +13,7 @@ export default function PlayerSetup() {
   const { asc1_unlocked, asc2_unlocked, arch_level, current_max_floor, starting_speed_pool, base_stats, upgrade_levels, external_levels, cards, arch_ability_infernal_bonus, total_infernal_cards, geoduck_unlocked, hades_unlocked, calculated_stats, setSetting, setBaseStat, setUpgradeLevel, setCardLevel, setExternalGroup, loadStateFromJson, setSandboxStat, hideMaxed, setHideMaxed, activeSubTab, setActiveSubTab, setActiveTab, setSimActiveSubTab, profiles, activeProfileId, createProfile, loadProfile, saveToProfile, renameProfile, deleteProfile, resetState } = useStore();
   const [isDragging, setIsDragging] = useState(false);
   const [showDiffModal, setShowDiffModal] = useState(false);
+  const [useGridLayout, setUseGridLayout] = useState(false);
 
   const diffs = useMemo(() => {
     if (!showDiffModal || !activeProfileId) return [ ];
@@ -644,8 +645,8 @@ export default function PlayerSetup() {
         {/* --- TAB: INTERNAL UPGRADES --- */}
         {activeSubTab === 'upgrades_int' && (
           <div id="tour-setup-int-upgrades">
-            <div className="flex flex-col gap-4 mb-4">
-              <div data-tour="setup-hide-maxed" className="flex items-center gap-3 max-w-max">
+            <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-4 mb-4">
+              <div data-tour="setup-hide-maxed" className="flex items-center gap-3">
                 <button 
                   onClick={() => setHideMaxed(!hideMaxed)}
                   className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors duration-200 focus:outline-none ${hideMaxed ? 'bg-st-orange' : 'bg-gray-300'}`}
@@ -659,10 +660,25 @@ export default function PlayerSetup() {
                   👀 Hide Maxed Upgrades
                 </span>
               </div>
+              
+              <div className="flex items-center gap-3 hidden md:flex">
+                <button 
+                  onClick={() => setUseGridLayout(!useGridLayout)}
+                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors duration-200 focus:outline-none ${useGridLayout ? 'bg-st-orange' : 'bg-gray-300'}`}
+                >
+                  <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform duration-200 shadow-sm ${useGridLayout ? 'translate-x-6' : 'translate-x-1'}`} />
+                </button>
+                <span 
+                  className="text-sm font-medium cursor-pointer select-none" 
+                  onClick={() => setUseGridLayout(!useGridLayout)}
+                >
+                  📊 Grid Layout
+                </span>
+              </div>
             </div>
             <hr className="border-st-border mb-6" />
 
-            <div className="w-full md:w-1/2 lg:w-1/3 mx-auto flex flex-col gap-4">
+            <div className={useGridLayout ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4" : "w-full md:w-1/2 lg:w-1/3 mx-auto flex flex-col gap-4"}>
               {Object.entries(INTERNAL_UPGRADE_CAPS).map(([upg_id, default_max_lvl]) => {
                   const id = parseInt(upg_id);
                   if (!asc1_unlocked && ASC1_LOCKED_UPGS.includes(id)) return null;
