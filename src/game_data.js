@@ -146,7 +146,7 @@ export const UPGRADE_COST_DATA = {
   48: { currency: 'div', base:[null, 7.5, 15], mult: 1.2 },
   49: { currency: 'div', base:[null, 12.5, 25], mult: 1.2 },
   50: { currency: 'div', base:[null, 25, 50], mult: 1.2 },
-  51: { currency: 'div', base:[null, 250, 500], mult: 1.2 },
+  51: { currency: 'div', base:[null, 250, 500], mult: 2.0 },
   52: { currency: 'myth', base:[null, null, 8000], mult: 1.2 },
   53: { currency: 'leg', base:[null, 375, 750], mult: 1.2 },
   54: { currency: 'myth', base:[null, 475, 950], mult: 1.2 },
