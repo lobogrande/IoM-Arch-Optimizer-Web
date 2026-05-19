@@ -756,6 +756,7 @@ export default function PathfinderTab() {
         base_stats: store.base_stats,
         upgrade_levels: store.upgrade_levels,
         external_levels: { ...store.external_levels, 8: store.geoduck_unlocked ? (store.external_levels[ 8 ] || 0) : 0 },
+        hades_unlocked: store.hades_unlocked,
         cards: store.cards,
         card_progress: startCardProgress
       };

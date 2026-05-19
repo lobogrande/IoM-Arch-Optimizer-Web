@@ -31,6 +31,7 @@ const getWorkspaceSnapshot = (state) => ({
   current_max_floor: state.current_max_floor,
   starting_speed_pool: state.starting_speed_pool,
   geoduck_unlocked: state.geoduck_unlocked,
+  hades_unlocked: state.hades_unlocked,
   arch_ability_infernal_bonus: state.arch_ability_infernal_bonus,
   total_infernal_cards: state.total_infernal_cards,
   base_stats: { ...state.base_stats },
@@ -67,6 +68,7 @@ const useStore = create(
   current_max_floor: 40,
   starting_speed_pool: 0,
   geoduck_unlocked: false,
+  hades_unlocked: false,
   
   // Base Stats
   base_stats: {
@@ -284,6 +286,7 @@ const useStore = create(
       current_max_floor: 1,
       starting_speed_pool: 0,
       geoduck_unlocked: false,
+      hades_unlocked: false,
       base_stats: { Str: 0, Agi: 0, Per: 0, Int: 0, Luck: 0, Div: 0, Corr: 0 },
       upgrade_levels: { },
       external_levels: defaultExt,
@@ -412,6 +415,13 @@ const useStore = create(
       } else if (data.external_upgrades["Geoduck Tribute"] !== undefined && parseInt(data.external_upgrades["Geoduck Tribute"]) > 0) {
         newState.geoduck_unlocked = true;
       }
+
+      // Parse Hades Unlock from external block, with legacy fallback
+      if (data.external_upgrades["Hades Unlocked"] !== undefined) {
+        newState.hades_unlocked = !!data.external_upgrades["Hades Unlocked"];
+      } else if (data.external_upgrades["Hades Idol"] !== undefined && parseInt(data.external_upgrades["Hades Idol"]) > 0) {
+        newState.hades_unlocked = true;
+      }
       
       // Target the Infernal Bonus from the External dictionary
       newState.external_levels = newExt;
@@ -485,6 +495,7 @@ const useStore = create(
           newState.current_max_floor === snap.current_max_floor &&
           (newState.starting_speed_pool || 0) === (snap.starting_speed_pool || 0) &&
           !!newState.geoduck_unlocked === !!snap.geoduck_unlocked &&
+          !!newState.hades_unlocked === !!snap.hades_unlocked &&
           parseFloat(newState.arch_ability_infernal_bonus || 0) === parseFloat(snap.arch_ability_infernal_bonus || 0) &&
           (newState.total_infernal_cards || 0) === (snap.total_infernal_cards || 0) &&
           isEq(newState.base_stats, snap.base_stats) &&
@@ -508,6 +519,7 @@ const useStore = create(
         newState.current_max_floor = matchedProfile.data.current_max_floor;
         newState.starting_speed_pool = matchedProfile.data.starting_speed_pool;
         newState.geoduck_unlocked = matchedProfile.data.geoduck_unlocked;
+        newState.hades_unlocked = matchedProfile.data.hades_unlocked;
         newState.arch_ability_infernal_bonus = matchedProfile.data.arch_ability_infernal_bonus;
         newState.total_infernal_cards = matchedProfile.data.total_infernal_cards;
         newState.base_stats = { ...matchedProfile.data.base_stats };

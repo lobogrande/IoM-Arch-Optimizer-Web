@@ -10,7 +10,7 @@ import {
 import { INTERNAL_UPGRADE_CAPS, UPGRADE_NAMES, ASC1_LOCKED_UPGS, ASC2_LOCKED_UPGS, CARD_TYPES, INFERNAL_CARD_BONUSES, EXTERNAL_UI_GROUPS, UPGRADE_LEVEL_REQS, calculateUpgradeCost } from '../game_data';
 
 export default function PlayerSetup() {
-  const { asc1_unlocked, asc2_unlocked, arch_level, current_max_floor, starting_speed_pool, base_stats, upgrade_levels, external_levels, cards, arch_ability_infernal_bonus, total_infernal_cards, geoduck_unlocked, calculated_stats, setSetting, setBaseStat, setUpgradeLevel, setCardLevel, setExternalGroup, loadStateFromJson, setSandboxStat, hideMaxed, setHideMaxed, activeSubTab, setActiveSubTab, setActiveTab, setSimActiveSubTab, profiles, activeProfileId, createProfile, loadProfile, saveToProfile, renameProfile, deleteProfile, resetState } = useStore();
+  const { asc1_unlocked, asc2_unlocked, arch_level, current_max_floor, starting_speed_pool, base_stats, upgrade_levels, external_levels, cards, arch_ability_infernal_bonus, total_infernal_cards, geoduck_unlocked, hades_unlocked, calculated_stats, setSetting, setBaseStat, setUpgradeLevel, setCardLevel, setExternalGroup, loadStateFromJson, setSandboxStat, hideMaxed, setHideMaxed, activeSubTab, setActiveSubTab, setActiveTab, setSimActiveSubTab, profiles, activeProfileId, createProfile, loadProfile, saveToProfile, renameProfile, deleteProfile, resetState } = useStore();
   const [isDragging, setIsDragging] = useState(false);
   const [showDiffModal, setShowDiffModal] = useState(false);
 
@@ -31,6 +31,7 @@ export default function PlayerSetup() {
     check('Global Settings', 'Max Floor', d.current_max_floor, current_max_floor, () => setSetting('current_max_floor', d.current_max_floor || 1));
     check('Global Settings', 'Starting Speed Pool', d.starting_speed_pool, starting_speed_pool, () => setSetting('starting_speed_pool', d.starting_speed_pool || 0));
     check('Global Settings', 'Geoduck Unlocked', !!d.geoduck_unlocked, !!geoduck_unlocked, () => setSetting('geoduck_unlocked', !!d.geoduck_unlocked));
+    check('Global Settings', 'Hades Unlocked', !!d.hades_unlocked, !!hades_unlocked, () => setSetting('hades_unlocked', !!d.hades_unlocked));
     check('Global Settings', 'Infernal Arch Bonus %', parseFloat(d.arch_ability_infernal_bonus || 0), parseFloat(arch_ability_infernal_bonus || 0), () => setSetting('arch_ability_infernal_bonus', d.arch_ability_infernal_bonus || 0));
     check('Global Settings', 'Total Infernal Cards', d.total_infernal_cards || 0, total_infernal_cards || 0, () => setSetting('total_infernal_cards', d.total_infernal_cards || 0));[ 'Str', 'Agi', 'Per', 'Int', 'Luck', 'Div', 'Corr' ].forEach(s => {
       check('Base Stats', s, d.base_stats[s] || 0, base_stats[s] || 0, () => setBaseStat(s, d.base_stats[s] || 0));
@@ -57,7 +58,7 @@ export default function PlayerSetup() {
     });
 
     return res;
-  },[ showDiffModal, activeProfileId, profiles, asc1_unlocked, asc2_unlocked, arch_level, current_max_floor, geoduck_unlocked, arch_ability_infernal_bonus, total_infernal_cards, base_stats, upgrade_levels, external_levels, cards ]);
+  },[ showDiffModal, activeProfileId, profiles, asc1_unlocked, asc2_unlocked, arch_level, current_max_floor, geoduck_unlocked, hades_unlocked, arch_ability_infernal_bonus, total_infernal_cards, base_stats, upgrade_levels, external_levels, cards ]);
 
   // Deep equality check: Compares the active workspace to the saved profile snapshot
   const hasUnsavedChanges = useMemo(() => {
@@ -77,6 +78,7 @@ export default function PlayerSetup() {
     if (current_max_floor !== active.data.current_max_floor) return true;
     if ((starting_speed_pool || 0) !== (active.data.starting_speed_pool || 0)) return true;
     if (!!geoduck_unlocked !== !!active.data.geoduck_unlocked) return true;
+    if (!!hades_unlocked !== !!active.data.hades_unlocked) return true;
     if (parseFloat(arch_ability_infernal_bonus || 0) !== parseFloat(active.data.arch_ability_infernal_bonus || 0)) return true;
     if ((total_infernal_cards || 0) !== (active.data.total_infernal_cards || 0)) return true;
     if (!isEq(base_stats, active.data.base_stats)) return true;
@@ -85,7 +87,7 @@ export default function PlayerSetup() {
     if (!isEq(cards, active.data.cards)) return true;
     
     return false;
-  },[ activeProfileId, profiles, asc1_unlocked, asc2_unlocked, arch_level, current_max_floor, geoduck_unlocked, arch_ability_infernal_bonus, total_infernal_cards, base_stats, upgrade_levels, external_levels, cards ]);
+  },[ activeProfileId, profiles, asc1_unlocked, asc2_unlocked, arch_level, current_max_floor, geoduck_unlocked, hades_unlocked, arch_ability_infernal_bonus, total_infernal_cards, base_stats, upgrade_levels, external_levels, cards ]);
 
   useEffect(() => {
     if (showDiffModal && !hasUnsavedChanges) {
@@ -167,6 +169,7 @@ export default function PlayerSetup() {
       external_upgrades[group.name] = state.external_levels[group.rows[0]] || 0;
     });
     external_upgrades["Geoduck Unlocked"] = !!state.geoduck_unlocked;
+    external_upgrades["Hades Unlocked"] = !!state.hades_unlocked;
     external_upgrades["Arch Ability Infernal Bonus"] = parseFloat(state.arch_ability_infernal_bonus) / 100.0 || 0.0;
 
     // 3. Strictly Order Cards (Dirt1 -> Div4) (Export ALL, default to 0)
@@ -329,6 +332,7 @@ export default function PlayerSetup() {
                           current_max_floor: current_max_floor,
                           starting_speed_pool: starting_speed_pool,
                           geoduck_unlocked: geoduck_unlocked,
+                          hades_unlocked: hades_unlocked,
                           arch_ability_infernal_bonus: arch_ability_infernal_bonus,
                           total_infernal_cards: total_infernal_cards,
                           upgrade_levels: { ...upgrade_levels },
@@ -955,9 +959,22 @@ export default function PlayerSetup() {
                   </div>
                   <div className="w-full">
                     <hr className="border-st-border mb-4"/>
+                    
+                    <label className="flex items-start gap-2 cursor-pointer font-bold mb-3 text-xs text-left leading-tight">
+                      <input 
+                        type="checkbox" 
+                        checked={hades_unlocked} 
+                        onChange={(e) => setSetting('hades_unlocked', e.target.checked)} 
+                        className="w-4 h-4 accent-st-orange shrink-0 mt-0.5" 
+                      />
+                      <span>Hades Idol Unlocked (Arch Lv 85 + Blackened Basker Leg Fish T2)</span>
+                    </label>
+                    
                     <input 
-                      type="number" className="st-input" 
+                      type="number" 
+                      className={`st-input ${!hades_unlocked ? 'opacity-30 cursor-not-allowed' : ''}`}
                       value={external_levels[21] !== undefined ? external_levels[21] : 0} 
+                      disabled={!hades_unlocked}
                       onFocus={(e) => e.target.select()}
                       onChange={(e) => setExternalGroup([21], e.target.value === '' ? '' : parseInt(e.target.value))}
                       onBlur={(e) => setExternalGroup([21], Math.min(6666, Math.max(0, parseInt(e.target.value) || 0)))}

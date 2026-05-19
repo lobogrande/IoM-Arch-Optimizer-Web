@@ -1096,7 +1096,7 @@ export async function runPathfinderSimulation(startState, targetLevel, initialFr
                 
                 while (frags.div >= 999) {
                     const pool =[];
-                    if (curHades < 6666) pool.push('hades');
+                    if (curHades < 6666 && state.hades_unlocked) pool.push('hades');
                     if (curProm < 1000) pool.push('prometheus');
                     
                     const totalBaseIdols = curHades + curProm;

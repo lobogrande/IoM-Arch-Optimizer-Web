@@ -498,8 +498,8 @@ export default function ForecasterTab() {
         if (group.id === 'geoduck') maxVal = store.asc2_unlocked ? 300 : 200;
 
         if (group.id === 'geoduck' && !store.geoduck_unlocked) continue;
+        if (group.id === 'hades' && !store.hades_unlocked) continue;
         if (group.id === 'hestia' && !store.asc1_unlocked) continue;
-        if (group.id === 'hades' && !store.asc1_unlocked) continue;
         if (group.id === 'asc_bundle' && !store.asc1_unlocked) continue;
         if (group.id === 'arch_card' && !store.asc1_unlocked) continue;
         if (currentVal >= maxVal) continue;
@@ -818,8 +818,8 @@ export default function ForecasterTab() {
         let maxVal = group.max !== undefined ? group.max : ((group.ui_type === 'skill' || group.ui_type === 'bundle') ? 1 : 9999);
         if (group.id === 'geoduck') maxVal = store.asc2_unlocked ? 300 : 200;
         if (group.id === 'geoduck' && !store.geoduck_unlocked) return;
+        if (group.id === 'hades' && !store.hades_unlocked) return;
         if (group.id === 'hestia' && !store.asc1_unlocked) return;
-        if (group.id === 'hades' && !store.asc1_unlocked) return;
         if (group.id === 'asc_bundle' && !store.asc1_unlocked) return;
         if (group.id === 'arch_card' && !store.asc1_unlocked) return;
         if (currentVal >= maxVal) return;
