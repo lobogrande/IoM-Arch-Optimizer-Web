@@ -274,12 +274,10 @@ export default function SandboxTab() {
                     }}
                     className="st-input p-1 text-sm h-8"
                   />
-                  <div className="flex flex-wrap justify-center gap-1 mt-2 w-full">
-                    <button onClick={() => store.setSandboxStat(stat, Math.max(0, (store.sandbox_stats[stat] || 0) - 5))} className="flex-1 min-w-10 px-1 py-1 text-[10px] bg-st-secondary text-st-text rounded border border-st-border hover:border-st-orange transition-colors">-5</button>
+                  <div className="flex justify-center gap-1 mt-2 w-full">
                     <button onClick={() => store.setSandboxStat(stat, Math.max(0, (store.sandbox_stats[stat] || 0) - 1))} className="flex-1 min-w-10 px-1 py-1 text-[10px] bg-st-secondary text-st-text rounded border border-st-border hover:border-st-orange transition-colors">-1</button>
                     <button onClick={() => store.setSandboxStat(stat, Math.min(MAX_STAT_CAPS[stat], (store.sandbox_stats[stat] || 0) + 1))} className="flex-1 min-w-10 px-1 py-1 text-[10px] bg-st-secondary text-st-text rounded border border-st-border hover:border-st-orange transition-colors">+1</button>
-                    <button onClick={() => store.setSandboxStat(stat, Math.min(MAX_STAT_CAPS[stat], (store.sandbox_stats[stat] || 0) + 5))} className="flex-1 min-w-10 px-1 py-1 text-[10px] bg-st-secondary text-st-text rounded border border-st-border hover:border-st-orange transition-colors">+5</button>
-                    <button onClick={() => store.setSandboxStat(stat, MAX_STAT_CAPS[stat])} className="flex-1 px-1 py-1 text-[10px] font-bold bg-st-secondary text-st-text rounded border border-st-border hover:border-st-orange transition-colors">Max</button>
+                    <button onClick={() => store.setSandboxStat(stat, MAX_STAT_CAPS[stat])} className="flex-1 min-w-10 px-1 py-1 text-[10px] font-bold bg-st-secondary text-st-text rounded border border-st-border hover:border-st-orange transition-colors">Max</button>
                   </div>
                 </div>
               ))}

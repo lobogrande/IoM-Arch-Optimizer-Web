@@ -947,6 +947,10 @@ export default function ForecasterTab() {
               onKeyDown={(e) => { if (e.key === 'Enter') e.target.blur(); }}
               className="w-full bg-st-bg border border-st-border rounded p-2 text-st-text focus:border-st-orange focus:outline-none"
             />
+            <div className="flex justify-center gap-1 mt-2 w-full">
+              <button onClick={() => { const newVal = Math.max(1, localTargetFloor - 1); setLocalTargetFloor(newVal); setTargetFloor(newVal); }} className="flex-1 min-w-10 px-1 py-1 text-xs bg-st-secondary text-st-text rounded border border-st-border hover:border-st-orange transition-colors">-1</button>
+              <button onClick={() => { const newVal = localTargetFloor + 1; setLocalTargetFloor(newVal); setTargetFloor(newVal); }} className="flex-1 min-w-10 px-1 py-1 text-xs bg-st-secondary text-st-text rounded border border-st-border hover:border-st-orange transition-colors">+1</button>
+            </div>
           </div>
           <div>
             <label className="block text-sm font-bold mb-1">Max Push Budget (k Arch Secs)</label>

@@ -99,6 +99,17 @@ hr {
   -moz-appearance: textfield;
 }
 
+/* Also hide spin buttons for all number inputs globally (includes Forecaster cart) */
+input[type="number"]::-webkit-outer-spin-button,
+input[type="number"]::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+input[type="number"] {
+  -moz-appearance: textfield;
+}
+
 /* Prevent iOS Safari from auto-zooming when tapping inputs */
 @media screen and (max-width: 768px) {
   input[type="text"], 

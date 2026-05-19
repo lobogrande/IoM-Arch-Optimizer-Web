@@ -237,11 +237,17 @@ export default function PlayerSetup() {
           onChange={(e) => setBaseStat(statKey, e.target.value === '' ? '' : parseInt(e.target.value))}
           onBlur={(e) => setBaseStat(statKey, Math.min(STAT_CAPS[statKey], Math.max(0, parseInt(e.target.value) || 0)))}
         />
-        <div className="flex flex-wrap justify-center gap-1 mt-2 w-full">
-          <button onClick={() => setBaseStat(statKey, Math.max(0, (base_stats[statKey] || 0) - 5))} className="flex-1 min-w-10 px-1 py-1 text-xs bg-st-secondary text-st-text rounded border border-st-border hover:border-st-orange transition-colors">-5</button>
-          <button onClick={() => setBaseStat(statKey, Math.max(0, (base_stats[statKey] || 0) - 1))} className="flex-1 min-w-10 px-1 py-1 text-xs bg-st-secondary text-st-text rounded border border-st-border hover:border-st-orange transition-colors">-1</button>
-          <button onClick={() => setBaseStat(statKey, Math.min(STAT_CAPS[statKey], (base_stats[statKey] || 0) + 1))} className="flex-1 min-w-10 px-1 py-1 text-xs bg-st-secondary text-st-text rounded border border-st-border hover:border-st-orange transition-colors">+1</button>
-          <button onClick={() => setBaseStat(statKey, Math.min(STAT_CAPS[statKey], (base_stats[statKey] || 0) + 5))} className="flex-1 min-w-10 px-1 py-1 text-xs bg-st-secondary text-st-text rounded border border-st-border hover:border-st-orange transition-colors">+5</button>
+        <div className="flex gap-1 mt-2 w-full">
+          <div className="flex flex-col gap-1 flex-1">
+            <div className="flex gap-1">
+              <button onClick={() => setBaseStat(statKey, Math.max(0, (base_stats[statKey] || 0) - 1))} className="flex-1 min-w-10 px-1 py-1 text-xs bg-st-secondary text-st-text rounded border border-st-border hover:border-st-orange transition-colors">-1</button>
+              <button onClick={() => setBaseStat(statKey, Math.min(STAT_CAPS[statKey], (base_stats[statKey] || 0) + 1))} className="flex-1 min-w-10 px-1 py-1 text-xs bg-st-secondary text-st-text rounded border border-st-border hover:border-st-orange transition-colors">+1</button>
+            </div>
+            <div className="flex gap-1">
+              <button onClick={() => setBaseStat(statKey, Math.max(0, (base_stats[statKey] || 0) - 5))} className="flex-1 min-w-10 px-1 py-1 text-xs bg-st-secondary text-st-text rounded border border-st-border hover:border-st-orange transition-colors">-5</button>
+              <button onClick={() => setBaseStat(statKey, Math.min(STAT_CAPS[statKey], (base_stats[statKey] || 0) + 5))} className="flex-1 min-w-10 px-1 py-1 text-xs bg-st-secondary text-st-text rounded border border-st-border hover:border-st-orange transition-colors">+5</button>
+            </div>
+          </div>
           <button onClick={() => setBaseStat(statKey, STAT_CAPS[statKey])} className="flex-1 min-w-10 px-1 py-1 text-xs font-bold bg-st-secondary text-st-text rounded border border-st-border hover:border-st-orange transition-colors">Max</button>
         </div>
       </div>
@@ -460,10 +466,6 @@ export default function PlayerSetup() {
               onChange={(e) => setSetting('starting_speed_pool', e.target.value === '' ? '' : parseInt(e.target.value))}
               onBlur={(e) => setSetting('starting_speed_pool', Math.max(0, parseInt(e.target.value) || 0))}
             />
-            <div className="flex flex-wrap justify-center gap-1 mt-2 w-full">
-              <button onClick={() => setSetting('starting_speed_pool', Math.max(0, (starting_speed_pool || 0) - 1))} className="flex-1 min-w-10 px-1 py-1 text-xs bg-st-secondary text-st-text rounded border border-st-border hover:border-st-orange transition-colors">-1</button>
-              <button onClick={() => setSetting('starting_speed_pool', (starting_speed_pool || 0) + 1)} className="flex-1 min-w-10 px-1 py-1 text-xs bg-st-secondary text-st-text rounded border border-st-border hover:border-st-orange transition-colors">+1</button>
-            </div>
           </div>
         </div>
 
@@ -975,13 +977,13 @@ export default function PlayerSetup() {
                 🔒 Arch Idols important for the simulator are locked until Ascension 1.
               </div>
             ) : (
-              <div className="flex flex-col sm:flex-row gap-6 justify-start">
-                <div id="setup-ext-hestia" className="st-container flex flex-col items-center justify-between p-4 w-full sm:w-64">
+              <div className="flex flex-col sm:flex-row gap-6 justify-start items-start">
+                <div id="setup-ext-hestia" className="st-container flex flex-col items-center p-4 w-full sm:w-64">
                   <span className="font-bold mb-4">Hestia Idol</span>
                   <div className="w-full flex justify-center mb-4">
                     <img src="/assets/upgrades/idols/hestia_idol.png" alt="Hestia" className="h-auto object-contain" style={{ width: UI_EXT_IMG_STD, imageRendering: 'pixelated' }} onError={(e) => e.target.style.display = 'none'} />
                   </div>
-                  <div className="w-full">
+                  <div className="w-full mt-auto">
                     <hr className="border-st-border mb-4"/>
                     <input 
                       type="number" className="st-input" 
@@ -998,12 +1000,12 @@ export default function PlayerSetup() {
                   </div>
                 </div>
 
-                <div id="setup-ext-hades" className="st-container flex flex-col items-center justify-between p-4 w-full sm:w-64">
+                <div id="setup-ext-hades" className="st-container flex flex-col items-center p-4 w-full sm:w-64">
                   <span className="font-bold mb-4">Hades Idol</span>
                   <div className="w-full flex justify-center mb-4">
                     <img src="/assets/upgrades/idols/hades_idol.png" alt="Hades" className="h-auto object-contain" style={{ width: UI_EXT_IMG_STD, imageRendering: 'pixelated' }} onError={(e) => e.target.style.display = 'none'} />
                   </div>
-                  <div className="w-full">
+                  <div className="w-full mt-auto">
                     <hr className="border-st-border mb-4"/>
                     
                     <label className="flex items-start gap-2 cursor-pointer font-bold mb-3 text-xs text-left leading-tight">

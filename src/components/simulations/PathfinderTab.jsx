@@ -866,6 +866,10 @@ export default function PathfinderTab() {
               }`}
               placeholder="e.g. 50"
             />
+            <div className="flex justify-center gap-1 mt-2 w-full">
+              <button onClick={() => setTargetLevel(Math.max(2, parseInt(targetLevel) - 1))} className="flex-1 min-w-10 px-1 py-1 text-xs bg-st-secondary text-st-text rounded border border-st-border hover:border-st-orange transition-colors">-1</button>
+              <button onClick={() => setTargetLevel(parseInt(targetLevel) + 1)} className="flex-1 min-w-10 px-1 py-1 text-xs bg-st-secondary text-st-text rounded border border-st-border hover:border-st-orange transition-colors">+1</button>
+            </div>
             {parseInt(targetLevel) <= (startMode === 'template' ? asc2Template.arch_level : store.arch_level) ? (
               <span className="text-[10px] text-red-400 font-bold block mt-1">Must be greater than starting level!</span>
             ) : (
@@ -883,6 +887,10 @@ export default function PathfinderTab() {
               className="w-full bg-[#0E1117] border border-st-border rounded p-2 text-st-text focus:border-st-orange outline-none"
               placeholder="e.g. 20"
             />
+            <div className="flex justify-center gap-1 mt-2 w-full">
+              <button onClick={() => setMinWinRate(Math.max(1, parseInt(minWinRate) - 1))} className="flex-1 min-w-10 px-1 py-1 text-xs bg-st-secondary text-st-text rounded border border-st-border hover:border-st-orange transition-colors">-1</button>
+              <button onClick={() => setMinWinRate(Math.min(100, parseInt(minWinRate) + 1))} className="flex-1 min-w-10 px-1 py-1 text-xs bg-st-secondary text-st-text rounded border border-st-border hover:border-st-orange transition-colors">+1</button>
+            </div>
             <span className="text-[10px] text-st-text-light block mt-1">Min success required to push.</span>
           </div>
           <div>
