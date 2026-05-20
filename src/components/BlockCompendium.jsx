@@ -22,7 +22,7 @@ export default function BlockCompendium() {
   const defaultColDef = useMemo(() => ({ 
     sortable: true, 
     filter: true, 
-    resizable: false,  // Disable manual resizing on mobile - columns have fixed max widths
+    resizable: true,
     suppressMovable: true  // Disable column reordering
   }), [ ]);
 
@@ -31,8 +31,7 @@ export default function BlockCompendium() {
       field: "id",
       headerName: "Icon",
       pinned: "left",
-      minWidth: 80,
-      maxWidth: 80,
+      width: 80,
       sortable: false,
       filter: false,
       cellRenderer: (p) => (
@@ -41,13 +40,13 @@ export default function BlockCompendium() {
         </div>
       )
     },
-    { field: "name", headerName: "Block", minWidth: 80, maxWidth: 100, pinned: "left", headerTooltip: "Block Name" },
+    { field: "name", headerName: "Block", width: 120, pinned: "left", headerTooltip: "Block Name" },
     { 
       colId: "col_hp",
       headerName: "HP", 
       headerTooltip: "Hit Points",
-      minWidth: 80,
-      maxWidth: 100,
+      flex: 1,
+      minWidth: 100,
       valueGetter: p => showModified ? p.data.mod_hp : p.data.base_hp,
       valueFormatter: p => fmt(p.value, 0),
       filter: 'agNumberColumnFilter'
@@ -56,8 +55,8 @@ export default function BlockCompendium() {
       colId: "col_armor",
       headerName: "Armor", 
       headerTooltip: "Armor",
-      minWidth: 80,
-      maxWidth: 100,
+      flex: 1,
+      minWidth: 100,
       valueGetter: p => showModified ? p.data.mod_eff_armor : p.data.base_armor,
       valueFormatter: p => fmt(p.value, 0),
       filter: 'agNumberColumnFilter',
@@ -76,8 +75,8 @@ export default function BlockCompendium() {
       colId: "col_xp",
       headerName: "XP", 
       headerTooltip: "Experience Points Yield",
+      flex: 1,
       minWidth: 100,
-      maxWidth: 120,
       valueGetter: p => showModified ? p.data.mod_xp : p.data.base_xp,
       valueFormatter: p => fmt(p.value, 2),
       filter: 'agNumberColumnFilter'
@@ -86,13 +85,13 @@ export default function BlockCompendium() {
       colId: "col_frag",
       headerName: "Frags", 
       headerTooltip: "Fragment Yield",
+      flex: 1,
       minWidth: 100,
-      maxWidth: 120,
       valueGetter: p => showModified ? p.data.mod_frag : p.data.base_frag,
       valueFormatter: p => fmt(p.value, 3),
       filter: 'agNumberColumnFilter'
     },
-    { field: "frag_name", headerName: "Type", headerTooltip: "Fragment Type", minWidth: 100, maxWidth: 120 }
+    { field: "frag_name", headerName: "Type", headerTooltip: "Fragment Type", flex: 1, minWidth: 100 }
   ],[ showModified ]);
 
   return (
