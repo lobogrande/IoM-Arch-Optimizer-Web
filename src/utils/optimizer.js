@@ -246,6 +246,9 @@ export function getExpectedRuns(builds, maxIter) {
 /**
  * Dynamically finds the tightest Step Size that completes within the Target Time limit.
  * Directly translated from parallel_worker.py get_optimal_step_profile.
+ * 
+ * PERFORMANCE ENHANCEMENT 3.1: Adaptive step sizing to target ~8000 candidates in Phase 1
+ * for optimal balance between search coverage and runtime.
  */
 export function getOptimalStepProfile(statsList, budget, bounds, simsPerSecond, targetTimeSeconds, iterP1 = 25, iterP2 = 50, iterP3 = 100) {
     const freeStats = statsList.filter(s => bounds[s][0] !== bounds[s][1]);
@@ -256,6 +259,11 @@ export function getOptimalStepProfile(statsList, budget, bounds, simsPerSecond, 
 
     const effectiveSimsSec = Math.max(1.0, parseFloat(simsPerSecond));
     let bestProfile = null;
+    
+    // ADAPTIVE STEP SIZING: Target optimal candidate count for Phase 1
+    // Sweet spot: 6000-10000 candidates balances coverage vs. computation time
+    const TARGET_CANDIDATES_MIN = 6000;
+    const TARGET_CANDIDATES_MAX = 10000;
     
     for (let step1 = 3; step1 <= Math.max(100, budget + 1); step1++) {
         
@@ -346,24 +354,47 @@ export function getOptimalStepProfile(statsList, budget, bounds, simsPerSecond, 
                 step_3: step3,
                 p3_radius: p3Radius,
                 builds: totalEstimatedBuilds,
+                p1_candidates: p1Builds,  // Track for adaptive sizing
                 eta_seconds: estimatedSeconds,
                 time_label: timeStr
             };
 
-            // Keep tracking the absolute fastest profile we've seen so far as our fallback!
-            // This guarantees if we miss the target, we return step_size 100, instead of getting stuck on step_size 3!
-            if (!bestProfile || estimatedSeconds < bestProfile.eta_seconds) {
+            // Keep tracking the best reasonable profile as our fallback
+            // Prefer profiles with adequate candidate counts (>= 1000) over pure speed
+            // This prevents returning useless profiles like step=131 with only 1 candidate
+            if (!bestProfile) {
+                bestProfile = currentProfile;
+            } else if (p1Builds >= 1000 && estimatedSeconds < bestProfile.eta_seconds) {
+                // If this has enough candidates and is faster, prefer it
+                bestProfile = currentProfile;
+            } else if (bestProfile.p1_candidates < 1000 && p1Builds > bestProfile.p1_candidates) {
+                // If current best has too few candidates, prefer any profile with more candidates
                 bestProfile = currentProfile;
             }
             
+            // ADAPTIVE OPTIMIZATION: Prefer profiles with candidate counts in target range
+            // This prevents both under-sampling (< 6k candidates) and over-sampling (> 10k candidates)
+            const isInTargetRange = p1Builds >= TARGET_CANDIDATES_MIN && p1Builds <= TARGET_CANDIDATES_MAX;
+            
+            // If we find a profile in the target range that fits the time budget, prefer it
+            if (isInTargetRange && estimatedSeconds <= targetTimeSeconds * 0.65) {
+                return currentProfile;
+            }
+            
             // STRICT BUFFER: Enforce a 35% safety margin (0.65) to absorb JS Garbage Collection spikes
+            // and Pyodide worker boot stalls that aren't included in the Monte Carlo estimates!
+            // Fall back to original time-based selection if no target-range profile found
             if (estimatedSeconds <= (targetTimeSeconds * 0.65)) {
                 return currentProfile;
             }
         }
     }
     
-    // Fallback: If no combination was fast enough (e.g., target time is 10s), return the fastest one we found
+    // Fallback: If no combination was fast enough, return the best reasonable profile we found
+    // Log a warning if we're using fallback (indicates time budget may be too tight)
+    if (bestProfile && bestProfile.eta_seconds > targetTimeSeconds) {
+        console.warn(`[Optimizer] No profile fits ${targetTimeSeconds}s budget. Using best available: ${bestProfile.time_label} (step=${bestProfile.step_1}, candidates=${bestProfile.p1_candidates})`);
+    }
     return bestProfile;
 }
 
