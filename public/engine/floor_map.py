@@ -1,9 +1,13 @@
 # ==============================================================================
 # Script: engine/floor_map.py
-# Version: 2.0.0 (True C# Source Logic)
+# Version: 2.1.0 (Phase 9 Optimization: Modifier Pre-computation)
 # Description: Generates the 24-slot environment using the exact hardcoded arrays
 #              from the developer's C# source code. Eliminates Gaussian guesswork
 #              in favor of top-down sequential binomial rolling.
+#
+# Phase 9 Enhancement: Pre-compute player modifier configuration to eliminate
+#                     repeated @property lookups during block generation
+#                     (6-10% estimated speedup)
 # ==============================================================================
 
 import os
@@ -68,16 +72,45 @@ class FloorGenerator:
             (5,[3, 8, 8, 10, 14, 20, 21]),
             (1,[3, 7, 9, 10, 14, 20, 21])
         ]
+        
+        # ======================================================================
+        # PHASE 9 OPTIMIZATION: Modifier Configuration Cache
+        # Pre-compute player modifier values to eliminate repeated @property lookups
+        # ======================================================================
+        self._cached_mod_config = None
+
+    def _cache_player_mods(self, player):
+        """
+        Cache modifier configuration once per simulation run.
+        Eliminates 8 @property lookups per block × 2000 blocks = 16,000 lookups.
+        """
+        self._cached_mod_config = {
+            'exp_gain': player.exp_mod_gain,
+            'exp_chance': player.exp_mod_chance,
+            'loot_gain': player.loot_mod_gain,
+            'loot_chance': player.loot_mod_chance,
+            'sta_gain': player.stamina_mod_gain,
+            'sta_chance': player.stamina_mod_chance,
+            'speed_gain': player.speed_mod_gain,
+            'speed_chance': player.speed_mod_chance
+        }
 
     def _create_block_with_mods(self, block_id, floor_id, player):
         """Helper to instantiate a Block and roll its specific UI modifiers."""
+        # Lazy-cache modifier config on first block generation
+        if self._cached_mod_config is None:
+            self._cache_player_mods(player)
+        
         block = Block(block_id, floor_id, player)
+        cfg = self._cached_mod_config
+        
+        # Use cached values instead of accessing player properties
         block.modifiers = {
-            'exp_multi': player.exp_mod_gain if (random.random() < player.exp_mod_chance) else 1.0,
-            'loot_multi': player.loot_mod_gain if (random.random() < player.loot_mod_chance) else 1.0,
-            'stamina_gain': player.stamina_mod_gain if (random.random() < player.stamina_mod_chance) else 0.0,
-            'speed_active': random.random() < player.speed_mod_chance,
-            'speed_gain': player.speed_mod_gain
+            'exp_multi': cfg['exp_gain'] if (random.random() < cfg['exp_chance']) else 1.0,
+            'loot_multi': cfg['loot_gain'] if (random.random() < cfg['loot_chance']) else 1.0,
+            'stamina_gain': cfg['sta_gain'] if (random.random() < cfg['sta_chance']) else 0.0,
+            'speed_active': random.random() < cfg['speed_chance'],
+            'speed_gain': cfg['speed_gain']
         }
         return block
 
