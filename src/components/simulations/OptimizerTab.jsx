@@ -2,6 +2,7 @@
 import { useState, useMemo, useEffect } from 'react';
 import useStore from '../../store';
 import { EngineWorkerPool, getOptimalStepProfile, runOptimizationPhase, topUpBuild } from '../../utils/optimizer';
+import { createOptimizer, OPTIMIZER_STRATEGIES, getStrategyName, getStrategyDescription } from '../../utils/optimizerFactory';
 import ResultsDashboard from './ResultsDashboard';
 import { BLOCK_MIN_FLOORS } from '../../game_data';
 import MobileSelect from '../MobileSelect';
@@ -63,6 +64,10 @@ export default function OptimizerTab() {
   const[isOptimizing, setIsOptimizing] = useState(false);
   const [optProgressMsg, setOptProgressMsg] = useState("");
   const [optProgressPct, setOptProgressPct] = useState(0);
+  
+  // Optimizer Strategy Selection (Week 1: Refactoring)
+  const [optimizerStrategy, setOptimizerStrategy] = useState(OPTIMIZER_STRATEGIES.SUCCESSIVE_HALVING);
+  const [useNewArchitecture, setUseNewArchitecture] = useState(false); // Feature flag for testing
 
   // Profile Context for History
   const profileContext = useMemo(() => {
@@ -277,81 +282,155 @@ export default function OptimizerTab() {
         }
       };
 
-      let p1Budget = dynamicBudget - ((dynamicBudget - minSum) % step1);
-      
-      const seedBuild = {};
-      let seedValid = true;
-      let seedSum = 0;
-      optActiveStats.forEach(s => {
+      let bestFinal, finalSummary;
+
+      // ARCHITECTURE TOGGLE: Use new factory pattern or legacy implementation
+      if (useNewArchitecture) {
+        console.log('[OptimizerTab] Using NEW architecture via factory pattern');
+        
+        // Prepare seed build
+        let p1Budget = dynamicBudget - ((dynamicBudget - minSum) % step1);
+        const seedBuild = {};
+        let seedValid = true;
+        let seedSum = 0;
+        optActiveStats.forEach(s => {
           let val = store.base_stats[s] || 0;
           if (s === 'Unassigned') {
-              const globalSpent = activeStats.reduce((acc, stat) => acc + (store.base_stats[stat] || 0), 0);
-              val = Math.max(0, dynamicBudget - globalSpent);
+            const globalSpent = activeStats.reduce((acc, stat) => acc + (store.base_stats[stat] || 0), 0);
+            val = Math.max(0, dynamicBudget - globalSpent);
           }
           seedBuild[s] = val;
           seedSum += val;
           if (val < bounds[s][0] || val > bounds[s][1]) seedValid = false;
-      });
-      if (seedSum > dynamicBudget) seedValid = false;
-      const validSeed = seedValid ? seedBuild : null;
-      
-      let { bestDist: bestP1, summary: sumP1 } = await runOptimizationPhase(
-        "Phase 1 (Coarse)", targetMetricKey, optActiveStats, p1Budget, step1, 25,
-        pool, fixedStats, bounds, timeLimit, globalStartTime, onProgressCb, validSeed
-      );
-
-      bestP1 = topUpBuild(bestP1, optActiveStats, dynamicBudget, STAT_CAPS, bounds);
-      let bestFinal = bestP1;
-      let finalSummary = sumP1;
-
-      let bestP2, sumP2;
-      if (bestP1 && ((Date.now() - globalStartTime) / 1000) < timeLimit) {
-        const boundsP2 = {};
-        let lockedSumP2 = 0;
-        optActiveStats.forEach(s => {
-          if (bounds[s][0] === bounds[s][1]) {
-            boundsP2[s] = bounds[s];
-            lockedSumP2 += bounds[s][0];
-          } else {
-            boundsP2[s] = [
-              Math.max(bounds[s][0], bestP1[s] - step1),
-              Math.min(bounds[s][1], bestP1[s] + step1)
-            ];
-          }
         });
+        if (seedSum > dynamicBudget) seedValid = false;
+        const validSeed = seedValid ? seedBuild : null;
+
+        // Create optimizer instance
+        const optimizer = createOptimizer(
+          optimizerStrategy,
+          pool,
+          baseStateDict,
+          {
+            statsList: optActiveStats,
+            totalBudget: dynamicBudget,
+            stepProfile: profData,
+            iterations: {
+              phase1: 25,
+              phase2: 50,
+              phase3: 100
+            },
+            fixedStats,
+            bounds,
+            effectiveCaps: STAT_CAPS,
+            targetMetric: targetMetricKey,
+            timeLimitSeconds: timeLimit,
+            seedDist: validSeed
+          },
+          onProgressCb
+        );
+
+        // Run optimization
+        const result = await optimizer.optimize();
+        bestFinal = result.bestDist;
+        finalSummary = result.summary;
         
-        const p2Budget = dynamicBudget - ((dynamicBudget - lockedSumP2) % step2);
+        // Attach phase scores for hill climb chart (just scores, not full summaries)
+        if (result.phaseScores) {
+          finalSummary.phaseScores = result.phaseScores;
+        }
 
-        const res2 = await runOptimizationPhase(
-          "Phase 2 (Fine)", targetMetricKey, optActiveStats, p2Budget, step2, 50,
-          pool, fixedStats, boundsP2, timeLimit, globalStartTime, onProgressCb
-        );
-        bestP2 = topUpBuild(res2.bestDist, optActiveStats, dynamicBudget, STAT_CAPS, boundsP2);
-        sumP2 = res2.summary;
-        if (bestP2) { bestFinal = bestP2; finalSummary = sumP2; }
-      }
-
-      if (bestP2 && ((Date.now() - globalStartTime) / 1000) < timeLimit) {
-        const boundsP3 = {};
-        const p3Radius = profData.p3_radius || Math.min(2, step2);
+      } else {
+        console.log('[OptimizerTab] Using LEGACY architecture (current implementation)');
+        
+        // LEGACY IMPLEMENTATION (unchanged)
+        let p1Budget = dynamicBudget - ((dynamicBudget - minSum) % step1);
+        
+        const seedBuild = {};
+        let seedValid = true;
+        let seedSum = 0;
         optActiveStats.forEach(s => {
-          if (bounds[s][0] === bounds[s][1]) {
-            boundsP3[s] = bounds[s];
-          } else {
-            boundsP3[s] =[
-              Math.max(bounds[s][0], bestP2[s] - p3Radius),
-              Math.min(bounds[s][1], bestP2[s] + p3Radius)
-            ];
-          }
+            let val = store.base_stats[s] || 0;
+            if (s === 'Unassigned') {
+                const globalSpent = activeStats.reduce((acc, stat) => acc + (store.base_stats[stat] || 0), 0);
+                val = Math.max(0, dynamicBudget - globalSpent);
+            }
+            seedBuild[s] = val;
+            seedSum += val;
+            if (val < bounds[s][0] || val > bounds[s][1]) seedValid = false;
         });
-
-        const res3 = await runOptimizationPhase(
-          `Phase 3 (Radius ±${p3Radius})`, targetMetricKey, optActiveStats, dynamicBudget, profData.step_3 || 1, 100,
-          pool, fixedStats, boundsP3, timeLimit, globalStartTime, onProgressCb
+        if (seedSum > dynamicBudget) seedValid = false;
+        const validSeed = seedValid ? seedBuild : null;
+        
+        let { bestDist: bestP1, summary: sumP1 } = await runOptimizationPhase(
+          "Phase 1 (Coarse)", targetMetricKey, optActiveStats, p1Budget, step1, 25,
+          pool, fixedStats, bounds, timeLimit, globalStartTime, onProgressCb, validSeed
         );
-        const bestP3 = topUpBuild(res3.bestDist, optActiveStats, dynamicBudget, STAT_CAPS, boundsP3);
-        if (bestP3) { bestFinal = bestP3; finalSummary = res3.summary; }
+
+        bestP1 = topUpBuild(bestP1, optActiveStats, dynamicBudget, STAT_CAPS, bounds);
+        bestFinal = bestP1;
+        finalSummary = sumP1;
+
+        let bestP2, sumP2;
+        if (bestP1 && ((Date.now() - globalStartTime) / 1000) < timeLimit) {
+          const boundsP2 = {};
+          let lockedSumP2 = 0;
+          optActiveStats.forEach(s => {
+            if (bounds[s][0] === bounds[s][1]) {
+              boundsP2[s] = bounds[s];
+              lockedSumP2 += bounds[s][0];
+            } else {
+              boundsP2[s] = [
+                Math.max(bounds[s][0], bestP1[s] - step1),
+                Math.min(bounds[s][1], bestP1[s] + step1)
+              ];
+            }
+          });
+          
+          const p2Budget = dynamicBudget - ((dynamicBudget - lockedSumP2) % step2);
+
+          const res2 = await runOptimizationPhase(
+            "Phase 2 (Fine)", targetMetricKey, optActiveStats, p2Budget, step2, 50,
+            pool, fixedStats, boundsP2, timeLimit, globalStartTime, onProgressCb
+          );
+          bestP2 = topUpBuild(res2.bestDist, optActiveStats, dynamicBudget, STAT_CAPS, boundsP2);
+          sumP2 = res2.summary;
+          if (bestP2) { bestFinal = bestP2; finalSummary = sumP2; }
+        }
+
+        if (bestP2 && ((Date.now() - globalStartTime) / 1000) < timeLimit) {
+          const boundsP3 = {};
+          const p3Radius = profData.p3_radius || Math.min(2, step2);
+          optActiveStats.forEach(s => {
+            if (bounds[s][0] === bounds[s][1]) {
+              boundsP3[s] = bounds[s];
+            } else {
+              boundsP3[s] =[
+                Math.max(bounds[s][0], bestP2[s] - p3Radius),
+                Math.min(bounds[s][1], bestP2[s] + p3Radius)
+              ];
+            }
+          });
+
+          const res3 = await runOptimizationPhase(
+            `Phase 3 (Radius ±${p3Radius})`, targetMetricKey, optActiveStats, dynamicBudget, profData.step_3 || 1, 100,
+            pool, fixedStats, boundsP3, timeLimit, globalStartTime, onProgressCb
+          );
+          const bestP3 = topUpBuild(res3.bestDist, optActiveStats, dynamicBudget, STAT_CAPS, boundsP3);
+          if (bestP3) { bestFinal = bestP3; finalSummary = res3.summary; }
+        }
+        
+        // Track phase scores for Hill Climb chart (legacy path)
+        if (finalSummary) {
+          finalSummary.phaseScores = {
+            phase1: sumP1 ? sumP1[targetMetricKey] : null,
+            phase2: sumP2 ? sumP2[targetMetricKey] : null,
+            phase3: finalSummary[targetMetricKey]
+          };
+        }
       }
+
+      // COMMON: Results handling (both architectures converge here)
 
       const elapsed = (Date.now() - globalStartTime) / 1000;
       pool.terminate();
@@ -361,8 +440,24 @@ export default function OptimizerTab() {
       }
       
       if (bestFinal && finalSummary) {
-          const chartHillScores = [sumP1 ? sumP1[targetMetricKey] : null, sumP2 ? sumP2[targetMetricKey] : null, finalSummary[targetMetricKey]].filter(x => x !== null);
-          const chartHillLabels =["P1 (Coarse)", sumP2 ? "P2 (Fine)" : null, "P3 (Exact)"].filter(x => x !== null);
+          // Chart data: show phase progression for hill climb
+          let chartHillScores, chartHillLabels;
+          
+          if (finalSummary.phaseScores) {
+              // Both architectures now use phaseScores
+              const ps = finalSummary.phaseScores;
+              chartHillScores = [
+                  ps.phase1,
+                  ps.phase2,
+                  ps.phase3
+              ].filter(x => x !== null && x !== undefined);
+              chartHillLabels = ["P1 (Coarse)", "P2 (Fine)", "P3 (Exact)"];
+          } else {
+              // Fallback if no phase scores (shouldn't happen)
+              chartHillScores = [finalSummary[targetMetricKey]];
+              chartHillLabels = ["Final"];
+          }
+          
           const chartLoot = {};
           if (finalSummary.avg_metrics) {
               Object.entries(FRAG_NAMES).forEach(([tier, name]) => {
@@ -452,6 +547,31 @@ export default function OptimizerTab() {
           <p><strong>The Reality Check #2:</strong> The engine calculates <strong>100% Theoretical Efficiency</strong>. In the simulator, 0.000 seconds pass between killing an ore and hitting the next one. In the actual live game, minor animation delays and frame drops consume fractions of a second. Expect your actual real-world Yields to be roughly <strong>~5% to 10% lower</strong> than the mathematical perfection projected here.</p>
           {store.asc2_unlocked && (
             <p>🌌 <strong>Ascension 2 Note:</strong> Because Asc2 unlocks the <em>Corruption</em> stat, the AI must search an entire extra dimension of math. Optimizations will naturally take longer to compute than Asc1 runs!</p>
+          )}
+        </div>
+      </details>
+
+      <hr className="border-st-border" />
+
+      {/* DEVELOPER TESTING: Feature Flag for New Architecture */}
+      <details className="st-container group cursor-pointer marker:text-st-orange mb-4 bg-blue-900/10 border-blue-500/30">
+        <summary className="font-bold text-blue-400">🧪 Developer Testing: Optimizer Architecture</summary>
+        <div className="mt-4 text-sm space-y-3 cursor-default text-blue-200">
+          <p><strong>⚠️ EXPERIMENTAL FEATURE:</strong> This toggle allows testing the refactored optimizer architecture.</p>
+          <label className="flex items-center space-x-2 cursor-pointer">
+            <input 
+              type="checkbox"
+              checked={useNewArchitecture}
+              onChange={(e) => setUseNewArchitecture(e.target.checked)}
+              className="accent-st-orange w-4 h-4"
+            />
+            <span className="font-bold">Use New Architecture (Factory Pattern)</span>
+          </label>
+          {useNewArchitecture && (
+            <div className="bg-blue-900/30 p-3 rounded border border-blue-500/30">
+              <p className="font-bold mb-2">Strategy: {getStrategyName(optimizerStrategy)}</p>
+              <p className="text-xs">{getStrategyDescription(optimizerStrategy)}</p>
+            </div>
           )}
         </div>
       </details>
