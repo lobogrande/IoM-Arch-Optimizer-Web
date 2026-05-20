@@ -4,6 +4,7 @@ import useStore from '../../store';
 import { EngineWorkerPool } from '../../utils/optimizer';
 import { runPathfinderSimulation } from '../../utils/pathfinder_engine';
 import PlotComponent from 'react-plotly.js';
+import MobileSelect from '../MobileSelect';
 
 // Vite/CommonJS Interop Fix: Extract the component if Vite wrapped it in a Module object
 const Plot = PlotComponent.default || PlotComponent;
@@ -756,6 +757,7 @@ export default function PathfinderTab() {
         base_stats: store.base_stats,
         upgrade_levels: store.upgrade_levels,
         external_levels: { ...store.external_levels, 8: store.geoduck_unlocked ? (store.external_levels[ 8 ] || 0) : 0 },
+        hades_unlocked: store.hades_unlocked,
         cards: store.cards,
         card_progress: startCardProgress
       };
@@ -865,6 +867,10 @@ export default function PathfinderTab() {
               }`}
               placeholder="e.g. 50"
             />
+            <div className="flex justify-center gap-1 mt-2 w-full">
+              <button onClick={() => setTargetLevel(Math.max(2, parseInt(targetLevel) - 1))} className="flex-1 min-w-10 px-1 py-1 text-xs bg-st-secondary text-st-text rounded border border-st-border hover:border-st-orange transition-colors">-1</button>
+              <button onClick={() => setTargetLevel(parseInt(targetLevel) + 1)} className="flex-1 min-w-10 px-1 py-1 text-xs bg-st-secondary text-st-text rounded border border-st-border hover:border-st-orange transition-colors">+1</button>
+            </div>
             {parseInt(targetLevel) <= (startMode === 'template' ? asc2Template.arch_level : store.arch_level) ? (
               <span className="text-[10px] text-red-400 font-bold block mt-1">Must be greater than starting level!</span>
             ) : (
@@ -882,6 +888,10 @@ export default function PathfinderTab() {
               className="w-full bg-[#0E1117] border border-st-border rounded p-2 text-st-text focus:border-st-orange outline-none"
               placeholder="e.g. 20"
             />
+            <div className="flex justify-center gap-1 mt-2 w-full">
+              <button onClick={() => setMinWinRate(Math.max(1, parseInt(minWinRate) - 1))} className="flex-1 min-w-10 px-1 py-1 text-xs bg-st-secondary text-st-text rounded border border-st-border hover:border-st-orange transition-colors">-1</button>
+              <button onClick={() => setMinWinRate(Math.min(100, parseInt(minWinRate) + 1))} className="flex-1 min-w-10 px-1 py-1 text-xs bg-st-secondary text-st-text rounded border border-st-border hover:border-st-orange transition-colors">+1</button>
+            </div>
             <span className="text-[10px] text-st-text-light block mt-1">Min success required to push.</span>
           </div>
           <div>
@@ -916,14 +926,15 @@ export default function PathfinderTab() {
             <div>
               <div className="mb-4 pb-4 border-b border-st-border flex flex-col md:flex-row md:items-center gap-3">
                 <label className="font-bold text-[#FAFAFA]">Select Template Profile:</label>
-                <select 
+                <MobileSelect
                   value={templateType} 
                   onChange={(e) => setTemplateType(e.target.value)}
+                  options={[
+                    { value: 'founder', label: 'Founder_Asc2_Start' },
+                    { value: 'f2p', label: 'F2p_Asc2_Start' }
+                  ]}
                   className="bg-st-bg border border-st-border rounded px-3 py-1.5 text-st-text focus:border-st-orange outline-none font-bold"
-                >
-                  <option value="founder">Founder_Asc2_Start</option>
-                  <option value="f2p">F2p_Asc2_Start</option>
-                </select>
+                />
               </div>
               <p>Loaded Profile: <span className="text-st-orange font-bold">{asc2Template.name}</span></p>
               <p>Arch Level: {asc2Template.arch_level} | Max Floor: {asc2Template.current_max_floor}</p>
@@ -1211,19 +1222,20 @@ export default function PathfinderTab() {
                     <input type="checkbox" checked={showFragRates} onChange={(e) => setShowFragRates(e.target.checked)} className="accent-[#facc15]" /> 
                     Show Frags
                   </label>
-                  <select
+                  <MobileSelect
                     value={selectedRateFrag}
                     onChange={(e) => setSelectedRateFrag(e.target.value)}
                     disabled={!showFragRates}
+                    options={[
+                      { value: 'com', label: 'Common' },
+                      { value: 'rare', label: 'Rare' },
+                      { value: 'epic', label: 'Epic' },
+                      { value: 'leg', label: 'Legendary' },
+                      { value: 'myth', label: 'Mythic' },
+                      { value: 'div', label: 'Divine' }
+                    ]}
                     className="bg-[#1a1a1a] border border-st-border rounded px-1.5 py-0.5 text-[10px] text-st-text outline-none cursor-pointer"
-                  >
-                    <option value="com">Common</option>
-                    <option value="rare">Rare</option>
-                    <option value="epic">Epic</option>
-                    <option value="leg">Legendary</option>
-                    <option value="myth">Mythic</option>
-                    <option value="div">Divine</option>
-                  </select>
+                  />
               </div>
 
               {/* ETA PREDICTOR GUIDE OVERLAY */}
@@ -1239,18 +1251,19 @@ export default function PathfinderTab() {
               {/* ECONOMY CONTROLS */}
               <div className="absolute right-[150px] z-10 flex items-center gap-2 bg-[#111] border border-st-border px-3 py-1.5 rounded shadow-md" style={{ top: '1225px' }}>
                   <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Select Bank:</span>
-                  <select
+                  <MobileSelect
                     value={selectedFragPlot}
                     onChange={(e) => setSelectedFragPlot(e.target.value)}
+                    options={[
+                      { value: 'com', label: 'Common' },
+                      { value: 'rare', label: 'Rare' },
+                      { value: 'epic', label: 'Epic' },
+                      { value: 'leg', label: 'Legendary' },
+                      { value: 'myth', label: 'Mythic' },
+                      { value: 'div', label: 'Divine' }
+                    ]}
                     className="bg-[#1a1a1a] border border-st-border rounded px-2 py-0.5 text-[11px] font-bold text-st-text outline-none cursor-pointer focus:border-st-orange"
-                  >
-                    <option value="com">Common</option>
-                    <option value="rare">Rare</option>
-                    <option value="epic">Epic</option>
-                    <option value="leg">Legendary</option>
-                    <option value="myth">Mythic</option>
-                    <option value="div">Divine</option>
-                  </select>
+                  />
               </div>
 
               {/* FARM BUILD GUIDE OVERLAY */}
@@ -1279,14 +1292,15 @@ export default function PathfinderTab() {
                       <div className="flex items-center gap-1.5">
                           <span>⚙️</span> Engine Diagnostics
                       </div>
-                      <select 
+                      <MobileSelect
                           value={diagnosticView} 
                           onChange={(e) => setDiagnosticView(e.target.value)}
+                          options={[
+                            { value: 'push_crit', label: 'PUSH: Crit Engine Evol.' },
+                            { value: 'farm_crit', label: 'FARM: Crit Engine Evol.' }
+                          ]}
                           className="bg-[#1a1a1a] border border-st-border rounded px-1.5 py-0.5 text-[10px] text-st-text outline-none cursor-pointer focus:border-st-orange w-full shadow-inner"
-                      >
-                          <option value="push_crit">PUSH: Crit Engine Evol.</option>
-                          <option value="farm_crit">FARM: Crit Engine Evol.</option>
-                      </select>
+                      />
                   </div>
                   <div className="text-[10px] text-gray-400 leading-relaxed">
                       {diagnosticView === 'push_crit' && (

@@ -1,10 +1,11 @@
 // src/components/simulations/ResultsDashboard.jsx
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import useStore from '../../store';
 import { EngineWorkerPool } from '../../utils/optimizer';
 import PlotWrapper from 'react-plotly.js';
 import { INTERNAL_UPGRADE_CAPS, UPGRADE_NAMES, ASC1_LOCKED_UPGS, ASC2_LOCKED_UPGS, UPGRADE_LEVEL_REQS, EXTERNAL_UI_GROUPS, calculateUpgradeCost, CURRENCY_TYPES, BLOCK_MIN_FLOORS } from '../../game_data';
 import { UI_BLOCK_CARD_WIDTH, UI_BLOCK_CARD_X_OFFSET, UI_BLOCK_CARD_Y_OFFSET, UI_CARD_CBLOCK_SCALE } from '../../ui_config';
+import MobileSelect from '../MobileSelect';
 
 const Plot = PlotWrapper.default || PlotWrapper;
 
@@ -94,6 +95,22 @@ export default function ResultsDashboard({ context }) {
       }
     }, 150);
   };
+
+  // Scroll active data tab into view when it changes
+  useEffect(() => {
+    const activeTabButton = document.getElementById(`res-data-tab-${dataTab}`);
+    if (activeTabButton) {
+      activeTabButton.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+    }
+  }, [dataTab]);
+
+  // Scroll active res tab into view when it changes
+  useEffect(() => {
+    const activeTabButton = document.getElementById(`res-main-tab-${resTab}`);
+    if (activeTabButton) {
+      activeTabButton.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+    }
+  }, [resTab]);
 
   const handleApplyStat = (stat) => {
     const current = store.base_stats[stat] || 0;
@@ -417,7 +434,7 @@ export default function ResultsDashboard({ context }) {
         if (store.current_max_floor < BLOCK_MIN_FLOORS[cardId]) return;
 
         const currentLvl = store.cards[cardId] || 0;
-        const maxLvl = store.asc1_unlocked ? 4 : 3;
+        const maxLvl = store.hades_unlocked ? 4 : 3;
         if (currentLvl >= maxLvl) return;
 
         let targetLvlName = "";
@@ -464,7 +481,7 @@ export default function ResultsDashboard({ context }) {
         <h3 className="text-xl font-bold text-green-400">✅ Simulation Complete in {store.opt_results.elapsed.toFixed(1)} seconds!</h3>
       </div>
 
-      <div className="flex flex-wrap border-b border-st-border mb-6">
+      <div className="flex overflow-x-auto md:flex-wrap border-b border-st-border mb-8 md:mb-6 scrollbar-thin">
         {[
           { id: 'build', label: '🏆 The Build' },
           { id: 'data', label: '📊 Simulation Data' },
@@ -472,9 +489,13 @@ export default function ResultsDashboard({ context }) {
         ].map((t) => (
           <button
             key={t.id}
+            id={`res-main-tab-${t.id}`}
             data-tour={`res-tab-${t.id}`}
-            onClick={() => setResTab(t.id)}
-            className={`px-4 py-2 font-medium whitespace-nowrap transition-colors duration-200 border-b-2 ${
+            onClick={(e) => {
+              setResTab(t.id);
+              e.currentTarget.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+            }}
+            className={`px-3 py-1.5 md:px-4 md:py-2 text-sm md:text-base font-medium whitespace-nowrap transition-colors duration-200 border-b-2 flex-shrink-0 ${
               resTab === t.id 
                 ? 'border-st-orange text-st-text' 
                 : 'border-transparent text-st-text-light hover:text-st-orange hover:border-gray-300'
@@ -562,13 +583,17 @@ export default function ResultsDashboard({ context }) {
         <div className="st-container animate-fade-in">
           <h3 className="text-2xl font-bold mb-4">📊 Advanced Analytics Dashboard</h3>
           
-          <div className="flex flex-wrap border-b border-st-border mb-6">
+          <div className="flex overflow-x-auto md:flex-wrap border-b border-st-border mb-8 md:mb-6 scrollbar-thin">
             {innerTabs.map((t) => (
               <button
                 key={t.id}
+                id={`res-data-tab-${t.id}`}
                 data-tour={`res-inner-${t.id}`}
-                onClick={() => setDataTab(t.id)}
-                className={`px-4 py-2 font-medium whitespace-nowrap transition-colors duration-200 border-b-2 ${
+                onClick={(e) => {
+                  setDataTab(t.id);
+                  e.currentTarget.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+                }}
+                className={`px-3 py-1.5 md:px-4 md:py-2 text-sm md:text-base font-medium whitespace-nowrap transition-colors duration-200 border-b-2 flex-shrink-0 ${
                   dataTab === t.id ? 'border-st-orange text-st-text' : 'border-transparent text-st-text-light hover:text-st-orange'
                 }`}
               >
@@ -761,6 +786,7 @@ export default function ResultsDashboard({ context }) {
                       line: { color: '#4CAF50' }, marker: { size: 10 }
                     }]}
                     layout={{
+                      autosize: true,
                       font: { color: store.theme === 'dark' ? '#FAFAFA' : '#31333F' },
                       paper_bgcolor: 'rgba(0,0,0,0)', plot_bgcolor: 'rgba(0,0,0,0)',
                       margin: { t: 10, b: 30, l: 40, r: 20 },
@@ -785,6 +811,7 @@ export default function ResultsDashboard({ context }) {
                       marker: { color:["#ff4b4b", "#ffa229", "#6495ED", "#4CAF50"] }
                     }]}
                     layout={{
+                      autosize: true,
                       font: { color: store.theme === 'dark' ? '#FAFAFA' : '#31333F' },
                       paper_bgcolor: 'rgba(0,0,0,0)', plot_bgcolor: 'rgba(0,0,0,0)',
                       margin: { t: 10, b: 30, l: 100, r: 20 },
@@ -821,16 +848,16 @@ export default function ResultsDashboard({ context }) {
                 <>
                   <div className="flex flex-col md:flex-row items-center gap-4">
                     <label className="font-bold whitespace-nowrap">Select Block:</label>
-                    <select 
+                    <MobileSelect
                       data-tour="res-data-cards"
                       value={activeBlock} 
                       onChange={(e) => setCardSelBlock(e.target.value)}
+                      options={displayBlocks.map(b => ({
+                        value: b,
+                        label: b.charAt(0).toUpperCase() + b.slice(1)
+                      }))}
                       className="w-full md:w-auto bg-st-bg border border-st-border rounded p-2 text-st-text focus:border-st-orange focus:outline-none"
-                    >
-                      {displayBlocks.map(b => (
-                        <option key={b} value={b}>{b.charAt(0).toUpperCase() + b.slice(1)}</option>
-                      ))}
-                    </select>
+                    />
                   </div>
                   
                   {(() => {
@@ -874,17 +901,17 @@ export default function ResultsDashboard({ context }) {
                                   <div className="text-xs text-st-text-light">(1 in {d.odds.toLocaleString()}{d.isFrag ? " ea" : ""})</div>
                                   
                                   <div className={`flex items-center gap-1 relative group ${d.isFrag ? '' : 'invisible pointer-events-none'}`}>
-                                    <select 
+                                    <MobileSelect
                                       data-tour={d.isFrag && d.name === "Poly Fragments" ? "res-data-cards-frag-count" : undefined}
                                       value={d.count || 1}
                                       onChange={(e) => d.setCount && d.setCount(parseInt(e.target.value))}
+                                      options={[...Array(10)].map((_, i) => ({
+                                        value: i + 1,
+                                        label: `Need ${i + 1} Frag${i > 0 ? 's' : ''}`
+                                      }))}
                                       className="bg-[#1e1e1e] border border-st-border rounded px-2 py-1 text-xs text-st-orange font-bold focus:border-st-orange outline-none cursor-pointer"
                                       tabIndex={d.isFrag ? 0 : -1}
-                                    >
-                                      {[ ...Array(10) ].map((_, i) => (
-                                        <option key={i+1} value={i+1}>Need {i+1} Frag{i > 0 ? 's' : ''}</option>
-                                      ))}
-                                    </select>
+                                    />
                                     <span className="text-st-text-light hover:text-st-orange cursor-help text-xs">ℹ️</span>
                                     {d.isFrag && (
                                       <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-48 p-2 bg-st-bg text-st-text text-xs border border-st-border rounded shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50 text-left pointer-events-none">
@@ -933,6 +960,7 @@ export default function ResultsDashboard({ context }) {
                     marker: { color:['#636EFA', '#EF553B', '#00CC96', '#AB63FA', '#FFA15A', '#19D3F3', '#FF6692'] }
                   }]}
                   layout={{
+                    autosize: true,
                     font: { color: store.theme === 'dark' ? '#FAFAFA' : '#31333F' },
                     paper_bgcolor: 'rgba(0,0,0,0)', plot_bgcolor: 'rgba(0,0,0,0)',
                     margin: { t: 20, b: 40, l: 40, r: 20 }
@@ -1017,6 +1045,7 @@ export default function ResultsDashboard({ context }) {
                         hovertemplate: '%{customdata}<extra></extra>'
                       }]}
                       layout={{
+                        autosize: true,
                         font: { color: store.theme === 'dark' ? '#FAFAFA' : '#31333F' },
                         paper_bgcolor: 'rgba(0,0,0,0)', plot_bgcolor: 'rgba(0,0,0,0)',
                         margin: { t: 10, b: 50, l: 60, r: 20 },
@@ -1063,6 +1092,7 @@ export default function ResultsDashboard({ context }) {
                         <Plot
                           data={traces}
                           layout={{
+                            autosize: true,
                             font: { color: store.theme === 'dark' ? '#FAFAFA' : '#31333F' },
                             paper_bgcolor: 'rgba(0,0,0,0)', plot_bgcolor: 'rgba(0,0,0,0)',
                             margin: { t: 10, b: 70, l: 60, r: 20 },
@@ -1103,18 +1133,19 @@ export default function ResultsDashboard({ context }) {
               <div className="flex flex-col md:flex-row items-start md:items-center justify-between bg-[#1e1e1e] border border-st-border p-3 rounded mb-6 gap-4">
                 <div>
                   <label className="text-sm font-bold block mb-1">🎯 ROI Precision (Simulations per item)</label>
-                  <select 
+                  <MobileSelect
                     data-tour="res-roi-precision"
                     value={roiPrecision}
                     onChange={(e) => setRoiPrecision(parseInt(e.target.value))}
                     disabled={isRoiLoading}
+                    options={[
+                      { value: 15, label: '15 Runs (Fast, High Variance)' },
+                      { value: 30, label: '30 Runs (Balanced)' },
+                      { value: 50, label: '50 Runs (Accurate, Slower)' },
+                      { value: 100, label: '100 Runs (Max Precision, Very Slow)' }
+                    ]}
                     className="bg-st-secondary border border-st-border rounded p-1 text-sm text-st-text focus:border-st-orange outline-none disabled:opacity-50"
-                  >
-                    <option value={15}>15 Runs (Fast, High Variance)</option>
-                    <option value={30}>30 Runs (Balanced)</option>
-                    <option value={50}>50 Runs (Accurate, Slower)</option>
-                    <option value={100}>100 Runs (Max Precision, Very Slow)</option>
-                  </select>
+                  />
                 </div>
                 <div className="text-xs text-st-text-light max-w-md italic">
                   Note: A lower number of runs causes RNG variance. Upgrades with similar mathematical gains might shuffle places or fall off the list upon recalculating. Increase precision to stabilize the math!
@@ -1201,14 +1232,15 @@ export default function ResultsDashboard({ context }) {
                       <>
                         <div className="flex items-center gap-2 mb-3">
                           <label className="text-sm font-bold text-st-text-light">Filter Currency:</label>
-                          <select 
+                          <MobileSelect
                             value={roiUpgFilter}
                             onChange={(e) => setRoiUpgFilter(e.target.value)}
+                            options={[
+                              { value: 'All', label: 'All' },
+                              ...CURRENCY_TYPES.map(c => ({ value: c, label: curMap[c] }))
+                            ]}
                             className="bg-st-secondary border border-st-border rounded p-1 text-sm text-st-text focus:border-st-orange outline-none"
-                          >
-                            <option value="All">All</option>
-                            {CURRENCY_TYPES.map(c => <option key={c} value={c}>{curMap[c]}</option>)}
-                          </select>
+                          />
                         </div>
                         <div className="overflow-x-auto">
                           <table className="w-full text-left border-collapse">

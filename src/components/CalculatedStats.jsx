@@ -2,6 +2,7 @@
 import { useState } from 'react';
 import useStore from '../store';
 import { UPGRADE_NAMES, EXTERNAL_UI_GROUPS, INFERNAL_CARD_BONUSES } from '../game_data';
+import MobileSelect from './MobileSelect';
 
 export default function CalculatedStats() {
   const { asc1_unlocked, asc2_unlocked, current_max_floor, base_stats, upgrade_levels, external_levels, cards, calculated_stats, arch_ability_infernal_bonus, total_infernal_cards } = useStore();
@@ -39,22 +40,23 @@ export default function CalculatedStats() {
           <div className="mt-4 pt-4 border-t border-st-border">
             <p className="text-sm mb-4">If a stat in the UI is <strong>higher</strong> than your game, you likely entered an upgrade level too high, allocated too many base stats, or forgot to account for an unequipped pet/skin. Select a mismatched stat below to pull up your <strong>exact current inputs</strong> for that formula:</p>
             
-            <select 
-              className="st-input w-full md:w-1/2 mb-6 text-left pl-4"
+            <MobileSelect
               value={troubleshootStat}
               onChange={(e) => setTroubleshootStat(e.target.value)}
-            >
-              <option value="">(Select a Stat...)</option>
-              <option value="Max Stamina">Max Stamina</option>
-              <option value="Damage">Damage</option>
-              <option value="Armor Pen">Armor Pen</option>
-              <option value="Crit Chances & Multipliers">Crit Chances & Multipliers</option>
-              <option value="EXP & Fragment Gain">EXP & Fragment Gain</option>
-              <option value="Mod Chances & Multipliers">Mod Chances & Multipliers</option>
-              <option value="Crosshairs & Auto-Tap">Crosshairs & Auto-Tap</option>
-              <option value="Abilities">Abilities (Instacharge / Cooldowns)</option>
-              <option value="Ascension 2">Ascension 2 (Gleaming / Infernal)</option>
-            </select>
+              options={[
+                { value: '', label: '(Select a Stat...)' },
+                { value: 'Max Stamina', label: 'Max Stamina' },
+                { value: 'Damage', label: 'Damage' },
+                { value: 'Armor Pen', label: 'Armor Pen' },
+                { value: 'Crit Chances & Multipliers', label: 'Crit Chances & Multipliers' },
+                { value: 'EXP & Fragment Gain', label: 'EXP & Fragment Gain' },
+                { value: 'Mod Chances & Multipliers', label: 'Mod Chances & Multipliers' },
+                { value: 'Crosshairs & Auto-Tap', label: 'Crosshairs & Auto-Tap' },
+                { value: 'Abilities', label: 'Abilities (Instacharge / Cooldowns)' },
+                { value: 'Ascension 2', label: 'Ascension 2 (Gleaming / Infernal)' }
+              ]}
+              className="st-input w-full md:w-1/2 mb-6 text-left pl-4"
+            />
 
             {troubleshootStat && (() => {
               // Enhanced map perfectly aligned to player.py

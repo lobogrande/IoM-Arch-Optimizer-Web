@@ -42,7 +42,8 @@ const isCrippledPhase = (s) => {
         'div3', 'myth3', 'leg3', 'epic3', 'rare3', 'com3', 'dirt3'
     ];
     for (const c of highTierCards) {
-        if ((s.cards[c] || 0) < 4) return false;
+        const targetLevel = !s.hades_unlocked ? 3 : 4;
+        if ((s.cards[c] || 0) < targetLevel) return false;
     }
     return true;
 };
@@ -595,7 +596,8 @@ export async function runPathfinderSimulation(startState, targetLevel, initialFr
                     'div1', 'myth1', 'leg1', 'epic1', 'rare1', 'com1', 'dirt1'
                 ];
                 for (const c of targetCards) {
-                    if ((state.cards[c] || 0) < 4) return `block_${c}_per_min`;
+                    const targetLevel = !state.hades_unlocked ? 3 : 4;
+                    if ((state.cards[c] || 0) < targetLevel) return `block_${c}_per_min`;
                 }
                 return 'block_div4_per_min'; // Absolute final fallback if 100% complete
             }
@@ -741,7 +743,8 @@ export async function runPathfinderSimulation(startState, targetLevel, initialFr
             
             let cardsMaxed = true;
             for (const blockId of Object.keys(BLOCK_MIN_FLOORS)) {
-                if ((state.cards[blockId] || 0) < 4) {
+                const targetLevel = !state.hades_unlocked ? 3 : 4;
+                if ((state.cards[blockId] || 0) < targetLevel) {
                     cardsMaxed = false;
                     break;
                 }
@@ -1096,7 +1099,7 @@ export async function runPathfinderSimulation(startState, targetLevel, initialFr
                 
                 while (frags.div >= 999) {
                     const pool =[];
-                    if (curHades < 6666) pool.push('hades');
+                    if (curHades < 6666 && state.hades_unlocked) pool.push('hades');
                     if (curProm < 1000) pool.push('prometheus');
                     
                     const totalBaseIdols = curHades + curProm;
@@ -1363,7 +1366,7 @@ export async function runPathfinderSimulation(startState, targetLevel, initialFr
             else if (nextCardTargetLevel === 4) evtName = `🔥 Infernal Card Crafted: ${nextCardId}`;
 
             // Infernal compounding kicks in!
-            if (nextCardTargetLevel === 4) {
+            if (nextCardTargetLevel === 4 && state.hades_unlocked) {
                 state.total_infernal_cards = (state.total_infernal_cards || 0) + 1;
             }
 

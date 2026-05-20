@@ -647,7 +647,21 @@ export default function SynthesisTab() {
               >
                 {uniqueTargets.map(t => <option key={t} value={t}>{t}</option>)}
               </select>
-              <div className="text-xs text-st-text-light mt-1">Hold Ctrl/Cmd to select multiple</div>
+              <div className="flex gap-2 mt-2">
+                <button
+                  onClick={() => setViewTargets(uniqueTargets)}
+                  className="flex-1 px-2 py-1 text-xs bg-st-secondary text-st-text rounded border border-st-border hover:border-st-orange transition-colors font-bold"
+                >
+                  ☑️ Select All
+                </button>
+                <button
+                  onClick={() => setViewTargets([])}
+                  className="flex-1 px-2 py-1 text-xs bg-st-secondary text-st-text rounded border border-st-border hover:border-st-orange transition-colors font-bold"
+                >
+                  ❌ Clear All
+                </button>
+              </div>
+              <div className="text-xs text-st-text-light mt-1">Hold Ctrl/Cmd to select multiple (or use buttons above)</div>
             </div>
             <div className="w-full md:w-1/3 mt-0 md:mt-[28px]">
               <button 

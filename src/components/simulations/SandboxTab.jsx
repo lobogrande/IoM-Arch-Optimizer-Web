@@ -274,10 +274,10 @@ export default function SandboxTab() {
                     }}
                     className="st-input p-1 text-sm h-8"
                   />
-                  <div className="flex flex-wrap justify-center gap-1 mt-2 w-full">
-                    <button onClick={() => store.setSandboxStat(stat, Math.max(0, (store.sandbox_stats[stat] || 0) - 5))} className="flex-1 px-1 py-1 text-[10px] bg-st-secondary text-st-text rounded border border-st-border hover:border-st-orange transition-colors">-5</button>
-                    <button onClick={() => store.setSandboxStat(stat, Math.min(MAX_STAT_CAPS[stat], (store.sandbox_stats[stat] || 0) + 5))} className="flex-1 px-1 py-1 text-[10px] bg-st-secondary text-st-text rounded border border-st-border hover:border-st-orange transition-colors">+5</button>
-                    <button onClick={() => store.setSandboxStat(stat, MAX_STAT_CAPS[stat])} className="flex-1 px-1 py-1 text-[10px] font-bold bg-st-secondary text-st-text rounded border border-st-border hover:border-st-orange transition-colors">Max</button>
+                  <div className="flex justify-center gap-1 mt-2 w-full">
+                    <button onClick={() => store.setSandboxStat(stat, Math.max(0, (store.sandbox_stats[stat] || 0) - 1))} className="flex-1 min-w-10 px-1 py-1 text-[10px] bg-st-secondary text-st-text rounded border border-st-border hover:border-st-orange transition-colors">-1</button>
+                    <button onClick={() => store.setSandboxStat(stat, Math.min(MAX_STAT_CAPS[stat], (store.sandbox_stats[stat] || 0) + 1))} className="flex-1 min-w-10 px-1 py-1 text-[10px] bg-st-secondary text-st-text rounded border border-st-border hover:border-st-orange transition-colors">+1</button>
+                    <button onClick={() => store.setSandboxStat(stat, MAX_STAT_CAPS[stat])} className="flex-1 min-w-10 px-1 py-1 text-[10px] font-bold bg-st-secondary text-st-text rounded border border-st-border hover:border-st-orange transition-colors">Max</button>
                   </div>
                 </div>
               ))}
@@ -297,6 +297,10 @@ export default function SandboxTab() {
                   onBlur={(e) => store.setSimsState('sandbox_floor', Math.max(1, parseInt(e.target.value) || 1))}
                   className="st-input h-8" 
                 />
+                <div className="flex flex-wrap justify-center gap-1 mt-2 w-full">
+                  <button onClick={() => store.setSimsState('sandbox_floor', Math.max(1, (store.sandbox_floor ?? store.current_max_floor) - 1))} className="flex-1 min-w-10 px-1 py-1 text-xs bg-st-secondary text-st-text rounded border border-st-border hover:border-st-orange transition-colors">-1</button>
+                  <button onClick={() => store.setSimsState('sandbox_floor', (store.sandbox_floor ?? store.current_max_floor) + 1)} className="flex-1 min-w-10 px-1 py-1 text-xs bg-st-secondary text-st-text rounded border border-st-border hover:border-st-orange transition-colors">+1</button>
+                </div>
               </div>
               <div data-tour="sand-hits">
                 <label className="block mb-1">Min Avg Hits to Kill:</label>
@@ -308,13 +312,17 @@ export default function SandboxTab() {
                   onBlur={(e) => setSandboxMinHits(Math.max(1, parseInt(e.target.value) || 1))}
                   className="st-input h-8" 
                 />
+                <div className="flex flex-wrap justify-center gap-1 mt-2 w-full">
+                  <button onClick={() => setSandboxMinHits(Math.max(1, sandboxMinHits - 1))} className="flex-1 min-w-10 px-1 py-1 text-xs bg-st-secondary text-st-text rounded border border-st-border hover:border-st-orange transition-colors">-1</button>
+                  <button onClick={() => setSandboxMinHits(sandboxMinHits + 1)} className="flex-1 min-w-10 px-1 py-1 text-xs bg-st-secondary text-st-text rounded border border-st-border hover:border-st-orange transition-colors">+1</button>
+                </div>
               </div>
               <label data-tour="sand-unreachable" className="flex items-center space-x-2 cursor-pointer mt-2">
                 <input 
                   type="checkbox" 
                   checked={sandboxShowUnreachable}
                   onChange={() => setSandboxShowUnreachable(!sandboxShowUnreachable)}
-                  className="accent-st-orange w-4 h-4"
+                  className="accent-st-orange w-5 h-5"
                 />
                 <span>Show Unreachable Blocks</span>
               </label>
@@ -334,6 +342,20 @@ export default function SandboxTab() {
               >
                 {uniqueBlockNames.map(name => <option key={name} value={name}>{name}</option>)}
               </select>
+              <div className="flex gap-2 mt-2">
+                <button
+                  onClick={() => setSandboxBlockFilters(uniqueBlockNames)}
+                  className="flex-1 px-2 py-1 text-xs bg-st-secondary text-st-text rounded border border-st-border hover:border-st-orange transition-colors font-bold"
+                >
+                  ☑️ Select All
+                </button>
+                <button
+                  onClick={() => setSandboxBlockFilters([])}
+                  className="flex-1 px-2 py-1 text-xs bg-st-secondary text-st-text rounded border border-st-border hover:border-st-orange transition-colors font-bold"
+                >
+                  ❌ Clear All
+                </button>
+              </div>
             </div>
             
             <div className="w-full md:w-1/2 flex flex-col items-start md:items-end space-y-3">
@@ -347,7 +369,7 @@ export default function SandboxTab() {
                     type="checkbox" 
                     checked={sandboxShowCrits}
                     onChange={() => setSandboxShowCrits(!sandboxShowCrits)}
-                    className="accent-st-orange w-4 h-4"
+                    className="accent-st-orange w-5 h-5"
                   />
                   <span className="font-bold">🔍 Show Detailed Crits</span>
                 </label>

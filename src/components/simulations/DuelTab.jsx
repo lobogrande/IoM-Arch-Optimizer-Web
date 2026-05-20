@@ -2,6 +2,7 @@
 import { useState } from 'react';
 import useStore from '../../store';
 import { EngineWorkerPool } from '../../utils/optimizer';
+import MobileSelect from '../MobileSelect';
 
 const OPT_GOALS =[
   "Max Floor Push", 
@@ -128,35 +129,31 @@ export default function DuelTab() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <label className="block text-sm font-bold mb-1">Telemetry Focus</label>
-            <select 
+            <MobileSelect
               value={duelOptGoal} 
               onChange={(e) => setDuelOptGoal(e.target.value)}
+              options={OPT_GOALS.map(g => ({ value: g, label: g }))}
               className="w-full bg-st-bg border border-st-border rounded p-2 text-st-text focus:border-st-orange focus:outline-none"
-            >
-              {OPT_GOALS.map(g => <option key={g} value={g}>{g}</option>)}
-            </select>
+            />
           </div>
           
           <div>
             {duelOptGoal === "Fragment Farming" && (
               <>
                 <label className="block text-sm font-bold mb-1">Target Fragment</label>
-                <select 
+                <MobileSelect
                   value={duelTargetFrag} 
                   onChange={(e) => setDuelTargetFrag(parseInt(e.target.value))}
-                  className="w-full bg-st-bg border border-st-border rounded p-2 text-st-text focus:border-st-orange focus:outline-none"
-                >
-                  {Object.entries(FRAG_NAMES)
+                  options={Object.entries(FRAG_NAMES)
                     .filter(([val]) => {
                       const fragTier = parseInt(val);
                       if (fragTier === 0) return false;
                       if (fragTier === 6 && !store.asc1_unlocked) return false;
                       return true;
                     })
-                    .map(([val, name]) => (
-                      <option key={val} value={val}>{name}</option>
-                  ))}
-                </select>
+                    .map(([val, name]) => ({ value: parseInt(val), label: name }))}
+                  className="w-full bg-st-bg border border-st-border rounded p-2 text-st-text focus:border-st-orange focus:outline-none"
+                />
               </>
             )}
             {duelOptGoal === "Block Card Farming" && (
@@ -200,6 +197,10 @@ export default function DuelTab() {
                   }}
                   className="st-input p-2 text-sm"
                 />
+                <div className="flex flex-wrap justify-center gap-0.5 mt-1 w-full">
+                  <button onClick={() => setDuelStatsA({...duelStatsA, [stat]: Math.max(0, (duelStatsA[stat] || 0) - 1)})} className="flex-1 min-w-8 px-0.5 py-0.5 text-[10px] bg-st-secondary text-st-text rounded border border-st-border hover:border-st-orange transition-colors">-1</button>
+                  <button onClick={() => setDuelStatsA({...duelStatsA, [stat]: Math.min(MAX_STAT_CAPS[stat], (duelStatsA[stat] || 0) + 1)})} className="flex-1 min-w-8 px-0.5 py-0.5 text-[10px] bg-st-secondary text-st-text rounded border border-st-border hover:border-st-orange transition-colors">+1</button>
+                </div>
               </div>
             ))}
           </div>
@@ -228,6 +229,10 @@ export default function DuelTab() {
                   }}
                   className="st-input p-2 text-sm"
                 />
+                <div className="flex flex-wrap justify-center gap-0.5 mt-1 w-full">
+                  <button onClick={() => setDuelStatsB({...duelStatsB, [stat]: Math.max(0, (duelStatsB[stat] || 0) - 1)})} className="flex-1 min-w-8 px-0.5 py-0.5 text-[10px] bg-st-secondary text-st-text rounded border border-st-border hover:border-st-orange transition-colors">-1</button>
+                  <button onClick={() => setDuelStatsB({...duelStatsB, [stat]: Math.min(MAX_STAT_CAPS[stat], (duelStatsB[stat] || 0) + 1)})} className="flex-1 min-w-8 px-0.5 py-0.5 text-[10px] bg-st-secondary text-st-text rounded border border-st-border hover:border-st-orange transition-colors">+1</button>
+                </div>
               </div>
             ))}
           </div>

@@ -10,9 +10,10 @@ import {
 import { INTERNAL_UPGRADE_CAPS, UPGRADE_NAMES, ASC1_LOCKED_UPGS, ASC2_LOCKED_UPGS, CARD_TYPES, INFERNAL_CARD_BONUSES, EXTERNAL_UI_GROUPS, UPGRADE_LEVEL_REQS, calculateUpgradeCost } from '../game_data';
 
 export default function PlayerSetup() {
-  const { asc1_unlocked, asc2_unlocked, arch_level, current_max_floor, starting_speed_pool, base_stats, upgrade_levels, external_levels, cards, arch_ability_infernal_bonus, total_infernal_cards, geoduck_unlocked, calculated_stats, setSetting, setBaseStat, setUpgradeLevel, setCardLevel, setExternalGroup, loadStateFromJson, setSandboxStat, hideMaxed, setHideMaxed, activeSubTab, setActiveSubTab, setActiveTab, setSimActiveSubTab, profiles, activeProfileId, createProfile, loadProfile, saveToProfile, renameProfile, deleteProfile, resetState } = useStore();
+  const { asc1_unlocked, asc2_unlocked, arch_level, current_max_floor, starting_speed_pool, base_stats, upgrade_levels, external_levels, cards, arch_ability_infernal_bonus, total_infernal_cards, geoduck_unlocked, hades_unlocked, calculated_stats, setSetting, setBaseStat, setUpgradeLevel, setCardLevel, setExternalGroup, loadStateFromJson, setSandboxStat, hideMaxed, setHideMaxed, activeSubTab, setActiveSubTab, setActiveTab, setSimActiveSubTab, profiles, activeProfileId, createProfile, loadProfile, saveToProfile, renameProfile, deleteProfile, resetState } = useStore();
   const [isDragging, setIsDragging] = useState(false);
   const [showDiffModal, setShowDiffModal] = useState(false);
+  const [useGridLayout, setUseGridLayout] = useState(false);
 
   const diffs = useMemo(() => {
     if (!showDiffModal || !activeProfileId) return [ ];
@@ -31,6 +32,7 @@ export default function PlayerSetup() {
     check('Global Settings', 'Max Floor', d.current_max_floor, current_max_floor, () => setSetting('current_max_floor', d.current_max_floor || 1));
     check('Global Settings', 'Starting Speed Pool', d.starting_speed_pool, starting_speed_pool, () => setSetting('starting_speed_pool', d.starting_speed_pool || 0));
     check('Global Settings', 'Geoduck Unlocked', !!d.geoduck_unlocked, !!geoduck_unlocked, () => setSetting('geoduck_unlocked', !!d.geoduck_unlocked));
+    check('Global Settings', 'Hades Unlocked', !!d.hades_unlocked, !!hades_unlocked, () => setSetting('hades_unlocked', !!d.hades_unlocked));
     check('Global Settings', 'Infernal Arch Bonus %', parseFloat(d.arch_ability_infernal_bonus || 0), parseFloat(arch_ability_infernal_bonus || 0), () => setSetting('arch_ability_infernal_bonus', d.arch_ability_infernal_bonus || 0));
     check('Global Settings', 'Total Infernal Cards', d.total_infernal_cards || 0, total_infernal_cards || 0, () => setSetting('total_infernal_cards', d.total_infernal_cards || 0));[ 'Str', 'Agi', 'Per', 'Int', 'Luck', 'Div', 'Corr' ].forEach(s => {
       check('Base Stats', s, d.base_stats[s] || 0, base_stats[s] || 0, () => setBaseStat(s, d.base_stats[s] || 0));
@@ -57,7 +59,7 @@ export default function PlayerSetup() {
     });
 
     return res;
-  },[ showDiffModal, activeProfileId, profiles, asc1_unlocked, asc2_unlocked, arch_level, current_max_floor, geoduck_unlocked, arch_ability_infernal_bonus, total_infernal_cards, base_stats, upgrade_levels, external_levels, cards ]);
+  },[ showDiffModal, activeProfileId, profiles, asc1_unlocked, asc2_unlocked, arch_level, current_max_floor, geoduck_unlocked, hades_unlocked, arch_ability_infernal_bonus, total_infernal_cards, base_stats, upgrade_levels, external_levels, cards ]);
 
   // Deep equality check: Compares the active workspace to the saved profile snapshot
   const hasUnsavedChanges = useMemo(() => {
@@ -77,6 +79,7 @@ export default function PlayerSetup() {
     if (current_max_floor !== active.data.current_max_floor) return true;
     if ((starting_speed_pool || 0) !== (active.data.starting_speed_pool || 0)) return true;
     if (!!geoduck_unlocked !== !!active.data.geoduck_unlocked) return true;
+    if (!!hades_unlocked !== !!active.data.hades_unlocked) return true;
     if (parseFloat(arch_ability_infernal_bonus || 0) !== parseFloat(active.data.arch_ability_infernal_bonus || 0)) return true;
     if ((total_infernal_cards || 0) !== (active.data.total_infernal_cards || 0)) return true;
     if (!isEq(base_stats, active.data.base_stats)) return true;
@@ -85,7 +88,7 @@ export default function PlayerSetup() {
     if (!isEq(cards, active.data.cards)) return true;
     
     return false;
-  },[ activeProfileId, profiles, asc1_unlocked, asc2_unlocked, arch_level, current_max_floor, geoduck_unlocked, arch_ability_infernal_bonus, total_infernal_cards, base_stats, upgrade_levels, external_levels, cards ]);
+  },[ activeProfileId, profiles, asc1_unlocked, asc2_unlocked, arch_level, current_max_floor, geoduck_unlocked, hades_unlocked, arch_ability_infernal_bonus, total_infernal_cards, base_stats, upgrade_levels, external_levels, cards ]);
 
   useEffect(() => {
     if (showDiffModal && !hasUnsavedChanges) {
@@ -167,6 +170,7 @@ export default function PlayerSetup() {
       external_upgrades[group.name] = state.external_levels[group.rows[0]] || 0;
     });
     external_upgrades["Geoduck Unlocked"] = !!state.geoduck_unlocked;
+    external_upgrades["Hades Unlocked"] = !!state.hades_unlocked;
     external_upgrades["Arch Ability Infernal Bonus"] = parseFloat(state.arch_ability_infernal_bonus) / 100.0 || 0.0;
 
     // 3. Strictly Order Cards (Dirt1 -> Div4) (Export ALL, default to 0)
@@ -234,14 +238,30 @@ export default function PlayerSetup() {
           onChange={(e) => setBaseStat(statKey, e.target.value === '' ? '' : parseInt(e.target.value))}
           onBlur={(e) => setBaseStat(statKey, Math.min(STAT_CAPS[statKey], Math.max(0, parseInt(e.target.value) || 0)))}
         />
-        <div className="flex flex-wrap justify-center gap-1 mt-2 w-full">
-          <button onClick={() => setBaseStat(statKey, Math.max(0, (base_stats[statKey] || 0) - 5))} className="flex-1 px-1 py-1 text-xs bg-st-secondary text-st-text rounded border border-st-border hover:border-st-orange transition-colors">-5</button>
-          <button onClick={() => setBaseStat(statKey, Math.min(STAT_CAPS[statKey], (base_stats[statKey] || 0) + 5))} className="flex-1 px-1 py-1 text-xs bg-st-secondary text-st-text rounded border border-st-border hover:border-st-orange transition-colors">+5</button>
-          <button onClick={() => setBaseStat(statKey, STAT_CAPS[statKey])} className="flex-1 px-1 py-1 text-xs font-bold bg-st-secondary text-st-text rounded border border-st-border hover:border-st-orange transition-colors">Max</button>
+        <div className="flex gap-1 mt-2 w-full">
+          <div className="flex flex-col gap-1 flex-1">
+            <div className="flex gap-1">
+              <button onClick={() => setBaseStat(statKey, Math.max(0, (base_stats[statKey] || 0) - 1))} className="flex-1 min-w-10 px-1 py-1 text-xs bg-st-secondary text-st-text rounded border border-st-border hover:border-st-orange transition-colors">-1</button>
+              <button onClick={() => setBaseStat(statKey, Math.min(STAT_CAPS[statKey], (base_stats[statKey] || 0) + 1))} className="flex-1 min-w-10 px-1 py-1 text-xs bg-st-secondary text-st-text rounded border border-st-border hover:border-st-orange transition-colors">+1</button>
+            </div>
+            <div className="flex gap-1">
+              <button onClick={() => setBaseStat(statKey, Math.max(0, (base_stats[statKey] || 0) - 5))} className="flex-1 min-w-10 px-1 py-1 text-xs bg-st-secondary text-st-text rounded border border-st-border hover:border-st-orange transition-colors">-5</button>
+              <button onClick={() => setBaseStat(statKey, Math.min(STAT_CAPS[statKey], (base_stats[statKey] || 0) + 5))} className="flex-1 min-w-10 px-1 py-1 text-xs bg-st-secondary text-st-text rounded border border-st-border hover:border-st-orange transition-colors">+5</button>
+            </div>
+          </div>
+          <button onClick={() => setBaseStat(statKey, STAT_CAPS[statKey])} className="flex-1 min-w-10 px-1 py-1 text-xs font-bold bg-st-secondary text-st-text rounded border border-st-border hover:border-st-orange transition-colors">Max</button>
         </div>
       </div>
     );
   };
+
+  // Scroll active tab into view when it changes (for URL navigation or programmatic changes)
+  useEffect(() => {
+    const activeTabButton = document.getElementById(`setup-tab-${activeSubTab}`);
+    if (activeTabButton) {
+      activeTabButton.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+    }
+  }, [activeSubTab]);
 
   return (
     <div className="flex flex-col md:flex-row gap-6">
@@ -329,6 +349,7 @@ export default function PlayerSetup() {
                           current_max_floor: current_max_floor,
                           starting_speed_pool: starting_speed_pool,
                           geoduck_unlocked: geoduck_unlocked,
+                          hades_unlocked: hades_unlocked,
                           arch_ability_infernal_bonus: arch_ability_infernal_bonus,
                           total_infernal_cards: total_infernal_cards,
                           upgrade_levels: { ...upgrade_levels },
@@ -395,7 +416,7 @@ export default function PlayerSetup() {
                   });
                 }
               }
-            }} className="w-4 h-4 accent-st-orange" />
+            }} className="w-5 h-5 accent-st-orange" />
             <span>Ascension 1 Unlocked</span>
           </label>
 
@@ -411,7 +432,7 @@ export default function PlayerSetup() {
                   });
                 }
               }
-            }} className="w-4 h-4 accent-st-orange" />
+            }} className="w-5 h-5 accent-st-orange" />
             <span className={!asc1_unlocked ? "opacity-50" : ""}>Ascension 2 Unlocked</span>
           </label>
 
@@ -424,6 +445,10 @@ export default function PlayerSetup() {
               onChange={(e) => setSetting('arch_level', e.target.value === '' ? '' : parseInt(e.target.value))}
               onBlur={(e) => setSetting('arch_level', Math.max(1, parseInt(e.target.value) || 1))}
             />
+            <div className="flex flex-wrap justify-center gap-1 mt-2 w-full">
+              <button onClick={() => setSetting('arch_level', Math.max(1, arch_level - 1))} className="flex-1 min-w-10 px-1 py-1 text-xs bg-st-secondary text-st-text rounded border border-st-border hover:border-st-orange transition-colors">-1</button>
+              <button onClick={() => setSetting('arch_level', arch_level + 1)} className="flex-1 min-w-10 px-1 py-1 text-xs bg-st-secondary text-st-text rounded border border-st-border hover:border-st-orange transition-colors">+1</button>
+            </div>
           </div>
 
           <div data-tour="setup-max-floor" className="mb-4">
@@ -435,6 +460,10 @@ export default function PlayerSetup() {
               onChange={(e) => setSetting('current_max_floor', e.target.value === '' ? '' : parseInt(e.target.value))}
               onBlur={(e) => setSetting('current_max_floor', Math.max(1, parseInt(e.target.value) || 1))}
             />
+            <div className="flex flex-wrap justify-center gap-1 mt-2 w-full">
+              <button onClick={() => setSetting('current_max_floor', Math.max(1, current_max_floor - 1))} className="flex-1 min-w-10 px-1 py-1 text-xs bg-st-secondary text-st-text rounded border border-st-border hover:border-st-orange transition-colors">-1</button>
+              <button onClick={() => setSetting('current_max_floor', current_max_floor + 1)} className="flex-1 min-w-10 px-1 py-1 text-xs bg-st-secondary text-st-text rounded border border-st-border hover:border-st-orange transition-colors">+1</button>
+            </div>
           </div>
 
           <div data-tour="setup-speed-pool">
@@ -512,14 +541,21 @@ export default function PlayerSetup() {
       {/* RIGHT COLUMN: Setup Data Sub-Tabs */}
       <div className="w-full md:w-3/4">
         
-        <div data-tour="setup-tabs" className="flex flex-wrap items-center justify-between border-b border-st-border mb-4">
-          <div className="flex flex-wrap flex-1">
+        <div data-tour="setup-tabs" className="flex flex-wrap items-center justify-between border-b border-st-border mb-6 md:mb-4">
+          <div className="flex overflow-x-auto md:flex-wrap flex-1 scrollbar-thin">
             {[ '📊 Base Stats', '⬆️ Int. Upgrades', '🌟 Ext. Upgrades', '🎴 Block Cards', '🗿 Arch Idols' ].map((tab, idx) => {
               const tabId =[ 'stats', 'upgrades_int', 'upgrades_ext', 'cards', 'idols' ][idx];
               const isActive = activeSubTab === tabId;
               return (
-                <button key={tabId} id={`setup-tab-${tabId}`} onClick={() => setActiveSubTab(tabId)}
-                  className={`px-4 py-2 font-medium border-b-2 transition-colors ${isActive ? 'border-st-orange text-st-text' : 'border-transparent text-st-text hover:text-st-orange hover:border-gray-300'}`}>
+                <button 
+                  key={tabId} 
+                  id={`setup-tab-${tabId}`} 
+                  onClick={(e) => {
+                    setActiveSubTab(tabId);
+                    // Scroll the clicked tab button into view
+                    e.currentTarget.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+                  }}
+                  className={`px-3 py-1.5 md:px-4 md:py-2 text-sm md:text-base font-medium border-b-2 transition-colors whitespace-nowrap flex-shrink-0 ${isActive ? 'border-st-orange text-st-text' : 'border-transparent text-st-text hover:text-st-orange hover:border-gray-300'}`}>
                   {tab}
                 </button>
               )
@@ -533,7 +569,7 @@ export default function PlayerSetup() {
                 useStore.getState().startTour('setup');
               }, 50);
             }}
-            className="mb-2 ml-4 whitespace-nowrap text-sm bg-st-orange text-[#2b2b2b] px-3 py-1.5 rounded font-bold hover:bg-[#ffa229] transition-colors shadow-sm cursor-pointer"
+            className="mb-2 ml-2 md:ml-4 whitespace-nowrap text-xs md:text-sm bg-st-orange text-[#2b2b2b] px-2 py-1 md:px-3 md:py-1.5 rounded font-bold hover:bg-[#ffa229] transition-colors shadow-sm cursor-pointer"
           >
             ❓ Help / Tour
           </button>
@@ -609,8 +645,8 @@ export default function PlayerSetup() {
         {/* --- TAB: INTERNAL UPGRADES --- */}
         {activeSubTab === 'upgrades_int' && (
           <div id="tour-setup-int-upgrades">
-            <div className="flex flex-col gap-4 mb-4">
-              <div data-tour="setup-hide-maxed" className="flex items-center gap-3 max-w-max">
+            <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-4 mb-4">
+              <div data-tour="setup-hide-maxed" className="flex items-center gap-3">
                 <button 
                   onClick={() => setHideMaxed(!hideMaxed)}
                   className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors duration-200 focus:outline-none ${hideMaxed ? 'bg-st-orange' : 'bg-gray-300'}`}
@@ -624,10 +660,25 @@ export default function PlayerSetup() {
                   👀 Hide Maxed Upgrades
                 </span>
               </div>
+              
+              <div className="flex items-center gap-3 hidden md:flex">
+                <button 
+                  onClick={() => setUseGridLayout(!useGridLayout)}
+                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors duration-200 focus:outline-none ${useGridLayout ? 'bg-st-orange' : 'bg-gray-300'}`}
+                >
+                  <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform duration-200 shadow-sm ${useGridLayout ? 'translate-x-6' : 'translate-x-1'}`} />
+                </button>
+                <span 
+                  className="text-sm font-medium cursor-pointer select-none" 
+                  onClick={() => setUseGridLayout(!useGridLayout)}
+                >
+                  📊 Grid Layout
+                </span>
+              </div>
             </div>
             <hr className="border-st-border mb-6" />
 
-            <div className="w-full md:w-1/2 lg:w-1/3 mx-auto flex flex-col gap-4">
+            <div className={useGridLayout ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4" : "w-full md:w-1/2 lg:w-1/3 mx-auto flex flex-col gap-4"}>
               {Object.entries(INTERNAL_UPGRADE_CAPS).map(([upg_id, default_max_lvl]) => {
                   const id = parseInt(upg_id);
                   if (!asc1_unlocked && ASC1_LOCKED_UPGS.includes(id)) return null;
@@ -679,7 +730,7 @@ export default function PlayerSetup() {
                         <span className="text-xs text-st-text-light">(Max: {max_lvl})</span>
                       </div>
                       
-                      <div className="w-full flex justify-center mb-3 h-16">
+                      <div className="w-full flex justify-center mb-3 h-20">
                         <img 
                           src={`/assets/upgrades/internal/${id}.png`} 
                           alt={name}
@@ -689,7 +740,7 @@ export default function PlayerSetup() {
                         />
                       </div>
 
-                      <div className="w-full mb-3 text-[10px] text-st-text-light flex flex-col gap-0.5 bg-[#0E1117] p-1.5 rounded border border-st-border">
+                      <div className="w-full mb-3 text-xs text-st-text-light flex flex-col gap-1 bg-[#0E1117] p-2 rounded border border-st-border">
                          <div className="flex justify-between"><span>Next Lvl:</span> <span className="font-bold text-st-text">{nextCostStr}</span></div>
                          <div className="flex justify-between"><span>To Max:</span> <span className="font-bold text-st-orange">{totalCostStr}</span></div>
                       </div>
@@ -703,9 +754,11 @@ export default function PlayerSetup() {
                         onBlur={(e) => setUpgradeLevel(id, Math.min(max_lvl, Math.max(0, parseInt(e.target.value) || 0)))}
                       />
                       <div className="flex flex-wrap justify-center gap-1 mt-2 w-full">
-                        <button onClick={() => setUpgradeLevel(id, Math.max(0, current_lvl - 5))} className="flex-1 px-1 py-1 text-xs bg-st-secondary text-st-text rounded border border-st-border hover:border-st-orange transition-colors">-5</button>
-                        <button onClick={() => setUpgradeLevel(id, Math.min(max_lvl, current_lvl + 5))} className="flex-1 px-1 py-1 text-xs bg-st-secondary text-st-text rounded border border-st-border hover:border-st-orange transition-colors">+5</button>
-                        <button onClick={() => setUpgradeLevel(id, max_lvl)} className="flex-1 px-1 py-1 text-xs font-bold bg-st-secondary text-st-text rounded border border-st-border hover:border-st-orange transition-colors">Max</button>
+                        <button onClick={() => setUpgradeLevel(id, Math.max(0, current_lvl - 5))} className="flex-1 min-w-10 px-1 py-1 text-xs bg-st-secondary text-st-text rounded border border-st-border hover:border-st-orange transition-colors">-5</button>
+                        <button onClick={() => setUpgradeLevel(id, Math.max(0, current_lvl - 1))} className="flex-1 min-w-10 px-1 py-1 text-xs bg-st-secondary text-st-text rounded border border-st-border hover:border-st-orange transition-colors">-1</button>
+                        <button onClick={() => setUpgradeLevel(id, Math.min(max_lvl, current_lvl + 1))} className="flex-1 min-w-10 px-1 py-1 text-xs bg-st-secondary text-st-text rounded border border-st-border hover:border-st-orange transition-colors">+1</button>
+                        <button onClick={() => setUpgradeLevel(id, Math.min(max_lvl, current_lvl + 5))} className="flex-1 min-w-10 px-1 py-1 text-xs bg-st-secondary text-st-text rounded border border-st-border hover:border-st-orange transition-colors">+5</button>
+                        <button onClick={() => setUpgradeLevel(id, max_lvl)} className="flex-1 min-w-10 px-1 py-1 text-xs font-bold bg-st-secondary text-st-text rounded border border-st-border hover:border-st-orange transition-colors">Max</button>
                       </div>
                     </div>
                   );
@@ -745,7 +798,7 @@ export default function PlayerSetup() {
                         {group.id === 'geoduck' && (
                           <>
                             <label className="flex items-start gap-2 cursor-pointer font-bold mb-1 text-xs mt-2 text-left leading-tight">
-                              <input type="checkbox" checked={geoduck_unlocked} onChange={(e) => setSetting('geoduck_unlocked', e.target.checked)} className="w-4 h-4 accent-st-orange shrink-0 mt-0.5" />
+                              <input type="checkbox" checked={geoduck_unlocked} onChange={(e) => setSetting('geoduck_unlocked', e.target.checked)} className="w-5 h-5 accent-st-orange shrink-0 mt-0.5" />
                               <span>Geoduck Leg Fish T1 Tribute Completed</span>
                             </label>
                             <span className="text-xs text-st-text-light mt-1 text-center">Enter Number of Mythic Chests Owned</span>
@@ -754,15 +807,36 @@ export default function PlayerSetup() {
                       </div>
 
                       {(group.ui_type === 'number' || group.ui_type === 'pet' || group.ui_type === 'card') && (
-                        <input 
-                          type="number"
-                          className={`st-input ${group.id === 'geoduck' && !geoduck_unlocked ? 'opacity-30 cursor-not-allowed' : ''}`} 
-                          value={current_val} 
-                          disabled={group.id === 'geoduck' && !geoduck_unlocked} 
-                          onFocus={(e) => e.target.select()}
-                          onChange={(e) => setExternalGroup(group.rows, e.target.value === '' ? '' : parseInt(e.target.value))} 
-                          onBlur={(e) => setExternalGroup(group.rows, Math.min(group.max !== undefined ? group.max : 9999, Math.max(group.ui_type === 'pet' ? -1 : 0, parseInt(e.target.value) || 0)))}
-                        />
+                        <>
+                          <input 
+                            type="number"
+                            className={`st-input ${group.id === 'geoduck' && !geoduck_unlocked ? 'opacity-30 cursor-not-allowed' : ''}`} 
+                            value={current_val} 
+                            disabled={group.id === 'geoduck' && !geoduck_unlocked} 
+                            onFocus={(e) => e.target.select()}
+                            onChange={(e) => setExternalGroup(group.rows, e.target.value === '' ? '' : parseInt(e.target.value))} 
+                            onBlur={(e) => setExternalGroup(group.rows, Math.min(group.max !== undefined ? group.max : 9999, Math.max(group.ui_type === 'pet' ? -1 : 0, parseInt(e.target.value) || 0)))}
+                          />
+                          <div className="flex flex-wrap justify-center gap-1 mt-2 w-full">
+                            <button 
+                              onClick={() => setExternalGroup(group.rows, Math.max(group.ui_type === 'pet' ? -1 : 0, current_val - 1))} 
+                              disabled={group.id === 'geoduck' && !geoduck_unlocked}
+                              className="flex-1 min-w-10 px-1 py-1 text-xs bg-st-secondary text-st-text rounded border border-st-border hover:border-st-orange transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                            >-1</button>
+                            <button 
+                              onClick={() => setExternalGroup(group.rows, Math.min(group.max !== undefined ? group.max : 9999, current_val + 1))} 
+                              disabled={group.id === 'geoduck' && !geoduck_unlocked}
+                              className="flex-1 min-w-10 px-1 py-1 text-xs bg-st-secondary text-st-text rounded border border-st-border hover:border-st-orange transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                            >+1</button>
+                            {(group.id === 'axolotl' || group.id === 'dino') && (
+                              <button 
+                                onClick={() => setExternalGroup(group.rows, group.max)} 
+                                disabled={group.id === 'geoduck' && !geoduck_unlocked}
+                                className="flex-1 min-w-10 px-1 py-1 text-xs font-bold bg-st-secondary text-st-text rounded border border-st-border hover:border-st-orange transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                              >Max</button>
+                            )}
+                          </div>
+                        </>
                       )}
                       
                       {(group.ui_type === 'skill' || group.ui_type === 'bundle') && (
@@ -819,6 +893,10 @@ export default function PlayerSetup() {
                   onChange={(e) => setSetting('total_infernal_cards', e.target.value === '' ? '' : parseInt(e.target.value))}
                   onBlur={(e) => setSetting('total_infernal_cards', Math.max(0, parseInt(e.target.value) || 0))}
                 />
+                <div className="flex flex-wrap justify-center gap-1 mt-2 w-full">
+                  <button onClick={() => setSetting('total_infernal_cards', Math.max(0, total_infernal_cards - 1))} className="flex-1 min-w-10 px-1 py-1 text-xs bg-st-secondary text-st-text rounded border border-st-border hover:border-st-orange transition-colors">-1</button>
+                  <button onClick={() => setSetting('total_infernal_cards', total_infernal_cards + 1)} className="flex-1 min-w-10 px-1 py-1 text-xs bg-st-secondary text-st-text rounded border border-st-border hover:border-st-orange transition-colors">+1</button>
+                </div>
               </div>
               <div className="w-full sm:w-1/2 sm:border-l border-st-border sm:pl-6 text-center sm:text-left">
                 <span className="text-sm font-bold block mb-1">🔥 Infernal Arch Card Bonus</span>
@@ -845,7 +923,7 @@ export default function PlayerSetup() {
                   if (o_type === 'div' && !asc1_unlocked) is_locked = true;
 
                   const user_tier = cards[card_id] ?? 0;
-                  const max_card_level = asc1_unlocked ? 4 : 3;
+                  const max_card_level = hades_unlocked ? 4 : 3;
                   const infData = INFERNAL_CARD_BONUSES[card_id];
                   const infMult = calculated_stats?.infernal_multiplier || 1.0;
 
@@ -875,13 +953,13 @@ export default function PlayerSetup() {
                           <option value={1}>Regular</option>
                           <option value={2}>Gilded</option>
                           {max_card_level >= 3 && <option value={3}>Poly</option>}
-                          {max_card_level >= 4 && <option value={4}>Infernal</option>}
+                          {hades_unlocked && <option value={4}>Infernal</option>}
                         </select>
                       </div>
                       
                       {infData && (
                         <div id={`setup-card-info-${card_id}`} className="h-10 mt-3 flex flex-col items-center justify-center w-full text-center border-t border-st-border/50 pt-2">
-                          {user_tier >= 3 && !is_locked ? (() => {
+                          {user_tier >= 3 ? (() => {
                             // Override the legacy 1.126 reverse-engineering hack with the true 1.0 base
                             const trueBase = (card_id === 'div3' && infData.base === 1.126) ? 1.0 : infData.base;
                             const rawVal = trueBase * infMult;
@@ -930,13 +1008,13 @@ export default function PlayerSetup() {
                 🔒 Arch Idols important for the simulator are locked until Ascension 1.
               </div>
             ) : (
-              <div className="flex flex-col sm:flex-row gap-6 justify-start">
-                <div id="setup-ext-hestia" className="st-container flex flex-col items-center justify-between p-4 w-full sm:w-64">
+              <div className="flex flex-col sm:flex-row gap-6 justify-start items-start">
+                <div id="setup-ext-hestia" className="st-container flex flex-col items-center p-4 w-full sm:w-64">
                   <span className="font-bold mb-4">Hestia Idol</span>
                   <div className="w-full flex justify-center mb-4">
                     <img src="/assets/upgrades/idols/hestia_idol.png" alt="Hestia" className="h-auto object-contain" style={{ width: UI_EXT_IMG_STD, imageRendering: 'pixelated' }} onError={(e) => e.target.style.display = 'none'} />
                   </div>
-                  <div className="w-full">
+                  <div className="w-full mt-auto">
                     <hr className="border-st-border mb-4"/>
                     <input 
                       type="number" className="st-input" 
@@ -945,23 +1023,46 @@ export default function PlayerSetup() {
                       onChange={(e) => setExternalGroup([4], e.target.value === '' ? '' : parseInt(e.target.value))} 
                       onBlur={(e) => setExternalGroup([4], Math.min(3000, Math.max(0, parseInt(e.target.value) || 0)))}
                     />
+                    <div className="flex flex-wrap justify-center gap-1 mt-2 w-full">
+                      <button onClick={() => setExternalGroup([4], Math.max(0, (external_levels[4] || 0) - 1))} className="flex-1 min-w-10 px-1 py-1 text-xs bg-st-secondary text-st-text rounded border border-st-border hover:border-st-orange transition-colors">-1</button>
+                      <button onClick={() => setExternalGroup([4], Math.min(3000, (external_levels[4] || 0) + 1))} className="flex-1 min-w-10 px-1 py-1 text-xs bg-st-secondary text-st-text rounded border border-st-border hover:border-st-orange transition-colors">+1</button>
+                      <button onClick={() => setExternalGroup([4], 3000)} className="flex-1 min-w-10 px-1 py-1 text-xs font-bold bg-st-secondary text-st-text rounded border border-st-border hover:border-st-orange transition-colors">Max</button>
+                    </div>
                   </div>
                 </div>
 
-                <div id="setup-ext-hades" className="st-container flex flex-col items-center justify-between p-4 w-full sm:w-64">
+                <div id="setup-ext-hades" className="st-container flex flex-col items-center p-4 w-full sm:w-64">
                   <span className="font-bold mb-4">Hades Idol</span>
                   <div className="w-full flex justify-center mb-4">
                     <img src="/assets/upgrades/idols/hades_idol.png" alt="Hades" className="h-auto object-contain" style={{ width: UI_EXT_IMG_STD, imageRendering: 'pixelated' }} onError={(e) => e.target.style.display = 'none'} />
                   </div>
-                  <div className="w-full">
+                  <div className="w-full mt-auto">
                     <hr className="border-st-border mb-4"/>
+                    
+                    <label className="flex items-start gap-2 cursor-pointer font-bold mb-3 text-xs text-left leading-tight">
+                      <input 
+                        type="checkbox" 
+                        checked={hades_unlocked} 
+                        onChange={(e) => setSetting('hades_unlocked', e.target.checked)} 
+                        className="w-5 h-5 accent-st-orange shrink-0 mt-0.5" 
+                      />
+                      <span>Hades Idol Unlocked (Arch Lv 85 + Blackened Basker Leg Fish T2)</span>
+                    </label>
+                    
                     <input 
-                      type="number" className="st-input" 
+                      type="number" 
+                      className={`st-input ${!hades_unlocked ? 'opacity-30 cursor-not-allowed' : ''}`}
                       value={external_levels[21] !== undefined ? external_levels[21] : 0} 
+                      disabled={!hades_unlocked}
                       onFocus={(e) => e.target.select()}
                       onChange={(e) => setExternalGroup([21], e.target.value === '' ? '' : parseInt(e.target.value))}
                       onBlur={(e) => setExternalGroup([21], Math.min(6666, Math.max(0, parseInt(e.target.value) || 0)))}
                     />
+                    <div className="flex flex-wrap justify-center gap-1 mt-2 w-full">
+                      <button onClick={() => setExternalGroup([21], Math.max(0, (external_levels[21] || 0) - 1))} disabled={!hades_unlocked} className="flex-1 min-w-10 px-1 py-1 text-xs bg-st-secondary text-st-text rounded border border-st-border hover:border-st-orange transition-colors disabled:opacity-30 disabled:cursor-not-allowed">-1</button>
+                      <button onClick={() => setExternalGroup([21], Math.min(6666, (external_levels[21] || 0) + 1))} disabled={!hades_unlocked} className="flex-1 min-w-10 px-1 py-1 text-xs bg-st-secondary text-st-text rounded border border-st-border hover:border-st-orange transition-colors disabled:opacity-30 disabled:cursor-not-allowed">+1</button>
+                      <button onClick={() => setExternalGroup([21], 6666)} disabled={!hades_unlocked} className="flex-1 min-w-10 px-1 py-1 text-xs font-bold bg-st-secondary text-st-text rounded border border-st-border hover:border-st-orange transition-colors disabled:opacity-30 disabled:cursor-not-allowed">Max</button>
+                    </div>
                   </div>
                 </div>
               </div>
