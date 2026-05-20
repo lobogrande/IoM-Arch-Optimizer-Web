@@ -74,9 +74,6 @@ hr {
   border: 1px solid transparent;
   border-radius: 0.5rem;
   padding: 0.5rem;
-  /* Native spin buttons on the right take up ~16-20px of space. 
-     Padding the left forces the text to the true visual center! */
-  padding-left: 28px; 
   text-align: center;
   font-size: 1rem;
   color: var(--color-st-text);
@@ -85,6 +82,12 @@ hr {
 }
 .st-input:focus {
   border-color: var(--color-st-orange);
+}
+
+/* Select dropdowns need left padding to compensate for the native arrow on the right */
+select {
+  padding-left: 1.35rem !important;
+  text-align: center;
 }
 
 /* Hide native spin buttons - we have custom -1/+1 buttons instead */
