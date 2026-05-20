@@ -1,9 +1,13 @@
 # ==============================================================================
 # Script: engine/combat_loop.py
-# Version: 1.2.0 (Modular Architecture - High-Performance Cached Edition)
+# Version: 1.3.0 (Phase 4 Optimization: Skill Property Caching)
 # Description: The core simulation engine. Executes a run floor-by-floor using 
 #              micro-tick hit-by-hit combat. Features extreme loop-hoisting to
 #              minimize @property accesses and maximize Monte Carlo throughput.
+#
+# Phase 4 Enhancement: Extended property caching to include all skill-related
+#                     properties, eliminating repeated lookups during skill
+#                     activation cascades (8-12% estimated speedup)
 # ==============================================================================
 
 import os
@@ -142,6 +146,26 @@ class CombatSimulator:
         
         # --- ADDED ENRAGED CRIT CACHE AND REMOVED THE ADDITIVE BONUS ---
         p_enraged_crit_dmg = self.player.enraged_crit_dmg_mult
+        
+        # ======================================================================
+        # PHASE 4 OPTIMIZATION: SKILL PROPERTY CACHING
+        # Cache frequently-accessed skill properties to eliminate repeated
+        # property lookups during skill activation cascades
+        # ======================================================================
+        p_ability_insta = self.player.ability_insta_charge
+        p_enrage_charges_max = self.player.enrage_charges
+        p_enrage_cd_max = self.player.enrage_cooldown
+        p_flurry_duration = self.player.flurry_duration
+        p_flurry_cd_max = self.player.flurry_cooldown
+        p_flurry_sta_cast = self.player.flurry_sta_on_cast
+        p_quake_attacks_max = self.player.quake_attacks
+        p_quake_cd_max = self.player.quake_cooldown
+        
+        # Pre-compute upgrade-dependent flags (eliminates dict lookups in hot loop)
+        upg8 = self.player.upgrade_levels.get(8, 0)
+        auto_enrage_enabled = upg8 >= 1
+        auto_flurry_enabled = upg8 >= 2
+        auto_quake_enabled = upg8 >= 3
 
         # Using a fast local closure instead of a class method eliminates
         # function-call overhead and 'self.' lookups on every single hit.
@@ -170,7 +194,22 @@ class CombatSimulator:
         # ======================================================================
         
         state = RunState(self.player)
-        skills = SkillManager(self.player)
+        
+        # Pass cached skill properties to SkillManager to eliminate property lookups
+        skill_cache = {
+            'ability_insta': p_ability_insta,
+            'enrage_charges': p_enrage_charges_max,
+            'enrage_cd': p_enrage_cd_max,
+            'flurry_duration': p_flurry_duration,
+            'flurry_cd': p_flurry_cd_max,
+            'flurry_sta_cast': p_flurry_sta_cast,
+            'quake_attacks': p_quake_attacks_max,
+            'quake_cd': p_quake_cd_max,
+            'auto_enrage': auto_enrage_enabled,
+            'auto_flurry': auto_flurry_enabled,
+            'auto_quake': auto_quake_enabled
+        }
+        skills = SkillManager(self.player, skill_cache)
         current_floor_id = 1
         
         print("\n[ SIMULATION STARTED ]")

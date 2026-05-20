@@ -9,6 +9,13 @@ node_modules/
 dist/
 dist-ssr/
 
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.pyc
+*.pyo
+
 # Editor directories and files
 .vscode/
 .DS_Store
