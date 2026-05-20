@@ -116,8 +116,15 @@ class CombatSimulator:
 
     def run_simulation(self):
         # ======================================================================
+        # PHASE 11 OPTIMIZATION: Initialize infernal bonus cache
+        # Pre-compute all 28 block infernal bonuses once to eliminate repeated
+        # dictionary creation and calculations (called 39 times per property access)
+        # ======================================================================
+        self.player._cache_infernal_bonuses()
+        
+        # ======================================================================
         # LOOP HOISTING (ATTRIBUTE CACHING)
-        # We cache static @property calculations into local variables once per 
+        # We cache static @property calculations into local variables once per
         # run to prevent billions of redundant dictionary lookups during the loop.
         # ======================================================================
         p_max_sta = self.player.max_sta
