@@ -175,10 +175,10 @@ self.onmessage = function(e) {
         try {
             const resultProxy = run_sim(test_stats, test_upgrades || {}, test_external || {}, test_cards || {});
             const result = resultProxy.toJs({ dict_converter: Object.fromEntries });
-            resultProxy.destroy(); 
+            resultProxy.destroy();
             postMessage({ type: 'RESULT', taskId: taskId, payload: result });
         } catch (err) {
-            postMessage({ type: 'ERROR', payload: err.message });
+            postMessage({ type: 'ERROR', taskId: taskId, payload: err.message });
         }
     }
 };

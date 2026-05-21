@@ -95,6 +95,13 @@ class Player:
         self.arch_ability_infernal_bonus = 0.0 
         self.starting_speed_pool = 0
         
+        # ==============================================================================
+        # PHASE 11 OPTIMIZATION: Infernal Bonus Cache
+        # Pre-computed infernal bonuses for all 28 block types to eliminate repeated
+        # dictionary creation and lookups in inf() method (called 39 times per property access)
+        # ==============================================================================
+        self._infernal_cache = None  # Populated by _cache_infernal_bonuses()
+        
         self.base_stats = {
             'Str': 0, 'Agi': 0, 'Per': 0, 'Int': 0, 'Luck': 0, 'Div': 0, 'Corr': 0
         }
@@ -222,7 +229,68 @@ class Player:
         # The game applies the raw floating point product directly to the card bases.
         return arch_bonus * (1.0 + hades_bonus)
 
+    # ==============================================================================
+    # PHASE 11 OPTIMIZATION: Infernal Bonus Caching
+    # Pre-computes all 28 possible infernal card bonuses once per simulation
+    # to eliminate repeated dictionary creation and calculation overhead
+    # ==============================================================================
+    def _cache_infernal_bonuses(self):
+        """
+        Pre-compute all infernal bonuses for the 28 block types.
+        Called once at simulation start to eliminate repeated calculations.
+        """
+        # Fast path: If no Asc1 unlock, all bonuses are 0
+        if not self.asc1_unlocked:
+            self._infernal_cache = {
+                'dirt1': 0.0, 'dirt2': 0.0, 'dirt3': 0.0, 'dirt4': 0.0,
+                'com1': 0.0, 'com2': 0.0, 'com3': 0.0, 'com4': 0.0,
+                'rare1': 0.0, 'rare2': 0.0, 'rare3': 0.0, 'rare4': 0.0,
+                'epic1': 0.0, 'epic2': 0.0, 'epic3': 0.0, 'epic4': 0.0,
+                'leg1': 0.0, 'leg2': 0.0, 'leg3': 0.0, 'leg4': 0.0,
+                'myth1': 0.0, 'myth2': 0.0, 'myth3': 0.0, 'myth4': 0.0,
+                'div1': 0.0, 'div2': 0.0, 'div3': 0.0, 'div4': 0.0
+            }
+            return
+        
+        # Compute infernal multiplier once
+        inf_mult = self.infernal_multiplier
+        
+        # Base values for all 28 block types (value, decimal_places)
+        bases = {
+            'dirt1': (0.1, 4), 'dirt2': (0.12, 4), 'dirt3': (0.08, 4), 'dirt4': (0.1, 4),
+            'com1': (0.06, 4), 'com2': (0.07, 4), 'com3': (0.08, 4), 'com4': (0.015, 4),
+            'rare1': (0.05, 4), 'rare2': (20.0, 0), 'rare3': (0.4, 4), 'rare4': (0.08, 4),
+            'epic1': (0.3, 4), 'epic2': (0.04, 4), 'epic3': (0.05, 4), 'epic4': (0.1, 4),
+            'leg1': (0.04, 4), 'leg2': (0.05, 4), 'leg3': (40.0, 0), 'leg4': (20.0, 0),
+            'myth1': (0.013, 4), 'myth2': (0.008, 4), 'myth3': (0.007, 4), 'myth4': (0.01, 4),
+            'div1': (0.1, 4), 'div2': (0.0125, 4), 'div3': (1.0, 0), 'div4': (0.005, 4)
+        }
+        
+        # Pre-compute all 28 bonuses
+        cached = {}
+        for block_id, (base_val, dec) in bases.items():
+            # Tier 4 blocks gated behind Asc2
+            if block_id.endswith('4') and not self.asc2_unlocked:
+                cached[block_id] = 0.0
+            # Card at level 4 gives infernal bonus
+            elif self.cards.get(block_id, 0) == 4:
+                val = base_val * inf_mult
+                cached[block_id] = float(round(val)) if dec == 0 else val
+            else:
+                cached[block_id] = 0.0
+        
+        self._infernal_cache = cached
+
     def inf(self, block_id):
+        """
+        Get infernal bonus for a block type.
+        Uses pre-computed cache if available, otherwise calculates on demand.
+        """
+        # Use cache if available
+        if self._infernal_cache is not None:
+            return self._infernal_cache.get(block_id, 0.0)
+        
+        # Fallback to original calculation (for backwards compatibility)
         if block_id.endswith('4') and not self.asc2_unlocked: return 0.0
         if self.cards.get(block_id, 0) == 4 and self.asc1_unlocked:
             inf_mult = self.infernal_multiplier
@@ -243,17 +311,6 @@ class Player:
     # ==========================================================================
     # COMBAT CALCULATIONS
     # ==========================================================================
-    @property
-    def max_sta(self):
-        base_calc = 100 + self.u('F14') + self.u('F23') + self.u('H39') + self.u('F3') + self.inf('leg4')
-        stat_calc = self.stat('Agi') * (5 + self.u('F26'))
-        asc2_calc = (1 + self.u('H28') + self.u('F54')) * (1 - 0.03 * self.stat('Corr'))
-        
-        # PROPER BLOCK BONKER BINDING (W13)
-        bb_mult = 1.0 + (self.w('W13') * min(100, self.current_max_floor))
-        
-        val = (base_calc + stat_calc) * asc2_calc * bb_mult * (1.0 + self.inf('epic3'))
-        return self._excel_round(val, 0)@property
     @property
     def max_sta(self):
         base_calc = 100 + self.u('F14') + self.u('F23') + self.u('H39') + self.u('F3') + self.inf('leg4')

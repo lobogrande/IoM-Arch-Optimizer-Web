@@ -1,9 +1,13 @@
 # ==============================================================================
 # Script: engine/floor_map.py
-# Version: 2.0.0 (True C# Source Logic)
+# Version: 2.1.0 (Phase 9 Optimization: Modifier Pre-computation)
 # Description: Generates the 24-slot environment using the exact hardcoded arrays
 #              from the developer's C# source code. Eliminates Gaussian guesswork
 #              in favor of top-down sequential binomial rolling.
+#
+# Phase 9 Enhancement: Pre-compute player modifier configuration to eliminate
+#                     repeated @property lookups during block generation
+#                     (6-10% estimated speedup)
 # ==============================================================================
 
 import os
@@ -68,16 +72,62 @@ class FloorGenerator:
             (5,[3, 8, 8, 10, 14, 20, 21]),
             (1,[3, 7, 9, 10, 14, 20, 21])
         ]
+        
+        # ======================================================================
+        # PHASE 9 OPTIMIZATION: Modifier Configuration Cache
+        # Pre-compute player modifier values to eliminate repeated @property lookups
+        # ======================================================================
+        self._cached_mod_config = None
+
+    def _cache_player_mods(self, player):
+        """
+        Cache modifier configuration once per simulation run.
+        Eliminates 8 @property lookups per block × 2000 blocks = 16,000 lookups.
+        
+        PHASE 14 ENHANCEMENT: Added exp_gain_mult and frag_gain_mult
+        These are accessed in Block.__init__() for every block created.
+        Eliminates 2 properties × 2400 blocks = 4,800 additional lookups.
+        
+        PHASE 15 ENHANCEMENT: Added gleaming_floor_chance and gleaming_floor_multi
+        These are accessed once per floor generation (~100 floors per simulation).
+        Eliminates 2 properties × 100 floors = 200 additional lookups.
+        """
+        self._cached_mod_config = {
+            'exp_gain': player.exp_mod_gain,
+            'exp_chance': player.exp_mod_chance,
+            'loot_gain': player.loot_mod_gain,
+            'loot_chance': player.loot_mod_chance,
+            'sta_gain': player.stamina_mod_gain,
+            'sta_chance': player.stamina_mod_chance,
+            'speed_gain': player.speed_mod_gain,
+            'speed_chance': player.speed_mod_chance,
+            # PHASE 14: Cache exp/fragment gain multipliers for Block creation
+            'exp_gain_mult': player.exp_gain_mult,
+            'frag_gain_mult': player.frag_loot_gain_mult,
+            # PHASE 15: Cache gleaming floor properties for floor generation
+            'gleaming_chance': player.gleaming_floor_chance,
+            'gleaming_multi': player.gleaming_floor_multi
+        }
 
     def _create_block_with_mods(self, block_id, floor_id, player):
         """Helper to instantiate a Block and roll its specific UI modifiers."""
-        block = Block(block_id, floor_id, player)
+        # Lazy-cache modifier config on first block generation
+        if self._cached_mod_config is None:
+            self._cache_player_mods(player)
+        
+        # PHASE 14: Pass cached exp/frag multipliers to Block
+        block = Block(block_id, floor_id, player, 
+                     exp_mult_cache=self._cached_mod_config['exp_gain_mult'],
+                     frag_mult_cache=self._cached_mod_config['frag_gain_mult'])
+        cfg = self._cached_mod_config
+        
+        # Use cached values instead of accessing player properties
         block.modifiers = {
-            'exp_multi': player.exp_mod_gain if (random.random() < player.exp_mod_chance) else 1.0,
-            'loot_multi': player.loot_mod_gain if (random.random() < player.loot_mod_chance) else 1.0,
-            'stamina_gain': player.stamina_mod_gain if (random.random() < player.stamina_mod_chance) else 0.0,
-            'speed_active': random.random() < player.speed_mod_chance,
-            'speed_gain': player.speed_mod_gain
+            'exp_multi': cfg['exp_gain'] if (random.random() < cfg['exp_chance']) else 1.0,
+            'loot_multi': cfg['loot_gain'] if (random.random() < cfg['loot_chance']) else 1.0,
+            'stamina_gain': cfg['sta_gain'] if (random.random() < cfg['sta_chance']) else 0.0,
+            'speed_active': random.random() < cfg['speed_chance'],
+            'speed_gain': cfg['speed_gain']
         }
         return block
 
@@ -85,9 +135,13 @@ class FloorGenerator:
         """Builds a 24-slot floor natively matching the C# spawn arrays."""
         grid = [None] * 24
 
-        # 1. Roll for Gleaming Floor
-        is_gleaming = random.random() < player.gleaming_floor_chance
-        gleaming_multi = player.gleaming_floor_multi if is_gleaming else 1.0
+        # Lazy-cache modifier config on first floor generation
+        if self._cached_mod_config is None:
+            self._cache_player_mods(player)
+
+        # 1. Roll for Gleaming Floor (PHASE 15: Use cached values)
+        is_gleaming = random.random() < self._cached_mod_config['gleaming_chance']
+        gleaming_multi = self._cached_mod_config['gleaming_multi'] if is_gleaming else 1.0
 
         # --- 2. CHECK FOR BOSS / MIXED GAUNTLET OVERRIDES ---
         boss_dict = cfg.ASC_BOSS_DATA.get("asc2", {}) if player.asc2_unlocked else cfg.ASC_BOSS_DATA.get("asc1", {})
