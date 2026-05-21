@@ -83,6 +83,10 @@ class FloorGenerator:
         """
         Cache modifier configuration once per simulation run.
         Eliminates 8 @property lookups per block × 2000 blocks = 16,000 lookups.
+        
+        PHASE 14 ENHANCEMENT: Added exp_gain_mult and frag_gain_mult
+        These are accessed in Block.__init__() for every block created.
+        Eliminates 2 properties × 2400 blocks = 4,800 additional lookups.
         """
         self._cached_mod_config = {
             'exp_gain': player.exp_mod_gain,
@@ -92,7 +96,10 @@ class FloorGenerator:
             'sta_gain': player.stamina_mod_gain,
             'sta_chance': player.stamina_mod_chance,
             'speed_gain': player.speed_mod_gain,
-            'speed_chance': player.speed_mod_chance
+            'speed_chance': player.speed_mod_chance,
+            # PHASE 14: Cache exp/fragment gain multipliers for Block creation
+            'exp_gain_mult': player.exp_gain_mult,
+            'frag_gain_mult': player.frag_loot_gain_mult
         }
 
     def _create_block_with_mods(self, block_id, floor_id, player):
@@ -101,7 +108,10 @@ class FloorGenerator:
         if self._cached_mod_config is None:
             self._cache_player_mods(player)
         
-        block = Block(block_id, floor_id, player)
+        # PHASE 14: Pass cached exp/frag multipliers to Block
+        block = Block(block_id, floor_id, player, 
+                     exp_mult_cache=self._cached_mod_config['exp_gain_mult'],
+                     frag_mult_cache=self._cached_mod_config['frag_gain_mult'])
         cfg = self._cached_mod_config
         
         # Use cached values instead of accessing player properties

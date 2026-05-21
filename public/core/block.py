@@ -66,7 +66,7 @@ _HP_SCALARS, _ARMOR_SCALARS = _precompute_floor_scalars()
 # ==============================================================================
 
 class Block:
-    def __init__(self, block_id, current_floor, player):
+    def __init__(self, block_id, current_floor, player, exp_mult_cache=None, frag_mult_cache=None):
         self.block_id = block_id
         self.current_floor = current_floor
         
@@ -107,7 +107,8 @@ class Block:
 
         # 2. Calculate XP Yield
         base_xp = base['xp']
-        p_exp_mult = player.exp_gain_mult
+        # PHASE 14: Use cached value if provided, otherwise fallback to property
+        p_exp_mult = exp_mult_cache if exp_mult_cache is not None else player.exp_gain_mult
         
         # Note: 'exp_mult' from cards already includes the (1 + X%) logic.
         raw_exp = base_xp * p_exp_mult * exp_mult
@@ -123,7 +124,8 @@ class Block:
 
         # 3. Calculate Fragment Yield
         base_frag = base['fa']
-        p_frag_mult = player.frag_loot_gain_mult
+        # PHASE 14: Use cached value if provided, otherwise fallback to property
+        p_frag_mult = frag_mult_cache if frag_mult_cache is not None else player.frag_loot_gain_mult
         self.frag_type = base['ft']
         
         raw_frag = base_frag * p_frag_mult * loot_mult
