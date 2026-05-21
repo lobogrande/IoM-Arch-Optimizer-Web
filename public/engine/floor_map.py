@@ -87,6 +87,10 @@ class FloorGenerator:
         PHASE 14 ENHANCEMENT: Added exp_gain_mult and frag_gain_mult
         These are accessed in Block.__init__() for every block created.
         Eliminates 2 properties × 2400 blocks = 4,800 additional lookups.
+        
+        PHASE 15 ENHANCEMENT: Added gleaming_floor_chance and gleaming_floor_multi
+        These are accessed once per floor generation (~100 floors per simulation).
+        Eliminates 2 properties × 100 floors = 200 additional lookups.
         """
         self._cached_mod_config = {
             'exp_gain': player.exp_mod_gain,
@@ -99,7 +103,10 @@ class FloorGenerator:
             'speed_chance': player.speed_mod_chance,
             # PHASE 14: Cache exp/fragment gain multipliers for Block creation
             'exp_gain_mult': player.exp_gain_mult,
-            'frag_gain_mult': player.frag_loot_gain_mult
+            'frag_gain_mult': player.frag_loot_gain_mult,
+            # PHASE 15: Cache gleaming floor properties for floor generation
+            'gleaming_chance': player.gleaming_floor_chance,
+            'gleaming_multi': player.gleaming_floor_multi
         }
 
     def _create_block_with_mods(self, block_id, floor_id, player):
@@ -128,9 +135,13 @@ class FloorGenerator:
         """Builds a 24-slot floor natively matching the C# spawn arrays."""
         grid = [None] * 24
 
-        # 1. Roll for Gleaming Floor
-        is_gleaming = random.random() < player.gleaming_floor_chance
-        gleaming_multi = player.gleaming_floor_multi if is_gleaming else 1.0
+        # Lazy-cache modifier config on first floor generation
+        if self._cached_mod_config is None:
+            self._cache_player_mods(player)
+
+        # 1. Roll for Gleaming Floor (PHASE 15: Use cached values)
+        is_gleaming = random.random() < self._cached_mod_config['gleaming_chance']
+        gleaming_multi = self._cached_mod_config['gleaming_multi'] if is_gleaming else 1.0
 
         # --- 2. CHECK FOR BOSS / MIXED GAUNTLET OVERRIDES ---
         boss_dict = cfg.ASC_BOSS_DATA.get("asc2", {}) if player.asc2_unlocked else cfg.ASC_BOSS_DATA.get("asc1", {})
