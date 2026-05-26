@@ -120,15 +120,19 @@ class Player:
     # --------------------------------------------------------------------------
     def _gm_int(self, val, drift=1):
         """
-        Simulates GameMaker's 32-bit compilation float drift before Banker's Rounding.
+        Simulates GameMaker's 32-bit compilation float drift before ceiling to integer.
         drift=1  : Simulates upward memory drift (Enrage, Speed, Max Sta)
         drift=-1 : Simulates downward memory drift (Damage)
+        
+        Integer stats are rounded UP (ceiling) in the game to show players the
+        actual benefit they receive.
         """
-        return float(round(val + (drift * 1e-6)))
+        import math
+        return float(math.ceil(val + (drift * 1e-6)))
 
     def _gm_mult(self, val, decimals=2):
-        """Simulates downward float drift for GameMaker UI string formatting."""
-        return round(val - 1e-6, decimals)
+        """Applies banker's rounding for GameMaker UI string formatting."""
+        return round(val, decimals)
 
     # --------------------------------------------------------------------------
     # ENGINE VALUE SETTERS
@@ -275,7 +279,8 @@ class Player:
             # Card at level 4 gives infernal bonus
             elif self.cards.get(block_id, 0) == 4:
                 val = base_val * inf_mult
-                cached[block_id] = float(round(val)) if dec == 0 else val
+                # Keep full precision for calculations (display will floor for dec=0)
+                cached[block_id] = val
             else:
                 cached[block_id] = 0.0
         
