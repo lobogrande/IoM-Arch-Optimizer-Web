@@ -996,7 +996,7 @@ App.jsx (Root)
 **Data Validation**:
 - Input clamping to caps
 - Conditional rendering based on Ascension (Div locked pre-Asc1, Corr pre-Asc2)
-- Dynamic max levels (Gem Upgrades #3-5 capped by Arch Level)
+- Dynamic max levels (Gem Upgrades #3-5 capped by formula: Arch Level + 4)
 - Floor-based unlock gating
 - Ascension simulation prompts to reset internal upgrades
 

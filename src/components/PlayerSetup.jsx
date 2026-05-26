@@ -689,7 +689,8 @@ export default function PlayerSetup() {
                   
                   let max_lvl = default_max_lvl;
                   if (id === 3 || id === 4 || id === 5) {
-                      max_lvl = Math.min(max_lvl, parseInt(arch_level) || 1);
+                      // Gem upgrades have a base cap of 5, so formula is: base(5) + arch_level - 1 = arch_level + 4
+                      max_lvl = Math.min(max_lvl, (parseInt(arch_level) || 1) + 4);
                   }
                   
                   const current_lvl = upgrade_levels[id] ?? 0;

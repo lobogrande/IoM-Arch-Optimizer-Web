@@ -855,10 +855,10 @@ export async function runPathfinderSimulation(startState, targetLevel, initialFr
         for (const upgId of upgradeTargets) {
             const currentLvl = state.upgrade_levels[ upgId ] || 0;
             
-            // Gem Upgrades are strictly capped by Arch Level
+            // Gem Upgrades are strictly capped by Arch Level + 4 (base 5 + arch_level - 1)
             if (upgId === 3 || upgId === 4 || upgId === 5) {
                 if (!autoBuyGems) continue;
-                if (currentLvl >= state.arch_level) continue;
+                if (currentLvl >= state.arch_level + 4) continue;
             }
 
             // Enforce Max Level Caps
@@ -1427,7 +1427,7 @@ export async function runPathfinderSimulation(startState, targetLevel, initialFr
             const currentLvl = state.upgrade_levels[ upgId ] || 0;
             if (upgId === 3 || upgId === 4 || upgId === 5) {
                 if (!autoBuyGems) continue;
-                if (currentLvl >= state.arch_level) continue;
+                if (currentLvl >= state.arch_level + 4) continue; // Base 5 + arch_level - 1
             }
             
             const cap = INTERNAL_UPGRADE_CAPS[upgId];

@@ -255,7 +255,12 @@ export default function ResultsDashboard({ context }) {
       Object.keys(INTERNAL_UPGRADE_CAPS || {}).forEach(upgIdStr => {
         const upgId = parseInt(upgIdStr);
         const currentLvl = store.upgrade_levels[upgId] || 0;
-        const maxLvl = INTERNAL_UPGRADE_CAPS[upgId] || 99;
+        let maxLvl = INTERNAL_UPGRADE_CAPS[upgId] || 99;
+        
+        // Gem upgrades (3, 4, 5) have dynamic cap: base(5) + arch_level - 1 = arch_level + 4
+        if (upgId === 3 || upgId === 4 || upgId === 5) {
+          maxLvl = Math.min(maxLvl, (parseInt(store.arch_level) || 1) + 4);
+        }
 
         if (!store.asc1_unlocked && ASC1_LOCKED_UPGS.includes(upgId)) return;
         if (!store.asc2_unlocked && ASC2_LOCKED_UPGS.includes(upgId)) return;
