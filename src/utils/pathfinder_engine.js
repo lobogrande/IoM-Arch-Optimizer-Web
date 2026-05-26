@@ -858,12 +858,15 @@ export async function runPathfinderSimulation(startState, targetLevel, initialFr
             // Gem Upgrades are strictly capped by Arch Level + 4 (base 5 + arch_level - 1)
             if (upgId === 3 || upgId === 4 || upgId === 5) {
                 if (!autoBuyGems) continue;
-                if (currentLvl >= state.arch_level + 4) continue;
+                const gemCap = Math.min(INTERNAL_UPGRADE_CAPS[upgId] || 99, state.arch_level + 4);
+                if (currentLvl >= gemCap) continue;
             }
 
-            // Enforce Max Level Caps
-            const cap = INTERNAL_UPGRADE_CAPS[upgId];
-            if (cap !== undefined && currentLvl >= cap) continue;
+            // Enforce Max Level Caps (for non-Gem upgrades)
+            if (upgId !== 3 && upgId !== 4 && upgId !== 5) {
+                const cap = INTERNAL_UPGRADE_CAPS[upgId];
+                if (cap !== undefined && currentLvl >= cap) continue;
+            }
 
             // Enforce Max Floor Unlock Requirements
             const reqFlr = UPGRADE_LEVEL_REQS[upgId] || 0;
@@ -1427,11 +1430,15 @@ export async function runPathfinderSimulation(startState, targetLevel, initialFr
             const currentLvl = state.upgrade_levels[ upgId ] || 0;
             if (upgId === 3 || upgId === 4 || upgId === 5) {
                 if (!autoBuyGems) continue;
-                if (currentLvl >= state.arch_level + 4) continue; // Base 5 + arch_level - 1
+                const gemCap = Math.min(INTERNAL_UPGRADE_CAPS[upgId] || 99, state.arch_level + 4);
+                if (currentLvl >= gemCap) continue;
             }
             
-            const cap = INTERNAL_UPGRADE_CAPS[upgId];
-            if (cap !== undefined && currentLvl >= cap) continue;
+            // Enforce Max Level Caps (for non-Gem upgrades)
+            if (upgId !== 3 && upgId !== 4 && upgId !== 5) {
+                const cap = INTERNAL_UPGRADE_CAPS[upgId];
+                if (cap !== undefined && currentLvl >= cap) continue;
+            }
 
             const reqFlr = UPGRADE_LEVEL_REQS[upgId] || 0;
             if (state.current_max_floor < reqFlr) continue;
