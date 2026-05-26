@@ -7,6 +7,13 @@ import PlotComponent from 'react-plotly.js';
 import MobileSelect from '../MobileSelect';
 import { FRAG_ICONS } from '../../game_data';
 
+// Helper to parse and strip leading zeros from numeric inputs
+const parseIntStrict = (value, defaultVal = 0) => {
+  if (value === '' || value === null || value === undefined) return defaultVal;
+  const parsed = parseInt(value, 10);
+  return isNaN(parsed) ? defaultVal : parsed;
+};
+
 // Vite/CommonJS Interop Fix: Extract the component if Vite wrapped it in a Module object
 const Plot = PlotComponent.default || PlotComponent;
 
@@ -857,10 +864,12 @@ export default function PathfinderTab() {
           <div>
             <label className="block text-sm font-bold text-st-text mb-2">Target Arch Level:</label>
             <input 
-              type="number" 
-              min="2"
+              type="text"
+              inputMode="numeric"
+              pattern="[0-9]*"
               value={targetLevel}
-              onChange={(e) => setTargetLevel(e.target.value)}
+              onChange={(e) => setTargetLevel(parseIntStrict(e.target.value, 2))}
+              onBlur={(e) => setTargetLevel(Math.max(2, parseIntStrict(e.target.value, 2)))}
               className={`w-full bg-[#0E1117] border rounded p-2 text-st-text outline-none focus:border-st-orange ${
                 parseInt(targetLevel) <= (startMode === 'template' ? asc2Template.arch_level : store.arch_level) 
                   ? 'border-red-500' 
@@ -881,11 +890,12 @@ export default function PathfinderTab() {
           <div>
             <label className="block text-sm font-bold text-st-text mb-2">Push Safety (Win %):</label>
             <input 
-              type="number" 
-              min="1"
-              max="100"
+              type="text"
+              inputMode="numeric"
+              pattern="[0-9]*"
               value={minWinRate}
-              onChange={(e) => setMinWinRate(e.target.value)}
+              onChange={(e) => setMinWinRate(parseIntStrict(e.target.value, 1))}
+              onBlur={(e) => setMinWinRate(Math.min(100, Math.max(1, parseIntStrict(e.target.value, 1))))}
               className="w-full bg-[#0E1117] border border-st-border rounded p-2 text-st-text focus:border-st-orange outline-none"
               placeholder="e.g. 20"
             />
@@ -898,10 +908,12 @@ export default function PathfinderTab() {
           <div>
             <label className="block text-sm font-bold text-st-text mb-2">Starting Clock (Secs):</label>
             <input 
-              type="number" 
-              min="0"
+              type="text"
+              inputMode="numeric"
+              pattern="[0-9]*"
               value={startingArchSecs}
-              onChange={(e) => setStartingArchSecs(e.target.value)}
+              onChange={(e) => setStartingArchSecs(parseIntStrict(e.target.value, 0))}
+              onBlur={(e) => setStartingArchSecs(Math.max(0, parseIntStrict(e.target.value, 0)))}
               className="w-full bg-[#0E1117] border border-st-border rounded p-2 text-st-text focus:border-st-orange outline-none"
               placeholder="e.g. 0"
             />
@@ -958,8 +970,8 @@ export default function PathfinderTab() {
                 <div className="border-l border-st-border pl-6">
                   <label className="block text-[10px] font-bold text-st-text-light mb-1 uppercase tracking-wider">Current EXP towards Lvl {store.arch_level + 1}:</label>
                   <input 
-                    type="number" 
-                    min="0"
+                    type="text"
+                    inputMode="decimal"
                     value={startExp === 0 ? '' : startExp}
                     onChange={(e) => setStartExp(parseFloat(e.target.value) || 0)}
                     className="bg-st-bg border border-st-border rounded px-2 py-1.5 text-st-text focus:border-st-orange outline-none text-xs w-48 font-mono"
@@ -967,10 +979,11 @@ export default function PathfinderTab() {
                   />
                   <label className="block text-[10px] font-bold text-st-text-light mb-1 mt-3 uppercase tracking-wider">Starting Speed Mod Charge Pool:</label>
                   <input 
-                    type="number" 
-                    min="0"
+                    type="text"
+                    inputMode="numeric"
+                    pattern="[0-9]*"
                     value={startSpeedPool === 0 ? '' : startSpeedPool}
-                    onChange={(e) => setStartSpeedPool(parseInt(e.target.value) || 0)}
+                    onChange={(e) => setStartSpeedPool(parseIntStrict(e.target.value, 0))}
                     className="bg-st-bg border border-st-border rounded px-2 py-1.5 text-st-text focus:border-st-orange outline-none text-xs w-48 font-mono"
                     placeholder="0"
                   />
@@ -999,9 +1012,8 @@ export default function PathfinderTab() {
                         {f.label}
                       </label>
                       <input 
-                        type="number" 
-                        step="0.1" 
-                        min="0" 
+                        type="text"
+                        inputMode="decimal"
                         value={startFrags[f.id] === 0 ? '' : startFrags[f.id]} 
                         onChange={(e) => handleFragChange(f.id, e.target.value)} 
                         className="bg-st-bg border border-st-border rounded px-2 py-1 text-st-text focus:border-st-orange outline-none text-xs"
@@ -1048,16 +1060,25 @@ export default function PathfinderTab() {
                           {blockId} (L{lvl})
                         </label>
                         <input
-                          type="number"
-                          step="1"
-                          min="0"
-                          max="9"
+                          type="text"
+                          inputMode="decimal"
                           disabled={!canEdit}
                           value={canEdit ? displayFrags : ''}
                           onChange={(e) => {
-                              const frags = parseFloat(e.target.value);
+                              let frags = parseFloat(e.target.value);
+                              // Enforce 0.0 - 9.99 range
+                              if (isNaN(frags) || frags < 0) frags = 0;
+                              if (frags >= 10) frags = 9.99;
                               // Convert inputted fragments into exact mathematical engine Expected Value
-                              const ev = isNaN(frags) ? 0 : frags * 0.9669;
+                              const ev = frags * 0.9669;
+                              setStartCardProgress(p => ({ ...p, [blockId]: ev }));
+                          }}
+                          onBlur={(e) => {
+                              // Clean up on blur to ensure proper formatting
+                              let frags = parseFloat(e.target.value);
+                              if (isNaN(frags) || frags < 0) frags = 0;
+                              if (frags >= 10) frags = 9.99;
+                              const ev = frags * 0.9669;
                               setStartCardProgress(p => ({ ...p, [blockId]: ev }));
                           }}
                           className={`bg-st-bg border border-st-border rounded px-2 py-1 focus:border-st-orange outline-none text-xs ${!canEdit ? 'opacity-50 cursor-not-allowed text-st-border' : 'text-st-text'}`}

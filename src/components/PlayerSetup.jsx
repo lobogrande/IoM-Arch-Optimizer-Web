@@ -9,6 +9,13 @@ import {
 } from '../ui_config';
 import { INTERNAL_UPGRADE_CAPS, UPGRADE_NAMES, ASC1_LOCKED_UPGS, ASC2_LOCKED_UPGS, CARD_TYPES, INFERNAL_CARD_BONUSES, EXTERNAL_UI_GROUPS, UPGRADE_LEVEL_REQS, calculateUpgradeCost, FRAG_ICONS } from '../game_data';
 
+// Helper to parse and strip leading zeros from numeric inputs
+const parseIntStrict = (value, defaultVal = 0) => {
+  if (value === '' || value === null || value === undefined) return defaultVal;
+  const parsed = parseInt(value, 10);
+  return isNaN(parsed) ? defaultVal : parsed;
+};
+
 export default function PlayerSetup() {
   const { asc1_unlocked, asc2_unlocked, arch_level, current_max_floor, starting_speed_pool, base_stats, upgrade_levels, external_levels, cards, arch_ability_infernal_bonus, total_infernal_cards, geoduck_unlocked, hades_unlocked, calculated_stats, setSetting, setBaseStat, setUpgradeLevel, setCardLevel, setExternalGroup, loadStateFromJson, setSandboxStat, hideMaxed, setHideMaxed, activeSubTab, setActiveSubTab, setActiveTab, setSimActiveSubTab, profiles, activeProfileId, createProfile, loadProfile, saveToProfile, renameProfile, deleteProfile, resetState } = useStore();
   const [isDragging, setIsDragging] = useState(false);
@@ -231,12 +238,14 @@ export default function PlayerSetup() {
         </div>
 
         <input 
-          type="number"
+          type="text"
+          inputMode="numeric"
+          pattern="[0-9]*"
           className="st-input"
           value={base_stats[statKey] !== undefined ? base_stats[statKey] : 0}
           onFocus={(e) => e.target.select()}
-          onChange={(e) => setBaseStat(statKey, e.target.value === '' ? '' : parseInt(e.target.value))}
-          onBlur={(e) => setBaseStat(statKey, Math.min(STAT_CAPS[statKey], Math.max(0, parseInt(e.target.value) || 0)))}
+          onChange={(e) => setBaseStat(statKey, parseIntStrict(e.target.value, 0))}
+          onBlur={(e) => setBaseStat(statKey, Math.min(STAT_CAPS[statKey], Math.max(0, parseIntStrict(e.target.value, 0))))}
         />
         <div className="flex gap-1 mt-2 w-full">
           <div className="flex flex-col gap-1 flex-1">
@@ -438,12 +447,15 @@ export default function PlayerSetup() {
 
           <div data-tour="setup-arch-level" className="mb-4">
             <label className="text-sm text-st-text-light block mb-1">Arch Level</label>
-            <input 
-              type="number" className="st-input" 
+            <input
+              type="text"
+              inputMode="numeric"
+              pattern="[0-9]*"
+              className="st-input"
               value={arch_level} 
               onFocus={(e) => e.target.select()}
-              onChange={(e) => setSetting('arch_level', e.target.value === '' ? '' : parseInt(e.target.value))}
-              onBlur={(e) => setSetting('arch_level', Math.max(1, parseInt(e.target.value) || 1))}
+              onChange={(e) => setSetting('arch_level', parseIntStrict(e.target.value, 1))}
+              onBlur={(e) => setSetting('arch_level', Math.max(1, parseIntStrict(e.target.value, 1)))}
             />
             <div className="flex flex-wrap justify-center gap-1 mt-2 w-full">
               <button onClick={() => setSetting('arch_level', Math.max(1, arch_level - 1))} className="flex-1 min-w-10 px-1 py-1 text-xs bg-st-secondary text-st-text rounded border border-st-border hover:border-st-orange transition-colors">-1</button>
@@ -453,12 +465,15 @@ export default function PlayerSetup() {
 
           <div data-tour="setup-max-floor" className="mb-4">
             <label className="text-sm text-st-text-light block mb-1">Max Floor Reached</label>
-            <input 
-              type="number" className="st-input" 
-              value={current_max_floor} 
+            <input
+              type="text"
+              inputMode="numeric"
+              pattern="[0-9]*"
+              className="st-input"
+              value={current_max_floor}
               onFocus={(e) => e.target.select()}
-              onChange={(e) => setSetting('current_max_floor', e.target.value === '' ? '' : parseInt(e.target.value))}
-              onBlur={(e) => setSetting('current_max_floor', Math.max(1, parseInt(e.target.value) || 1))}
+              onChange={(e) => setSetting('current_max_floor', parseIntStrict(e.target.value, 1))}
+              onBlur={(e) => setSetting('current_max_floor', Math.max(1, parseIntStrict(e.target.value, 1)))}
             />
             <div className="flex flex-wrap justify-center gap-1 mt-2 w-full">
               <button onClick={() => setSetting('current_max_floor', Math.max(1, current_max_floor - 1))} className="flex-1 min-w-10 px-1 py-1 text-xs bg-st-secondary text-st-text rounded border border-st-border hover:border-st-orange transition-colors">-1</button>
@@ -467,13 +482,37 @@ export default function PlayerSetup() {
           </div>
 
           <div data-tour="setup-speed-pool">
-            <label className="text-sm text-st-text-light block mb-1">Starting Speed Mod Hit Pool</label>
+            <label className="text-sm text-st-text-light block mb-1 flex items-center gap-2">
+              Starting Speed Mod Hit Pool
+              <div className="relative group">
+                <svg className="w-4 h-4 text-st-text-light hover:text-st-orange cursor-help transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                {/* Tooltip with image */}
+                <div className="invisible group-hover:visible opacity-0 group-hover:opacity-100 transition-opacity duration-200 absolute left-6 top-0 z-50 bg-st-bg border-2 border-st-orange rounded-lg shadow-2xl p-3 w-auto min-w-[300px] max-w-[500px]">
+                  <div className="flex flex-col gap-2">
+                    <p className="text-xs text-st-text-light mb-2">Visual guide for Speed Mod Hit Pool:</p>
+                    <img 
+                      src="/assets/helper/speed_mod_hit_pool.png" 
+                      alt="Speed Mod Hit Pool Helper" 
+                      className="w-full h-auto rounded border border-st-border"
+                      onError={(e) => e.target.style.display = 'none'}
+                    />
+                  </div>
+                  {/* Arrow pointer */}
+                  <div className="absolute left-0 top-2 -translate-x-1 w-3 h-3 bg-st-bg border-l-2 border-t-2 border-st-orange rotate-[-45deg]"></div>
+                </div>
+              </div>
+            </label>
             <input 
-              type="number" className="st-input" 
-              value={starting_speed_pool || 0} 
+              type="text"
+              inputMode="numeric"
+              pattern="[0-9]*"
+              className="st-input"
+              value={starting_speed_pool || 0}
               onFocus={(e) => e.target.select()}
-              onChange={(e) => setSetting('starting_speed_pool', e.target.value === '' ? '' : parseInt(e.target.value))}
-              onBlur={(e) => setSetting('starting_speed_pool', Math.max(0, parseInt(e.target.value) || 0))}
+              onChange={(e) => setSetting('starting_speed_pool', parseIntStrict(e.target.value, 0))}
+              onBlur={(e) => setSetting('starting_speed_pool', Math.max(0, parseIntStrict(e.target.value, 0)))}
             />
           </div>
         </div>
@@ -755,12 +794,14 @@ export default function PlayerSetup() {
                       </div>
 
                       <input 
-                        type="number"
+                        type="text"
+                        inputMode="numeric"
+                        pattern="[0-9]*"
                         className="st-input"
                         value={current_lvl}
                         onFocus={(e) => e.target.select()}
-                        onChange={(e) => setUpgradeLevel(id, e.target.value === '' ? '' : parseInt(e.target.value))}
-                        onBlur={(e) => setUpgradeLevel(id, Math.min(max_lvl, Math.max(0, parseInt(e.target.value) || 0)))}
+                        onChange={(e) => setUpgradeLevel(id, parseIntStrict(e.target.value, 0))}
+                        onBlur={(e) => setUpgradeLevel(id, Math.min(max_lvl, Math.max(0, parseIntStrict(e.target.value, 0))))}
                       />
                       <div className="flex flex-wrap justify-center gap-1 mt-2 w-full">
                         <button onClick={() => setUpgradeLevel(id, Math.max(0, current_lvl - 5))} className="flex-1 min-w-10 px-1 py-1 text-xs bg-st-secondary text-st-text rounded border border-st-border hover:border-st-orange transition-colors">-5</button>
@@ -818,13 +859,15 @@ export default function PlayerSetup() {
                       {(group.ui_type === 'number' || group.ui_type === 'pet' || group.ui_type === 'card') && (
                         <>
                           <input 
-                            type="number"
+                            type="text"
+                            inputMode="numeric"
+                            pattern="[0-9-]*"
                             className={`st-input ${group.id === 'geoduck' && !geoduck_unlocked ? 'opacity-30 cursor-not-allowed' : ''}`} 
                             value={current_val} 
                             disabled={group.id === 'geoduck' && !geoduck_unlocked} 
                             onFocus={(e) => e.target.select()}
-                            onChange={(e) => setExternalGroup(group.rows, e.target.value === '' ? '' : parseInt(e.target.value))} 
-                            onBlur={(e) => setExternalGroup(group.rows, Math.min(group.max !== undefined ? group.max : 9999, Math.max(group.ui_type === 'pet' ? -1 : 0, parseInt(e.target.value) || 0)))}
+                            onChange={(e) => setExternalGroup(group.rows, parseIntStrict(e.target.value, group.ui_type === 'pet' ? -1 : 0))} 
+                            onBlur={(e) => setExternalGroup(group.rows, Math.min(group.max !== undefined ? group.max : 9999, Math.max(group.ui_type === 'pet' ? -1 : 0, parseIntStrict(e.target.value, 0))))}
                           />
                           <div className="flex flex-wrap justify-center gap-1 mt-2 w-full">
                             <button 
@@ -895,12 +938,14 @@ export default function PlayerSetup() {
                 <label className="font-bold text-sm block mb-1">Total Infernal Cards (Global)</label>
                 <span className="text-xs text-st-text-light block mb-2 leading-tight">Sum of all Infernal cards you own across all categories (Archaeology, Fishing, etc). Used for the Infernal Multiplier.</span>
                 <input 
-                  type="number"
+                  type="text"
+                  inputMode="numeric"
+                  pattern="[0-9]*"
                   className="st-input bg-st-bg" 
                   value={total_infernal_cards} 
                   onFocus={(e) => e.target.select()}
-                  onChange={(e) => setSetting('total_infernal_cards', e.target.value === '' ? '' : parseInt(e.target.value))}
-                  onBlur={(e) => setSetting('total_infernal_cards', Math.max(0, parseInt(e.target.value) || 0))}
+                  onChange={(e) => setSetting('total_infernal_cards', parseIntStrict(e.target.value, 0))}
+                  onBlur={(e) => setSetting('total_infernal_cards', Math.max(0, parseIntStrict(e.target.value, 0)))}
                 />
                 <div className="flex flex-wrap justify-center gap-1 mt-2 w-full">
                   <button onClick={() => setSetting('total_infernal_cards', Math.max(0, total_infernal_cards - 1))} className="flex-1 min-w-10 px-1 py-1 text-xs bg-st-secondary text-st-text rounded border border-st-border hover:border-st-orange transition-colors">-1</button>
@@ -1026,11 +1071,14 @@ export default function PlayerSetup() {
                   <div className="w-full mt-auto">
                     <hr className="border-st-border mb-4"/>
                     <input 
-                      type="number" className="st-input" 
+                      type="text"
+                      inputMode="numeric"
+                      pattern="[0-9]*"
+                      className="st-input"
                       value={external_levels[4] !== undefined ? external_levels[4] : 0} 
                       onFocus={(e) => e.target.select()}
-                      onChange={(e) => setExternalGroup([4], e.target.value === '' ? '' : parseInt(e.target.value))} 
-                      onBlur={(e) => setExternalGroup([4], Math.min(3000, Math.max(0, parseInt(e.target.value) || 0)))}
+                      onChange={(e) => setExternalGroup([4], parseIntStrict(e.target.value, 0))} 
+                      onBlur={(e) => setExternalGroup([4], Math.min(3000, Math.max(0, parseIntStrict(e.target.value, 0))))}
                     />
                     <div className="flex flex-wrap justify-center gap-1 mt-2 w-full">
                       <button onClick={() => setExternalGroup([4], Math.max(0, (external_levels[4] || 0) - 1))} className="flex-1 min-w-10 px-1 py-1 text-xs bg-st-secondary text-st-text rounded border border-st-border hover:border-st-orange transition-colors">-1</button>
@@ -1059,13 +1107,15 @@ export default function PlayerSetup() {
                     </label>
                     
                     <input 
-                      type="number" 
+                      type="text"
+                      inputMode="numeric"
+                      pattern="[0-9]*"
                       className={`st-input ${!hades_unlocked ? 'opacity-30 cursor-not-allowed' : ''}`}
                       value={external_levels[21] !== undefined ? external_levels[21] : 0} 
                       disabled={!hades_unlocked}
                       onFocus={(e) => e.target.select()}
-                      onChange={(e) => setExternalGroup([21], e.target.value === '' ? '' : parseInt(e.target.value))}
-                      onBlur={(e) => setExternalGroup([21], Math.min(6666, Math.max(0, parseInt(e.target.value) || 0)))}
+                      onChange={(e) => setExternalGroup([21], parseIntStrict(e.target.value, 0))}
+                      onBlur={(e) => setExternalGroup([21], Math.min(6666, Math.max(0, parseIntStrict(e.target.value, 0))))}
                     />
                     <div className="flex flex-wrap justify-center gap-1 mt-2 w-full">
                       <button onClick={() => setExternalGroup([21], Math.max(0, (external_levels[21] || 0) - 1))} disabled={!hades_unlocked} className="flex-1 min-w-10 px-1 py-1 text-xs bg-st-secondary text-st-text rounded border border-st-border hover:border-st-orange transition-colors disabled:opacity-30 disabled:cursor-not-allowed">-1</button>

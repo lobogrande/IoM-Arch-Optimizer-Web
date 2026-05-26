@@ -5,6 +5,13 @@ import { EngineWorkerPool } from '../../utils/optimizer';
 import MobileSelect from '../MobileSelect';
 import { FRAG_ICONS } from '../../game_data';
 
+// Helper to parse and strip leading zeros from numeric inputs
+const parseIntStrict = (value, defaultVal = 0) => {
+  if (value === '' || value === null || value === undefined) return defaultVal;
+  const parsed = parseInt(value, 10);
+  return isNaN(parsed) ? defaultVal : parsed;
+};
+
 const OPT_GOALS =[
   "Max Floor Push", 
   "Max EXP Yield", 
@@ -196,14 +203,14 @@ export default function DuelTab() {
                   {stat} <span className="font-normal text-[10px] text-st-text-light">(Max: {MAX_STAT_CAPS[stat]})</span>
                 </label>
                 <input 
-                  type="number"
-                  min="0"
-                  max={MAX_STAT_CAPS[stat]}
+                  type="text"
+                  inputMode="numeric"
+                  pattern="[0-9]*"
                   value={duelStatsA[stat] !== undefined ? duelStatsA[stat] : 0} 
                   onFocus={(e) => e.target.select()}
-                  onChange={(e) => setDuelStatsA({...duelStatsA, [stat]: e.target.value === '' ? '' : Math.max(0, parseInt(e.target.value) || 0)})}
+                  onChange={(e) => setDuelStatsA({...duelStatsA, [stat]: parseIntStrict(e.target.value, 0)})}
                   onBlur={(e) => {
-                    let parsed = parseInt(e.target.value) || 0;
+                    let parsed = parseIntStrict(e.target.value, 0);
                     if (parsed > MAX_STAT_CAPS[stat]) parsed = MAX_STAT_CAPS[stat];
                     if (parsed < 0) parsed = 0;
                     setDuelStatsA({...duelStatsA,[stat]: parsed});
@@ -228,14 +235,14 @@ export default function DuelTab() {
                   {stat} <span className="font-normal text-[10px] text-st-text-light">(Max: {MAX_STAT_CAPS[stat]})</span>
                 </label>
                 <input 
-                  type="number"
-                  min="0"
-                  max={MAX_STAT_CAPS[stat]}
+                  type="text"
+                  inputMode="numeric"
+                  pattern="[0-9]*"
                   value={duelStatsB[stat] !== undefined ? duelStatsB[stat] : 0} 
                   onFocus={(e) => e.target.select()}
-                  onChange={(e) => setDuelStatsB({...duelStatsB, [stat]: e.target.value === '' ? '' : Math.max(0, parseInt(e.target.value) || 0)})}
+                  onChange={(e) => setDuelStatsB({...duelStatsB, [stat]: parseIntStrict(e.target.value, 0)})}
                   onBlur={(e) => {
-                    let parsed = parseInt(e.target.value) || 0;
+                    let parsed = parseIntStrict(e.target.value, 0);
                     if (parsed > MAX_STAT_CAPS[stat]) parsed = MAX_STAT_CAPS[stat];
                     if (parsed < 0) parsed = 0;
                     setDuelStatsB({...duelStatsB, [stat]: parsed});
