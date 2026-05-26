@@ -353,7 +353,9 @@ class Player:
     @property
     def armor_pen(self):
         stat_calc = self.stat('Per') * (2 + self.u('H33'))
-        base_ap = self.u('F10') + self.u('F17') + self.u('H36') + stat_calc + self.inf('leg3')
+        # armor_pen uses rounded leg3 bonus (game displays +130, uses that in calculation)
+        # Other stats use full precision, but armor_pen is special case
+        base_ap = self.u('F10') + self.u('F17') + self.u('H36') + stat_calc + round(self.inf('leg3'))
         
         upg_mult = 1.0 + (0.03 * self.stat('Int')) + self.u('F29')
         card_mult = 1.0 + self.inf('rare3')
