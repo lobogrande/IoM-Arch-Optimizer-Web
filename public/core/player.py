@@ -127,8 +127,8 @@ class Player:
         return float(round(val + (drift * 1e-6)))
 
     def _gm_mult(self, val, decimals=2):
-        """Simulates downward float drift for GameMaker UI string formatting."""
-        return round(val - 1e-6, decimals)
+        """Applies banker's rounding for GameMaker UI string formatting."""
+        return round(val, decimals)
 
     # --------------------------------------------------------------------------
     # ENGINE VALUE SETTERS
@@ -275,7 +275,8 @@ class Player:
             # Card at level 4 gives infernal bonus
             elif self.cards.get(block_id, 0) == 4:
                 val = base_val * inf_mult
-                cached[block_id] = float(round(val)) if dec == 0 else val
+                # Keep full precision for calculations (display will floor for dec=0)
+                cached[block_id] = val
             else:
                 cached[block_id] = 0.0
         
@@ -303,8 +304,8 @@ class Player:
             if block_id in bases:
                 base_val, dec = bases[block_id]
                 val = base_val * inf_mult
-                if dec == 0:
-                    return float(round(val))
+                # Keep full precision for calculations (display will floor for dec=0)
+                return val
                 return val
         return 0.0
 
@@ -352,7 +353,9 @@ class Player:
     @property
     def armor_pen(self):
         stat_calc = self.stat('Per') * (2 + self.u('H33'))
-        base_ap = self.u('F10') + self.u('F17') + self.u('H36') + stat_calc + self.inf('leg3')
+        # armor_pen uses rounded leg3 bonus (game displays +130, uses that in calculation)
+        # Other stats use full precision, but armor_pen is special case
+        base_ap = self.u('F10') + self.u('F17') + self.u('H36') + stat_calc + round(self.inf('leg3'))
         
         upg_mult = 1.0 + (0.03 * self.stat('Int')) + self.u('F29')
         card_mult = 1.0 + self.inf('rare3')
@@ -443,7 +446,8 @@ class Player:
     @property
     def stamina_mod_gain(self): 
         val = (3.0 + self.u('F43') + self.u('H23')) * (1.0 + self.u('F55') + self.stat('Corr') * (0.01 + self.u('H52'))) + self.inf('div3')
-        return self._gm_int(val, drift=1)
+        # Stamina mod gain uses ceiling to show players the actual benefit they receive
+        return float(math.ceil(val))
 
     @property
     def gleaming_floor_chance(self): return (self.u('F19') + self.inf('myth1') + self.inf('div2')) if self.asc2_unlocked else 0.0

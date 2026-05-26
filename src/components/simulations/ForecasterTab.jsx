@@ -8,6 +8,13 @@ import { INTERNAL_UPGRADE_CAPS, UPGRADE_NAMES, ASC1_LOCKED_UPGS, ASC2_LOCKED_UPG
 
 const Plot = PlotWrapper.default || PlotWrapper;
 
+// Helper to parse and strip leading zeros from numeric inputs
+const parseIntStrict = (value, defaultVal = 0) => {
+  if (value === '' || value === null || value === undefined) return defaultVal;
+  const parsed = parseInt(value, 10);
+  return isNaN(parsed) ? defaultVal : parsed;
+};
+
 const ORE_MIN_FLOORS = {
   'dirt1': 1, 'com1': 1, 'rare1': 3, 'epic1': 6, 'leg1': 12, 'myth1': 20, 'div1': 50,
   'dirt2': 12, 'com2': 18, 'rare2': 26, 'epic2': 30, 'leg2': 32, 'myth2': 36, 'div2': 75,
@@ -458,7 +465,12 @@ export default function ForecasterTab() {
         if (cancelRef.current) return;
         const upgId = parseInt(upgIdStr);
         const currentLvl = effState.upgrade_levels[upgId] || 0;
-        const maxLvl = INTERNAL_UPGRADE_CAPS[upgId] || 99;
+        let maxLvl = INTERNAL_UPGRADE_CAPS[upgId] || 99;
+        
+        // Gem upgrades (3, 4, 5) have dynamic cap: base(5) + arch_level - 1 = arch_level + 4
+        if (upgId === 3 || upgId === 4 || upgId === 5) {
+          maxLvl = Math.min(maxLvl, (parseInt(store.arch_level) || 1) + 4);
+        }
 
         if (!store.asc1_unlocked && ASC1_LOCKED_UPGS.includes(upgId)) continue;
         if (!store.asc2_unlocked && ASC2_LOCKED_UPGS.includes(upgId)) continue;
@@ -802,7 +814,13 @@ export default function ForecasterTab() {
       Object.keys(INTERNAL_UPGRADE_CAPS || {}).forEach(upgIdStr => {
         const upgId = parseInt(upgIdStr);
         const currentLvl = effState.upgrade_levels[upgId] || 0;
-        const maxLvl = INTERNAL_UPGRADE_CAPS[upgId] || 99;
+        let maxLvl = INTERNAL_UPGRADE_CAPS[upgId] || 99;
+        
+        // Gem upgrades (3, 4, 5) have dynamic cap: base(5) + arch_level - 1 = arch_level + 4
+        if (upgId === 3 || upgId === 4 || upgId === 5) {
+          maxLvl = Math.min(maxLvl, (parseInt(store.arch_level) || 1) + 4);
+        }
+        
         if (!store.asc1_unlocked && ASC1_LOCKED_UPGS.includes(upgId)) return;
         if (!store.asc2_unlocked && ASC2_LOCKED_UPGS.includes(upgId)) return;
         if (store.current_max_floor < (UPGRADE_LEVEL_REQS[upgId] || 0)) return;
@@ -937,11 +955,13 @@ export default function ForecasterTab() {
           <div>
             <label className="block text-sm font-bold mb-1">Target Floor</label>
             <input 
-              type="number" 
+              type="text"
+              inputMode="numeric"
+              pattern="[0-9]*"
               value={localTargetFloor} 
-              onChange={(e) => setLocalTargetFloor(e.target.value)}
+              onChange={(e) => setLocalTargetFloor(parseIntStrict(e.target.value, 1))}
               onBlur={(e) => {
-                const val = parseInt(e.target.value) || 1;
+                const val = parseIntStrict(e.target.value, 1);
                 setLocalTargetFloor(val);
                 if (val !== targetFloor) setTargetFloor(val);
               }}
@@ -956,9 +976,12 @@ export default function ForecasterTab() {
           <div>
             <label className="block text-sm font-bold mb-1">Max Push Budget (k Arch Secs)</label>
             <input 
-              type="number" 
+              type="text"
+              inputMode="numeric"
+              pattern="[0-9]*"
               value={pushBudget} 
-              onChange={(e) => setPushBudget(parseInt(e.target.value) || 0)}
+              onChange={(e) => setPushBudget(parseIntStrict(e.target.value, 0))}
+              onBlur={(e) => setPushBudget(Math.max(0, parseIntStrict(e.target.value, 0)))}
               className="w-full bg-st-bg border border-st-border rounded p-2 text-st-text focus:border-st-orange focus:outline-none"
             />
             <div className="text-xs text-st-text-light mt-1">How much time are you willing to burn rolling RNG?</div>
@@ -1289,15 +1312,14 @@ export default function ForecasterTab() {
                           <div className="flex items-center bg-st-secondary border border-st-border rounded overflow-hidden">
                             <button onClick={() => setExactCartQty(idx, item.qty - 1)} disabled={isAnalyzing || isPivotAnalyzing} className="px-2 py-1 hover:bg-black/10 font-bold text-st-text-light hover:text-st-orange transition-colors disabled:opacity-50">-</button>
                             <input 
-                              type="number"
-                              min="1"
-                              max={item.maxAllowed - baseLvl}
+                              type="text"
+                              inputMode="numeric"
+                              pattern="[0-9]*"
                               value={draftQty.index === idx ? draftQty.value : (item.qty === 0 ? '' : item.qty)}
                               onChange={(e) => setDraftQty({ index: idx, value: e.target.value })}
                               onBlur={() => {
                                 if (draftQty.index === idx) {
-                                  let parsed = parseInt(draftQty.value);
-                                  if (isNaN(parsed)) parsed = 0;
+                                  let parsed = parseIntStrict(draftQty.value, 0);
                                   setExactCartQty(idx, parsed);
                                   setDraftQty({ index: null, value: '' });
                                 }

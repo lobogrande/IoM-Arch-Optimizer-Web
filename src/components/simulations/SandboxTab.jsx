@@ -6,6 +6,13 @@ import { ModuleRegistry, AllCommunityModule } from 'ag-grid-community';
 
 ModuleRegistry.registerModules([ AllCommunityModule ]);
 
+// Helper to parse and strip leading zeros from numeric inputs
+const parseIntStrict = (value, defaultVal = 0) => {
+  if (value === '' || value === null || value === undefined) return defaultVal;
+  const parsed = parseInt(value, 10);
+  return isNaN(parsed) ? defaultVal : parsed;
+};
+
 export default function SandboxTab() {
   const store = useStore();
   const sandboxGridRef = useRef(null);
@@ -260,14 +267,14 @@ export default function SandboxTab() {
                     className="h-6 w-6 pixelated mb-2"
                   />
                   <input
-                    type="number"
-                    min="0"
-                    max={MAX_STAT_CAPS[stat]}
+                    type="text"
+                    inputMode="numeric"
+                    pattern="[0-9]*"
                     value={store.sandbox_stats[stat] !== undefined ? store.sandbox_stats[stat] : 0}
                     onFocus={(e) => e.target.select()}
-                    onChange={(e) => store.setSandboxStat(stat, e.target.value === '' ? '' : Math.max(0, parseInt(e.target.value) || 0))}
+                    onChange={(e) => store.setSandboxStat(stat, parseIntStrict(e.target.value, 0))}
                     onBlur={(e) => {
-                      let parsed = parseInt(e.target.value) || 0;
+                      let parsed = parseIntStrict(e.target.value, 0);
                       if (parsed > MAX_STAT_CAPS[stat]) parsed = MAX_STAT_CAPS[stat];
                       if (parsed < 0) parsed = 0;
                       store.setSandboxStat(stat, parsed);
@@ -290,12 +297,14 @@ export default function SandboxTab() {
              <div data-tour="sand-floor">
                 <label className="block mb-1">Target Floor:</label>
                 <input
-                  type="number"
+                  type="text"
+                  inputMode="numeric"
+                  pattern="[0-9]*"
                   value={store.sandbox_floor ?? store.current_max_floor}
                   onFocus={(e) => e.target.select()}
-                  onChange={(e) => store.setSimsState('sandbox_floor', e.target.value === '' ? '' : parseInt(e.target.value))}
-                  onBlur={(e) => store.setSimsState('sandbox_floor', Math.max(1, parseInt(e.target.value) || 1))}
-                  className="st-input h-8" 
+                  onChange={(e) => store.setSimsState('sandbox_floor', parseIntStrict(e.target.value, 1))}
+                  onBlur={(e) => store.setSimsState('sandbox_floor', Math.max(1, parseIntStrict(e.target.value, 1)))}
+                  className="st-input h-8"
                 />
                 <div className="flex flex-wrap justify-center gap-1 mt-2 w-full">
                   <button onClick={() => store.setSimsState('sandbox_floor', Math.max(1, (store.sandbox_floor ?? store.current_max_floor) - 1))} className="flex-1 min-w-10 px-1 py-1 text-xs bg-st-secondary text-st-text rounded border border-st-border hover:border-st-orange transition-colors">-1</button>
@@ -305,12 +314,14 @@ export default function SandboxTab() {
               <div data-tour="sand-hits">
                 <label className="block mb-1">Min Avg Hits to Kill:</label>
                 <input 
-                  type="number"
+                  type="text"
+                  inputMode="numeric"
+                  pattern="[0-9]*"
                   value={sandboxMinHits}
                   onFocus={(e) => e.target.select()}
-                  onChange={(e) => setSandboxMinHits(e.target.value === '' ? '' : parseInt(e.target.value))}
-                  onBlur={(e) => setSandboxMinHits(Math.max(1, parseInt(e.target.value) || 1))}
-                  className="st-input h-8" 
+                  onChange={(e) => setSandboxMinHits(parseIntStrict(e.target.value, 1))}
+                  onBlur={(e) => setSandboxMinHits(Math.max(1, parseIntStrict(e.target.value, 1)))}
+                  className="st-input h-8"
                 />
                 <div className="flex flex-wrap justify-center gap-1 mt-2 w-full">
                   <button onClick={() => setSandboxMinHits(Math.max(1, sandboxMinHits - 1))} className="flex-1 min-w-10 px-1 py-1 text-xs bg-st-secondary text-st-text rounded border border-st-border hover:border-st-orange transition-colors">-1</button>
