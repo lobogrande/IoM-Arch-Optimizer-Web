@@ -3,7 +3,7 @@ import { useState, useMemo, useEffect } from 'react';
 import useStore from '../../store';
 import { EngineWorkerPool, getOptimalStepProfile, runOptimizationPhase, topUpBuild } from '../../utils/optimizer';
 import ResultsDashboard from './ResultsDashboard';
-import { BLOCK_MIN_FLOORS } from '../../game_data';
+import { BLOCK_MIN_FLOORS, FRAG_ICONS } from '../../game_data';
 import MobileSelect from '../MobileSelect';
 
 const OPT_GOALS =[
@@ -496,7 +496,22 @@ export default function OptimizerTab() {
                     if (fragTier === 6 && !store.asc1_unlocked) return false; 
                     return true;
                   })
-                  .map(([val, name]) => ({ value: parseInt(val), label: name }))}
+                  .map(([val, name]) => ({ 
+                    value: parseInt(val), 
+                    label: name
+                  }))}
+                renderOption={(opt) => (
+                  <span className="flex items-center gap-2">
+                    <img src={FRAG_ICONS[opt.value]} alt="" className="w-5 h-5" style={{ imageRendering: 'pixelated' }} onError={(e) => e.target.style.display = 'none'} />
+                    {opt.label}
+                  </span>
+                )}
+                renderSelected={(opt) => (
+                  <span className="flex items-center gap-2">
+                    <img src={FRAG_ICONS[opt.value]} alt="" className="w-5 h-5" style={{ imageRendering: 'pixelated' }} onError={(e) => e.target.style.display = 'none'} />
+                    {opt.label}
+                  </span>
+                )}
                 className="w-full bg-st-bg border border-st-border rounded p-2 text-st-text focus:border-st-orange focus:outline-none"
               />
             </div>

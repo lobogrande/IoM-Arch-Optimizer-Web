@@ -2,6 +2,7 @@
 import { useState, useMemo, useRef } from 'react';
 import useStore from '../store';
 import { UI_BLOCK_TABLE_IMG_WIDTH } from '../ui_config';
+import { FRAG_ICONS } from '../game_data';
 import { AgGridReact } from 'ag-grid-react';
 import { ModuleRegistry, AllCommunityModule } from 'ag-grid-community';
 import 'ag-grid-community/styles/ag-grid.css';
@@ -89,9 +90,35 @@ export default function BlockCompendium() {
       minWidth: 100,
       valueGetter: p => showModified ? p.data.mod_frag : p.data.base_frag,
       valueFormatter: p => fmt(p.value, 3),
-      filter: 'agNumberColumnFilter'
+      filter: 'agNumberColumnFilter',
+      cellRenderer: p => {
+        const fragMap = { "Dirt": 0, "Common": 1, "Rare": 2, "Epic": 3, "Legendary": 4, "Mythic": 5, "Divine": 6 };
+        const fragTier = fragMap[p.data.frag_name];
+        return (
+          <div className="flex items-center justify-center gap-1">
+            {fragTier !== undefined && <img src={FRAG_ICONS[fragTier]} alt="" className="w-4 h-4" style={{ imageRendering: 'pixelated' }} onError={(e) => e.target.style.display = 'none'} />}
+            {p.valueFormatted}
+          </div>
+        );
+      }
     },
-    { field: "frag_name", headerName: "Type", headerTooltip: "Fragment Type", flex: 1, minWidth: 100 }
+    { 
+      field: "frag_name", 
+      headerName: "Type", 
+      headerTooltip: "Fragment Type", 
+      flex: 1, 
+      minWidth: 100,
+      cellRenderer: p => {
+        const fragMap = { "Dirt": 0, "Common": 1, "Rare": 2, "Epic": 3, "Legendary": 4, "Mythic": 5, "Divine": 6 };
+        const fragTier = fragMap[p.value];
+        return (
+          <div className="flex items-center justify-center gap-1">
+            {fragTier !== undefined && <img src={FRAG_ICONS[fragTier]} alt="" className="w-4 h-4" style={{ imageRendering: 'pixelated' }} onError={(e) => e.target.style.display = 'none'} />}
+            {p.value}
+          </div>
+        );
+      }
+    }
   ],[ showModified ]);
 
   return (

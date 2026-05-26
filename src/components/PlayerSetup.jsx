@@ -7,7 +7,7 @@ import {
   UI_EXT_CARD_CBLOCK_X_OFFSET, UI_EXT_CARD_CBLOCK_Y_OFFSET,
   UI_CARD_CBLOCK_SCALE
 } from '../ui_config';
-import { INTERNAL_UPGRADE_CAPS, UPGRADE_NAMES, ASC1_LOCKED_UPGS, ASC2_LOCKED_UPGS, CARD_TYPES, INFERNAL_CARD_BONUSES, EXTERNAL_UI_GROUPS, UPGRADE_LEVEL_REQS, calculateUpgradeCost } from '../game_data';
+import { INTERNAL_UPGRADE_CAPS, UPGRADE_NAMES, ASC1_LOCKED_UPGS, ASC2_LOCKED_UPGS, CARD_TYPES, INFERNAL_CARD_BONUSES, EXTERNAL_UI_GROUPS, UPGRADE_LEVEL_REQS, calculateUpgradeCost, FRAG_ICONS } from '../game_data';
 
 export default function PlayerSetup() {
   const { asc1_unlocked, asc2_unlocked, arch_level, current_max_floor, starting_speed_pool, base_stats, upgrade_levels, external_levels, cards, arch_ability_infernal_bonus, total_infernal_cards, geoduck_unlocked, hades_unlocked, calculated_stats, setSetting, setBaseStat, setUpgradeLevel, setCardLevel, setExternalGroup, loadStateFromJson, setSandboxStat, hideMaxed, setHideMaxed, activeSubTab, setActiveSubTab, setActiveTab, setSimActiveSubTab, profiles, activeProfileId, createProfile, loadProfile, saveToProfile, renameProfile, deleteProfile, resetState } = useStore();
@@ -701,7 +701,8 @@ export default function PlayerSetup() {
 
                   let nextCostStr = "Maxed";
                   let totalCostStr = "-";
-                  
+                  let costIcon = null;
+
                   if (current_lvl < max_lvl) {
                       const next = calculateUpgradeCost(id, current_lvl + 1, ascTier);
                       if (next) {
@@ -711,10 +712,17 @@ export default function PlayerSetup() {
                               if (val >= 1000) return (val / 1000).toFixed(1) + "k";
                               return Number(val.toFixed(2)).toString();
                           };
-                          
+
+                          // Map currency to fragment tier or gems
+                          const fragMap = { com: 1, rare: 2, epic: 3, leg: 4, myth: 5, div: 6, gems: "gems" };
+                          const fragTier = fragMap[next.currency];
+                          if (fragTier !== undefined) {
+                              costIcon = <img src={FRAG_ICONS[fragTier]} alt="" className="w-4 h-4 inline-block" style={{ imageRendering: 'pixelated' }} onError={(e) => e.target.style.display = 'none'} />;
+                          }
+
                           const currUI = { gems: 'Gems', com: 'Com', rare: 'Rare', epic: 'Epic', leg: 'Leg', myth: 'Myth', div: 'Div' }[next.currency] || next.currency;
                           nextCostStr = `${formatCost(next.amount)} ${currUI}`;
-                          
+
                           let totalAmount = 0;
                           for (let lvl = current_lvl + 1; lvl <= max_lvl; lvl++) {
                               const c = calculateUpgradeCost(id, lvl, ascTier);
@@ -742,8 +750,8 @@ export default function PlayerSetup() {
                       </div>
 
                       <div className="w-full mb-3 text-xs text-st-text-light flex flex-col gap-1 bg-[#0E1117] p-2 rounded border border-st-border">
-                         <div className="flex justify-between"><span>Next Lvl:</span> <span className="font-bold text-st-text">{nextCostStr}</span></div>
-                         <div className="flex justify-between"><span>To Max:</span> <span className="font-bold text-st-orange">{totalCostStr}</span></div>
+                         <div className="flex justify-between items-center"><span>Next Lvl:</span> <span className="font-bold text-st-text flex items-center gap-1">{costIcon}{nextCostStr}</span></div>
+                         <div className="flex justify-between items-center"><span>To Max:</span> <span className="font-bold text-st-orange flex items-center gap-1">{costIcon}{totalCostStr}</span></div>
                       </div>
 
                       <input 

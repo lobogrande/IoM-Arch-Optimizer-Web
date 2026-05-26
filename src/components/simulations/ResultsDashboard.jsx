@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react';
 import useStore from '../../store';
 import { EngineWorkerPool } from '../../utils/optimizer';
 import PlotWrapper from 'react-plotly.js';
-import { INTERNAL_UPGRADE_CAPS, UPGRADE_NAMES, ASC1_LOCKED_UPGS, ASC2_LOCKED_UPGS, UPGRADE_LEVEL_REQS, EXTERNAL_UI_GROUPS, calculateUpgradeCost, CURRENCY_TYPES, BLOCK_MIN_FLOORS } from '../../game_data';
+import { INTERNAL_UPGRADE_CAPS, UPGRADE_NAMES, ASC1_LOCKED_UPGS, ASC2_LOCKED_UPGS, UPGRADE_LEVEL_REQS, EXTERNAL_UI_GROUPS, calculateUpgradeCost, CURRENCY_TYPES, BLOCK_MIN_FLOORS, FRAG_ICONS } from '../../game_data';
 import { UI_BLOCK_CARD_WIDTH, UI_BLOCK_CARD_X_OFFSET, UI_BLOCK_CARD_Y_OFFSET, UI_CARD_CBLOCK_SCALE } from '../../ui_config';
 import MobileSelect from '../MobileSelect';
 
@@ -714,20 +714,98 @@ export default function ResultsDashboard({ context }) {
                 ) : (
                   <div data-tour="res-data-banked" className="space-y-6">
                     <div>
-                      <h4 className="font-bold text-lg">💰 {runMetric.includes("frag") ? "Fragment" : runMetric.includes("block") ? "Block Kill" : "EXP"} Yields</h4>
-                      <p className="text-sm text-st-text-light mb-1">Target {runMetric.includes("frag") ? "Fragments" : runMetric.includes("block") ? "Kills" : "EXP"} per <b>1k Arch Seconds</b></p>
+                      {(() => {
+                        const isFragTarget = runMetric.includes("frag");
+                        let fragName = "";
+                        
+                        if (isFragTarget) {
+                          const match = runMetric.match(/frag_(\d)/);
+                          if (match) {
+                            const fragTier = parseInt(match[1]);
+                            fragName = FRAG_NAMES[fragTier] || "";
+                          }
+                        }
+                        
+                        return (
+                          <>
+                            <h4 className="font-bold text-lg">
+                              💰 {isFragTarget ? "Fragment" : runMetric.includes("block") ? "Block Kill" : "EXP"} Yields
+                            </h4>
+                            <p className="text-sm text-st-text-light mb-1">
+                              Target {isFragTarget ? `${fragName} Fragments` : runMetric.includes("block") ? "Kills" : "EXP"} per <b>1k Arch Seconds</b>
+                            </p>
+                          </>
+                        );
+                      })()}
                       {context === 'optimizer' ? (
                         <div className="text-xs text-st-orange/80 mb-2 italic">Note: 100-sim average. May vary ±5% due to RNG. Use Synthesis for a more accurate measurement.</div>
                       ) : (
                         <div className="text-xs text-green-500/80 mb-2 italic">Note: 500-sim marathon average. RNG variance minimized.</div>
                       )}
-                      <div className="text-3xl font-bold text-st-orange">{scaleScore(finalSum[runMetric]).toLocaleString(undefined, {minimumFractionDigits:1, maximumFractionDigits:1})}</div>
+                      {(() => {
+                        const isFragTarget = runMetric.includes("frag");
+                        let fragIcon = null;
+                        
+                        if (isFragTarget) {
+                          const match = runMetric.match(/frag_(\d)/);
+                          if (match) {
+                            const fragTier = parseInt(match[1]);
+                            fragIcon = <img src={FRAG_ICONS[fragTier]} alt="" className="w-6 h-6 inline-block" style={{ imageRendering: 'pixelated' }} onError={(e) => e.target.style.display = 'none'} />;
+                          }
+                        }
+                        
+                        return (
+                          <div className="text-3xl font-bold text-st-orange flex items-center gap-2">
+                            {fragIcon}
+                            {scaleScore(finalSum[runMetric]).toLocaleString(undefined, {minimumFractionDigits:1, maximumFractionDigits:1})}
+                          </div>
+                        );
+                      })()}
                     </div>
                     <hr className="border-st-border" />
                     <div>
-                      <h4 className="font-bold text-lg">⏱️ Real-Time Yield</h4>
-                      <p className="text-sm text-st-text-light mb-2">{runMetric.includes("frag") ? "Fragments" : runMetric.includes("block") ? "Kills" : "EXP"} / minute</p>
-                      <div className="text-2xl font-bold">{finalSum[runMetric].toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2})}</div>
+                      {(() => {
+                        const isFragTarget = runMetric.includes("frag");
+                        let fragName = "";
+                        
+                        if (isFragTarget) {
+                          const match = runMetric.match(/frag_(\d)/);
+                          if (match) {
+                            const fragTier = parseInt(match[1]);
+                            fragName = FRAG_NAMES[fragTier] || "";
+                          }
+                        }
+                        
+                        return (
+                          <>
+                            <h4 className="font-bold text-lg">
+                              ⏱️ Real-Time Yield
+                            </h4>
+                            <p className="text-sm text-st-text-light mb-2">
+                              {isFragTarget ? `${fragName} Fragments` : runMetric.includes("block") ? "Kills" : "EXP"} / minute
+                            </p>
+                          </>
+                        );
+                      })()}
+                      {(() => {
+                        const isFragTarget = runMetric.includes("frag");
+                        let fragIcon = null;
+                        
+                        if (isFragTarget) {
+                          const match = runMetric.match(/frag_(\d)/);
+                          if (match) {
+                            const fragTier = parseInt(match[1]);
+                            fragIcon = <img src={FRAG_ICONS[fragTier]} alt="" className="w-5 h-5 inline-block" style={{ imageRendering: 'pixelated' }} onError={(e) => e.target.style.display = 'none'} />;
+                          }
+                        }
+                        
+                        return (
+                          <div className="text-2xl font-bold flex items-center gap-2">
+                            {fragIcon}
+                            {finalSum[runMetric].toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2})}
+                          </div>
+                        );
+                      })()}
                     </div>
                     
                     {runMetric === 'xp_per_min' && (
@@ -777,6 +855,20 @@ export default function ResultsDashboard({ context }) {
                   <span className="text-st-text-light text-sm mb-1">Floor reached per run</span>
                   <span className="text-2xl font-bold">Floor {finalSum.avg_floor.toFixed(1)}</span>
                 </div>
+                
+                {runMetric !== 'xp_per_min' && avgMetrics.xp_per_min && (
+                  <>
+                    <hr className="border-st-border" />
+                    <div className="flex flex-col">
+                      <h4 className="font-bold text-lg mb-1">📚 EXP Gain Rate</h4>
+                      <span className="text-st-text-light text-sm mb-1">Per 1k Arch Seconds</span>
+                      <span className="text-2xl font-bold">{(avgMetrics.xp_per_min * 1000 / 60).toLocaleString(undefined, {minimumFractionDigits:1, maximumFractionDigits:1})} EXP</span>
+                      <span className="text-xs text-st-text-light mt-1">
+                        Real-time: {avgMetrics.xp_per_min.toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2})} EXP/min
+                      </span>
+                    </div>
+                  </>
+                )}
               </div>
 
               <div className="lg:col-span-3 space-y-6">
@@ -954,6 +1046,21 @@ export default function ResultsDashboard({ context }) {
             <div data-tour="res-data-loot" className="space-y-4">
               <h4 className="font-bold text-lg">🎒 Collateral Loot Distribution</h4>
               <p className="text-sm text-st-text-light">On average, every <b>1k Arch Seconds</b> of simulated mining yields the following collateral fragments alongside your target:</p>
+              
+              {/* Fragment Icon Legend */}
+              <div className="flex flex-wrap gap-3 p-3 bg-st-secondary border border-st-border rounded">
+                {Object.keys(store.opt_results.chart_loot).map((fragName, idx) => {
+                  const fragMap = { "Common": 1, "Rare": 2, "Epic": 3, "Legendary": 4, "Mythic": 5, "Divine": 6 };
+                  const fragTier = fragMap[fragName];
+                  return fragTier && (
+                    <div key={idx} className="flex items-center gap-1.5 text-sm">
+                      <img src={FRAG_ICONS[fragTier]} alt="" className="w-4 h-4" style={{ imageRendering: 'pixelated' }} onError={(e) => e.target.style.display = 'none'} />
+                      <span>{fragName}</span>
+                    </div>
+                  );
+                })}
+              </div>
+              
               <div className="w-full h-[400px] border border-st-border rounded bg-st-bg p-2">
                 <Plot
                   data={[{
@@ -1195,15 +1302,29 @@ export default function ResultsDashboard({ context }) {
                         <tbody>
                           {store.opt_results.roi_stats.length === 0 ? (
                             <tr><td colSpan="3" className="py-4 text-center text-st-text-light italic">No positive marginal gains found.</td></tr>
-                          ) : store.opt_results.roi_stats.map((r) => (
-                            <tr key={r.stat} className="border-b border-st-border/50 hover:bg-black/5 transition-colors">
-                              <td className="py-2 pr-4 font-bold">{r.stat}</td>
-                              <td className="py-2 font-mono text-st-orange">{r.gain > 0 ? '+' : ''}{r.gain.toFixed(2)}</td>
-                              <td className="py-2 text-right">
-                                <button onClick={() => handleApplyStat(r.stat)} className="px-3 py-1 bg-st-orange text-[#2b2b2b] font-bold text-xs rounded hover:bg-[#ffb045] transition-colors">Apply</button>
-                              </td>
-                            </tr>
-                          ))}
+                          ) : store.opt_results.roi_stats.map((r) => {
+                            const isFragTarget = runMetric.includes("frag");
+                            let fragIcon = null;
+                            if (isFragTarget) {
+                              const match = runMetric.match(/frag_(\d)/);
+                              if (match) {
+                                const fragTier = parseInt(match[1]);
+                                fragIcon = <img src={FRAG_ICONS[fragTier]} alt="" className="w-4 h-4 inline-block mr-1" style={{ imageRendering: 'pixelated' }} onError={(e) => e.target.style.display = 'none'} />;
+                              }
+                            }
+                            return (
+                              <tr key={r.stat} className="border-b border-st-border/50 hover:bg-black/5 transition-colors">
+                                <td className="py-2 pr-4 font-bold">{r.stat}</td>
+                                <td className="py-2 font-mono text-st-orange flex items-center">
+                                  {fragIcon}
+                                  {r.gain > 0 ? '+' : ''}{r.gain.toFixed(2)}
+                                </td>
+                                <td className="py-2 text-right">
+                                  <button onClick={() => handleApplyStat(r.stat)} className="px-3 py-1 bg-st-orange text-[#2b2b2b] font-bold text-xs rounded hover:bg-[#ffb045] transition-colors">Apply</button>
+                                </td>
+                              </tr>
+                            );
+                          })}
                         </tbody>
                       </table>
                     </div>
@@ -1261,17 +1382,31 @@ export default function ResultsDashboard({ context }) {
                             <tbody>
                               {filteredUpgs.length === 0 ? (
                                 <tr><td colSpan="5" className="py-4 text-center text-st-text-light italic">No upgrades match this filter.</td></tr>
-                              ) : filteredUpgs.map((r) => (
-                                <tr key={r.id} className="border-b border-st-border/50 hover:bg-black/5 transition-colors">
-                                  <td className="py-2 pr-4 text-sm font-bold">{r.name}</td>
-                                  <td className="py-2 pr-4 text-xs text-st-text-light whitespace-nowrap">{r.action}</td>
-                                  <td className="py-2 pr-4 font-mono text-xs text-st-text-light whitespace-nowrap">{formatCost(r.cost)}</td>
-                                  <td className="py-2 font-mono text-st-orange">{r.gain > 0 ? '+' : ''}{r.gain.toFixed(2)}</td>
-                                  <td className="py-2 text-right">
-                                    <button onClick={() => handleApplyUpgrade(r.id)} className="px-3 py-1 bg-st-orange text-[#2b2b2b] font-bold text-xs rounded hover:bg-[#ffb045] transition-colors">Apply</button>
-                                  </td>
-                                </tr>
-                              ))}
+                              ) : filteredUpgs.map((r) => {
+                                const isFragTarget = runMetric.includes("frag");
+                                let fragIcon = null;
+                                if (isFragTarget) {
+                                  const match = runMetric.match(/frag_(\d)/);
+                                  if (match) {
+                                    const fragTier = parseInt(match[1]);
+                                    fragIcon = <img src={FRAG_ICONS[fragTier]} alt="" className="w-4 h-4 inline-block mr-1" style={{ imageRendering: 'pixelated' }} onError={(e) => e.target.style.display = 'none'} />;
+                                  }
+                                }
+                                return (
+                                  <tr key={r.id} className="border-b border-st-border/50 hover:bg-black/5 transition-colors">
+                                    <td className="py-2 pr-4 text-sm font-bold">{r.name}</td>
+                                    <td className="py-2 pr-4 text-xs text-st-text-light whitespace-nowrap">{r.action}</td>
+                                    <td className="py-2 pr-4 font-mono text-xs text-st-text-light whitespace-nowrap">{formatCost(r.cost)}</td>
+                                    <td className="py-2 font-mono text-st-orange flex items-center">
+                                      {fragIcon}
+                                      {r.gain > 0 ? '+' : ''}{r.gain.toFixed(2)}
+                                    </td>
+                                    <td className="py-2 text-right">
+                                      <button onClick={() => handleApplyUpgrade(r.id)} className="px-3 py-1 bg-st-orange text-[#2b2b2b] font-bold text-xs rounded hover:bg-[#ffb045] transition-colors">Apply</button>
+                                    </td>
+                                  </tr>
+                                );
+                              })}
                             </tbody>
                           </table>
                         </div>
@@ -1306,16 +1441,30 @@ export default function ResultsDashboard({ context }) {
                         <tbody>
                           {store.opt_results.roi_externals.length === 0 ? (
                             <tr><td colSpan="4" className="py-4 text-center text-st-text-light italic">No positive marginal gains found.</td></tr>
-                          ) : store.opt_results.roi_externals.map((r) => (
-                            <tr key={r.id} className="border-b border-st-border/50 hover:bg-black/5 transition-colors">
-                              <td className="py-2 pr-4 text-sm font-bold">{r.name}</td>
-                              <td className="py-2 pr-4 text-xs text-st-text-light">{r.action}</td>
-                              <td className="py-2 font-mono text-st-orange">{r.gain > 0 ? '+' : ''}{r.gain.toFixed(2)}</td>
-                              <td className="py-2 text-right">
-                                <button onClick={() => handleApplyExternal(r.id)} className="px-3 py-1 bg-st-orange text-[#2b2b2b] font-bold text-xs rounded hover:bg-[#ffb045] transition-colors">Apply</button>
-                              </td>
-                            </tr>
-                          ))}
+                          ) : store.opt_results.roi_externals.map((r) => {
+                            const isFragTarget = runMetric.includes("frag");
+                            let fragIcon = null;
+                            if (isFragTarget) {
+                              const match = runMetric.match(/frag_(\d)/);
+                              if (match) {
+                                const fragTier = parseInt(match[1]);
+                                fragIcon = <img src={FRAG_ICONS[fragTier]} alt="" className="w-4 h-4 inline-block mr-1" style={{ imageRendering: 'pixelated' }} onError={(e) => e.target.style.display = 'none'} />;
+                              }
+                            }
+                            return (
+                              <tr key={r.id} className="border-b border-st-border/50 hover:bg-black/5 transition-colors">
+                                <td className="py-2 pr-4 text-sm font-bold">{r.name}</td>
+                                <td className="py-2 pr-4 text-xs text-st-text-light">{r.action}</td>
+                                <td className="py-2 font-mono text-st-orange flex items-center">
+                                  {fragIcon}
+                                  {r.gain > 0 ? '+' : ''}{r.gain.toFixed(2)}
+                                </td>
+                                <td className="py-2 text-right">
+                                  <button onClick={() => handleApplyExternal(r.id)} className="px-3 py-1 bg-st-orange text-[#2b2b2b] font-bold text-xs rounded hover:bg-[#ffb045] transition-colors">Apply</button>
+                                </td>
+                              </tr>
+                            );
+                          })}
                         </tbody>
                       </table>
                     </div>
@@ -1348,16 +1497,30 @@ export default function ResultsDashboard({ context }) {
                         <tbody>
                           {store.opt_results.roi_cards.length === 0 ? (
                             <tr><td colSpan="4" className="py-4 text-center text-st-text-light italic">No positive marginal gains found.</td></tr>
-                          ) : store.opt_results.roi_cards.map((r) => (
-                            <tr key={r.id} className="border-b border-st-border/50 hover:bg-black/5 transition-colors">
-                              <td className="py-2 pr-4 text-sm font-bold capitalize">{r.name}</td>
-                              <td className="py-2 pr-4 text-xs text-st-text-light">{r.action}</td>
-                              <td className="py-2 font-mono text-st-orange">{r.gain > 0 ? '+' : ''}{r.gain.toFixed(2)}</td>
-                              <td className="py-2 text-right">
-                                <button onClick={() => handleApplyCard(r.id)} className="px-3 py-1 bg-st-orange text-[#2b2b2b] font-bold text-xs rounded hover:bg-[#ffb045] transition-colors">Apply</button>
-                              </td>
-                            </tr>
-                          ))}
+                          ) : store.opt_results.roi_cards.map((r) => {
+                            const isFragTarget = runMetric.includes("frag");
+                            let fragIcon = null;
+                            if (isFragTarget) {
+                              const match = runMetric.match(/frag_(\d)/);
+                              if (match) {
+                                const fragTier = parseInt(match[1]);
+                                fragIcon = <img src={FRAG_ICONS[fragTier]} alt="" className="w-4 h-4 inline-block mr-1" style={{ imageRendering: 'pixelated' }} onError={(e) => e.target.style.display = 'none'} />;
+                              }
+                            }
+                            return (
+                              <tr key={r.id} className="border-b border-st-border/50 hover:bg-black/5 transition-colors">
+                                <td className="py-2 pr-4 text-sm font-bold capitalize">{r.name}</td>
+                                <td className="py-2 pr-4 text-xs text-st-text-light">{r.action}</td>
+                                <td className="py-2 font-mono text-st-orange flex items-center">
+                                  {fragIcon}
+                                  {r.gain > 0 ? '+' : ''}{r.gain.toFixed(2)}
+                                </td>
+                                <td className="py-2 text-right">
+                                  <button onClick={() => handleApplyCard(r.id)} className="px-3 py-1 bg-st-orange text-[#2b2b2b] font-bold text-xs rounded hover:bg-[#ffb045] transition-colors">Apply</button>
+                                </td>
+                              </tr>
+                            );
+                          })}
                         </tbody>
                       </table>
                     </div>

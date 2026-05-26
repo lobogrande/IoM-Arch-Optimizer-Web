@@ -2,11 +2,11 @@
 import { useState, useRef, useEffect } from 'react';
 
 /**
- * Custom select component that works properly on mobile
- * Falls back to native <select> on desktop
- * Fixes dropdown positioning issues caused by parent transforms/relative positioning
+ * Custom select component with support for custom rendering
+ * Uses custom dropdown UI on both mobile and desktop for consistent icon support
+ * Mobile shows dropdown from bottom, desktop shows dropdown below the button
  */
-export default function MobileSelect({ value, onChange, options, className, ...props }) {
+export default function MobileSelect({ value, onChange, options, className, renderOption, renderSelected, ...props }) {
   const [isOpen, setIsOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
   const selectRef = useRef(null);
@@ -20,7 +20,7 @@ export default function MobileSelect({ value, onChange, options, className, ...p
   }, []);
   
   useEffect(() => {
-    if (!isOpen || !isMobile) return;
+    if (!isOpen) return;
     
     // Close dropdown when clicking outside
     const handleClick = (e) => {
@@ -31,27 +31,8 @@ export default function MobileSelect({ value, onChange, options, className, ...p
     
     document.addEventListener('click', handleClick);
     return () => document.removeEventListener('click', handleClick);
-  }, [isOpen, isMobile]);
+  }, [isOpen]);
   
-  // On desktop, use native select
-  if (!isMobile) {
-    return (
-      <select 
-        value={value} 
-        onChange={onChange}
-        className={className}
-        {...props}
-      >
-        {options.map((opt, i) => (
-          <option key={opt.value || i} value={opt.value}>
-            {opt.label}
-          </option>
-        ))}
-      </select>
-    );
-  }
-  
-  // On mobile, use custom dropdown
   const selectedOption = options.find(opt => opt.value === value) || options[0];
   
   return (
@@ -65,15 +46,18 @@ export default function MobileSelect({ value, onChange, options, className, ...p
         className={className}
         {...props}
       >
-        {selectedOption?.label || 'Select...'}
+        {renderSelected ? renderSelected(selectedOption) : (selectedOption?.label || 'Select...')}
       </button>
       
       {isOpen && (
         <div 
-          className="fixed left-0 right-0 bottom-0 z-[9999] bg-st-bg border-t-2 border-st-orange shadow-2xl max-h-[50vh] overflow-y-auto animate-slide-up"
-          style={{
+          className={isMobile 
+            ? "fixed left-0 right-0 bottom-0 z-[9999] bg-st-bg border-t-2 border-st-orange shadow-2xl max-h-[50vh] overflow-y-auto animate-slide-up"
+            : "absolute left-0 right-0 top-full mt-1 z-[9999] bg-st-bg border border-st-border rounded shadow-2xl max-h-[300px] overflow-y-auto"
+          }
+          style={isMobile ? {
             animation: 'slideUp 0.2s ease-out'
-          }}
+          } : {}}
         >
           {options.map((opt, i) => (
             <button
@@ -88,7 +72,7 @@ export default function MobileSelect({ value, onChange, options, className, ...p
                 opt.value === value ? 'bg-st-orange/20 text-st-orange font-bold' : 'text-st-text'
               }`}
             >
-              {opt.label}
+              {renderOption ? renderOption(opt) : opt.label}
             </button>
           ))}
         </div>

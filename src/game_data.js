@@ -184,3 +184,21 @@ export const calculateUpgradeCost = (upgId, targetLevel, ascTier) => {
 
   return { currency: data.currency, amount };
 };
+
+// ==============================================================================
+// FRAGMENT ICON HELPERS
+// ==============================================================================
+export const FRAG_NAMES = {
+  0: "Dirt", 1: "Common", 2: "Rare", 3: "Epic", 4: "Legendary", 5: "Mythic", 6: "Divine"
+};
+
+export const FRAG_ICONS = {
+  0: "/assets/fragments/Dirt_Fragment.png",
+  1: "/assets/fragments/Common_Fragment.png",
+  2: "/assets/fragments/Rare_Fragment.png",
+  3: "/assets/fragments/Epic_Fragment.png",
+  4: "/assets/fragments/Legendary_Fragment.png",
+  5: "/assets/fragments/Mythic_Fragment.png",
+  6: "/assets/fragments/Divine_Fragment.png",
+  "gems": "/assets/fragments/Gem.png"
+};

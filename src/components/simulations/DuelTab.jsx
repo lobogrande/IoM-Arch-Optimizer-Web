@@ -3,6 +3,7 @@ import { useState } from 'react';
 import useStore from '../../store';
 import { EngineWorkerPool } from '../../utils/optimizer';
 import MobileSelect from '../MobileSelect';
+import { FRAG_ICONS } from '../../game_data';
 
 const OPT_GOALS =[
   "Max Floor Push", 
@@ -152,6 +153,18 @@ export default function DuelTab() {
                       return true;
                     })
                     .map(([val, name]) => ({ value: parseInt(val), label: name }))}
+                  renderOption={(opt) => (
+                    <span className="flex items-center gap-2">
+                      <img src={FRAG_ICONS[opt.value]} alt="" className="w-5 h-5" style={{ imageRendering: 'pixelated' }} onError={(e) => e.target.style.display = 'none'} />
+                      {opt.label}
+                    </span>
+                  )}
+                  renderSelected={(opt) => (
+                    <span className="flex items-center gap-2">
+                      <img src={FRAG_ICONS[opt.value]} alt="" className="w-5 h-5" style={{ imageRendering: 'pixelated' }} onError={(e) => e.target.style.display = 'none'} />
+                      {opt.label}
+                    </span>
+                  )}
                   className="w-full bg-st-bg border border-st-border rounded p-2 text-st-text focus:border-st-orange focus:outline-none"
                 />
               </>
@@ -350,9 +363,15 @@ export default function DuelTab() {
                       <tr key={row.k} className="border-b border-st-border/50 hover:bg-black/5">
                         <td className="p-3 font-bold text-sm">{row.l}</td>
                         <td className={`p-3 font-mono ${isWinnerA ? 'text-green-400 font-bold' : 'text-st-text-light'}`}>
+                          {(row.k === `frag_${duelTargetFrag}_per_min` || row.k.startsWith('raw_frag_')) && (
+                            <img src={FRAG_ICONS[duelTargetFrag]} alt="" className="w-4 h-4 inline-block mr-1" style={{ imageRendering: 'pixelated' }} onError={(e) => e.target.style.display = 'none'} />
+                          )}
                           {formattedA}
                         </td>
                         <td className={`p-3 font-mono ${isWinnerB ? 'text-green-400 font-bold' : 'text-st-text-light'}`}>
+                          {(row.k === `frag_${duelTargetFrag}_per_min` || row.k.startsWith('raw_frag_')) && (
+                            <img src={FRAG_ICONS[duelTargetFrag]} alt="" className="w-4 h-4 inline-block mr-1" style={{ imageRendering: 'pixelated' }} onError={(e) => e.target.style.display = 'none'} />
+                          )}
                           {formattedB}
                         </td>
                         <td className="p-3 font-bold text-center">

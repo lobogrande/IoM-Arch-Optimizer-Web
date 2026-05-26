@@ -6,6 +6,7 @@ import ResultsDashboard from './ResultsDashboard';
 import PlotWrapper from 'react-plotly.js';
 import { AgGridReact } from 'ag-grid-react';
 import { ModuleRegistry, AllCommunityModule } from 'ag-grid-community';
+import { FRAG_ICONS } from '../../game_data';
 
 ModuleRegistry.registerModules([ AllCommunityModule ]);
 
@@ -137,6 +138,24 @@ export default function SynthesisTab() {
           if (p.value === undefined || p.value === null) return "0";
           const isFloor = p.data.Target === 'highest_floor';
           return isFloor ? p.value.toFixed(2) : ((p.value / 60.0) * 1000.0).toFixed(1);
+        },
+        cellRenderer: p => {
+          const isFloor = p.data.Target === 'highest_floor';
+          const value = isFloor ? p.value.toFixed(2) : ((p.value / 60.0) * 1000.0).toFixed(1);
+          let fragIcon = null;
+          if (p.data.Target && p.data.Target.includes('frag_')) {
+            const match = p.data.Target.match(/frag_(\d)/);
+            if (match) {
+              const fragTier = parseInt(match[1]);
+              fragIcon = <img src={FRAG_ICONS[fragTier]} alt="" className="w-4 h-4 inline-block mr-1" style={{ imageRendering: 'pixelated' }} onError={(e) => e.target.style.display = 'none'} />;
+            }
+          }
+          return (
+            <div className="flex items-center">
+              {fragIcon}
+              {value}
+            </div>
+          );
         },
         filter: 'agNumberColumnFilter', cellStyle: { color: '#ffa229', fontWeight: 'bold' }
       },
@@ -780,6 +799,15 @@ export default function SynthesisTab() {
                         const runTime = r.Timestamp || r._restore_state?.opt_results?.run_id || r._restore_state?.run_id;
                         const timeStr = runTime ? new Date(runTime).toLocaleString(undefined, { year: 'numeric', month: 'numeric', day: 'numeric', hour: 'numeric', minute: '2-digit' }) : '-';
                         
+                        let fragIcon = null;
+                        if (r.Target.includes('frag_')) {
+                          const match = r.Target.match(/frag_(\d)/);
+                          if (match) {
+                            const fragTier = parseInt(match[1]);
+                            fragIcon = <img src={FRAG_ICONS[fragTier]} alt="" className="w-4 h-4 inline-block mr-1" style={{ imageRendering: 'pixelated' }} onError={(e) => e.target.style.display = 'none'} />;
+                          }
+                        }
+                        
                         return (
                           <tr key={r._global_idx} className="border-b border-st-border/50 hover:bg-black/5 transition-colors group">
                             <td className="p-3 text-center">
@@ -793,7 +821,10 @@ export default function SynthesisTab() {
                             <td className="p-3 font-bold text-xs truncate max-w-[100px]" title={getProfileDisplayName(r)}>{getProfileDisplayName(r)}</td>
                             <td className="p-3 text-xs text-st-text-light whitespace-nowrap">{timeStr}</td>
                             <td className="p-3 font-mono text-xs">{r.Target.replace('_per_min', '')}</td>
-                            <td className="p-3 font-bold text-st-orange">{score}</td>
+                            <td className="p-3 font-bold text-st-orange">
+                              {fragIcon}
+                              {score}
+                            </td>
                             <td className="p-3">{r['Avg Floor'].toFixed(1)}</td>
                             <td className="p-3">{r['Max Floor']}</td>
                             {tableStats.map(s => <td key={s} className={`p-3 ${s === 'Unassigned' ? 'text-st-orange font-bold' : 'text-st-text-light'}`}>{r[s] !== undefined ? r[s] : '-'}</td>)}

@@ -5,6 +5,7 @@ import { EngineWorkerPool } from '../../utils/optimizer';
 import { runPathfinderSimulation } from '../../utils/pathfinder_engine';
 import PlotComponent from 'react-plotly.js';
 import MobileSelect from '../MobileSelect';
+import { FRAG_ICONS } from '../../game_data';
 
 // Vite/CommonJS Interop Fix: Extract the component if Vite wrapped it in a Module object
 const Plot = PlotComponent.default || PlotComponent;
@@ -907,7 +908,10 @@ export default function PathfinderTab() {
             <span className="text-[10px] text-st-text-light block mt-1">Offset for chunked sims.</span>
           </div>
           <div>
-            <label className="block text-sm font-bold text-st-text mb-2">Auto-Buy Gem Upgs:</label>
+            <label className="block text-sm font-bold text-st-text mb-2 flex items-center gap-2">
+              <img src={FRAG_ICONS.gems} alt="" className="w-5 h-5" style={{ imageRendering: 'pixelated' }} onError={(e) => e.target.style.display = 'none'} />
+              Auto-Buy Gem Upgs:
+            </label>
             <label className="flex items-center gap-2 cursor-pointer mt-3">
               <input 
                 type="checkbox" 
@@ -985,12 +989,15 @@ export default function PathfinderTab() {
                 </summary>
                 <div className="grid grid-cols-3 md:grid-cols-6 gap-3 mt-4 cursor-default">
                   {[
-                    { id: 'com', label: 'Common' }, { id: 'rare', label: 'Rare' }, 
-                    { id: 'epic', label: 'Epic' }, { id: 'leg', label: 'Legendary' }, { id: 'myth', label: 'Mythic' }, 
-                    { id: 'div', label: 'Divine' }
+                    { id: 'com', label: 'Common', tier: 1 }, { id: 'rare', label: 'Rare', tier: 2 }, 
+                    { id: 'epic', label: 'Epic', tier: 3 }, { id: 'leg', label: 'Legendary', tier: 4 }, { id: 'myth', label: 'Mythic', tier: 5 }, 
+                    { id: 'div', label: 'Divine', tier: 6 }
                   ].map(f => (
                     <div key={f.id} className="flex flex-col">
-                      <label className="text-[10px] text-st-text-light mb-1">{f.label}</label>
+                      <label className="text-[10px] text-st-text-light mb-1 flex items-center gap-1">
+                        <img src={FRAG_ICONS[f.tier]} alt="" className="w-4 h-4" style={{ imageRendering: 'pixelated' }} onError={(e) => e.target.style.display = 'none'} />
+                        {f.label}
+                      </label>
                       <input 
                         type="number" 
                         step="0.1" 
@@ -1227,13 +1234,25 @@ export default function PathfinderTab() {
                     onChange={(e) => setSelectedRateFrag(e.target.value)}
                     disabled={!showFragRates}
                     options={[
-                      { value: 'com', label: 'Common' },
-                      { value: 'rare', label: 'Rare' },
-                      { value: 'epic', label: 'Epic' },
-                      { value: 'leg', label: 'Legendary' },
-                      { value: 'myth', label: 'Mythic' },
-                      { value: 'div', label: 'Divine' }
+                      { value: 'com', label: 'Common', tier: 1 },
+                      { value: 'rare', label: 'Rare', tier: 2 },
+                      { value: 'epic', label: 'Epic', tier: 3 },
+                      { value: 'leg', label: 'Legendary', tier: 4 },
+                      { value: 'myth', label: 'Mythic', tier: 5 },
+                      { value: 'div', label: 'Divine', tier: 6 }
                     ]}
+                    renderOption={(opt) => (
+                      <span className="flex items-center gap-2">
+                        <img src={FRAG_ICONS[opt.tier]} alt="" className="w-4 h-4" style={{ imageRendering: 'pixelated' }} onError={(e) => e.target.style.display = 'none'} />
+                        {opt.label}
+                      </span>
+                    )}
+                    renderSelected={(opt) => (
+                      <span className="flex items-center gap-1">
+                        <img src={FRAG_ICONS[opt.tier]} alt="" className="w-3 h-3" style={{ imageRendering: 'pixelated' }} onError={(e) => e.target.style.display = 'none'} />
+                        {opt.label}
+                      </span>
+                    )}
                     className="bg-[#1a1a1a] border border-st-border rounded px-1.5 py-0.5 text-[10px] text-st-text outline-none cursor-pointer"
                   />
               </div>
@@ -1255,13 +1274,25 @@ export default function PathfinderTab() {
                     value={selectedFragPlot}
                     onChange={(e) => setSelectedFragPlot(e.target.value)}
                     options={[
-                      { value: 'com', label: 'Common' },
-                      { value: 'rare', label: 'Rare' },
-                      { value: 'epic', label: 'Epic' },
-                      { value: 'leg', label: 'Legendary' },
-                      { value: 'myth', label: 'Mythic' },
-                      { value: 'div', label: 'Divine' }
+                      { value: 'com', label: 'Common', tier: 1 },
+                      { value: 'rare', label: 'Rare', tier: 2 },
+                      { value: 'epic', label: 'Epic', tier: 3 },
+                      { value: 'leg', label: 'Legendary', tier: 4 },
+                      { value: 'myth', label: 'Mythic', tier: 5 },
+                      { value: 'div', label: 'Divine', tier: 6 }
                     ]}
+                    renderOption={(opt) => (
+                      <span className="flex items-center gap-2">
+                        <img src={FRAG_ICONS[opt.tier]} alt="" className="w-4 h-4" style={{ imageRendering: 'pixelated' }} onError={(e) => e.target.style.display = 'none'} />
+                        {opt.label}
+                      </span>
+                    )}
+                    renderSelected={(opt) => (
+                      <span className="flex items-center gap-1">
+                        <img src={FRAG_ICONS[opt.tier]} alt="" className="w-4 h-4" style={{ imageRendering: 'pixelated' }} onError={(e) => e.target.style.display = 'none'} />
+                        {opt.label}
+                      </span>
+                    )}
                     className="bg-[#1a1a1a] border border-st-border rounded px-2 py-0.5 text-[11px] font-bold text-st-text outline-none cursor-pointer focus:border-st-orange"
                   />
               </div>
@@ -1801,7 +1832,32 @@ export default function PathfinderTab() {
                                       {node.event}
                                     </strong>
                                     <span className="text-st-text-light block mt-0.5 leading-relaxed">
-                                      {node.desc}
+                                      {(() => {
+                                        // Parse cost information and add fragment/gem icons
+                                        const desc = node.desc || '';
+                                        const costMatch = desc.match(/Cost: ([\d.]+) (Common|Rare|Epic|Legendary|Mythic|Divine|Gems)/);
+                                        
+                                        if (costMatch) {
+                                          const [fullMatch, amount, fragType] = costMatch;
+                                          const fragTierMap = { Common: 1, Rare: 2, Epic: 3, Legendary: 4, Mythic: 5, Divine: 6, Gems: 'gems' };
+                                          const tier = fragTierMap[fragType];
+                                          
+                                          const beforeCost = desc.substring(0, desc.indexOf(fullMatch));
+                                          const afterCost = desc.substring(desc.indexOf(fullMatch) + fullMatch.length);
+                                          
+                                          return (
+                                            <>
+                                              {beforeCost}
+                                              <span className="inline-flex items-center gap-1">
+                                                Cost: {amount} <img src={FRAG_ICONS[tier]} alt="" className="w-4 h-4 inline-block" style={{ imageRendering: 'pixelated' }} onError={(e) => e.target.style.display = 'none'} /> {fragType}
+                                              </span>
+                                              {afterCost}
+                                            </>
+                                          );
+                                        }
+                                        
+                                        return desc;
+                                      })()}
                                     </span>
                                   </div>
                                 );
