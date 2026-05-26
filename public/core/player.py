@@ -120,15 +120,11 @@ class Player:
     # --------------------------------------------------------------------------
     def _gm_int(self, val, drift=1):
         """
-        Simulates GameMaker's 32-bit compilation float drift before ceiling to integer.
+        Simulates GameMaker's 32-bit compilation float drift before Banker's Rounding.
         drift=1  : Simulates upward memory drift (Enrage, Speed, Max Sta)
         drift=-1 : Simulates downward memory drift (Damage)
-        
-        Integer stats are rounded UP (ceiling) in the game to show players the
-        actual benefit they receive.
         """
-        import math
-        return float(math.ceil(val + (drift * 1e-6)))
+        return float(round(val + (drift * 1e-6)))
 
     def _gm_mult(self, val, decimals=2):
         """Applies banker's rounding for GameMaker UI string formatting."""
@@ -308,8 +304,8 @@ class Player:
             if block_id in bases:
                 base_val, dec = bases[block_id]
                 val = base_val * inf_mult
-                if dec == 0:
-                    return float(round(val))
+                # Keep full precision for calculations (display will floor for dec=0)
+                return val
                 return val
         return 0.0
 
@@ -448,7 +444,8 @@ class Player:
     @property
     def stamina_mod_gain(self): 
         val = (3.0 + self.u('F43') + self.u('H23')) * (1.0 + self.u('F55') + self.stat('Corr') * (0.01 + self.u('H52'))) + self.inf('div3')
-        return self._gm_int(val, drift=1)
+        # Stamina mod gain uses ceiling to show players the actual benefit they receive
+        return float(math.ceil(val))
 
     @property
     def gleaming_floor_chance(self): return (self.u('F19') + self.inf('myth1') + self.inf('div2')) if self.asc2_unlocked else 0.0

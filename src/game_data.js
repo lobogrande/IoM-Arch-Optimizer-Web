@@ -68,7 +68,7 @@ export const INFERNAL_CARD_BONUSES = {
   'myth4': { text: "Ability Insta Charge", base: 0.01, dec: 4, isPct: true },
   'div1':  { text: "Damage Multi", base: 0.1, dec: 4, isPct: true },
   'div2':  { text: "Gleaming Chance", base: 0.0125, dec: 4, isPct: true },
-  'div3':  { text: "Sta Mod Gain", base: 1.126, dec: 0, isPct: false },
+  'div3':  { text: "Sta Mod Gain", base: 1.0, dec: 0, isPct: false },
   'div4':  { text: "All Mod Chances", base: 0.005, dec: 4, isPct: true }
 };
 

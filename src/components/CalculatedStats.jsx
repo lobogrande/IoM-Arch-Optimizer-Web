@@ -298,12 +298,15 @@ export default function CalculatedStats() {
                     {data.infs.length === 0 ? <div className="text-sm italic text-gray-500">(None apply)</div> : data.infs.map(c => {
                       const tier = cards[c] || 0;
                       const val = calculated_stats?.inf_bonuses?.[c] || 0;
-                      
+
                       let effStr = "";
                       if (val !== 0) {
                         const cardText = INFERNAL_CARD_BONUSES[c]?.text || "";
-                        if ([ 'rare2', 'leg3', 'div3', 'leg4' ].includes(c)) {
-                          effStr = `(+${val.toFixed(1)} ${cardText})`;
+                        const cardDec = INFERNAL_CARD_BONUSES[c]?.dec || 4;
+                        // Integer infernal bonuses (dec=0) are displayed as floored values
+                        // but full precision is used in calculations
+                        if (cardDec === 0) {
+                          effStr = `(+${Math.floor(val)} ${cardText})`;
                         } else {
                           effStr = `(+${(val * 100).toFixed(2)}% ${cardText})`;
                         }
