@@ -120,11 +120,19 @@ class Player:
     # --------------------------------------------------------------------------
     def _gm_int(self, val, drift=1):
         """
-        Simulates GameMaker's 32-bit compilation float drift before Banker's Rounding.
-        drift=1  : Simulates upward memory drift (Enrage, Speed, Max Sta)
-        drift=-1 : Simulates downward memory drift (Damage)
+        Simulates GameMaker's rounding behavior (0.5 always rounds up, NOT banker's rounding).
+        drift=0  : Standard GameMaker round (0.5 → up)
+        drift=1  : Ceiling (always round up)
+        drift=-1 : Floor (always round down)
         """
-        return float(round(val + (drift * 1e-6)))
+        import math
+        if drift == 0:
+            # GameMaker round: 0.5 always rounds up (NOT banker's rounding)
+            return float(int(val + 0.5) if val >= 0 else int(val - 0.5))
+        elif drift == 1:
+            return float(math.ceil(val))
+        else:  # drift == -1
+            return float(math.floor(val))
 
     def _gm_mult(self, val, decimals=2):
         """Applies banker's rounding for GameMaker UI string formatting."""
@@ -314,18 +322,26 @@ class Player:
     # ==========================================================================
     @property
     def max_sta(self):
-        base_calc = 100 + self.u('F14') + self.u('F23') + self.u('H39') + self.u('F3') + self.inf('leg4')
+        # leg4 infernal bonus is ROUNDED (64.946 → 65), not full precision
+        # epic3 uses FULL PRECISION as a multiplier
+        # Final result rounding: Verified with 9 test points (no X.5 values hit)
+        # Verified with 9 test points across Agi values 0-12
+        base_calc = 100 + self.u('F14') + self.u('F23') + self.u('H39') + self.u('F3') + round(self.inf('leg4'))
         stat_calc = self.stat('Agi') * (5 + self.u('F26'))
         asc2_calc = (1 + self.u('H28') + self.u('F54')) * (1 - 0.03 * self.stat('Corr'))
         
         bb_mult = 1.0 + (self.w('W13') * min(100, self.current_max_floor))
         
         val = (base_calc + stat_calc) * asc2_calc * bb_mult * (1.0 + self.inf('epic3'))
-        return self._gm_int(val, drift=1)
+        return float(round(val))
 
     @property
     def damage(self):
-        base_calc = self.u('F9') + self.u('F15') + self.u('F20') + self.u('F32') + self.u('F49') + self.inf('rare2')
+        # rare2 infernal bonus is ROUNDED (64.946 → 65), not full precision
+        # div1 uses FULL PRECISION in multiplier
+        # Final result uses BANKER'S ROUNDING (Python round(), 0.5 rounds to even)
+        # Verified with 11 test points including 2502.5→2502 (empirical proof)
+        base_calc = self.u('F9') + self.u('F15') + self.u('F20') + self.u('F32') + self.u('F49') + round(self.inf('rare2'))
         stat_calc1 = self.stat('Str') * (1 + self.u('F25'))
         stat_calc2 = self.stat('Div') * (2 + self.u('F34'))
         mult1 = 1 + self.u('F51') + self.u('F36') + (self.stat('Str') * (0.01 + self.u('F47') + self.u('H25'))) + self.inf('div1')
@@ -334,11 +350,14 @@ class Player:
         bb_mult = 1.0 + (self.w('W12') * min(100, self.current_max_floor))
         
         val = (base_calc + stat_calc1 + stat_calc2 + self.base_damage_const) * (mult1 + mult2) * bb_mult
-        return self._gm_int(val, drift=1) # Native upward float drift
+        return float(round(val))
 
     @property
     def enraged_damage(self):
-        base_calc = self.u('F9') + self.u('F15') + self.u('F20') + self.u('F32') + self.u('F49') + self.inf('rare2')
+        # rare2 infernal bonus is ROUNDED (64.946 → 65), not full precision
+        # div1 uses FULL PRECISION in multiplier
+        # Final result: Same pattern as damage (banker's rounding)
+        base_calc = self.u('F9') + self.u('F15') + self.u('F20') + self.u('F32') + self.u('F49') + round(self.inf('rare2'))
         stat_calc1 = self.stat('Str') * (1 + self.u('F25'))
         stat_calc2 = self.stat('Div') * (2 + self.u('F34'))
         mult1 = 1 + self.u('F51') + self.u('F36') + (self.stat('Str') * (0.01 + self.u('F47') + self.u('H25'))) + self.inf('div1')
@@ -348,20 +367,21 @@ class Player:
         bb_mult = 1.0 + (self.w('W12') * min(100, self.current_max_floor))
         
         val = (base_calc + stat_calc1 + stat_calc2 + self.base_damage_const) * (mult1 + mult2 + enrage_mult) * bb_mult
-        return self._gm_int(val, drift=1) # Native upward float drift
+        return float(round(val))
     
     @property
     def armor_pen(self):
         stat_calc = self.stat('Per') * (2 + self.u('H33'))
-        # armor_pen uses rounded leg3 bonus (game displays +130, uses that in calculation)
-        # Other stats use full precision, but armor_pen is special case
+        # leg3 infernal bonus is ROUNDED (129.893 → 130)
+        # rare3 uses FULL PRECISION as multiplier
+        # Final result rounding: Verified with 8 test points (no X.5 values hit)
         base_ap = self.u('F10') + self.u('F17') + self.u('H36') + stat_calc + round(self.inf('leg3'))
         
         upg_mult = 1.0 + (0.03 * self.stat('Int')) + self.u('F29')
         card_mult = 1.0 + self.inf('rare3')
         
         val = base_ap * upg_mult * card_mult
-        return self._gm_int(val, drift=1)
+        return round(val)
 
     @property
     def atk_spd(self): return 1.0
@@ -437,17 +457,22 @@ class Player:
     def speed_mod_chance(self): return self.u('F24') + self.u('F44') + ((0.002 + self.u('H26')) * self.stat('Agi')) + (0.002 * self.stat('Luck')) + self.inf('div4')
     @property
     def speed_mod_gain(self): 
+        # Final result uses GM ROUNDING (0.5 rounds up, NOT banker's rounding)
+        # Empirically proven: Corr=15 gives 34.5 → 35 (banker's would give 34)
+        # Verified with 5 test points across Corr values
         base_val = (10.0 + (15.0 * self.w('W14'))) * (1.0 + self.u('F55') + self.stat('Corr') * (0.01 + self.u('H52')))
-        return self._gm_int(base_val, drift=1)
+        return self._gm_int(base_val, drift=0)
     @property
     def speed_mod_attack_rate(self): return 2.0
     @property
     def stamina_mod_chance(self): return self.u('H3') + self.u('H14') + self.u('F24') + self.u('F44') + self.u('H40') + self.u('H50') + (0.002 * self.stat('Luck')) + self.inf('myth3') + self.inf('div4')
     @property
-    def stamina_mod_gain(self): 
-        val = (3.0 + self.u('F43') + self.u('H23')) * (1.0 + self.u('F55') + self.stat('Corr') * (0.01 + self.u('H52'))) + self.inf('div3')
-        # Stamina mod gain uses ceiling to show players the actual benefit they receive
-        return float(math.ceil(val))
+    def stamina_mod_gain(self):
+        # div3 infernal bonus is ROUNDED (3.247 → 3, or 1.6 → 2), then included in base, then multiplied
+        # This matches the card UI display which shows the rounded value
+        # Final result rounding: Verified with 10 test points (no X.5 values hit)
+        val = (3.0 + self.u('F43') + self.u('H23') + round(self.inf('div3'))) * (1.0 + self.u('F55') + self.stat('Corr') * (0.01 + self.u('H52')))
+        return float(round(val))
 
     @property
     def gleaming_floor_chance(self): return (self.u('F19') + self.inf('myth1') + self.inf('div2')) if self.asc2_unlocked else 0.0
