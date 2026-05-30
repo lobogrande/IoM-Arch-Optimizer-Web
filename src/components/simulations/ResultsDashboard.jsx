@@ -45,7 +45,8 @@ export default function ResultsDashboard({ context }) {
   const[isRoiLoading, setIsRoiLoading] = useState(false);
   const [roiProgressMsg, setRoiProgressMsg] = useState("");
   const [roiUpgFilter, setRoiUpgFilter] = useState('All');
-  const[roiPrecision, setRoiPrecision] = useState(15);
+  const roiPrecision = store.roi_precision ?? 15;
+  const setRoiPrecision = (v) => store.setSimsState('roi_precision', v);
   
   const[polyFrags, setPolyFrags] = useState(10);
   const [infFrags, setInfFrags] = useState(10);

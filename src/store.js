@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import { get, set, del } from 'idb-keyval';
-import { EXTERNAL_UI_GROUPS, ASC1_LOCKED_UPGS, ASC2_LOCKED_UPGS } from './game_data';
+import { EXTERNAL_UI_GROUPS, ASC1_LOCKED_UPGS, ASC2_LOCKED_UPGS, enforceAllUpgradeCaps, enforceUpgradeCap } from './game_data';
 
 // Custom IndexedDB storage engine to bypass the 5MB localStorage limit
 const idbStorage = {
@@ -115,6 +115,9 @@ const useStore = create(
   timeLimit: 60,
   lockedStats: { },
   simsPerSec: 15,
+  cpuProfile: isMobileDevice() ? 'eco' : 'balanced',
+  forecaster_simPrecision: 100,
+  roi_precision: 15,
 
   // Ephemeral Tour State
   tourActive: false,
@@ -174,9 +177,13 @@ const useStore = create(
   setBaseStats: (newStats) => set((state) => ({
     base_stats: { ...state.base_stats, ...newStats }
   })),
-  setUpgradeLevel: (id, value) => set((state) => ({
-    upgrade_levels: { ...state.upgrade_levels, [id]: value === '' ? '' : (parseInt(value) || 0) }
-  })),
+  setUpgradeLevel: (id, value) => set((state) => {
+    const numValue = value === '' ? '' : (parseInt(value) || 0);
+    const enforcedValue = numValue === '' ? '' : enforceUpgradeCap(parseInt(id), numValue, state.arch_level);
+    return {
+      upgrade_levels: { ...state.upgrade_levels, [id]: enforcedValue }
+    };
+  }),
   setCardLevel: (id, value) => set((state) => ({
     cards: { ...state.cards,[id]: value === '' ? '' : (parseInt(value) || 0) }
   })),
@@ -379,7 +386,8 @@ const useStore = create(
         const id = parseInt(k.split(" - ")[0]);
         if (!isNaN(id)) parsedUpgs[id] = v;
       });
-      newState.upgrade_levels = parsedUpgs;
+      // Enforce upgrade level caps on imported data (including gem upgrade dynamic caps)
+      newState.upgrade_levels = enforceAllUpgradeCaps(parsedUpgs, newState.arch_level);
     }
     
     // Parse Cards

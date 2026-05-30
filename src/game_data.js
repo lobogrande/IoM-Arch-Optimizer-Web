@@ -153,6 +153,50 @@ export const UPGRADE_COST_DATA = {
   55: { currency: 'div', base:[null, null, 7500], mult: 1.2 }
 };
 
+/**
+ * Enforces upgrade level cap for a given upgrade ID.
+ * For gem upgrades (3, 4, 5), also enforces arch_level-based cap.
+ * Returns the level clamped to [0, cap].
+ * @param {number} upgId - The upgrade ID (3-55)
+ * @param {number} level - The desired level
+ * @param {number} archLevel - Current arch level (only needed for gem upgrades)
+ * @returns {number} - The clamped level
+ */
+export const enforceUpgradeCap = (upgId, level, archLevel = null) => {
+  const cap = INTERNAL_UPGRADE_CAPS[upgId];
+  if (cap === undefined) {
+    console.warn(`enforceUpgradeCap: Unknown upgrade ID ${upgId}, returning level as-is`);
+    return Math.max(0, level);
+  }
+  
+  let effectiveCap = cap;
+  
+  // Gem upgrades (3, 4, 5) have dynamic cap: base(5) + arch_level - 1 = arch_level + 4
+  if ([3, 4, 5].includes(upgId) && archLevel !== null) {
+    const gemCap = archLevel + 4;
+    effectiveCap = Math.min(cap, gemCap);
+  }
+  
+  return Math.max(0, Math.min(level, effectiveCap));
+};
+
+/**
+ * Enforces upgrade level caps for an entire upgrade_levels object.
+ * Modifies the object in-place and returns it.
+ * @param {Object} upgradeLevels - Object with upgrade IDs as keys
+ * @param {number} archLevel - Current arch level (for gem upgrade caps)
+ * @returns {Object} - The same object with clamped values
+ */
+export const enforceAllUpgradeCaps = (upgradeLevels, archLevel = null) => {
+  for (const [upgId, level] of Object.entries(upgradeLevels)) {
+    const numId = parseInt(upgId);
+    if (!isNaN(numId) && INTERNAL_UPGRADE_CAPS[numId] !== undefined) {
+      upgradeLevels[upgId] = enforceUpgradeCap(numId, level, archLevel);
+    }
+  }
+  return upgradeLevels;
+};
+
 export const calculateUpgradeCost = (upgId, targetLevel, ascTier) => {
   const data = UPGRADE_COST_DATA[upgId];
   if (!data) return null;

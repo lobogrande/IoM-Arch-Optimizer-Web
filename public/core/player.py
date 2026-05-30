@@ -8,6 +8,17 @@
 import math
 import struct
 
+# Internal upgrade level caps
+INTERNAL_UPGRADE_CAPS = {
+    3: 50, 4: 25, 5: 25, 8: 3, 9: 25, 10: 25, 11: 25, 12: 5, 13: 25,
+    14: 20, 15: 20, 16: 10, 17: 15, 18: 15, 19: 30, 20: 25, 21: 20,
+    22: 10, 23: 5, 24: 30, 25: 5, 26: 5, 27: 30, 28: 15, 29: 10,
+    30: 20, 31: 10, 32: 5, 33: 5, 34: 5, 35: 5, 36: 20, 37: 20,
+    38: 20, 39: 20, 40: 20, 41: 1, 42: 1, 43: 1, 44: 1, 45: 1,
+    46: 30, 47: 1, 48: 5, 49: 5, 50: 25, 51: 5, 52: 10, 53: 40,
+    54: 50, 55: 10
+}
+
 class Player:
     UPGRADE_DEF = {
         3:  ("Gem Stamina", 2.0, 0.0005),
@@ -142,6 +153,14 @@ class Player:
     # ENGINE VALUE SETTERS
     # --------------------------------------------------------------------------
     def set_upgrade_level(self, row, lvl):
+        """Set upgrade level with automatic cap enforcement"""
+        cap = INTERNAL_UPGRADE_CAPS.get(row)
+        if cap is not None:
+            # Gem upgrades (3, 4, 5) have dynamic cap: arch_level + 4
+            if row in [3, 4, 5]:
+                gem_cap = self.arch_level + 4
+                cap = min(cap, gem_cap)
+            lvl = max(0, min(lvl, cap))
         self.upgrade_levels[row] = lvl
         if row == 42:
             self.upgrades['F42'] = 1.0 if lvl == 0 else 1.25
