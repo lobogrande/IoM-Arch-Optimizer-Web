@@ -309,6 +309,18 @@ const useStore = create(
       activeProfileId: null,
       profiles: [ ],
       opt_results: null,
+      // Clear Forecaster state to prevent stale data after reset/import
+      forecaster_targetFloor: undefined,
+      forecaster_pushBudget: undefined,
+      forecaster_simPrecision: undefined,
+      forecaster_pivotRoiPrecision: undefined,
+      forecaster_cartItems: undefined,
+      forecaster_devMode: undefined,
+      forecaster_pivotTargetFrag: undefined,
+      forecaster_hasPivotAnalyzed: undefined,
+      forecaster_pivotResults: undefined,
+      forecaster_hasAnalyzed: undefined,
+      forecaster_results: undefined,
       run_history: [ ],
       synth_history: [ ],
       synthesis_result: null,
@@ -565,6 +577,16 @@ const useStore = create(
       newState.profiles = [ ...(state.profiles || []), { id: legacyId, name: presetName, data: getWorkspaceSnapshot(newState) } ];
       newState.activeProfileId = legacyId;
     }
+
+    // Clear Forecaster state on JSON import to prevent stale data
+    // Forecaster results are tied to specific player state and should not carry over
+    newState.forecaster_targetFloor = undefined;
+    newState.forecaster_pushBudget = undefined;
+    newState.forecaster_cartItems = undefined;
+    newState.forecaster_hasAnalyzed = undefined;
+    newState.forecaster_results = undefined;
+    newState.forecaster_hasPivotAnalyzed = undefined;
+    newState.forecaster_pivotResults = undefined;
 
     return newState;
   }),
