@@ -4,7 +4,7 @@ import useStore from '../../store';
 import PlotWrapper from 'react-plotly.js';
 import { EngineWorkerPool, runOptimizationPhase, topUpBuild, getOptimalStepProfile } from '../../utils/optimizer';
 import MobileSelect from '../MobileSelect';
-import { INTERNAL_UPGRADE_CAPS, UPGRADE_NAMES, ASC1_LOCKED_UPGS, ASC2_LOCKED_UPGS, UPGRADE_LEVEL_REQS, EXTERNAL_UI_GROUPS, calculateUpgradeCost, CURRENCY_TYPES, INFERNAL_CARD_BONUSES } from '../../game_data';
+import { INTERNAL_UPGRADE_CAPS, UPGRADE_NAMES, ASC1_LOCKED_UPGS, ASC2_LOCKED_UPGS, UPGRADE_LEVEL_REQS, EXTERNAL_UI_GROUPS, calculateUpgradeCost, CURRENCY_TYPES, INFERNAL_CARD_BONUSES, enforceUpgradeCap } from '../../game_data';
 
 const Plot = PlotWrapper.default || PlotWrapper;
 
@@ -266,12 +266,15 @@ export default function ForecasterTab() {
     const eff = {
       base_stats: { ...store.base_stats },
       upgrade_levels: { ...store.upgrade_levels },
-      external_levels: { ...store.external_levels, 8: store.geoduck_unlocked ? (store.external_levels[ 8 ] || 0) : 0 },
+      external_levels: { ...store.external_levels, 8: store.geoduck_unlocked ? (store.external_levels[8] || 0) : 0 },
       cards: { ...store.cards }
     };
     cartItems.forEach(item => {
       if (item.type === 'stat') eff.base_stats[item.id] = (eff.base_stats[item.id] || 0) + item.qty;
-      if (item.type === 'upg') eff.upgrade_levels[item.id] = (eff.upgrade_levels[item.id] || 0) + item.qty;
+      if (item.type === 'upg') {
+        const newLevel = (eff.upgrade_levels[item.id] || 0) + item.qty;
+        eff.upgrade_levels[item.id] = enforceUpgradeCap(parseInt(item.id), newLevel, store.arch_level);
+      }
       if (item.type === 'card') eff.cards[item.id] = (eff.cards[item.id] || 0) + item.qty;
       if (item.type === 'ext') {
         const group = EXTERNAL_UI_GROUPS.find(g => g.id === item.id);
