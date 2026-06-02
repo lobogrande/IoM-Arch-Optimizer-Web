@@ -161,24 +161,34 @@ export default function CalculatedStats() {
                 // --- INTERNAL UPGRADES ---
                 if (type === 'upg') {
                   if (troubleshootStat === "Max Stamina") {
-                    const mults = { 3: 5, 14: 5, 23: 5, 26: 10, 28: 20, 39: 20, 54: 50 };
-                    if (mults[key]) return `(+${val * mults[key]} Flat Max Sta)`;
+                    const mults = { 3: 2, 14: 2, 23: 4, 26: 1, 39: 4 };
+                    if (mults[key]) {
+                      if (key === 26) return `(+${val * mults[key]} per Agi Point)`;
+                      return `(+${val * mults[key]} Flat Max Sta)`;
+                    }
+                    if (key === 28) return `(+${(val * 1).toFixed(1)}% Max Sta Multi)`;
+                    if (key === 54) return `(+${(val * 0.5).toFixed(1)}% Max Sta Multi)`;
                   }
                   if (troubleshootStat === "Damage") {
-                    const flat = { 9: 1, 15: 2, 20: 5, 25: 25, 32: 50, 49: 500 };
-                    const multi = { 25: 2.5, 36: 1, 47: 1, 51: 5, 52: 1 };
+                    const flat = { 9: 1, 15: 2, 20: 2, 32: 3, 49: 3 };
+                    const multi = { 25: 0.1, 36: 2, 47: 1, 51: 10, 52: 0.2 };
                     let res = [];
                     if (flat[key]) res.push(`+${val * flat[key]} Flat`);
                     if (multi[key]) res.push(`+${val * multi[key]}% Multi`);
+                    if (key === 25) res.push(`+${(val * 0.1).toFixed(1)}% Str Multi`);
                     if (res.length > 0) return `(${res.join(' & ')})`;
                   }
                   if (troubleshootStat === "Armor Pen") {
-                    const flat = { 10: 1, 17: 2, 29: 10, 33: 25, 36: 100 };
-                    if (flat[key]) return `(+${val * flat[key]} Flat Armor Pen)`;
+                    const flat = { 10: 1, 17: 3, 33: 1, 36: 3 };
+                    if (flat[key]) {
+                      if (key === 33) return `(+${(val * 0.01).toFixed(2)}% per Per Point)`;
+                      return `(+${val * flat[key]} Flat Armor Pen)`;
+                    }
+                    if (key === 29) return `(+${(val * 2).toFixed(1)}% Armor Pen Multi)`;
                   }
                   if (troubleshootStat === "EXP & Fragment Gain") {
-                    const exp = { 4: 1, 11: 2, 21: 5, 28: 10, 35: 25, 45: 50, 51: 50 };
-                    const frag = { 21: 1, 42: 10 };
+                    const exp = { 4: 5, 11: 2, 21: 3, 28: 5, 35: 1, 45: 200, 51: 10 };
+                    const frag = { 21: 2, 42: 25 };
                     let res = [];
                     if (exp[key]) res.push(`+${val * exp[key]}% EXP`);
                     if (frag[key]) res.push(`+${val * frag[key]}% Frag`);
