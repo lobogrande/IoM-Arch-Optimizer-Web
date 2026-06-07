@@ -1,19 +1,22 @@
 // public/engine_worker.js
 
-postMessage({ type: 'STATUS', payload: 'Booting Core...' });
-
-importScripts("https://cdn.jsdelivr.net/pyodide/v0.29.4/full/pyodide.js");
-
-// Extract version from worker URL if provided, otherwise fallback to an aggressive dev cache-buster
+// Parse params before any importScripts so we can decide whether to pay the
+// (large, ~5 MB) cost of fetching the Pyodide runtime.
 const urlParams = new URLSearchParams(self.location.search);
 const APP_VERSION = urlParams.get('v') || Date.now();
+const wasmOnlyMode = urlParams.get('engine') === 'wasm';
 
-// Optional JS combat kernel (off by default; toggled per-task via use_js_kernel
-// on the RUN_TASK message). Installs `self.IoMCombatKernel` as a side effect.
+postMessage({ type: 'STATUS', payload: wasmOnlyMode ? 'Booting WASM...' : 'Booting Core...' });
+
+// Pyodide is only loaded for the Python engine path.  When the pool spawns
+// us with engine=wasm we skip it entirely — saves ~5 MB of CDN download +
+// ~3 s of interpreter warm-up per worker.
+if (!wasmOnlyMode) {
+    importScripts("https://cdn.jsdelivr.net/pyodide/v0.29.4/full/pyodide.js");
+}
+
+// Small JS deps — always loaded.  Combined ~10 KB; their cost is negligible.
 importScripts('/combat_kernel.js?v=' + APP_VERSION);
-
-// Shared packer/decoder for the WASM engine ABI.  Installs
-// `self.IoMWasmStateCodec`.  Only consulted when use_wasm_engine is set.
 importScripts('/wasm_state_codec.js?v=' + APP_VERSION);
 
 let pyodide;
@@ -177,7 +180,13 @@ def execute_simulation(test_stats_proxy, test_upgrades_proxy, test_external_prox
     postMessage({ type: 'READY' });
 }
 
-initEngine().catch(err => postMessage({ type: 'ERROR', payload: err.message }));
+if (wasmOnlyMode) {
+    // No Pyodide path — signal ready as soon as the small JS deps loaded.
+    // Tasks that hit the Pyodide branch in this mode will throw.
+    postMessage({ type: 'READY' });
+} else {
+    initEngine().catch(err => postMessage({ type: 'ERROR', payload: err.message }));
+}
 
 // --- WASM engine (lazy-loaded on first use_wasm_engine task) ---------------
 let wasmExports = null;
@@ -267,10 +276,13 @@ async function runWasmSim({ test_stats, test_upgrades, test_external, test_cards
 self.onmessage = function(e) {
     if (e.data.command === 'SYNC_STATE') {
         try {
-            // Stash for the WASM path (lazy-cloned per RUN_TASK).
+            // Always stash for the WASM path (lazy-cloned per RUN_TASK).
             lastSyncedState = e.data.state_dict;
-            // Also sync into Pyodide for the default code path.
-            sync_player(e.data.state_dict);
+            // In wasmOnlyMode there's no Pyodide to sync into — the JS-side
+            // stash above is the entire state of the world.
+            if (!wasmOnlyMode) {
+                sync_player(e.data.state_dict);
+            }
             postMessage({ type: 'SYNC_COMPLETE', syncId: e.data.syncId });
         } catch (err) {
             postMessage({ type: 'ERROR', payload: err.message });
@@ -283,6 +295,13 @@ self.onmessage = function(e) {
                 runWasmSim({ test_stats, test_upgrades, test_external, test_cards, rng_seed })
                     .then(result => postMessage({ type: 'RESULT', taskId: taskId, payload: result }))
                     .catch(err => postMessage({ type: 'ERROR', taskId: taskId, payload: err.message }));
+                return;
+            }
+            if (wasmOnlyMode) {
+                // Pool was spawned with engine=wasm but the task didn't ask for
+                // WASM.  Pyodide isn't loaded — surface this as a clear error
+                // rather than a TypeError on `run_sim`.
+                postMessage({ type: 'ERROR', taskId, payload: 'Worker spawned in WASM-only mode, but task did not set use_wasm_engine. Toggle the WASM checkbox before running, or reload to spawn a Pyodide-capable pool.' });
                 return;
             }
             // rng_seed: null/undefined = entropy; integer = deterministic Mersenne Twister
