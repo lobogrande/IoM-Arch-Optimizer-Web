@@ -31,4 +31,24 @@ for seed, count in SEEDS:
             f.write(struct.pack('<d', v))
     print(f"  {path}: {count} f64 values ({count * 8} bytes)")
 
+# randint(1, N) parity — a single sequence that hits each spawn-table
+# 1-in-X chance value at least once, intermixed.  Captures the rejection-loop
+# behavior of CPython's _randbelow (different bit_lengths consume different
+# numbers of genrand_uint32 calls per result).
+RANDINT_CHANCES = [3, 6, 7, 8, 9, 10, 14, 15, 18, 20, 21, 30, 40, 45, 50, 1]
+RANDINT_SEED = 42
+RANDINT_COUNT = 500  # cycles through CHANCES list
+random.seed(RANDINT_SEED)
+randint_results = []
+for i in range(RANDINT_COUNT):
+    chance = RANDINT_CHANCES[i % len(RANDINT_CHANCES)]
+    randint_results.append(random.randint(1, chance))
+ri_path = os.path.join(HERE, "randint_seed42.bin")
+with open(ri_path, 'wb') as f:
+    # 4-byte chance, 4-byte result, repeating
+    for i, r in enumerate(randint_results):
+        chance = RANDINT_CHANCES[i % len(RANDINT_CHANCES)]
+        f.write(struct.pack('<II', chance, r))
+print(f"  {ri_path}: {RANDINT_COUNT} (chance, result) pairs")
+
 print("done.")

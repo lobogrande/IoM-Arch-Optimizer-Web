@@ -64,6 +64,16 @@ impl BlockId {
         (self.idx() / 7) as u8 + 1
     }
 
+    /// Construct a BlockId from a (rarity_idx, tier) pair.
+    /// rarity ∈ 0..=6 (dirt..=div), tier ∈ 1..=4.  Used by floor_map's
+    /// spawn algorithm to translate `(rarity, tier)` rolls into block IDs.
+    pub fn from_rarity_tier(rarity: u8, tier: u8) -> Self {
+        assert!(rarity < 7 && (1..=4).contains(&tier));
+        let idx = (tier as usize - 1) * 7 + rarity as usize;
+        // SAFETY: idx ∈ 0..28, BlockId is #[repr(u8)] with that exact layout.
+        unsafe { std::mem::transmute::<u8, BlockId>(idx as u8) }
+    }
+
     pub fn rarity(self) -> Rarity {
         match self.idx() % 7 {
             0 => Rarity::Dirt, 1 => Rarity::Com, 2 => Rarity::Rare, 3 => Rarity::Epic,

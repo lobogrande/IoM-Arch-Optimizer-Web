@@ -120,4 +120,40 @@ impl Mt19937 {
         let b = self.genrand_u32() >> 6; // 26 bits
         (a as f64 * 67_108_864.0 + b as f64) * (1.0 / 9_007_199_254_740_992.0)
     }
+
+    /// CPython's `random.getrandbits(k)` for `k <= 32`.
+    /// Returns a k-bit unsigned integer using one `genrand_uint32` call.
+    pub fn getrandbits(&mut self, k: u32) -> u32 {
+        if k == 0 {
+            return 0;
+        }
+        debug_assert!(k <= 32);
+        // Fast path from CPython's random_getrandbits: high k bits of one word.
+        self.genrand_u32() >> (32 - k)
+    }
+
+    /// CPython's `random._randbelow(n)` — rejection-sampled integer in `[0, n)`.
+    ///
+    /// Algorithm: `k = n.bit_length(); r = getrandbits(k); while r >= n { r = getrandbits(k); }`
+    /// Crucially this consumes a *variable* number of `genrand_uint32` outputs
+    /// (1 on average, more for unfortunate rolls).  To preserve seed parity with
+    /// Python the retry path must be identical.
+    pub fn randbelow(&mut self, n: u32) -> u32 {
+        assert!(n > 0, "randbelow(0)");
+        // Python's int.bit_length(): for n=1 → 1, n=2 → 2, n=3 → 2, n=4 → 3.
+        let k = 32 - n.leading_zeros();
+        let mut r = self.getrandbits(k);
+        while r >= n {
+            r = self.getrandbits(k);
+        }
+        r
+    }
+
+    /// CPython's `random.randint(a, b)` — inclusive on both ends.
+    /// Implemented via `_randbelow(b - a + 1)` to match Python's exact stream consumption.
+    pub fn randint(&mut self, a: i64, b: i64) -> i64 {
+        debug_assert!(a <= b);
+        let width = (b - a + 1) as u32;
+        a + self.randbelow(width) as i64
+    }
 }
