@@ -122,13 +122,15 @@ export class EngineWorkerPool {
 
     // Returns a promise that resolves when the worker finishes the Python simulation
     runTask(test_stats, test_upgrades = null, test_external = null, test_cards = null) {
+        // null = entropy seed (normal Monte Carlo). Integer = deterministic Mersenne Twister.
+        const rng_seed = useStore.getState().debugRngSeed ?? null;
         return new Promise((resolve, reject) => {
             const id = ++this.taskIdSeq;
             this.callbacks.set(id, (data) => {
                 if (data.type === 'ERROR') reject(new Error(data.payload));
                 else resolve(data.payload);
             });
-            this.taskQueue.push({ msg: { command: 'RUN_TASK', taskId: id, test_stats, test_upgrades, test_external, test_cards } });
+            this.taskQueue.push({ msg: { command: 'RUN_TASK', taskId: id, test_stats, test_upgrades, test_external, test_cards, rng_seed } });
             this.pump();
         });
     }

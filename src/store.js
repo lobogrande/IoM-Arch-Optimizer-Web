@@ -119,6 +119,13 @@ const useStore = create(
   forecaster_simPrecision: 100,
   roi_precision: 15,
 
+  // Deterministic RNG seed for testing/validation. null = entropy (default Monte
+  // Carlo behavior). Set to an integer to seed Python's Mersenne Twister so runs
+  // reproduce exactly — used to compare current Python output against a future
+  // JS-ported combat kernel. Toggle via devtools: useStore.setState({ debugRngSeed: 42 })
+  debugRngSeed: null,
+  setDebugRngSeed: (seed) => set({ debugRngSeed: seed }),
+
   // Ephemeral Tour State
   tourActive: false,
   activeTourId: null,
@@ -595,8 +602,10 @@ const useStore = create(
       name: 'iom-optimizer-storage', // The unique key used in the browser's IndexedDB
       storage: createJSONStorage(() => idbStorage),
       partialize: (state) => {
-        // Prevent ephemeral states (like the active tour) from saving to IndexedDB
-        const { tourActive, activeTourId, tourStepIndex, pathfinder_data, ...rest } = state;
+        // Prevent ephemeral states (like the active tour) from saving to IndexedDB.
+        // debugRngSeed intentionally excluded: it's a developer-only toggle that
+        // would silently force deterministic output if persisted across sessions.
+        const { tourActive, activeTourId, tourStepIndex, pathfinder_data, debugRngSeed, ...rest } = state;
         return rest;
       },
     }

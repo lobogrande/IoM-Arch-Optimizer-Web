@@ -62,20 +62,20 @@ class RunState:
         self.highest_floor = 1
         
         # --- TELEMETRY DATA ---
-        self.hit_counts = {'normal': 0, 'crit': 0, 'super': 0, 'ultra': 0}
+        # Only 'floor' and 'stamina' are consumed by the JS layer (see engine_worker.js).
+        # 'time' and 'speed_pool' were tracked but never read — dropped to halve append cost.
+        # hit_counts is [normal, crit, super, ultra]. List indexing is faster than dict
+        # lookup on the per-hit hot path and lets roll_crit increment without a tuple return.
+        self.hit_counts = [0, 0, 0, 0]
         self.history = {
             'floor': [],
-            'time': [],
-            'stamina':[],
-            'speed_pool':[]
+            'stamina':[]
         }
 
     def record_telemetry(self):
         """Snapshots the current state into the history arrays."""
         self.history['floor'].append(self.highest_floor)
-        self.history['time'].append(self.total_time)
         self.history['stamina'].append(self.stamina)
-        self.history['speed_pool'].append(self.speed_pool)
 
 
 class CombatSimulator:
@@ -174,33 +174,42 @@ class CombatSimulator:
         auto_flurry_enabled = upg8 >= 2
         auto_quake_enabled = upg8 >= 3
 
+        state = RunState(self.player)
+
+        # Capture hit_counts by reference so roll_crit can increment it in-place.
+        # Returning just a float (instead of (float, str)) avoids tuple allocation
+        # on every hit — measurable in Pyodide where tuple allocs are expensive.
+        hit_counts = state.hit_counts
+
         # Using a fast local closure instead of a class method eliminates
         # function-call overhead and 'self.' lookups on every single hit.
         def roll_crit(is_enrage_active):
             # 1. Roll for Base Crit
             if random.random() < p_crit_ch:
                 base_c_dmg = p_enraged_crit_dmg if is_enrage_active else p_crit_dmg
-                
+
                 # 2. Roll for Super Crit (Nested)
                 if random.random() < p_s_crit_ch:
-                    
+
                     # 3. Roll for Ultra Crit (Nested)
                     if random.random() < p_u_crit_ch:
                         # Ultra Crit: Compounds all 3 multipliers!
-                        return base_c_dmg * p_s_crit_dmg * p_u_crit_dmg, 'ultra'
+                        hit_counts[3] += 1
+                        return base_c_dmg * p_s_crit_dmg * p_u_crit_dmg
                     else:
                         # Super Crit: Compounds 2 multipliers
-                        return base_c_dmg * p_s_crit_dmg, 'super'
+                        hit_counts[2] += 1
+                        return base_c_dmg * p_s_crit_dmg
                 else:
                     # Standard Crit
-                    return base_c_dmg, 'crit'
+                    hit_counts[1] += 1
+                    return base_c_dmg
             else:
                 # Normal Hit
-                return 1.0, 'normal'
-                    
+                hit_counts[0] += 1
+                return 1.0
+
         # ======================================================================
-        
-        state = RunState(self.player)
         
         # Pass cached skill properties to SkillManager to eliminate property lookups
         skill_cache = {
@@ -218,8 +227,6 @@ class CombatSimulator:
         }
         skills = SkillManager(self.player, skill_cache)
         current_floor_id = 1
-        
-        print("\n[ SIMULATION STARTED ]")
         state.record_telemetry()
         
         while state.stamina > 0:
@@ -265,8 +272,7 @@ class CombatSimulator:
                             
                             # Did it roll a Gold (Crit) Crosshair?
                             if random.random() < p_gold_crosshair_chance:
-                                ch_crit_mult, ch_crit_type = roll_crit(is_enrage)
-                                state.hit_counts[ch_crit_type] += 1
+                                ch_crit_mult = roll_crit(is_enrage)
                                 # Fix: Apply armor BEFORE crit and gold multipliers!
                                 ch_actual_dmg = max(1.0, (ch_base_dmg - ch_eff_armor) * p_gold_crosshair_mult * ch_crit_mult)
                             else:
@@ -289,9 +295,8 @@ class CombatSimulator:
                         state.stamina_refunded_flurry += actual_gain
                         state.stamina_wasted_overcap += (events["stamina_restored"] - actual_gain)
                         
-                    crit_mult, crit_type = roll_crit(is_enrage)
-                    state.hit_counts[crit_type] += 1
-                    
+                    crit_mult = roll_crit(is_enrage)
+
                     # 1. Base damage applies Enrage Additive Math instantly
                     base_dmg = p_enraged_damage if is_enrage else p_damage
                         
@@ -315,9 +320,8 @@ class CombatSimulator:
                         for bg_idx in PATH_ORDER[i+1:]:
                             bg_block = floor.grid[bg_idx]
                             if bg_block is not None and bg_block.hp > 0:
-                                q_crit, q_type = roll_crit(is_enrage)
-                                state.hit_counts[q_type] += 1
-                                
+                                q_crit = roll_crit(is_enrage)
+
                                 bg_eff_armor = max(0, bg_block.armor - p_armor_pen)
                                 q_dmg = max(1.0, (q_base - bg_eff_armor) * q_crit)
                                 
@@ -337,12 +341,6 @@ class CombatSimulator:
             current_floor_id += 1
             
         state.skills_tracker = skills
-        print(f"[ SIMULATION FINISHED ]")
-        print(f"Reached Floor: {state.highest_floor}")
-        print(f"Blocks Mined:    {state.blocks_mined:,}")
-        print(f"Total XP:      {state.total_xp:,.2f}")
-        print(f"Time Taken:    {state.total_time/60:.2f} Minutes")
-        
         return state
 
 if __name__ == "__main__":

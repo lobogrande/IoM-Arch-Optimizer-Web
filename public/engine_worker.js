@@ -2,7 +2,7 @@
 
 postMessage({ type: 'STATUS', payload: 'Booting Core...' });
 
-importScripts("https://cdn.jsdelivr.net/pyodide/v0.25.0/full/pyodide.js");
+importScripts("https://cdn.jsdelivr.net/pyodide/v0.29.4/full/pyodide.js");
 
 let pyodide;
 let run_sim; 
@@ -33,7 +33,6 @@ async function initEngine() {
 
     const pythonScript = `
 import sys
-import copy
 from core.player import Player
 from engine.combat_loop import CombatSimulator
 
@@ -66,14 +65,20 @@ def sync_base_player(state_proxy):
 
 import random
 
-def execute_simulation(test_stats_proxy, test_upgrades_proxy, test_external_proxy, test_cards_proxy):
+def execute_simulation(test_stats_proxy, test_upgrades_proxy, test_external_proxy, test_cards_proxy, rng_seed=None):
     global base_player
-    
-    # Ensure true RNG variance across persistent Pyodide worker tasks
-    random.seed()
-    
-    # Blazing fast memory clone prevents re-parsing the giant JS dictionary!
-    p = copy.deepcopy(base_player)
+
+    # rng_seed=None: entropy seed (default — preserves Monte Carlo variance).
+    # rng_seed=int : seeded Mersenne Twister for reproducible runs. Used to compare
+    #                current Python output against a future JS-ported kernel.
+    if rng_seed is None:
+        random.seed()
+    else:
+        random.seed(int(rng_seed))
+
+    # fast_clone is ~10x faster than copy.deepcopy and produces an
+    # equivalent independent Player for applying the test overrides below.
+    p = base_player.fast_clone()
     
     test_stats = test_stats_proxy.to_py()
     for k, v in test_stats.items():
@@ -171,9 +176,10 @@ self.onmessage = function(e) {
             postMessage({ type: 'ERROR', payload: err.message });
         }
     } else if (e.data.command === 'RUN_TASK') {
-        const { taskId, test_stats, test_upgrades, test_external, test_cards } = e.data;
+        const { taskId, test_stats, test_upgrades, test_external, test_cards, rng_seed } = e.data;
         try {
-            const resultProxy = run_sim(test_stats, test_upgrades || {}, test_external || {}, test_cards || {});
+            // rng_seed: null/undefined = entropy; integer = deterministic Mersenne Twister
+            const resultProxy = run_sim(test_stats, test_upgrades || {}, test_external || {}, test_cards || {}, rng_seed ?? null);
             const result = resultProxy.toJs({ dict_converter: Object.fromEntries });
             resultProxy.destroy();
             postMessage({ type: 'RESULT', taskId: taskId, payload: result });
