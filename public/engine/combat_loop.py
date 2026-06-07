@@ -34,38 +34,64 @@ PATH_ORDER =[
 
 
 def _floor_to_js(floor, to_js, dict_to_js_object):
-    """Serialize a Python floor's 24-slot grid into a JS Array of {hp, armor}|null."""
+    """Serialize a Python floor (24-slot grid + gleaming multi + per-block
+    modifiers/metadata) into the shape combat_kernel.js tickFloor expects.
+
+    Includes all fields the JS port of _process_kill_rewards needs: xp, frag,
+    frag_type, block_id, the modifier values, and the floor's gleaming_multi.
+    Per-floor build cost: ~30µs serialization; amortized over 24 micro-ticks
+    + reward processing that would otherwise cross the bridge."""
     blocks = []
     for b in floor.grid:
         if b is None:
             blocks.append(None)
         else:
-            blocks.append({'hp': float(b.hp), 'armor': float(b.armor)})
-    return to_js(blocks, dict_converter=dict_to_js_object)
+            mods = b.modifiers
+            blocks.append({
+                'hp': float(b.hp),
+                'armor': float(b.armor),
+                'modExpMulti': float(mods.get('exp_multi', 1.0)),
+                'modLootMulti': float(mods.get('loot_multi', 1.0)),
+                'modStaGain': float(mods.get('stamina_gain', 0.0)),
+                'modSpeedActive': bool(mods.get('speed_active', False)),
+                'modSpeedGain': float(mods.get('speed_gain', 0.0)),
+                'xp': float(b.xp),
+                'fragAmt': float(b.frag_amt),
+                'fragType': int(b.frag_type),
+                'blockId': str(b.block_id),
+            })
+    return to_js({
+        'gleamingMulti': float(floor.gleaming_multi),
+        'blocks': blocks,
+    }, dict_converter=dict_to_js_object)
 
 
-def _push_state_to_js(js_state, state):
-    """Push Python-side mutations (e.g. _process_kill_rewards' stamina/speed mods)
-    into the JS mirror before the next tickBlock call. Only fields JS reads
-    that Python may have changed since the last tickBlock.
+def _push_state_to_js(js_state, state, current_floor_id):
+    """Push Python-side fields that JS reads at the start of each tickFloor.
 
-    Notably NOT pushed: totalStaminaSpent (JS-owned counter; Python's ORE-cost
-    increment is currently 0.0). Pushing it would zero out JS's accumulated swings."""
+    stamina/speed_pool can change between floors if the engine ever applies
+    rewards outside JS (currently it doesn't, but kept for safety).
+    highest_floor is the current floor number — JS uses it for telemetry
+    snapshots inside the floor.
+
+    Notably NOT pushed: totalStaminaSpent and the tally fields. JS owns those
+    end-to-end now; pushing would erase accumulated counts."""
     js_state.stamina = state.stamina
     js_state.speedPool = state.speed_pool
+    js_state.highestFloor = current_floor_id
 
 
 def _sync_state_from_js_minimal(state, js_state):
-    """Per-block sync — only the fields Python reads between tickBlock calls.
-    Stamina drives the outer loop's break check; speed_pool is read by
-    _process_kill_rewards when applying speed-mod kill bonuses."""
+    """Per-floor sync — only stamina + speed_pool. Drives the outer
+    `while state.stamina > 0` break check between floors."""
     state.stamina = js_state.stamina
     state.speed_pool = js_state.speedPool
 
 
 def _sync_state_from_js(state, js_state):
-    """End-of-sim full sync — pulls all the telemetry fields the metrics dict
-    will read. Per-block we only sync stamina + speed_pool to avoid bridge cost."""
+    """End-of-sim full sync — pulls every telemetry / tally field the metrics
+    dict will read. JS owns these across the whole sim now; we only read at
+    the end to avoid bridge cost during the run."""
     state.stamina = js_state.stamina
     state.speed_pool = js_state.speedPool
     state.crosshair_timer = js_state.crosshairTimer
@@ -80,8 +106,25 @@ def _sync_state_from_js(state, js_state):
     state.quake_damage = js_state.quakeDamage
     state.overkill_damage = js_state.overkillDamage
     state.stamina_refunded_flurry = js_state.staminaRefundedFlurry
+    state.stamina_refunded_mods = js_state.staminaRefundedMods
     state.stamina_wasted_overcap = js_state.staminaWastedOvercap
     state.total_stamina_spent = js_state.totalStaminaSpent
+
+    # Reward tallies (JS-owned for the per-floor path)
+    state.total_xp = js_state.totalXp
+    state.blocks_mined = js_state.blocksMined
+    # totalFrags is a 7-element JS Array; pull each tier value out.
+    for k in range(7):
+        state.total_frags[k] = js_state.totalFrags[k]
+    # Specific-block dicts: JS Objects (string keys) → Python dicts via to_py.
+    state.specific_blocks_mined = js_state.specificBlocksMined.to_py()
+    state.specific_blocks_frags = js_state.specificBlocksFrags.to_py()
+    state.div_tier_kills = js_state.divTierKills.to_py()
+    state.div_tier_frags = js_state.divTierFrags.to_py()
+
+    # Telemetry history
+    state.history['floor'] = list(js_state.historyFloor)
+    state.history['stamina'] = list(js_state.historyStamina)
 
 
 def _sync_skills_from_js(skills, js_skills):
@@ -356,6 +399,9 @@ class CombatSimulator:
                 'autoQuake': auto_quake_enabled,
             }, dict_converter=_dict_to_obj)
 
+            # Per-floor kernel owns ALL combat + reward state. The js_state
+            # carries the live tallies that Python would otherwise track via
+            # _process_kill_rewards. End-of-sim sync pulls everything back.
             js_state = _to_js({
                 'stamina': state.stamina,
                 'speedPool': state.speed_pool,
@@ -368,9 +414,24 @@ class CombatSimulator:
                 'quakeDamage': state.quake_damage,
                 'overkillDamage': state.overkill_damage,
                 'staminaRefundedFlurry': state.stamina_refunded_flurry,
+                'staminaRefundedMods': state.stamina_refunded_mods,
                 'staminaWastedOvercap': state.stamina_wasted_overcap,
                 'totalStaminaSpent': state.total_stamina_spent,
-                'deadBgSlots': [],
+                # Reward tallies (JS-owned end-to-end)
+                'totalXp': state.total_xp,
+                # 7-element array indexed by frag tier (0..6). Cleaner JS<->Py
+                # roundtrip than a dict with integer keys (which JS Objects
+                # auto-stringify).
+                'totalFrags': [state.total_frags.get(k, 0) for k in range(7)],
+                'blocksMined': state.blocks_mined,
+                'specificBlocksMined': dict(state.specific_blocks_mined),
+                'specificBlocksFrags': dict(state.specific_blocks_frags),
+                'divTierKills': dict(state.div_tier_kills),
+                'divTierFrags': dict(state.div_tier_frags),
+                # Telemetry (record_telemetry calls per slot, inside JS)
+                'highestFloor': 1,
+                'historyFloor': list(state.history['floor']),
+                'historyStamina': list(state.history['stamina']),
             }, dict_converter=_dict_to_obj)
 
             js_skills = _to_js({
@@ -390,48 +451,28 @@ class CombatSimulator:
             floor = self.generator.generate_floor(current_floor_id, self.player)
             state.highest_floor = current_floor_id
 
-            js_floor = _floor_to_js(floor, _to_js, _dict_to_obj) if use_js else None
-            
+            if use_js:
+                # JS path: one bridge crossing per floor. tickFloor owns the
+                # full per-slot iteration, micro-tick combat, Quake AoE, and
+                # _process_kill_rewards-equivalent tallying.
+                js_floor = _floor_to_js(floor, _to_js, _dict_to_obj)
+                _push_state_to_js(js_state, state, current_floor_id)
+                self.js_kernel.tickFloor(js_cfg, js_floor, js_state, js_skills, self.js_rng)
+                _sync_state_from_js_minimal(state, js_state)
+                current_floor_id += 1
+                continue
+
             for i, slot_idx in enumerate(PATH_ORDER):
                 if state.stamina <= 0: break
 
                 target_block = floor.grid[slot_idx]
-                if target_block is None: continue
-                # In JS path, prior Quake AoE may have damaged this slot via js_floor
-                # without syncing back to floor.grid (we skip the all-24 sync as a perf
-                # optimization). Check js_floor authoritatively when use_js is set.
-                if use_js:
-                    js_b = js_floor[slot_idx]
-                    if js_b.hp <= 0: continue
-                elif target_block.hp <= 0:
-                    continue
+                if target_block is None or target_block.hp <= 0: continue
 
                 state.stamina -= STAMINA_COST_PER_ORE
                 state.total_stamina_spent += STAMINA_COST_PER_ORE
 
-                if use_js:
-                    # JS path: delegate the inner micro-tick to combat_kernel.js.
-                    # Push any Python-side stamina/speed_pool mutations (from the
-                    # previous block's _process_kill_rewards) into js_state first.
-                    _push_state_to_js(js_state, state)
-                    self.js_kernel.tickBlock(js_cfg, i, js_floor, js_state, js_skills, self.js_rng)
-                    _sync_state_from_js_minimal(state, js_state)
-                    # Sync target HP back so _process_kill_rewards below sees the
-                    # correct died/alive state. Background blocks are NOT synced
-                    # (perf optimization) — js_floor is the authoritative hp source
-                    # going forward; Python's floor.grid[bg].hp may lag for bg slots.
-                    target_block.hp = js_floor[slot_idx].hp
-                    # Apply kill rewards for any background blocks Quake AoE killed
-                    _dead = js_state.deadBgSlots
-                    for _k in range(len(_dead)):
-                        _bg_slot = int(_dead[_k])
-                        _bg = floor.grid[_bg_slot]
-                        if _bg is not None:
-                            self._process_kill_rewards(_bg, floor, state, p_max_sta)
-                    js_state.deadBgSlots.length = 0
-
-                # --- MICRO-TICK COMBAT LOOP (Python path; skipped when JS kernel ran above) ---
-                while not use_js and target_block.hp > 0 and state.stamina > 0:
+                # --- MICRO-TICK COMBAT LOOP (Python path) ---
+                while target_block.hp > 0 and state.stamina > 0:
                     
                     is_flurry = skills.is_flurry_active
                     is_enrage = skills.is_enrage_active
