@@ -39,15 +39,19 @@ export class EngineWorkerPool {
         this.readyCount = 0;
     }
 
-    // Spawns Pyodide workers and waits for them to compile the Python environment
+    // Spawns workers and waits for them to be ready.  When useWasmEngine is
+    // set we pass engine=wasm so each worker skips the ~3s Pyodide boot and
+    // signals READY as soon as the WASM module + codec are wired (a few ms).
     init(onReady, onProgress) {
         return new Promise((resolve, reject) => {
             // Pass version into the worker to explicitly cache-bust the Python stat
-            // engine + the WASM engine (v1.7.0 = first bundle to ship engine.wasm,
-            // wasm_state_codec.js, and the rewritten engine_worker.js).
-            const APP_VERSION = "1.7.0";
+            // engine + the WASM engine.  v1.7.1 = adds the engine=wasm query-param
+            // optimization that skips the Pyodide ~3s boot per worker when WASM is on.
+            const APP_VERSION = "1.7.1";
+            const useWasmEngine = !!useStore.getState().useWasmEngine;
+            const workerUrl = `/engine_worker.js?v=${APP_VERSION}${useWasmEngine ? '&engine=wasm' : ''}`;
             for (let i = 0; i < this.size; i++) {
-                const w = new Worker(`/engine_worker.js?v=${APP_VERSION}`);
+                const w = new Worker(workerUrl);
                 w.onmessage = (e) => {
                     if (e.data.type === 'READY') {
                         this.readyCount++;
