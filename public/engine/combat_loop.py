@@ -26,11 +26,76 @@ STAMINA_COST_PER_ORE = 0.0
 STAMINA_COST_PER_HIT = 1.0
 
 PATH_ORDER =[
-    0, 1, 2, 3, 4, 5, 
-    11, 10, 9, 8, 7, 6, 
-    12, 13, 14, 15, 16, 17, 
+    0, 1, 2, 3, 4, 5,
+    11, 10, 9, 8, 7, 6,
+    12, 13, 14, 15, 16, 17,
     23, 22, 21, 20, 19, 18
 ]
+
+
+def _floor_to_js(floor, to_js, dict_to_js_object):
+    """Serialize a Python floor's 24-slot grid into a JS Array of {hp, armor}|null."""
+    blocks = []
+    for b in floor.grid:
+        if b is None:
+            blocks.append(None)
+        else:
+            blocks.append({'hp': float(b.hp), 'armor': float(b.armor)})
+    return to_js(blocks, dict_converter=dict_to_js_object)
+
+
+def _push_state_to_js(js_state, state):
+    """Push Python-side mutations (e.g. _process_kill_rewards' stamina/speed mods)
+    into the JS mirror before the next tickBlock call. Only fields JS reads
+    that Python may have changed since the last tickBlock.
+
+    Notably NOT pushed: totalStaminaSpent (JS-owned counter; Python's ORE-cost
+    increment is currently 0.0). Pushing it would zero out JS's accumulated swings."""
+    js_state.stamina = state.stamina
+    js_state.speedPool = state.speed_pool
+
+
+def _sync_state_from_js_minimal(state, js_state):
+    """Per-block sync — only the fields Python reads between tickBlock calls.
+    Stamina drives the outer loop's break check; speed_pool is read by
+    _process_kill_rewards when applying speed-mod kill bonuses."""
+    state.stamina = js_state.stamina
+    state.speed_pool = js_state.speedPool
+
+
+def _sync_state_from_js(state, js_state):
+    """End-of-sim full sync — pulls all the telemetry fields the metrics dict
+    will read. Per-block we only sync stamina + speed_pool to avoid bridge cost."""
+    state.stamina = js_state.stamina
+    state.speed_pool = js_state.speedPool
+    state.crosshair_timer = js_state.crosshairTimer
+    state.total_time = js_state.totalTime
+    state.hit_counts[0] = js_state.hitCounts[0]
+    state.hit_counts[1] = js_state.hitCounts[1]
+    state.hit_counts[2] = js_state.hitCounts[2]
+    state.hit_counts[3] = js_state.hitCounts[3]
+    state.crosshair_spawns = js_state.crosshairSpawns
+    state.crosshair_damage = js_state.crosshairDamage
+    state.melee_damage = js_state.meleeDamage
+    state.quake_damage = js_state.quakeDamage
+    state.overkill_damage = js_state.overkillDamage
+    state.stamina_refunded_flurry = js_state.staminaRefundedFlurry
+    state.stamina_wasted_overcap = js_state.staminaWastedOvercap
+    state.total_stamina_spent = js_state.totalStaminaSpent
+
+
+def _sync_skills_from_js(skills, js_skills):
+    """Pull skill state back from JS mirror so Python's SkillManager reflects final totals."""
+    skills.enrage_cd = js_skills.enrageCd
+    skills.enrage_charges = js_skills.enrageCharges
+    skills.flurry_cd = js_skills.flurryCd
+    skills.flurry_timer = js_skills.flurryTimer
+    skills.quake_cd = js_skills.quakeCd
+    skills.quake_charges = js_skills.quakeCharges
+    skills.total_enrage_casts = js_skills.totalEnrageCasts
+    skills.total_flurry_casts = js_skills.totalFlurryCasts
+    skills.total_quake_casts = js_skills.totalQuakeCasts
+    skills.total_instacharges = js_skills.totalInstacharges
 
 class RunState:
     def __init__(self, player):
@@ -79,9 +144,18 @@ class RunState:
 
 
 class CombatSimulator:
-    def __init__(self, player: Player):
+    def __init__(self, player: Player, js_kernel=None, js_rng=None):
+        """
+        js_kernel / js_rng: optional Pyodide JsProxies of the public/combat_kernel.js
+        module's `tickBlock` (and friends) plus an RNG built via `createRng(seed)`.
+        When both are provided, run_simulation() delegates the inner micro-tick
+        loop to JS. When either is None, the existing pure-Python inner loop
+        runs unchanged.
+        """
         self.player = player
         self.generator = FloorGenerator()
+        self.js_kernel = js_kernel
+        self.js_rng = js_rng
 
     def _process_kill_rewards(self, block, floor_obj, state: RunState, p_max_sta):
         """Processes loot, XP, and modifiers when a block HP hits 0."""
@@ -228,22 +302,136 @@ class CombatSimulator:
         skills = SkillManager(self.player, skill_cache)
         current_floor_id = 1
         state.record_telemetry()
-        
+
+        # ======================================================================
+        # JS KERNEL SETUP (opt-in; off by default)
+        # When js_kernel + js_rng are supplied, the inner micro-tick is delegated
+        # to public/combat_kernel.js. Otherwise the existing Python loop runs.
+        #
+        # bool() handles Pyodide 0.29's JsNull (which is `!= None` but falsy);
+        # JS callers often pass `null` for these when the kernel is disabled.
+        # ======================================================================
+        use_js = bool(self.js_kernel) and bool(self.js_rng)
+        js_cfg = None
+        js_state = None
+        js_skills = None
+        _to_js = None
+        _dict_to_obj = None
+        if use_js:
+            import js as _js_mod
+            from pyodide.ffi import to_js as _imported_to_js
+            _to_js = _imported_to_js
+            _dict_to_obj = _js_mod.Object.fromEntries
+
+            js_cfg = _to_js({
+                'pMaxSta': p_max_sta,
+                'pAtkSpd': p_atk_spd,
+                'pSpeedModAtkRate': p_speed_mod_atk_rate,
+                'pFlurryBonusAtkSpd': p_flurry_bonus_atk_spd,
+                'pDamage': p_damage,
+                'pEnragedDamage': p_enraged_damage,
+                'pArmorPen': p_armor_pen,
+                'pQuakeDmgToAll': p_quake_dmg_to_all,
+                'pCrosshairAutoTap': p_crosshair_auto_tap,
+                'pGoldCrosshairChance': p_gold_crosshair_chance,
+                'pGoldCrosshairMult': p_gold_crosshair_mult,
+                'crosshairInterval': CROSSHAIR_SPAWN_INTERVAL,
+                'pCritCh': p_crit_ch,
+                'pSCritCh': p_s_crit_ch,
+                'pUCritCh': p_u_crit_ch,
+                'pCritDmg': p_crit_dmg,
+                'pSCritDmg': p_s_crit_dmg,
+                'pUCritDmg': p_u_crit_dmg,
+                'pEnragedCritDmg': p_enraged_crit_dmg,
+                'pAbilityInsta': p_ability_insta,
+                'pEnrageChargesMax': p_enrage_charges_max,
+                'pEnrageCdMax': p_enrage_cd_max,
+                'pFlurryDuration': p_flurry_duration,
+                'pFlurryCdMax': p_flurry_cd_max,
+                'pFlurrySta': p_flurry_sta_cast,
+                'pQuakeAttacksMax': p_quake_attacks_max,
+                'pQuakeCdMax': p_quake_cd_max,
+                'autoEnrage': auto_enrage_enabled,
+                'autoFlurry': auto_flurry_enabled,
+                'autoQuake': auto_quake_enabled,
+            }, dict_converter=_dict_to_obj)
+
+            js_state = _to_js({
+                'stamina': state.stamina,
+                'speedPool': state.speed_pool,
+                'crosshairTimer': state.crosshair_timer,
+                'totalTime': state.total_time,
+                'hitCounts': list(state.hit_counts),
+                'crosshairSpawns': state.crosshair_spawns,
+                'crosshairDamage': state.crosshair_damage,
+                'meleeDamage': state.melee_damage,
+                'quakeDamage': state.quake_damage,
+                'overkillDamage': state.overkill_damage,
+                'staminaRefundedFlurry': state.stamina_refunded_flurry,
+                'staminaWastedOvercap': state.stamina_wasted_overcap,
+                'totalStaminaSpent': state.total_stamina_spent,
+                'deadBgSlots': [],
+            }, dict_converter=_dict_to_obj)
+
+            js_skills = _to_js({
+                'enrageCd': skills.enrage_cd,
+                'enrageCharges': skills.enrage_charges,
+                'flurryCd': skills.flurry_cd,
+                'flurryTimer': skills.flurry_timer,
+                'quakeCd': skills.quake_cd,
+                'quakeCharges': skills.quake_charges,
+                'totalEnrageCasts': skills.total_enrage_casts,
+                'totalFlurryCasts': skills.total_flurry_casts,
+                'totalQuakeCasts': skills.total_quake_casts,
+                'totalInstacharges': skills.total_instacharges,
+            }, dict_converter=_dict_to_obj)
+
         while state.stamina > 0:
             floor = self.generator.generate_floor(current_floor_id, self.player)
             state.highest_floor = current_floor_id
+
+            js_floor = _floor_to_js(floor, _to_js, _dict_to_obj) if use_js else None
             
             for i, slot_idx in enumerate(PATH_ORDER):
                 if state.stamina <= 0: break
-                    
+
                 target_block = floor.grid[slot_idx]
-                if target_block is None or target_block.hp <= 0: continue
-                    
+                if target_block is None: continue
+                # In JS path, prior Quake AoE may have damaged this slot via js_floor
+                # without syncing back to floor.grid (we skip the all-24 sync as a perf
+                # optimization). Check js_floor authoritatively when use_js is set.
+                if use_js:
+                    js_b = js_floor[slot_idx]
+                    if js_b.hp <= 0: continue
+                elif target_block.hp <= 0:
+                    continue
+
                 state.stamina -= STAMINA_COST_PER_ORE
                 state.total_stamina_spent += STAMINA_COST_PER_ORE
-                
-                # --- MICRO-TICK COMBAT LOOP ---
-                while target_block.hp > 0 and state.stamina > 0:
+
+                if use_js:
+                    # JS path: delegate the inner micro-tick to combat_kernel.js.
+                    # Push any Python-side stamina/speed_pool mutations (from the
+                    # previous block's _process_kill_rewards) into js_state first.
+                    _push_state_to_js(js_state, state)
+                    self.js_kernel.tickBlock(js_cfg, i, js_floor, js_state, js_skills, self.js_rng)
+                    _sync_state_from_js_minimal(state, js_state)
+                    # Sync target HP back so _process_kill_rewards below sees the
+                    # correct died/alive state. Background blocks are NOT synced
+                    # (perf optimization) — js_floor is the authoritative hp source
+                    # going forward; Python's floor.grid[bg].hp may lag for bg slots.
+                    target_block.hp = js_floor[slot_idx].hp
+                    # Apply kill rewards for any background blocks Quake AoE killed
+                    _dead = js_state.deadBgSlots
+                    for _k in range(len(_dead)):
+                        _bg_slot = int(_dead[_k])
+                        _bg = floor.grid[_bg_slot]
+                        if _bg is not None:
+                            self._process_kill_rewards(_bg, floor, state, p_max_sta)
+                    js_state.deadBgSlots.length = 0
+
+                # --- MICRO-TICK COMBAT LOOP (Python path; skipped when JS kernel ran above) ---
+                while not use_js and target_block.hp > 0 and state.stamina > 0:
                     
                     is_flurry = skills.is_flurry_active
                     is_enrage = skills.is_enrage_active
@@ -340,6 +528,12 @@ class CombatSimulator:
                     
             current_floor_id += 1
             
+        if use_js:
+            # End-of-sim full state sync: per-block we only synced stamina +
+            # speed_pool to keep bridge cost down; pull the rest of the
+            # telemetry fields (damage tallies, crosshair counts, etc.) now.
+            _sync_state_from_js(state, js_state)
+            _sync_skills_from_js(skills, js_skills)
         state.skills_tracker = skills
         return state
 

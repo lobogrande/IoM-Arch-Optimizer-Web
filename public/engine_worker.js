@@ -4,19 +4,23 @@ postMessage({ type: 'STATUS', payload: 'Booting Core...' });
 
 importScripts("https://cdn.jsdelivr.net/pyodide/v0.29.4/full/pyodide.js");
 
+// Extract version from worker URL if provided, otherwise fallback to an aggressive dev cache-buster
+const urlParams = new URLSearchParams(self.location.search);
+const APP_VERSION = urlParams.get('v') || Date.now();
+
+// Optional JS combat kernel (off by default; toggled per-task via use_js_kernel
+// on the RUN_TASK message). Installs `self.IoMCombatKernel` as a side effect.
+importScripts('/combat_kernel.js?v=' + APP_VERSION);
+
 let pyodide;
-let run_sim; 
+let run_sim;
 let sync_player;
 
 async function initEngine() {
     pyodide = await loadPyodide();
-    
+
     pyodide.FS.mkdir("core");
     pyodide.FS.mkdir("engine");
-
-    // Extract version from worker URL if provided, otherwise fallback to an aggressive dev cache-buster
-    const urlParams = new URLSearchParams(self.location.search);
-    const APP_VERSION = urlParams.get('v') || Date.now();
 
     async function fetchAndWrite(filepath) {
         const response = await fetch('/' + filepath + '?v=' + APP_VERSION);
@@ -65,7 +69,7 @@ def sync_base_player(state_proxy):
 
 import random
 
-def execute_simulation(test_stats_proxy, test_upgrades_proxy, test_external_proxy, test_cards_proxy, rng_seed=None):
+def execute_simulation(test_stats_proxy, test_upgrades_proxy, test_external_proxy, test_cards_proxy, rng_seed=None, js_kernel=None, js_rng=None):
     global base_player
 
     # rng_seed=None: entropy seed (default — preserves Monte Carlo variance).
@@ -75,6 +79,10 @@ def execute_simulation(test_stats_proxy, test_upgrades_proxy, test_external_prox
         random.seed()
     else:
         random.seed(int(rng_seed))
+
+    # js_kernel / js_rng: when both provided, the inner combat micro-tick is
+    # routed through public/combat_kernel.js. Off by default; the Python loop
+    # remains the source of truth.
 
     # fast_clone is ~10x faster than copy.deepcopy and produces an
     # equivalent independent Player for applying the test overrides below.
@@ -102,7 +110,7 @@ def execute_simulation(test_stats_proxy, test_upgrades_proxy, test_external_prox
         for k, v in test_cards.items():
             p.set_card_level(str(k), int(v))
             
-    sim = CombatSimulator(p)
+    sim = CombatSimulator(p, js_kernel=js_kernel, js_rng=js_rng)
     result = sim.run_simulation()
     
     # Calculate Arch Minutes based on True In-Game Time for accurate real-time yield projection
@@ -176,10 +184,20 @@ self.onmessage = function(e) {
             postMessage({ type: 'ERROR', payload: err.message });
         }
     } else if (e.data.command === 'RUN_TASK') {
-        const { taskId, test_stats, test_upgrades, test_external, test_cards, rng_seed } = e.data;
+        const { taskId, test_stats, test_upgrades, test_external, test_cards, rng_seed, use_js_kernel } = e.data;
         try {
             // rng_seed: null/undefined = entropy; integer = deterministic Mersenne Twister
-            const resultProxy = run_sim(test_stats, test_upgrades || {}, test_external || {}, test_cards || {}, rng_seed ?? null);
+            // use_js_kernel: when true AND a seed is set, route the inner micro-tick through
+            // self.IoMCombatKernel (public/combat_kernel.js). When seed is null we still allow
+            // it — kernel uses Date.now() as fallback so the run is still self-deterministic.
+            let js_kernel = null, js_rng = null;
+            if (use_js_kernel && self.IoMCombatKernel) {
+                js_kernel = self.IoMCombatKernel;
+                js_rng = self.IoMCombatKernel.createRng(
+                    rng_seed != null ? rng_seed : (Date.now() & 0xFFFFFFFF)
+                );
+            }
+            const resultProxy = run_sim(test_stats, test_upgrades || {}, test_external || {}, test_cards || {}, rng_seed ?? null, js_kernel, js_rng);
             const result = resultProxy.toJs({ dict_converter: Object.fromEntries });
             resultProxy.destroy();
             postMessage({ type: 'RESULT', taskId: taskId, payload: result });

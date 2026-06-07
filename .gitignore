@@ -28,3 +28,6 @@ __pycache__/
 .env
 .env.local
 .env.*.local
+
+# JS-kernel baselines: regenerable via JS_KERNEL=1 npm run baseline
+baseline_results_js/
