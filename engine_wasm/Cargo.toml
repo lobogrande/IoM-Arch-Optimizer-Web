@@ -5,7 +5,9 @@ edition = "2021"
 
 [lib]
 # cdylib produces a .wasm with raw extern "C" exports — no wasm-bindgen runtime.
-crate-type = ["cdylib"]
+# rlib enables `cargo test` to link against internal modules (host target,
+# not WASM) for parity tests against Python goldens.
+crate-type = ["cdylib", "rlib"]
 
 [profile.release]
 # Optimize for size + speed; LTO buys the most from this kind of pure-numeric code.
