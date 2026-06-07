@@ -138,7 +138,8 @@ function App() {
           upgrade_levels: store.upgrade_levels,
           external_levels: { ...store.external_levels, 8: store.geoduck_unlocked ? (store.external_levels[ 8 ] || 0) : 0 },
           cards: store.cards,
-          compendium_target_floor: store.compendium_target_floor || store.current_max_floor
+          compendium_target_floor: store.compendium_target_floor || store.current_max_floor,
+          rng_seed: store.debugRngSeed
         }
       });
     }
@@ -164,7 +165,8 @@ function App() {
           upgrade_levels: store.upgrade_levels,
           external_levels: store.external_levels,
           cards: store.cards,
-          compendium_target_floor: store.sandbox_floor || store.current_max_floor
+          compendium_target_floor: store.sandbox_floor || store.current_max_floor,
+          rng_seed: store.debugRngSeed
         }
       });
     }

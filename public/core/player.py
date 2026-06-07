@@ -126,6 +126,29 @@ class Player:
         for row in self.EXTERNAL_DEF.keys(): self.set_external_level(row, 0)
         self._init_cards()
 
+    def fast_clone(self):
+        # ~10x faster than copy.deepcopy: all dict values are primitives,
+        # so shallow dict copies are correct. Used per-task in the worker
+        # pool and per-iteration in the calc worker's full sim loop.
+        p = Player.__new__(Player)
+        p.asc1_unlocked = self.asc1_unlocked
+        p.asc2_unlocked = self.asc2_unlocked
+        p.arch_level = self.arch_level
+        p.current_max_floor = self.current_max_floor
+        p.base_damage_const = self.base_damage_const
+        p.hades_idol_level = self.hades_idol_level
+        p.total_infernal_cards = self.total_infernal_cards
+        p.arch_ability_infernal_bonus = self.arch_ability_infernal_bonus
+        p.starting_speed_pool = self.starting_speed_pool
+        p._infernal_cache = None
+        p.base_stats = dict(self.base_stats)
+        p.upgrade_levels = dict(self.upgrade_levels)
+        p.upgrades = dict(self.upgrades)
+        p.external_levels = dict(self.external_levels)
+        p.external = dict(self.external)
+        p.cards = dict(self.cards)
+        return p
+
     # --------------------------------------------------------------------------
     # ROUNDING HELPERS
     # --------------------------------------------------------------------------

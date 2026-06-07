@@ -1,5 +1,5 @@
 // public/calc_worker.js
-importScripts("https://cdn.jsdelivr.net/pyodide/v0.25.0/full/pyodide.js");
+importScripts("https://cdn.jsdelivr.net/pyodide/v0.29.4/full/pyodide.js");
 
 let pyodide;
 
@@ -154,15 +154,22 @@ def calculate_all_stats(js_data):
 
     if do_full_sim:
         from engine.combat_loop import CombatSimulator
-        import copy
         import random
         import js
-        random.seed()
+        # rng_seed=None: entropy seed. rng_seed=int: deterministic Mersenne Twister
+        # for JS-port comparison. See store.debugRngSeed.
+        rng_seed = data.get('rng_seed', None)
+        if rng_seed is None:
+            random.seed()
+        else:
+            random.seed(int(rng_seed))
         tot_flr = 0
         tot_time = 0.0
         sim_count = int(data.get('sim_count', 500)) # Dynamically injected from UI!
         for _ in range(sim_count):
-            p_clone = copy.deepcopy(p)
+            # fast_clone is ~10x faster than copy.deepcopy and keeps each
+            # iteration independent so any future per-run player mutation is safe.
+            p_clone = p.fast_clone()
             sim = CombatSimulator(p_clone)
             res = sim.run_simulation()
             tot_flr += res.highest_floor
