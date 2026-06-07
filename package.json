@@ -11,7 +11,9 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:ui": "vitest --ui",
-    "test:coverage": "vitest run --coverage"
+    "test:coverage": "vitest run --coverage",
+    "normalize-saves": "node scripts/normalize_saves.mjs",
+    "baseline": "node scripts/run_baseline_sims.mjs"
   },
   "dependencies": {
     "@tailwindcss/vite": "^4.2.2",
@@ -40,6 +42,7 @@
     "globals": "^17.4.0",
     "jsdom": "^27.0.1",
     "postcss": "^8.5.8",
+    "pyodide": "^0.29.4",
     "tailwindcss": "^4.2.2",
     "vite": "^8.0.1",
     "vitest": "^4.1.8"
