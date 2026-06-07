@@ -11,6 +11,7 @@
 //! verified before the math port begins in Phase 2.
 
 pub mod block;
+pub mod floor_map;
 pub mod player;
 pub mod project_config;
 pub mod rng;

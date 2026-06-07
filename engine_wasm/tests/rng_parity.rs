@@ -75,3 +75,28 @@ fn mt_seed_max_i32() {
     // 2^31 - 1 = 2147483647 — covers high bit boundary in the seeding step.
     assert_bit_identical(2_147_483_647);
 }
+
+/// `random.randint(1, chance)` parity — validates the `_randbelow` /
+/// `getrandbits` rejection loop matches CPython byte-for-byte.  Fixture
+/// runs through a mix of chance values that span the bit_length boundaries
+/// (3 needs 2 bits, 7 needs 3, 15 needs 4, 50 needs 6, etc.); any divergence
+/// in the retry path would surface here as a single mismatched result.
+#[test]
+fn mt_randint_seed_42() {
+    let mut p = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+    p.push("tests"); p.push("fixtures"); p.push("randint_seed42.bin");
+    let bytes = std::fs::read(&p)
+        .unwrap_or_else(|e| panic!("missing randint fixture: {e} — run regenerate.py"));
+    assert_eq!(bytes.len() % 8, 0, "fixture bytes not multiple of 8");
+
+    let mut rng = Mt19937::new(42);
+    for (i, chunk) in bytes.chunks_exact(8).enumerate() {
+        let chance = u32::from_le_bytes(chunk[0..4].try_into().unwrap());
+        let py_result = u32::from_le_bytes(chunk[4..8].try_into().unwrap());
+        let rust_result = rng.randint(1, chance as i64) as u32;
+        assert_eq!(
+            rust_result, py_result,
+            "iter {i} randint(1, {chance}): rust={rust_result} vs py={py_result}",
+        );
+    }
+}
