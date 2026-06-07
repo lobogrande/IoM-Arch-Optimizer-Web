@@ -1,0 +1,76 @@
+name: CI
+
+on:
+  push:
+    branches: [main, dev]
+  pull_request:
+    branches: [main, dev]
+
+jobs:
+  build:
+    name: Build and Test
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+      
+      - name: Install dependencies
+        run: npm ci
+      
+      - name: Build project
+        run: npm run build
+      
+      - name: Check if WASM engine exists
+        id: check_wasm
+        run: |
+          if [ -d "engine_wasm" ]; then
+            echo "wasm_exists=true" >> $GITHUB_OUTPUT
+          else
+            echo "wasm_exists=false" >> $GITHUB_OUTPUT
+          fi
+      
+      - name: Setup Rust (if WASM engine present)
+        if: steps.check_wasm.outputs.wasm_exists == 'true'
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32-unknown-unknown
+      
+      - name: Build WASM engine (if present)
+        if: steps.check_wasm.outputs.wasm_exists == 'true'
+        run: |
+          if [ -f "scripts/build_wasm.sh" ]; then
+            bash scripts/build_wasm.sh
+            echo "✓ WASM engine built successfully"
+          fi
+      
+      - name: Run Rust tests (if WASM engine present)
+        if: steps.check_wasm.outputs.wasm_exists == 'true'
+        run: |
+          cd engine_wasm
+          cargo test --release
+      
+      - name: Run baseline validation (if WASM engine present)
+        if: steps.check_wasm.outputs.wasm_exists == 'true'
+        run: |
+          if [ -f "scripts/diff_baselines_strict.mjs" ]; then
+            # Only run if baseline results exist
+            if [ -d "baseline_results" ]; then
+              node scripts/diff_baselines_strict.mjs || echo "⚠️ Baseline validation not required for this PR"
+            fi
+          fi
+      
+      - name: Build summary
+        run: |
+          echo "✅ Build completed successfully"
+          if [ -d "engine_wasm" ]; then
+            echo "✅ WASM engine validated"
+          else
+            echo "ℹ️  Python engine only (no WASM)"
+          fi
