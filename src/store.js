@@ -132,6 +132,13 @@ const useStore = create(
   useJsKernel: false,
   setUseJsKernel: (v) => set({ useJsKernel: !!v }),
 
+  // Dev-only toggle: when true, the engine worker routes the ENTIRE simulation
+  // through the Rust-compiled WASM module (public/engine.wasm) instead of
+  // Pyodide. Off by default. Takes precedence over useJsKernel — when both
+  // are set, WASM wins (it's the more complete replacement).
+  useWasmEngine: false,
+  setUseWasmEngine: (v) => set({ useWasmEngine: !!v }),
+
   // Ephemeral Tour State
   tourActive: false,
   activeTourId: null,
@@ -611,7 +618,7 @@ const useStore = create(
         // Prevent ephemeral states (like the active tour) from saving to IndexedDB.
         // debugRngSeed and useJsKernel intentionally excluded: developer-only
         // toggles that would silently change engine behavior across sessions.
-        const { tourActive, activeTourId, tourStepIndex, pathfinder_data, debugRngSeed, useJsKernel, ...rest } = state;
+        const { tourActive, activeTourId, tourStepIndex, pathfinder_data, debugRngSeed, useJsKernel, useWasmEngine, ...rest } = state;
         return rest;
       },
     }

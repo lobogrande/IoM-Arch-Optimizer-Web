@@ -9,7 +9,8 @@
     "lint": "eslint .",
     "preview": "vite preview",
     "normalize-saves": "node scripts/normalize_saves.mjs",
-    "baseline": "node scripts/run_baseline_sims.mjs"
+    "baseline": "node scripts/run_baseline_sims.mjs",
+    "build:wasm": "bash scripts/build_wasm.sh"
   },
   "dependencies": {
     "@tailwindcss/vite": "^4.2.2",

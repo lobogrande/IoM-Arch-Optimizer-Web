@@ -31,3 +31,9 @@ __pycache__/
 
 # JS-kernel baselines: regenerable via JS_KERNEL=1 npm run baseline
 baseline_results_js/
+
+# WASM-engine baselines: regenerable via WASM_ENGINE=1 npm run baseline
+baseline_results_wasm/
+
+# Rust build artifacts for engine_wasm — public/engine.wasm + Cargo.lock are committed
+engine_wasm/target/

@@ -127,13 +127,16 @@ export class EngineWorkerPool {
         const rng_seed = storeState.debugRngSeed ?? null;
         // Dev-only: route the inner combat tick through public/combat_kernel.js
         const use_js_kernel = !!storeState.useJsKernel;
+        // Dev-only: route the entire sim through the Rust-compiled WASM engine.
+        // Takes precedence over use_js_kernel.
+        const use_wasm_engine = !!storeState.useWasmEngine;
         return new Promise((resolve, reject) => {
             const id = ++this.taskIdSeq;
             this.callbacks.set(id, (data) => {
                 if (data.type === 'ERROR') reject(new Error(data.payload));
                 else resolve(data.payload);
             });
-            this.taskQueue.push({ msg: { command: 'RUN_TASK', taskId: id, test_stats, test_upgrades, test_external, test_cards, rng_seed, use_js_kernel } });
+            this.taskQueue.push({ msg: { command: 'RUN_TASK', taskId: id, test_stats, test_upgrades, test_external, test_cards, rng_seed, use_js_kernel, use_wasm_engine } });
             this.pump();
         });
     }
