@@ -17,6 +17,7 @@ pub mod player;
 pub mod project_config;
 pub mod rng;
 pub mod skills;
+pub mod state;
 
 use std::alloc::{alloc, dealloc, Layout};
 use std::sync::atomic::{AtomicUsize, Ordering};
@@ -59,27 +60,26 @@ pub unsafe extern "C" fn engine_free(ptr: *mut u8, size: usize) {
 }
 
 /// Run one simulation.  `state_ptr`/`state_len` point to a packed player state
-/// (format defined in state.rs in later phases).  `seed` is the MT19937 seed.
+/// in the format defined by `state::serialize_player` / consumed by
+/// `state::deserialize_player`.  `seed` is the MT19937 seed.
 ///
-/// Returns a pointer to the result buffer in WASM linear memory.  Length is
-/// available via `engine_last_result_len()`.  The result remains valid until
-/// the next `engine_run_simulation` call (which frees the previous result) or
-/// until `engine_free` is called on the returned pointer.
+/// Returns a pointer to the result buffer in WASM linear memory (format per
+/// `state::serialize_result`).  Length is available via
+/// `engine_last_result_len()`.  The result remains valid until the next
+/// `engine_run_simulation` call (which frees the previous result) or until
+/// `engine_free` is called on the returned pointer.
+///
+/// Returns null on schema mismatch or input too short.
 ///
 /// # Safety
 /// `state_ptr` must point to `state_len` valid bytes if `state_len > 0`.
-///
-/// Phase 1: stub.  Returns a 64-byte buffer with a recognizable header so the
-/// JS pipeline can verify round-trip integrity without depending on the real
-/// math port (which lands in Phase 6).
 #[no_mangle]
 pub unsafe extern "C" fn engine_run_simulation(
-    _state_ptr: *const u8,
-    _state_len: usize,
+    state_ptr: *const u8,
+    state_len: usize,
     seed: u32,
 ) -> *mut u8 {
-    // Free the previous result first (single-buffer ownership; simplest model
-    // for our one-sim-at-a-time worker).
+    // Free the previous result first.
     let prev_ptr = LAST_RESULT_PTR.swap(0, Ordering::SeqCst);
     let prev_len = LAST_RESULT_LEN.swap(0, Ordering::SeqCst);
     if prev_ptr != 0 && prev_len != 0 {
@@ -87,27 +87,32 @@ pub unsafe extern "C" fn engine_run_simulation(
         dealloc(prev_ptr as *mut u8, layout);
     }
 
-    // Stub result.  64 bytes: schema_version (u8) + pad (3) + highest_floor
-    // (i32, XORed with seed so different seeds produce different stub values
-    // — useful for round-trip sanity checking) + total_time (f64, = 42.0) +
-    // padding to 64 bytes.
-    const STUB_LEN: usize = 64;
-    let layout = Layout::array::<u8>(STUB_LEN).expect("result layout");
+    if state_ptr.is_null() || state_len == 0 {
+        return std::ptr::null_mut();
+    }
+    let input = std::slice::from_raw_parts(state_ptr, state_len);
+    let player = match crate::state::deserialize_player(input) {
+        Ok(p) => p,
+        Err(_) => return std::ptr::null_mut(),
+    };
+
+    // Run the full simulation.
+    let mut sim = crate::combat_loop::CombatSimulator::new(player);
+    let mut rng = crate::rng::Mt19937::new(seed);
+    let result = sim.run_simulation(&mut rng);
+
+    // Serialize and hand back ownership of a fresh heap allocation.
+    let bytes = crate::state::serialize_result(&result);
+    let len = bytes.len();
+    let layout = Layout::array::<u8>(len).expect("result layout");
     let ptr = alloc(layout);
     if ptr.is_null() {
         return std::ptr::null_mut();
     }
-    let slice = std::slice::from_raw_parts_mut(ptr, STUB_LEN);
-    for b in slice.iter_mut() {
-        *b = 0;
-    }
-    slice[0] = 1; // schema_version
-    let stub_floor: i32 = 42i32 ^ (seed as i32);
-    slice[4..8].copy_from_slice(&stub_floor.to_le_bytes());
-    slice[8..16].copy_from_slice(&42.0f64.to_le_bytes());
+    std::ptr::copy_nonoverlapping(bytes.as_ptr(), ptr, len);
 
     LAST_RESULT_PTR.store(ptr as usize, Ordering::SeqCst);
-    LAST_RESULT_LEN.store(STUB_LEN, Ordering::SeqCst);
+    LAST_RESULT_LEN.store(len, Ordering::SeqCst);
     ptr
 }
 
