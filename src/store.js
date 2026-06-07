@@ -121,6 +121,12 @@ const useStore = create(
   debugRngSeed: null,
   setDebugRngSeed: (seed) => set({ debugRngSeed: seed }),
 
+  // Dev-only toggle: when true, the engine worker routes the inner combat
+  // micro-tick through public/combat_kernel.js instead of the Python implementation.
+  // Off by default. Same use-pattern as debugRngSeed — set from devtools.
+  useJsKernel: false,
+  setUseJsKernel: (v) => set({ useJsKernel: !!v }),
+
   // Ephemeral Tour State
   tourActive: false,
   activeTourId: null,
@@ -620,9 +626,9 @@ const useStore = create(
       storage: createJSONStorage(() => idbStorage),
       partialize: (state) => {
         // Prevent ephemeral states (like the active tour) from saving to IndexedDB.
-        // debugRngSeed intentionally excluded: it's a developer-only toggle that
-        // would silently force deterministic output if persisted across sessions.
-        const { tourActive, activeTourId, tourStepIndex, pathfinder_data, debugRngSeed, ...rest } = state;
+        // debugRngSeed and useJsKernel intentionally excluded: developer-only
+        // toggles that would silently change engine behavior across sessions.
+        const { tourActive, activeTourId, tourStepIndex, pathfinder_data, debugRngSeed, useJsKernel, ...rest } = state;
         return rest;
       },
     }

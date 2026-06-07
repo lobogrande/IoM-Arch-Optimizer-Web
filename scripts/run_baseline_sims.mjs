@@ -22,14 +22,19 @@ import { fileURLToPath } from 'url';
 import { execSync } from 'child_process';
 import { createHash } from 'crypto';
 import { gzipSync } from 'zlib';
+import vm from 'vm';
 
 import { defaultState, loadStateFromJson } from './save_import.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = join(__dirname, '..');
 const SAVES_DIR = join(ROOT, 'normalized_saves');
-const OUT_DIR = join(ROOT, 'baseline_results');
 const PY_DIR = join(ROOT, 'public');
+
+// JS_KERNEL=1 routes the inner combat micro-tick through public/combat_kernel.js.
+// Output goes to baseline_results_js/ so the Python baselines stay pristine.
+const USE_JS_KERNEL = process.env.JS_KERNEL === '1';
+const OUT_DIR = join(ROOT, USE_JS_KERNEL ? 'baseline_results_js' : 'baseline_results');
 
 const BASE_SEED = parseInt(process.env.BASE_SEED) || 1000;
 const SIMS_PER_SAVE = parseInt(process.env.SIMS) || 500;
@@ -73,7 +78,7 @@ def sync_base_player(state_proxy):
 
     base_player = p
 
-def execute_simulation(test_stats_proxy, test_upgrades_proxy, test_external_proxy, test_cards_proxy, rng_seed=None):
+def execute_simulation(test_stats_proxy, test_upgrades_proxy, test_external_proxy, test_cards_proxy, rng_seed=None, js_kernel=None, js_rng=None):
     global base_player
 
     if rng_seed is None:
@@ -105,7 +110,7 @@ def execute_simulation(test_stats_proxy, test_upgrades_proxy, test_external_prox
         for k, v in test_cards.items():
             p.set_card_level(str(k), int(v))
 
-    sim = CombatSimulator(p)
+    sim = CombatSimulator(p, js_kernel=js_kernel, js_rng=js_rng)
     result = sim.run_simulation()
 
     arch_mins = result.total_time / 60.0 if result.total_time > 0 else 1.0
@@ -206,6 +211,21 @@ async function main() {
   const sync_base_player = pyodide.globals.get('sync_base_player');
   const execute_simulation = pyodide.globals.get('execute_simulation');
 
+  // Load public/combat_kernel.js into a VM sandbox so its API is callable
+  // from Python via Pyodide's JsProxy machinery. Only needed when USE_JS_KERNEL.
+  let jsKernel = null;
+  if (USE_JS_KERNEL) {
+    const kernelCode = readFileSync(join(PY_DIR, 'combat_kernel.js'), 'utf8');
+    const sandbox = { self: {} };
+    vm.runInNewContext(kernelCode, sandbox);
+    jsKernel = sandbox.self.IoMCombatKernel;
+    if (!jsKernel) {
+      console.error('Failed to load combat_kernel.js into sandbox.');
+      process.exit(1);
+    }
+    console.log('JS kernel loaded.');
+  }
+
   mkdirSync(OUT_DIR, { recursive: true });
 
   let gitSha;
@@ -223,6 +243,7 @@ async function main() {
     node_version: process.version,
     base_seed: BASE_SEED,
     sims_per_save: SIMS_PER_SAVE,
+    use_js_kernel: USE_JS_KERNEL,
     saves: [],
   };
 
@@ -247,7 +268,8 @@ async function main() {
 
     for (let i = 0; i < SIMS_PER_SAVE; i++) {
       const seed = BASE_SEED + i;
-      const proxy = execute_simulation({}, {}, {}, {}, seed);
+      const jsRng = jsKernel ? jsKernel.createRng(seed) : null;
+      const proxy = execute_simulation({}, {}, {}, {}, seed, jsKernel, jsRng);
       const result = proxy.toJs({ dict_converter: Object.fromEntries });
       proxy.destroy();
       sims.push({ seed, result });
