@@ -169,30 +169,26 @@
     // frag_{tier}_per_min
     for (let i = 0; i < 7; i++) metrics['frag_' + i + '_per_min'] = total_frags[i] / arch_mins;
 
-    // Per-block metrics — Python only emits these for blocks that appeared
-    // in specific_blocks_mined; we do the same so dict comparisons line up.
+    // Per-block metrics — Python emits these for every block_id present in
+    // result.specific_blocks_mined / .specific_blocks_frags.  Those dicts
+    // get populated together inside _process_kill_rewards, so "block was
+    // mined" is the gate for ALL per-block keys (including raw_frag, which
+    // may legitimately be 0 for dirt blocks whose frag_amt is 0).
     for (let i = 0; i < 28; i++) {
-      const bid = BLOCK_IDS[i];
       const cnt = specific_blocks_mined[i];
-      if (cnt > 0) {
-        const b_pm = cnt / arch_mins;
-        metrics['block_' + bid + '_per_min'] = b_pm;
-        metrics['raw_block_' + bid] = cnt;
-        const is_t4 = bid.charCodeAt(bid.length - 1) === 52; // '4'
-        const base_odds = is_t4 ? 15000 : 1500;
-        const poly_odds = is_t4 ? 75000 : 7500;
-        const inf_odds  = 200000;
-        metrics['card_base_' + bid + '_per_min'] = b_pm / base_odds;
-        metrics['card_poly_' + bid + '_per_min'] = b_pm / poly_odds;
-        metrics['card_inf_' + bid + '_per_min']  = b_pm / inf_odds;
-      }
-      const f = specific_blocks_frags[i];
-      // Python's `hasattr(result, 'specific_blocks_frags')` branch emits for
-      // every block_id present in the dict.  Our Rust always populates the
-      // array; emit only non-zero entries to match the Pyodide path.
-      if (f !== 0) {
-        metrics['raw_frag_' + bid] = f;
-      }
+      if (cnt === 0) continue;
+      const bid = BLOCK_IDS[i];
+      const b_pm = cnt / arch_mins;
+      metrics['block_' + bid + '_per_min'] = b_pm;
+      metrics['raw_block_' + bid] = cnt;
+      const is_t4 = bid.charCodeAt(bid.length - 1) === 52; // '4'
+      const base_odds = is_t4 ? 15000 : 1500;
+      const poly_odds = is_t4 ? 75000 : 7500;
+      const inf_odds  = 200000;
+      metrics['card_base_' + bid + '_per_min'] = b_pm / base_odds;
+      metrics['card_poly_' + bid + '_per_min'] = b_pm / poly_odds;
+      metrics['card_inf_' + bid + '_per_min']  = b_pm / inf_odds;
+      metrics['raw_frag_' + bid] = specific_blocks_frags[i];
     }
 
     return metrics;
