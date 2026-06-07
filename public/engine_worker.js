@@ -12,6 +12,10 @@ const APP_VERSION = urlParams.get('v') || Date.now();
 // on the RUN_TASK message). Installs `self.IoMCombatKernel` as a side effect.
 importScripts('/combat_kernel.js?v=' + APP_VERSION);
 
+// Shared packer/decoder for the WASM engine ABI.  Installs
+// `self.IoMWasmStateCodec`.  Only consulted when use_wasm_engine is set.
+importScripts('/wasm_state_codec.js?v=' + APP_VERSION);
+
 let pyodide;
 let run_sim;
 let sync_player;
@@ -176,9 +180,6 @@ def execute_simulation(test_stats_proxy, test_upgrades_proxy, test_external_prox
 initEngine().catch(err => postMessage({ type: 'ERROR', payload: err.message }));
 
 // --- WASM engine (lazy-loaded on first use_wasm_engine task) ---------------
-// Phase 1 scaffold: the WASM module's run_simulation is a stub that returns
-// (highest_floor=42 XOR seed, total_time=42).  We decode it into the same
-// metrics dict shape Pyodide returns so the consumer code path is uniform.
 let wasmExports = null;
 let wasmLoadPromise = null;
 function loadWasmEngine() {
@@ -188,8 +189,10 @@ function loadWasmEngine() {
         const res = await fetch('/engine.wasm?v=' + APP_VERSION);
         const buf = await res.arrayBuffer();
         const { instance } = await WebAssembly.instantiate(buf);
-        if (instance.exports.engine_schema_version() !== 1) {
-            throw new Error('engine.wasm schema version mismatch');
+        if (instance.exports.engine_schema_version() !== self.IoMWasmStateCodec.SCHEMA_VERSION) {
+            throw new Error('engine.wasm schema mismatch: '
+                + 'wasm=' + instance.exports.engine_schema_version()
+                + ' codec=' + self.IoMWasmStateCodec.SCHEMA_VERSION);
         }
         wasmExports = instance.exports;
         return wasmExports;
@@ -197,55 +200,76 @@ function loadWasmEngine() {
     return wasmLoadPromise;
 }
 
-// Decode the stub result buffer into the metrics dict shape consumers expect.
-// Phase 1: most fields are zero-filled.  Phases 2-7 will replace this with a
-// real decoder against state.rs's binary format.
-function decodeWasmStubResult(exports, resultPtr, resultLen) {
-    const dv = new DataView(exports.memory.buffer, resultPtr, resultLen);
-    const schema = dv.getUint8(0);
-    if (schema !== 1) throw new Error('wasm result schema mismatch: ' + schema);
-    const highest_floor = dv.getInt32(4, true);
-    const total_time = dv.getFloat64(8, true);
-    // Stub: report a minimum-viable result dict so downstream code doesn't crash.
-    return {
-        highest_floor,
-        total_time,
-        xp_per_min: 0,
-        blocks_per_min: 0,
-        stamina_trace_floor: [],
-        stamina_trace_stamina: [],
-        gross_swings: 0,
-        in_game_time: total_time,
-        crosshair_spawns: 0,
-        crosshair_damage: 0,
-        melee_damage: 0,
-        quake_damage: 0,
-        overkill_damage: 0,
-        flurry_casts: 0,
-        enrage_casts: 0,
-        quake_casts: 0,
-        stamina_refunded_flurry: 0,
-        stamina_refunded_mods: 0,
-        stamina_wasted_overcap: 0,
-        speed_pool_delta_per_min: 0,
+// Last engine_state seen via SYNC_STATE.  WASM sims clone it + apply per-task
+// overrides; Pyodide path uses base_player (synced on the Python side).
+let lastSyncedState = null;
+
+/** Apply test_* overrides to a shallow-cloned engine_state. */
+function applyOverrides(base, test_stats, test_upgrades, test_external, test_cards) {
+    const out = {
+        ...base,
+        base_stats: { ...base.base_stats },
+        upgrade_levels: { ...base.upgrade_levels },
+        external_levels: { ...base.external_levels },
+        cards: { ...base.cards },
     };
+    if (test_stats) {
+        for (const k in test_stats) out.base_stats[k] = test_stats[k];
+    }
+    if (test_upgrades) {
+        for (const k in test_upgrades) out.upgrade_levels[k] = test_upgrades[k];
+    }
+    if (test_external) {
+        // External row 21 is special — Player.set_external_level(21, lvl) also
+        // sets player.hades_idol_level, so we mirror that here.
+        for (const k in test_external) {
+            if (parseInt(k, 10) === 21) {
+                out.hades_idol_level = test_external[k];
+            }
+            out.external_levels[k] = test_external[k];
+        }
+    }
+    if (test_cards) {
+        for (const k in test_cards) out.cards[k] = test_cards[k];
+    }
+    return out;
 }
 
-async function runWasmSim(rng_seed) {
+async function runWasmSim({ test_stats, test_upgrades, test_external, test_cards, rng_seed }) {
     const exports = await loadWasmEngine();
-    // Phase 1: empty state buffer.  Phase 7 will pack the player state here.
-    const statePtr = exports.engine_alloc(8);
-    const seed = rng_seed != null ? (rng_seed >>> 0) : ((Date.now() & 0xFFFFFFFF) >>> 0);
-    const resultPtr = exports.engine_run_simulation(statePtr, 8, seed);
+    const codec = self.IoMWasmStateCodec;
+    if (!lastSyncedState) {
+        throw new Error('WASM sim called before SYNC_STATE');
+    }
+
+    const state = applyOverrides(lastSyncedState, test_stats, test_upgrades, test_external, test_cards);
+
+    const inputBytes = codec.packPlayerState(state);
+    const inputPtr = exports.engine_alloc(codec.INPUT_SIZE);
+    new Uint8Array(exports.memory.buffer, inputPtr, codec.INPUT_SIZE).set(inputBytes);
+
+    const seed = rng_seed != null
+        ? (rng_seed >>> 0)
+        : (Math.floor(Math.random() * 0xFFFFFFFF) >>> 0);
+
+    const resultPtr = exports.engine_run_simulation(inputPtr, codec.INPUT_SIZE, seed);
+    if (resultPtr === 0) {
+        exports.engine_free(inputPtr, codec.INPUT_SIZE);
+        throw new Error('engine_run_simulation returned null (deserialize failed)');
+    }
     const resultLen = exports.engine_last_result_len();
-    const result = decodeWasmStubResult(exports, resultPtr, resultLen);
-    exports.engine_free(statePtr, 8);
+    const result = codec.decodeResult(exports.memory, resultPtr, resultLen, state.starting_speed_pool | 0);
+
+    exports.engine_free(inputPtr, codec.INPUT_SIZE);
     return result;
 }
 
 self.onmessage = function(e) {
     if (e.data.command === 'SYNC_STATE') {
         try {
+            // Stash for the WASM path (lazy-cloned per RUN_TASK).
+            lastSyncedState = e.data.state_dict;
+            // Also sync into Pyodide for the default code path.
             sync_player(e.data.state_dict);
             postMessage({ type: 'SYNC_COMPLETE', syncId: e.data.syncId });
         } catch (err) {
@@ -256,9 +280,7 @@ self.onmessage = function(e) {
         try {
             // Priority: WASM engine > Pyodide+JS kernel > Pyodide-only
             if (use_wasm_engine) {
-                // Phase 1: stub result decoder.  Test overrides are ignored
-                // (state serialization lands in Phase 7).
-                runWasmSim(rng_seed)
+                runWasmSim({ test_stats, test_upgrades, test_external, test_cards, rng_seed })
                     .then(result => postMessage({ type: 'RESULT', taskId: taskId, payload: result }))
                     .catch(err => postMessage({ type: 'ERROR', taskId: taskId, payload: err.message }));
                 return;
