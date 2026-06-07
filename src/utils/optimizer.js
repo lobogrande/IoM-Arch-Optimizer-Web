@@ -45,9 +45,9 @@ export class EngineWorkerPool {
     init(onReady, onProgress) {
         return new Promise((resolve, reject) => {
             // Pass version into the worker to explicitly cache-bust the Python stat
-            // engine + the WASM engine.  v1.7.1 = adds the engine=wasm query-param
-            // optimization that skips the Pyodide ~3s boot per worker when WASM is on.
-            const APP_VERSION = "1.7.1";
+            // engine + the WASM engine.  v1.7.2 = fix latent JsNull bug introduced
+            // by Pyodide 0.29 bump (rng_seed=null no longer maps to Python None).
+            const APP_VERSION = "1.7.2";
             const useWasmEngine = !!useStore.getState().useWasmEngine;
             const workerUrl = `/engine_worker.js?v=${APP_VERSION}${useWasmEngine ? '&engine=wasm' : ''}`;
             for (let i = 0; i < this.size; i++) {
