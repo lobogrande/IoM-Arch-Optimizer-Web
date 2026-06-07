@@ -10,6 +10,9 @@
 //! end-to-end pipeline (engine_worker.js / Node harness → WASM → JS) can be
 //! verified before the math port begins in Phase 2.
 
+pub mod project_config;
+pub mod rng;
+
 use std::alloc::{alloc, dealloc, Layout};
 use std::sync::atomic::{AtomicUsize, Ordering};
 
