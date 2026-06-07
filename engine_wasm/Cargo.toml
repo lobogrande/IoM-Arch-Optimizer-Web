@@ -9,6 +9,11 @@ edition = "2021"
 # not WASM) for parity tests against Python goldens.
 crate-type = ["cdylib", "rlib"]
 
+# Dev-only — parity tests parse JSON fixtures generated from Python.
+# Does NOT affect the WASM bundle (these are host-target deps).
+[dev-dependencies]
+serde_json = "1"
+
 [profile.release]
 # Optimize for size + speed; LTO buys the most from this kind of pure-numeric code.
 opt-level = "z"
