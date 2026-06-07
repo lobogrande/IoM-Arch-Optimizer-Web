@@ -84,8 +84,8 @@ def execute_simulation(test_stats_proxy, test_upgrades_proxy, test_external_prox
     #                current Python output against a future JS-ported kernel.
     #
     # Try/except handles both Python None AND Pyodide 0.29+ JsNull (which is
-    # what JS null becomes on the Python side — `is None` returns False for it
-    # but `int(JsNull)` raises TypeError, so we can branch on the exception).
+    # what JS null becomes on the Python side). 'is None' returns False for
+    # JsNull, but int(JsNull) raises TypeError, so we can branch on that.
     try:
         random.seed(int(rng_seed))
     except (TypeError, ValueError):
