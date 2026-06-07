@@ -175,6 +175,74 @@ def execute_simulation(test_stats_proxy, test_upgrades_proxy, test_external_prox
 
 initEngine().catch(err => postMessage({ type: 'ERROR', payload: err.message }));
 
+// --- WASM engine (lazy-loaded on first use_wasm_engine task) ---------------
+// Phase 1 scaffold: the WASM module's run_simulation is a stub that returns
+// (highest_floor=42 XOR seed, total_time=42).  We decode it into the same
+// metrics dict shape Pyodide returns so the consumer code path is uniform.
+let wasmExports = null;
+let wasmLoadPromise = null;
+function loadWasmEngine() {
+    if (wasmExports) return Promise.resolve(wasmExports);
+    if (wasmLoadPromise) return wasmLoadPromise;
+    wasmLoadPromise = (async () => {
+        const res = await fetch('/engine.wasm?v=' + APP_VERSION);
+        const buf = await res.arrayBuffer();
+        const { instance } = await WebAssembly.instantiate(buf);
+        if (instance.exports.engine_schema_version() !== 1) {
+            throw new Error('engine.wasm schema version mismatch');
+        }
+        wasmExports = instance.exports;
+        return wasmExports;
+    })();
+    return wasmLoadPromise;
+}
+
+// Decode the stub result buffer into the metrics dict shape consumers expect.
+// Phase 1: most fields are zero-filled.  Phases 2-7 will replace this with a
+// real decoder against state.rs's binary format.
+function decodeWasmStubResult(exports, resultPtr, resultLen) {
+    const dv = new DataView(exports.memory.buffer, resultPtr, resultLen);
+    const schema = dv.getUint8(0);
+    if (schema !== 1) throw new Error('wasm result schema mismatch: ' + schema);
+    const highest_floor = dv.getInt32(4, true);
+    const total_time = dv.getFloat64(8, true);
+    // Stub: report a minimum-viable result dict so downstream code doesn't crash.
+    return {
+        highest_floor,
+        total_time,
+        xp_per_min: 0,
+        blocks_per_min: 0,
+        stamina_trace_floor: [],
+        stamina_trace_stamina: [],
+        gross_swings: 0,
+        in_game_time: total_time,
+        crosshair_spawns: 0,
+        crosshair_damage: 0,
+        melee_damage: 0,
+        quake_damage: 0,
+        overkill_damage: 0,
+        flurry_casts: 0,
+        enrage_casts: 0,
+        quake_casts: 0,
+        stamina_refunded_flurry: 0,
+        stamina_refunded_mods: 0,
+        stamina_wasted_overcap: 0,
+        speed_pool_delta_per_min: 0,
+    };
+}
+
+async function runWasmSim(rng_seed) {
+    const exports = await loadWasmEngine();
+    // Phase 1: empty state buffer.  Phase 7 will pack the player state here.
+    const statePtr = exports.engine_alloc(8);
+    const seed = rng_seed != null ? (rng_seed >>> 0) : ((Date.now() & 0xFFFFFFFF) >>> 0);
+    const resultPtr = exports.engine_run_simulation(statePtr, 8, seed);
+    const resultLen = exports.engine_last_result_len();
+    const result = decodeWasmStubResult(exports, resultPtr, resultLen);
+    exports.engine_free(statePtr, 8);
+    return result;
+}
+
 self.onmessage = function(e) {
     if (e.data.command === 'SYNC_STATE') {
         try {
@@ -184,8 +252,17 @@ self.onmessage = function(e) {
             postMessage({ type: 'ERROR', payload: err.message });
         }
     } else if (e.data.command === 'RUN_TASK') {
-        const { taskId, test_stats, test_upgrades, test_external, test_cards, rng_seed, use_js_kernel } = e.data;
+        const { taskId, test_stats, test_upgrades, test_external, test_cards, rng_seed, use_js_kernel, use_wasm_engine } = e.data;
         try {
+            // Priority: WASM engine > Pyodide+JS kernel > Pyodide-only
+            if (use_wasm_engine) {
+                // Phase 1: stub result decoder.  Test overrides are ignored
+                // (state serialization lands in Phase 7).
+                runWasmSim(rng_seed)
+                    .then(result => postMessage({ type: 'RESULT', taskId: taskId, payload: result }))
+                    .catch(err => postMessage({ type: 'ERROR', taskId: taskId, payload: err.message }));
+                return;
+            }
             // rng_seed: null/undefined = entropy; integer = deterministic Mersenne Twister
             // use_js_kernel: when true AND a seed is set, route the inner micro-tick through
             // self.IoMCombatKernel (public/combat_kernel.js). When seed is null we still allow

@@ -32,9 +32,17 @@ const SAVES_DIR = join(ROOT, 'normalized_saves');
 const PY_DIR = join(ROOT, 'public');
 
 // JS_KERNEL=1 routes the inner combat micro-tick through public/combat_kernel.js.
-// Output goes to baseline_results_js/ so the Python baselines stay pristine.
-const USE_JS_KERNEL = process.env.JS_KERNEL === '1';
-const OUT_DIR = join(ROOT, USE_JS_KERNEL ? 'baseline_results_js' : 'baseline_results');
+// WASM_ENGINE=1 routes the entire sim through public/engine.wasm (Rust).
+// Each writes to its own output directory so the Python baselines stay pristine.
+// WASM_ENGINE takes precedence if both are set.
+const USE_WASM_ENGINE = process.env.WASM_ENGINE === '1';
+const USE_JS_KERNEL = process.env.JS_KERNEL === '1' && !USE_WASM_ENGINE;
+const OUT_DIR = join(
+  ROOT,
+  USE_WASM_ENGINE ? 'baseline_results_wasm'
+  : USE_JS_KERNEL ? 'baseline_results_js'
+  : 'baseline_results'
+);
 
 const BASE_SEED = parseInt(process.env.BASE_SEED) || 1000;
 const SIMS_PER_SAVE = parseInt(process.env.SIMS) || 500;
@@ -189,7 +197,111 @@ function toEngineState(imported) {
 }
 
 // ---------------------------------------------------------------------------
+// Phase 1 stub decoder for engine.wasm results.  Phases 2-7 will replace this
+// with the full state.rs binary format.
+function decodeWasmStubResult(exports, resultPtr, resultLen) {
+  const dv = new DataView(exports.memory.buffer, resultPtr, resultLen);
+  const schema = dv.getUint8(0);
+  if (schema !== 1) throw new Error('wasm result schema mismatch: ' + schema);
+  return {
+    highest_floor: dv.getInt32(4, true),
+    total_time: dv.getFloat64(8, true),
+    xp_per_min: 0,
+    blocks_per_min: 0,
+    stamina_trace_floor: [],
+    stamina_trace_stamina: [],
+    gross_swings: 0,
+    in_game_time: dv.getFloat64(8, true),
+    crosshair_spawns: 0,
+    crosshair_damage: 0,
+    melee_damage: 0,
+    quake_damage: 0,
+    overkill_damage: 0,
+    flurry_casts: 0,
+    enrage_casts: 0,
+    quake_casts: 0,
+    stamina_refunded_flurry: 0,
+    stamina_refunded_mods: 0,
+    stamina_wasted_overcap: 0,
+    speed_pool_delta_per_min: 0,
+  };
+}
+
+// WASM path — skips Pyodide entirely.  Phase 1: stub decoder.
+async function runWasmHarness() {
+  console.log('Loading engine.wasm...');
+  const wasmBuf = readFileSync(join(PY_DIR, 'engine.wasm'));
+  const { instance } = await WebAssembly.instantiate(wasmBuf);
+  const exports = instance.exports;
+  if (exports.engine_schema_version() !== 1) {
+    throw new Error('engine.wasm schema mismatch');
+  }
+  console.log('WASM engine ready (schema_version=' + exports.engine_schema_version() + ').');
+
+  mkdirSync(OUT_DIR, { recursive: true });
+  let gitSha;
+  try { gitSha = execSync('git rev-parse HEAD', { cwd: ROOT }).toString().trim(); }
+  catch { gitSha = 'unknown'; }
+
+  const manifest = {
+    schema_version: 1,
+    timestamp_utc: new Date().toISOString(),
+    git_sha: gitSha,
+    engine: 'wasm',
+    wasm_schema_version: exports.engine_schema_version(),
+    node_version: process.version,
+    base_seed: BASE_SEED,
+    sims_per_save: SIMS_PER_SAVE,
+    use_wasm_engine: true,
+    saves: [],
+  };
+
+  const saveFiles = readdirSync(SAVES_DIR).filter(f => f.endsWith('.json')).sort();
+  console.log(`Found ${saveFiles.length} saves. Running ${SIMS_PER_SAVE} sims each (seeds ${BASE_SEED}..${BASE_SEED + SIMS_PER_SAVE - 1}).`);
+  console.log();
+
+  const overallStart = Date.now();
+  for (const saveFile of saveFiles) {
+    const raw = readFileSync(join(SAVES_DIR, saveFile), 'utf8');
+    const saveJson = JSON.parse(raw);
+    const imported = loadStateFromJson(defaultState(), saveJson);
+    const engineState = toEngineState(imported);
+
+    const sims = [];
+    const t0 = Date.now();
+    for (let i = 0; i < SIMS_PER_SAVE; i++) {
+      const seed = BASE_SEED + i;
+      // Phase 1: stub input (8 zero bytes).  Phase 7: real state serialization.
+      const statePtr = exports.engine_alloc(8);
+      const resultPtr = exports.engine_run_simulation(statePtr, 8, seed >>> 0);
+      const resultLen = exports.engine_last_result_len();
+      const result = decodeWasmStubResult(exports, resultPtr, resultLen);
+      exports.engine_free(statePtr, 8);
+      sims.push({ seed, result });
+    }
+    const durationMs = Date.now() - t0;
+    process.stdout.write(`  ${saveFile}: ${SIMS_PER_SAVE} sims in ${(durationMs / 1000).toFixed(2)}s\n`);
+
+    const out = {
+      schema_version: 1,
+      save_file: saveFile,
+      save_sha256: createHash('sha256').update(raw).digest('hex'),
+      save_state: engineState,
+      sims,
+    };
+    writeFileSync(join(OUT_DIR, saveFile + '.gz'), gzipSync(JSON.stringify(out), { level: 9 }));
+    manifest.saves.push({ save_file: saveFile, output_file: saveFile + '.gz', duration_ms: durationMs, sim_count: SIMS_PER_SAVE });
+  }
+  writeFileSync(join(OUT_DIR, 'manifest.json'), JSON.stringify(manifest, null, 2));
+  const totalSec = ((Date.now() - overallStart) / 1000).toFixed(2);
+  console.log(`\n✓ ${saveFiles.length} saves × ${SIMS_PER_SAVE} sims complete in ${totalSec}s`);
+  console.log(`  Output: ${OUT_DIR}`);
+}
+
 async function main() {
+  if (USE_WASM_ENGINE) {
+    return runWasmHarness();
+  }
   console.log(`Booting Pyodide ${PYODIDE_VERSION}...`);
   const pyodide = await loadPyodide();
 
