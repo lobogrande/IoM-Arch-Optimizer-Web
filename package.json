@@ -7,7 +7,9 @@
     "dev": "vite",
     "build": "vite build",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "normalize-saves": "node scripts/normalize_saves.mjs",
+    "baseline": "node scripts/run_baseline_sims.mjs"
   },
   "dependencies": {
     "@tailwindcss/vite": "^4.2.2",
@@ -32,6 +34,7 @@
     "eslint-plugin-react-refresh": "^0.5.2",
     "globals": "^17.4.0",
     "postcss": "^8.5.8",
+    "pyodide": "^0.29.4",
     "tailwindcss": "^4.2.2",
     "vite": "^8.0.1"
   }

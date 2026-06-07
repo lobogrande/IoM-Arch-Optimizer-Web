@@ -1,0 +1,65 @@
+{
+  "schema_version": 1,
+  "timestamp_utc": "2026-06-07T16:40:53.133Z",
+  "git_sha": "ff702c42023b78fe2153ac939af0dcf594f2d1ae",
+  "pyodide_version": "0.29.4",
+  "node_version": "v24.3.0",
+  "base_seed": 1000,
+  "sims_per_save": 500,
+  "saves": [
+    {
+      "save_file": "early_asc1_arch74_floor91_ramuh.json",
+      "output_file": "early_asc1_arch74_floor91_ramuh.json.gz",
+      "duration_ms": 8361,
+      "sim_count": 500
+    },
+    {
+      "save_file": "early_asc2_arch1_floor1_asc2_playerstart.json",
+      "output_file": "early_asc2_arch1_floor1_asc2_playerstart.json.gz",
+      "duration_ms": 214,
+      "sim_count": 500
+    },
+    {
+      "save_file": "late_asc2_arch114_floor186_lobo_asc2_multipleprofiles.json",
+      "output_file": "late_asc2_arch114_floor186_lobo_asc2_multipleprofiles.json.gz",
+      "duration_ms": 15656,
+      "sim_count": 500
+    },
+    {
+      "save_file": "late_asc2_arch118_floor225_lobo.json",
+      "output_file": "late_asc2_arch118_floor225_lobo.json.gz",
+      "duration_ms": 21751,
+      "sim_count": 500
+    },
+    {
+      "save_file": "mid_asc1_arch100_floor167_example_asc2_player_start.json",
+      "output_file": "mid_asc1_arch100_floor167_example_asc2_player_start.json.gz",
+      "duration_ms": 12272,
+      "sim_count": 500
+    },
+    {
+      "save_file": "mid_asc1_arch82_floor106_aa.json",
+      "output_file": "mid_asc1_arch82_floor106_aa.json.gz",
+      "duration_ms": 8941,
+      "sim_count": 500
+    },
+    {
+      "save_file": "mid_asc1_arch82_floor106_annoyance.json",
+      "output_file": "mid_asc1_arch82_floor106_annoyance.json.gz",
+      "duration_ms": 8910,
+      "sim_count": 500
+    },
+    {
+      "save_file": "mid_asc2_arch110_floor160_lobo_new.json",
+      "output_file": "mid_asc2_arch110_floor160_lobo_new.json.gz",
+      "duration_ms": 15472,
+      "sim_count": 500
+    },
+    {
+      "save_file": "mid_asc2_arch96_floor151_a.json",
+      "output_file": "mid_asc2_arch96_floor151_a.json.gz",
+      "duration_ms": 13530,
+      "sim_count": 500
+    }
+  ]
+}

@@ -612,4 +612,10 @@ const useStore = create(
   )
 );
 
+// Expose the store on window in dev so debug toggles (e.g. debugRngSeed) are
+// reachable from the browser devtools console. Stripped from production builds.
+if (typeof window !== 'undefined' && import.meta.env.DEV) {
+  window.useStore = useStore;
+}
+
 export default useStore;
