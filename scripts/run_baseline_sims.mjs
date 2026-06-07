@@ -196,45 +196,26 @@ function toEngineState(imported) {
   };
 }
 
-// ---------------------------------------------------------------------------
-// Phase 1 stub decoder for engine.wasm results.  Phases 2-7 will replace this
-// with the full state.rs binary format.
-function decodeWasmStubResult(exports, resultPtr, resultLen) {
-  const dv = new DataView(exports.memory.buffer, resultPtr, resultLen);
-  const schema = dv.getUint8(0);
-  if (schema !== 1) throw new Error('wasm result schema mismatch: ' + schema);
-  return {
-    highest_floor: dv.getInt32(4, true),
-    total_time: dv.getFloat64(8, true),
-    xp_per_min: 0,
-    blocks_per_min: 0,
-    stamina_trace_floor: [],
-    stamina_trace_stamina: [],
-    gross_swings: 0,
-    in_game_time: dv.getFloat64(8, true),
-    crosshair_spawns: 0,
-    crosshair_damage: 0,
-    melee_damage: 0,
-    quake_damage: 0,
-    overkill_damage: 0,
-    flurry_casts: 0,
-    enrage_casts: 0,
-    quake_casts: 0,
-    stamina_refunded_flurry: 0,
-    stamina_refunded_mods: 0,
-    stamina_wasted_overcap: 0,
-    speed_pool_delta_per_min: 0,
-  };
-}
-
-// WASM path — skips Pyodide entirely.  Phase 1: stub decoder.
+// WASM path — skips Pyodide entirely.  Loads engine.wasm via Node's built-in
+// WebAssembly, drives it through the shared codec in public/wasm_state_codec.js.
 async function runWasmHarness() {
-  console.log('Loading engine.wasm...');
+  console.log('Loading engine.wasm + codec...');
+  // Load the codec (classic JS, sets globalThis.IoMWasmStateCodec on the
+  // sandbox).  Same vm-sandbox pattern we use for combat_kernel.js.
+  const codecCode = readFileSync(join(PY_DIR, 'wasm_state_codec.js'), 'utf8');
+  const sandbox = { self: {} };
+  vm.runInNewContext(codecCode, sandbox);
+  const codec = sandbox.self.IoMWasmStateCodec;
+  if (!codec) {
+    console.error('Failed to load wasm_state_codec.js into sandbox.');
+    process.exit(1);
+  }
+
   const wasmBuf = readFileSync(join(PY_DIR, 'engine.wasm'));
   const { instance } = await WebAssembly.instantiate(wasmBuf);
   const exports = instance.exports;
-  if (exports.engine_schema_version() !== 1) {
-    throw new Error('engine.wasm schema mismatch');
+  if (exports.engine_schema_version() !== codec.SCHEMA_VERSION) {
+    throw new Error(`engine.wasm/codec schema mismatch: ${exports.engine_schema_version()} vs ${codec.SCHEMA_VERSION}`);
   }
   console.log('WASM engine ready (schema_version=' + exports.engine_schema_version() + ').');
 
@@ -267,19 +248,25 @@ async function runWasmHarness() {
     const imported = loadStateFromJson(defaultState(), saveJson);
     const engineState = toEngineState(imported);
 
+    // Pack the state ONCE per save (engine_state is identical for all seeds).
+    const inputBytes = codec.packPlayerState(engineState);
+    const inputPtr = exports.engine_alloc(codec.INPUT_SIZE);
+    new Uint8Array(exports.memory.buffer, inputPtr, codec.INPUT_SIZE).set(inputBytes);
+
     const sims = [];
     const t0 = Date.now();
     for (let i = 0; i < SIMS_PER_SAVE; i++) {
-      const seed = BASE_SEED + i;
-      // Phase 1: stub input (8 zero bytes).  Phase 7: real state serialization.
-      const statePtr = exports.engine_alloc(8);
-      const resultPtr = exports.engine_run_simulation(statePtr, 8, seed >>> 0);
+      const seed = (BASE_SEED + i) >>> 0;
+      const resultPtr = exports.engine_run_simulation(inputPtr, codec.INPUT_SIZE, seed);
+      if (resultPtr === 0) {
+        throw new Error(`engine_run_simulation returned null for ${saveFile} seed=${seed}`);
+      }
       const resultLen = exports.engine_last_result_len();
-      const result = decodeWasmStubResult(exports, resultPtr, resultLen);
-      exports.engine_free(statePtr, 8);
+      const result = codec.decodeResult(exports.memory, resultPtr, resultLen, engineState.starting_speed_pool | 0);
       sims.push({ seed, result });
     }
     const durationMs = Date.now() - t0;
+    exports.engine_free(inputPtr, codec.INPUT_SIZE);
     process.stdout.write(`  ${saveFile}: ${SIMS_PER_SAVE} sims in ${(durationMs / 1000).toFixed(2)}s\n`);
 
     const out = {
