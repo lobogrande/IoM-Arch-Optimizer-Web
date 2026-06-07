@@ -82,10 +82,14 @@ def execute_simulation(test_stats_proxy, test_upgrades_proxy, test_external_prox
     # rng_seed=None: entropy seed (default — preserves Monte Carlo variance).
     # rng_seed=int : seeded Mersenne Twister for reproducible runs. Used to compare
     #                current Python output against a future JS-ported kernel.
-    if rng_seed is None:
-        random.seed()
-    else:
+    #
+    # Try/except handles both Python None AND Pyodide 0.29+ JsNull (which is
+    # what JS null becomes on the Python side — `is None` returns False for it
+    # but `int(JsNull)` raises TypeError, so we can branch on the exception).
+    try:
         random.seed(int(rng_seed))
+    except (TypeError, ValueError):
+        random.seed()
 
     # js_kernel / js_rng: when both provided, the inner combat micro-tick is
     # routed through public/combat_kernel.js. Off by default; the Python loop
