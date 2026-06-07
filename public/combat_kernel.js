@@ -1,16 +1,18 @@
 // public/combat_kernel.js
-// JavaScript port of the inner combat micro-tick from
-// public/engine/combat_loop.py (lines 246-335) and the auto-cast logic
-// from public/engine/skills.py SkillManager.tick().
+// JavaScript port of the combat micro-tick + reward-processing pipeline from
+// public/engine/combat_loop.py.  Entry point is `tickFloor`, which runs the
+// full per-slot iteration for one generated floor: micro-tick combat,
+// Quake AoE, and _process_kill_rewards-equivalent tallying — all inside JS
+// so Python only has to bridge once per floor (~80 crossings per sim) instead
+// of once per block (~2,400 crossings).
 //
 // Off by default. The engine worker only invokes this kernel when the
 // useJsKernel store flag is true; the Python engine remains the source
 // of truth and the default code path.
 //
 // IMPORTANT: this is NOT bit-identical to the Python engine. It uses a
-// mulberry32 PRNG instead of Python's Mersenne Twister, so per-seed
-// outputs will differ. Validation is distributional only (see
-// scripts/diff_baselines.mjs).
+// mulberry32 PRNG instead of Python's Mersenne Twister, so per-seed outputs
+// will differ. Validation is distributional (see scripts/diff_baselines.mjs).
 //
 // Classic script (not an ES module) so the Web Worker can importScripts()
 // it directly; the Node harness loads the same file via Node's `vm` module.
@@ -28,10 +30,11 @@
     23, 22, 21, 20, 19, 18,
   ];
   const STAMINA_COST_PER_HIT = 1.0;
+  const STAMINA_COST_PER_ORE = 0.0;
 
   // ---- Deterministic PRNG --------------------------------------------------
 
-  // mulberry32 — 5-line state-of-32-bits PRNG. Deterministic per seed; NOT
+  // mulberry32 — 5-line 32-bit PRNG. Deterministic per seed; NOT
   // compatible with Python's MT stream. Distributional validation only.
   function createRng(seed) {
     let s = (seed | 0) >>> 0;
@@ -48,9 +51,9 @@
 
   // ---- Crit roll -----------------------------------------------------------
 
-  // Mirrors combat_loop.py:186-210 roll_crit. Increments hit_counts in place
-  // and returns just the multiplier (same shape as the Python version after
-  // the recent tuple-elimination quick win).
+  // Mirrors combat_loop.py roll_crit. Increments hit_counts in place and
+  // returns just the multiplier (same shape as the Python version after the
+  // recent tuple-elimination quick win).
   function rollCrit(isEnrage, cfg, hc, rng) {
     if (rng.next() < cfg.pCritCh) {
       const baseCDmg = isEnrage ? cfg.pEnragedCritDmg : cfg.pCritDmg;
@@ -72,7 +75,7 @@
   // ---- Skill auto-cast tick ------------------------------------------------
 
   // Mirrors skills.py SkillManager.tick(). Mutates skillState in place.
-  // Returns the total flat-stamina restored by Flurry casts during this tick.
+  // Returns total flat-stamina restored by Flurry casts during this tick.
   function tickSkills(skillState, cfg, dt, rng) {
     let staminaRestored = 0;
 
@@ -85,7 +88,6 @@
       if (skillState.flurryTimer < 0) skillState.flurryTimer = 0.0;
     }
 
-    // Enrage
     if (cfg.autoEnrage) {
       let chain = 0;
       while (skillState.enrageCd <= 0 && chain < 100) {
@@ -96,13 +98,10 @@
           skillState.enrageCd = 0.0;
           skillState.totalInstacharges += 1;
           chain += 1;
-        } else {
-          break;
-        }
+        } else { break; }
       }
     }
 
-    // Flurry
     if (cfg.autoFlurry) {
       let chain = 0;
       while (skillState.flurryCd <= 0 && chain < 100) {
@@ -114,13 +113,10 @@
           skillState.flurryCd = 0.0;
           skillState.totalInstacharges += 1;
           chain += 1;
-        } else {
-          break;
-        }
+        } else { break; }
       }
     }
 
-    // Quake
     if (cfg.autoQuake) {
       let chain = 0;
       while (skillState.quakeCd <= 0 && chain < 100) {
@@ -131,17 +127,13 @@
           skillState.quakeCd = 0.0;
           skillState.totalInstacharges += 1;
           chain += 1;
-        } else {
-          break;
-        }
+        } else { break; }
       }
     }
 
     return staminaRestored;
   }
 
-  // SkillManager.consume_attack() — drops one Enrage charge if present, and
-  // returns true (signaling Quake AoE should fire) if a Quake charge was spent.
   function consumeAttack(skillState) {
     let quakeTriggered = false;
     if (skillState.enrageCharges > 0) skillState.enrageCharges -= 1;
@@ -152,21 +144,60 @@
     return quakeTriggered;
   }
 
-  // ---- Inner micro-tick ----------------------------------------------------
+  // ---- Kill-reward processing ----------------------------------------------
 
-  // Port of combat_loop.py:246-335. Runs the per-block micro-tick for the
-  // slot at PATH_ORDER[pathOrderIdx]. Mutates floorBlocks[slotIdx] hp until
-  // the block dies or stamina runs out; Quake AoE may also mutate background
-  // blocks (slot indices appended to state.deadBgSlots so Python can run
-  // _process_kill_rewards for them after this call returns).
-  function tickBlock(cfg, pathOrderIdx, floorBlocks, state, skillState, rng) {
+  // Mirrors combat_loop.py _process_kill_rewards. Applies both the inline
+  // effects (stamina/speed mods) AND the telemetry tallies (xp, loot,
+  // blocks_mined, specific tracking, div-tier tracking).
+  function applyKillRewards(block, floorData, state, cfg) {
+    const xpYield = block.xp * block.modExpMulti * floorData.gleamingMulti;
+    state.totalXp += xpYield;
+
+    const lootYield = block.fragAmt * block.modLootMulti * floorData.gleamingMulti;
+    // totalFrags is a 7-element array indexed by frag tier (0..6).
+    if (block.fragType >= 0 && block.fragType < state.totalFrags.length) {
+      state.totalFrags[block.fragType] += lootYield;
+      if (block.blockId.startsWith('div')) {
+        if (block.blockId in state.divTierKills) {
+          state.divTierKills[block.blockId] += 1;
+          state.divTierFrags[block.blockId] += lootYield;
+        }
+      }
+    }
+
+    if (block.modStaGain > 0) {
+      const actualGain = Math.min(cfg.pMaxSta - state.stamina, block.modStaGain);
+      state.stamina += actualGain;
+      state.staminaRefundedMods += actualGain;
+      state.staminaWastedOvercap += block.modStaGain - actualGain;
+    }
+
+    if (block.modSpeedActive) {
+      state.speedPool += block.modSpeedGain;
+    }
+
+    state.blocksMined += 1;
+
+    const bid = block.blockId;
+    state.specificBlocksMined[bid] = (state.specificBlocksMined[bid] || 0) + 1;
+    state.specificBlocksFrags[bid] = (state.specificBlocksFrags[bid] || 0) + lootYield;
+  }
+
+  // ---- Inner micro-tick (per-block) ---------------------------------------
+
+  // Internal helper. Runs the per-block micro-tick for slot PATH_ORDER[pathOrderIdx]
+  // until the target dies or stamina runs out. Quake AoE may damage and kill
+  // background blocks; their rewards are applied inline to match Python
+  // ordering (so a kill mid-tick's stamina_gain affects subsequent ticks
+  // within the same call).
+  function microTick(cfg, pathOrderIdx, floorData, state, skillState, rng) {
     const slotIdx = PATH_ORDER[pathOrderIdx];
-    const target = floorBlocks[slotIdx];
+    const blocks = floorData.blocks;
+    const target = blocks[slotIdx];
     if (target == null || target.hp <= 0) return;
 
     const hc = state.hitCounts;
 
-    // Hot-path locals — keeps V8 happy and avoids repeated property loads.
     let stamina = state.stamina;
     let speedPool = state.speedPool;
     let crosshairTimer = state.crosshairTimer;
@@ -190,7 +221,6 @@
       totalTime += timePassed;
       crosshairTimer += timePassed;
 
-      // Crosshair spawn + auto-tap
       while (crosshairTimer >= cfg.crosshairInterval) {
         crosshairTimer -= cfg.crosshairInterval;
         state.crosshairSpawns += 1;
@@ -219,16 +249,21 @@
 
       if (target.hp <= 0) break;
 
-      // Skills tick + flurry stamina refund
+      // We have to flush stamina back into the state object before tickSkills
+      // /  applyKillRewards, since those read state.stamina directly.
+      state.stamina = stamina;
+      state.speedPool = speedPool;
+
       const staRestored = tickSkills(skillState, cfg, timePassed, rng);
       if (staRestored > 0) {
-        const actualGain = Math.min(cfg.pMaxSta - stamina, staRestored);
-        stamina += actualGain;
+        const actualGain = Math.min(cfg.pMaxSta - state.stamina, staRestored);
+        state.stamina += actualGain;
         state.staminaRefundedFlurry += actualGain;
         state.staminaWastedOvercap += staRestored - actualGain;
       }
+      // Resync after Flurry stamina refund (may have raised state.stamina).
+      stamina = state.stamina;
 
-      // Melee hit
       const critMult = rollCrit(isEnrage, cfg, hc, rng);
       const baseDmg = isEnrage ? cfg.pEnragedDamage : cfg.pDamage;
       const effArmor = Math.max(0, target.armor - cfg.pArmorPen);
@@ -241,13 +276,12 @@
       stamina -= STAMINA_COST_PER_HIT;
       state.totalStaminaSpent += STAMINA_COST_PER_HIT;
 
-      // Quake AoE
       const quakeTriggered = consumeAttack(skillState);
       if (quakeTriggered) {
         const qBase = baseDmg * cfg.pQuakeDmgToAll;
         for (let j = pathOrderIdx + 1; j < PATH_ORDER.length; j++) {
           const bgSlot = PATH_ORDER[j];
-          const bgBlock = floorBlocks[bgSlot];
+          const bgBlock = blocks[bgSlot];
           if (bgBlock != null && bgBlock.hp > 0) {
             const qCrit = rollCrit(isEnrage, cfg, hc, rng);
             const bgEffArmor = Math.max(0, bgBlock.armor - cfg.pArmorPen);
@@ -259,34 +293,60 @@
             bgBlock.hp -= qDmg;
 
             if (bgBlock.hp <= 0) {
-              // Python's _process_kill_rewards applies inline stamina/speed
-              // mod effects for bg kills. We defer that to Python after
-              // tickBlock returns; for v1 we just record the slot index.
-              // Distributional impact should be negligible (Quake-kills are
-              // a small fraction of total kills); if validation flags this,
-              // pass mod_sta_gain / mod_speed_gain through floor blocks and
-              // apply here.
-              state.deadBgSlots.push(bgSlot);
+              // Sync hot locals so applyKillRewards reads consistent stamina.
+              state.stamina = stamina;
+              state.speedPool = speedPool;
+              applyKillRewards(bgBlock, floorData, state, cfg);
+              // Re-load — applyKillRewards may have raised stamina + speed_pool
+              stamina = state.stamina;
+              speedPool = state.speedPool;
             }
           }
         }
       }
     }
 
-    // Flush hot locals back to state
     state.stamina = stamina;
     state.speedPool = speedPool;
     state.crosshairTimer = crosshairTimer;
     state.totalTime = totalTime;
   }
 
+  // ---- Public per-floor entry ---------------------------------------------
+
+  // Iterates PATH_ORDER for one floor: per-slot stamina cost, inner micro-tick,
+  // kill-reward processing, per-slot telemetry snapshot. Returns when stamina
+  // exhausts or all slots are processed.
+  function tickFloor(cfg, floorData, state, skillState, rng) {
+    const blocks = floorData.blocks;
+
+    for (let i = 0; i < PATH_ORDER.length; i++) {
+      if (state.stamina <= 0) break;
+      const slotIdx = PATH_ORDER[i];
+      const target = blocks[slotIdx];
+      if (target == null || target.hp <= 0) continue;
+
+      state.stamina -= STAMINA_COST_PER_ORE;
+      state.totalStaminaSpent += STAMINA_COST_PER_ORE;
+
+      microTick(cfg, i, floorData, state, skillState, rng);
+
+      if (target.hp <= 0) {
+        applyKillRewards(target, floorData, state, cfg);
+      }
+
+      // Per-slot telemetry snapshot — matches Python's state.record_telemetry()
+      state.historyFloor.push(state.highestFloor);
+      state.historyStamina.push(state.stamina);
+    }
+  }
+
   // ---- Public surface ------------------------------------------------------
 
   global.IoMCombatKernel = {
     createRng: createRng,
-    tickBlock: tickBlock,
+    tickFloor: tickFloor,
     tickSkills: tickSkills,
-    consumeAttack: consumeAttack,
     PATH_ORDER: PATH_ORDER,
   };
 })(typeof self !== 'undefined' ? self : (typeof globalThis !== 'undefined' ? globalThis : this));
