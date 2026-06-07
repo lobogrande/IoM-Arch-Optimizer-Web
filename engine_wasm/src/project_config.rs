@@ -74,6 +74,16 @@ impl BlockId {
         unsafe { std::mem::transmute::<u8, BlockId>(idx as u8) }
     }
 
+    /// BlockId from its 0..28 index (the same value as `idx()`).
+    /// Returns None for out-of-range indices.
+    pub fn from_idx(idx: usize) -> Option<Self> {
+        if idx >= Self::COUNT {
+            return None;
+        }
+        // SAFETY: idx ∈ 0..28, BlockId is #[repr(u8)] with sequential layout.
+        Some(unsafe { std::mem::transmute::<u8, BlockId>(idx as u8) })
+    }
+
     pub fn rarity(self) -> Rarity {
         match self.idx() % 7 {
             0 => Rarity::Dirt, 1 => Rarity::Com, 2 => Rarity::Rare, 3 => Rarity::Epic,
