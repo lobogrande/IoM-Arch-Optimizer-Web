@@ -8,7 +8,7 @@ import Simulations from './components/Simulations';
 import Welcome from './components/Welcome';
 import About from './components/About';
 import TourGuide from './components/TourGuide';
-import { del, get, set } from 'idb-keyval'; // Import direct DB access
+import { get, set } from 'idb-keyval'; // Import direct DB access
 
 const TABS =[
   { id: 'welcome', label: '🏠 Welcome' },

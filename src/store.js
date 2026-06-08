@@ -295,7 +295,7 @@ const useStore = create(
   }),
   
   // Wipe all data to default baseline
-  resetState: () => set((state) => {
+  resetState: () => set((_state) => {
     const defaultExt = { };
     EXTERNAL_UI_GROUPS.forEach(g => {
       if (g.ui_type === 'pet') {

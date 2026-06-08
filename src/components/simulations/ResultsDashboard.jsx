@@ -66,7 +66,25 @@ export default function ResultsDashboard({ context }) {
   if (store.asc1_unlocked) activeStats.push('Div');
   if (store.asc2_unlocked) activeStats.push('Corr');
 
+  // Scroll active data tab into view when it changes
+  useEffect(() => {
+    const activeTabButton = document.getElementById(`res-data-tab-${dataTab}`);
+    if (activeTabButton) {
+      activeTabButton.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+    }
+  }, [dataTab]);
+
+  // Scroll active res tab into view when it changes
+  useEffect(() => {
+    const activeTabButton = document.getElementById(`res-tab-${resTab}`);
+    if (activeTabButton) {
+      activeTabButton.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+    }
+  }, [resTab]);
+
+  // Early return AFTER hooks
   if (!store.opt_results || !store.opt_results.final_summary_out) return null;
+  
   const runMetric = store.opt_results.run_target_metric;
   const isFloorTarget = runMetric === 'highest_floor';
   const scaleScore = (v) => isFloorTarget ? v : (v / 60.0) * 1000.0;
@@ -96,22 +114,6 @@ export default function ResultsDashboard({ context }) {
       }
     }, 150);
   };
-
-  // Scroll active data tab into view when it changes
-  useEffect(() => {
-    const activeTabButton = document.getElementById(`res-data-tab-${dataTab}`);
-    if (activeTabButton) {
-      activeTabButton.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
-    }
-  }, [dataTab]);
-
-  // Scroll active res tab into view when it changes
-  useEffect(() => {
-    const activeTabButton = document.getElementById(`res-main-tab-${resTab}`);
-    if (activeTabButton) {
-      activeTabButton.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
-    }
-  }, [resTab]);
 
   const handleApplyStat = (stat) => {
     const current = store.base_stats[stat] || 0;
