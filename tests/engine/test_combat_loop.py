@@ -73,16 +73,15 @@ class TestRunState:
     
     @pytest.mark.unit
     def test_runstate_hit_counts(self):
-        """RunState should track hit types (normal, crit, super, ultra)"""
+        """RunState should track hit types (normal, crit, super, ultra).
+        After the WASM-PR quick wins, hit_counts is a 4-element list indexed
+        [normal, crit, super, ultra] for faster per-hit increments."""
         p = Player()
         state = RunState(p)
-        
-        assert 'normal' in state.hit_counts
-        assert 'crit' in state.hit_counts
-        assert 'super' in state.hit_counts
-        assert 'ultra' in state.hit_counts
-        
-        assert all(state.hit_counts[k] == 0 for k in state.hit_counts)
+
+        assert isinstance(state.hit_counts, list)
+        assert len(state.hit_counts) == 4
+        assert all(c == 0 for c in state.hit_counts)
     
     @pytest.mark.unit
     def test_runstate_telemetry_recording(self):
@@ -97,10 +96,10 @@ class TestRunState:
         
         state.record_telemetry()
         
+        # WASM-PR quick wins dropped 'time' and 'speed_pool' from history
+        # (they were tracked but never read by any consumer).
         assert state.history['floor'] == [5]
-        assert state.history['time'] == [10.5]
         assert state.history['stamina'] == [50.0]
-        assert state.history['speed_pool'] == [3]
     
     @pytest.mark.unit
     def test_runstate_specific_blocks_tracking(self):
@@ -414,10 +413,10 @@ class TestSimulationBasics:
         
         result = sim.run_simulation()
         
-        # Should have recorded hits
-        total_hits = sum(result.hit_counts.values())
+        # Should have recorded hits  (hit_counts is now a 4-element list)
+        total_hits = sum(result.hit_counts)
         assert total_hits > 0
-    
+
     @pytest.mark.integration
     def test_simulation_consumes_stamina(self):
         """Simulation should consume stamina per hit"""
@@ -491,15 +490,13 @@ class TestCombatMechanics:
         
         result = sim.run_simulation()
         
-        # Should have recorded hits of some type
-        total_hits = sum(result.hit_counts.values())
+        # Should have recorded hits of some type (hit_counts is a 4-element list)
+        total_hits = sum(result.hit_counts)
         assert total_hits > 0, "No hits recorded during simulation"
-        
-        # Hit counts should have all keys (even if 0)
-        assert 'normal' in result.hit_counts
-        assert 'crit' in result.hit_counts
-        assert 'super' in result.hit_counts
-        assert 'ultra' in result.hit_counts
+
+        # Hit counts has all four slots (normal/crit/super/ultra)
+        assert isinstance(result.hit_counts, list)
+        assert len(result.hit_counts) == 4
 
 
 class TestSkillIntegration:
@@ -632,8 +629,9 @@ class TestTelemetry:
         result = sim.run_simulation()
         
         # Should have recorded multiple telemetry snapshots
+        # ('time' was removed from history in the WASM-PR quick wins)
         assert len(result.history['floor']) > 1
-        assert len(result.history['time']) > 1
+        assert len(result.history['stamina']) > 1
     
     @pytest.mark.unit
     def test_telemetry_tracks_damage_breakdown(self):
@@ -675,13 +673,14 @@ class TestAdvancedCritMechanics:
         
         result = sim.run_simulation()
         
-        # With ~40% crit chance and enough hits, should get some crits
-        total_crits = result.hit_counts['crit'] + result.hit_counts['super'] + result.hit_counts['ultra']
-        
+        # With ~40% crit chance and enough hits, should get some crits.
+        # hit_counts is [normal, crit, super, ultra] — sum the upper 3 slots.
+        total_crits = result.hit_counts[1] + result.hit_counts[2] + result.hit_counts[3]
+
         # Probabilistic test - with many hits should get at least one crit
         if total_crits == 0:
             # Verify tracking exists even if no crits occurred
-            assert 'super' in result.hit_counts
+            assert len(result.hit_counts) == 4
         else:
             assert total_crits > 0
     
@@ -701,13 +700,13 @@ class TestAdvancedCritMechanics:
         
         result = sim.run_simulation()
         
-        # With high crit chance and more hits, should get crits
-        total_crits = result.hit_counts['crit'] + result.hit_counts['super'] + result.hit_counts['ultra']
-        
-        # Verify tracking exists
-        assert 'ultra' in result.hit_counts
-        assert 'super' in result.hit_counts
-        assert 'crit' in result.hit_counts
+        # With high crit chance and more hits, should get crits.
+        # hit_counts is [normal, crit, super, ultra].
+        total_crits = result.hit_counts[1] + result.hit_counts[2] + result.hit_counts[3]
+
+        # Verify tracking exists (all four slots present)
+        assert isinstance(result.hit_counts, list)
+        assert len(result.hit_counts) == 4
 
 
 class TestSpeedPoolMechanics:
