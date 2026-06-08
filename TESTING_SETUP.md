@@ -1,112 +1,58 @@
-# Testing Infrastructure Setup - Complete
+# Testing Infrastructure - IoM Arch Optimizer
 
-**Date:** June 7, 2026  
-**Status:** ✅ Fully Implemented & Passing
+> **Note:** This document covers **JavaScript testing**. For Python testing, see `PYTHON_TESTING.md`.
+
+**Last Updated:** June 7, 2026  
+**Status:** ✅ Production Ready  
+**JavaScript Tests:** 238 passing  
+**Python Tests:** 77 passing  
+**Execution Time:** ~3 seconds (JS) + ~0.3 seconds (Python)  
 
 ---
 
 ## Summary
 
-Successfully set up comprehensive testing and CI infrastructure for the IoM Arch Optimizer project with:
+### JavaScript Tests (Vitest)
 
-- ✅ **Vitest** test framework installed and configured  
-- ✅ **218 passing tests** with comprehensive coverage
-- ✅ **Input validation** added to store.js (defense in depth)
-- ✅ **GitHub Actions CI** running 4 validation steps  
-- ✅ **Parallel test execution** built-in (Vitest default)  
-- ✅ **Zero vulnerabilities** after security fixes
+Comprehensive test suite covering core business logic with 238 tests across 12 test files.
 
----
+**Test Coverage:**
+- **game_data.js:** 107 tests (93% coverage) - Game constants and calculations
+- **store.js:** 44 tests (70% coverage) - State management
+- **optimizer.js:** 62 tests (95% coverage) - Optimization algorithms ✅ COMPLETE
+- **pathfinder_engine.js:** 25 tests (30% coverage) - Progression helpers
 
-## What Was Added
+**Key Features:**
+- ✅ Fast execution (~3 seconds for 238 tests)
+- ✅ CI-friendly (no external dependencies, mocked workers)
+- ✅ Parallel execution with isolation safety
+- ✅ Zero vulnerabilities
+- ✅ Input validation for defense in depth
 
-### 1. Test Framework
+### Python Tests (pytest)
 
-**Installed packages:**
-```bash
-npm install -D vitest@4.1.8 @vitest/ui@4.1.8 jsdom @testing-library/react @testing-library/jest-dom
-```
+Test suite for simulation engine with 77 tests covering player calculations.
 
-**Configuration files:**
-- `vitest.config.js` - Test runner configuration
-- `src/tests/setup.js` - Global test setup (mocks Web Workers, IndexedDB)
+**Test Coverage:**
+- **player.py:** 77 tests (91% coverage) - Player stats, upgrades, cards, infernal bonuses, combat formulas
 
-**Test scripts in `package.json`:**
-```json
-{
-  "test": "vitest run",
-  "test:watch": "vitest",
-  "test:ui": "vitest --ui",
-  "test:coverage": "vitest run --coverage"
-}
-```
+**Key Features:**
+- ✅ Fast execution (~0.30 seconds for 77 tests)
+- ✅ Comprehensive formula validation (damage, crit, modifiers, cooldowns)
+- ✅ Cap enforcement and ascension gating tests
+- ✅ GameMaker rounding behavior tests
 
-### 2. Test Coverage
-
-**Files:** 8 test files (147 tests)
-
-**game_data.js (107 tests):**
-- `src/tests/game_data.test.js` - Constants (6 tests)
-- `src/tests/calculateUpgradeCost.test.js` - Cost calculation (18 tests)
-- `src/tests/capEnforcement.test.js` - Cap enforcement (23 tests)
-- `src/tests/ascensionLocks.test.js` - Locks & requirements (28 tests)
-- `src/tests/blockAndCurrency.test.js` - Data structures (13 tests)
-- `src/tests/infernalBonuses.test.js` - Infernal bonuses (19 tests)
-
-**store.js (44 tests):**
-- `src/tests/storeProfiles.test.js` - Profile management (15 tests: 11 base + 4 edge cases)
-- `src/tests/storeSetters.test.js` - State setters & reset (29 tests: 16 base + 13 validation/edge cases)
-
-**optimizer.js (27 tests):**
-- `src/tests/optimizer.test.js` - Optimization utilities (27 tests)
-
-**Test Results:**
-```
-Test Files  9 passed (9)
-     Tests  178 passed (178)
-  Duration  1.60s
-```
-
-### 3. Enhanced CI Workflow
-
-**File:** `.github/workflows/ci.yml`
-
-**New validation steps:**
-1. ✅ **ESLint** - Code quality checks
-2. ✅ **Python syntax** - Validates `.py` files compile
-3. ✅ **JavaScript tests** - Runs Vitest suite
-4. ✅ **WASM binary comparison** - Verifies reproducibility
-
-**CI Build Steps (in order):**
-```
-1. Checkout code
-2. Setup Node.js (v20)
-3. Install dependencies (npm ci)
-4. Run linter ← NEW
-5. Validate Python syntax ← NEW
-6. Run JavaScript tests ← NEW
-7. Build project
-8. [Conditional: WASM] Setup Rust
-9. [Conditional: WASM] Build WASM from source
-10. [Conditional: WASM] Compare to committed binary ← ENHANCED
-11. [Conditional: WASM] Run 84 Rust tests
-```
-
-**Estimated CI time:**
-- Python-only PRs: ~40 seconds (+10s for new steps)
-- WASM PRs: ~2-3 minutes (unchanged)
+**See `PYTHON_TESTING.md` for full Python test documentation.**
 
 ---
 
-## Test Execution
-
-### Local Development
+## Quick Start
 
 ```bash
-# Run tests once
+# Run all tests
 npm test
 
-# Watch mode (auto-rerun on file changes)
+# Watch mode (auto-rerun on changes)
 npm run test:watch
 
 # Visual UI (browser-based)
@@ -116,193 +62,282 @@ npm run test:ui
 npm run test:coverage
 ```
 
-### CI Execution
+---
 
-Tests run automatically on:
-- Push to `main` or `dev` branches
-- Pull requests targeting `main` or `dev`
+## Test Files
 
-CI fails if any of these fail:
-- Linting errors
-- Python syntax errors
-- Test failures
-- Build failures
-- Rust test failures (WASM PRs only)
+### Core Game Logic (107 tests)
+| File | Tests | Coverage | What It Tests |
+|------|-------|----------|---------------|
+| `game_data.test.js` | 6 | Constants | Game constants (upgrade count, stat names, external groups) |
+| `calculateUpgradeCost.test.js` | 18 | Cost calculation | Upgrade cost formula, edge cases |
+| `capEnforcement.test.js` | 23 | Cap logic | Upgrade level caps, ascension dependencies |
+| `ascensionLocks.test.js` | 28 | Lock validation | Ascension unlock requirements, minimum levels |
+| `blockAndCurrency.test.js` | 13 | Data structures | Block/currency lookups, error handling |
+| `infernalBonuses.test.js` | 19 | Bonus calculation | Infernal card bonuses, tier validation |
+
+### State Management (44 tests)
+| File | Tests | Coverage | What It Tests |
+|------|-------|----------|---------------|
+| `storeProfiles.test.js` | 15 | Profile CRUD | Create, load, save, rename, delete + edge cases |
+| `storeSetters.test.js` | 29 | State setters | Base stats, upgrades, cards, settings + validation |
+
+### Optimization Engine (62 tests) ✅ COMPLETE
+| File | Tests | Coverage | What It Tests |
+|------|-------|----------|---------------|
+| `optimizer.test.js` | 27 | Pure functions | Grid generation, counting, budget enforcement |
+| `engineWorkerPool.test.js` | 18 | Worker pool | Initialization, queuing, state sync (mocked) |
+| `runOptimizationPhase.test.js` | 17 | Orchestration | Successive halving, timeouts, metrics (mocked) |
+
+### Progression Engine (25 tests)
+| File | Tests | Coverage | What It Tests |
+|------|-------|----------|---------------|
+| `pathfinderEngine.test.js` | 25 | Helper functions | Experience, stat caps, budget enforcement, crippled phase |
 
 ---
 
-## Test Parallelization
+## Test Results
 
-**Built-in by default** - Vitest runs tests in parallel using worker threads.
-
-**Configuration:** (vitest.config.js)
-- Tests execute in isolated environments
-- No explicit parallelization config needed
-- Scales automatically to available CPU cores
-
-**Performance:**
-- 6 tests complete in <10ms (actual test execution)
-- Most time spent in setup (474ms for jsdom environment)
-- Adding more tests will scale efficiently
+```
+Test Files  12 passed (12)
+     Tests  238 passed (238)
+  Duration  3.06s
+```
 
 ---
 
-## What to Test Next
+## What's Tested
 
-### Priority 1: Critical Business Logic
+### ✅ game_data.js (93% coverage)
+- Game constants (upgrade counts, stat names)
+- Cost calculation formulas
+- Upgrade cap enforcement (single + batch)
+- Ascension lock validation
+- Block/currency data structures
+- Infernal card bonus calculations
 
-**Recommended:** `src/utils/optimizer.js`
-- Grid generation algorithm
-- Candidate selection logic
-- Budget calculations
-- Stat allocation validation
+**Note:** All functions are exported and tested. The 7% untested is just the static data structures themselves (which don't need tests).
 
-**Example tests:**
-```javascript
-describe('Optimizer Grid Generation', () => {
-  it('should generate valid stat combinations within budget');
-  it('should respect stat caps');
-  it('should not generate duplicate candidates');
-});
-```
+---
 
-### Priority 2: State Management
+### ✅ store.js (70% coverage)
+**Tested:**
+- Profile management (CRUD operations + edge cases for non-existent profiles)
+- Base stat setters (all 7 stats)
+- Upgrade level setters (with cap enforcement integration)
+- Card level setters
+- Settings setters with validation (arch_level ≥1, floors ≥1, boolean coercion)
+- Ascension sanitization (asc1/asc2 cascading locks)
+- External upgrade group setters
+- resetState function
 
-**Recommended:** `src/store.js`
-- State setters/getters
-- Profile management (create, load, save, delete)
-- JSON import/export
-- Upgrade level validation
+**What's NOT tested (intentionally):**
+- `loadStateFromJson` (complex 100+ line legacy parser, low priority)
+- UI state setters (trivial one-liners: `setActiveTab`, etc.)
+- `saveRoiToCurrentRun` (niche ROI feature, requires complex setup)
+- Sandbox/duel setters (duplicate patterns of base setters)
 
-**Example tests:**
-```javascript
-describe('Store - Profile Management', () => {
-  it('should create new profile with current state');
-  it('should load profile and restore state');
-  it('should detect unsaved changes');
-});
-```
+**Validation Added:** `setSetting()` now validates inputs:
+- `arch_level`: Parsed to int, min 1 (no max)
+- `current_max_floor`: Parsed to int, min 1
+- `starting_speed_pool`: Parsed to int, min 0
+- Boolean fields: Type coerced to `true`/`false`
 
-### Priority 3: Pathfinder Logic
+---
 
-**Recommended:** `src/utils/pathfinder_engine.js`
-- Level progression decisions
-- Upgrade purchase logic
-- Yield comparisons
-- Build optimization
+### ✅ optimizer.js (95% coverage - COMPLETE)
+**Pure Functions (27 tests):**
+- `generateDistributions` - Backtracking grid generation
+- `countDistributions` - Fast combination counting
+- `getExpectedRuns` - Successive halving calculation
+- `getOptimalStepProfile` - Auto-scaler with adaptive sizing
+- `topUpBuild` - Budget enforcement and cap respect
+
+**Worker Pool Infrastructure (18 tests):**
+- `EngineWorkerPool` class - Worker lifecycle, queuing, state sync
+- Uses mocked workers (no real Pyodide/Python needed)
+- Tests initialization, task execution, error handling, cleanup
+
+**Orchestration (17 tests):**
+- `runOptimizationPhase` - Successive halving, progress tracking, timeouts
+- Uses mocked worker pool for fast execution
+- Tests all code paths including edge cases
+
+**Why Mocked:** Real workers require Pyodide (2-5s boot), not CI-friendly. Mocks test orchestration logic, not simulation math (tested in Python).
+
+---
+
+### ✅ pathfinder_engine.js (30% coverage)
+**Tested (25 tests):**
+- `getExpRequired` - Experience requirement formula
+- `isCrippledPhase` - Ascension 2 macro-stepper detection
+- `getAvailableStatKeys` - Dynamic stat list based on ascensions
+- `getEffectiveStatCaps` - Stat caps with upgrade 45 bonuses
+- `formatBuildStr` - Build formatting for logs
+- `enforceBudget` - Budget enforcement and stat filling
+
+**Note:** Helpers exported via `__test__` object (doesn't affect application code)
+
+**What's NOT tested:**
+- `runPathfinderSimulation` (1400+ line main loop)
+- `getShadowFragYields` (requires worker pool)
+- Would need integration tests or extensive mocking
+
+---
+
+## What's Still Untested
+
+### High-Value (Future Work):
+1. **pathfinder_engine.js main loop** (1400 lines)
+   - Requires worker pool integration
+   - Would need integration/E2E tests
+
+### Low-Priority (Intentionally Skipped):
+1. **Web Workers** (~500 lines total)
+   - Thin glue code wrapping Python engine
+   - Requires Pyodide runtime (slow, flaky in CI)
+   - Failures are immediately obvious (app doesn't work)
+   
+2. **React Components** (~4500 lines)
+   - UI rendering and event handlers
+   - Lower risk than business logic
+   - Bugs are visually obvious
+   - Would need React Testing Library
 
 ---
 
 ## Testing Best Practices
 
 ### DO:
-✅ Test business logic, not implementation details  
-✅ Use descriptive test names  
-✅ Test edge cases (0, negative, max values)  
-✅ Keep tests fast (<100ms each)  
-✅ Mock external dependencies (Web Workers, IndexedDB)
+- ✅ Test business logic, not implementation details
+- ✅ Use descriptive test names
+- ✅ Test edge cases (0, negative, max values, null/undefined)
+- ✅ Keep tests fast (<100ms each)
+- ✅ Mock external dependencies (Web Workers, IndexedDB)
+- ✅ Use `describe.sequential()` for shared singleton state (Zustand store)
 
 ### DON'T:
-❌ Test library code (React, Zustand internals)  
-❌ Test UI rendering (unless writing component tests)  
-❌ Run slow integration tests in every test run  
-❌ Test implementation details that might change  
-❌ Skip tests with `.skip()` - fix or remove them
+- ❌ Test library code (React, Zustand internals)
+- ❌ Test UI rendering without purpose
+- ❌ Run slow integration tests in every test run
+- ❌ Test implementation details that might change
+- ❌ Skip tests with `.skip()` - fix or remove them
 
 ---
 
-## Store.js Validation
+## Test Organization
 
-The `setSetting()` function includes input validation for defense in depth:
-
-- **arch_level:** Parsed to integer, clamped to minimum 1 (no maximum)
-- **current_max_floor:** Parsed to integer, clamped to minimum 1
-- **starting_speed_pool:** Parsed to integer, clamped to minimum 0
-- **Boolean fields:** Type coerced to `true`/`false`
-
-This protects against invalid inputs from JSON imports, profile loading, and direct manipulation. The validation rules match what UI components already enforce (PlayerSetup.jsx), providing defense in depth.
-
----
-
-## Security Fixes
-
-### Vitest Vulnerabilities (Resolved)
-
-**Issue:** Initial install had 5 vulnerabilities (2 moderate, 1 high, 2 critical)
-
-**Fix:** Ran `npm audit fix --force`
-
-**Result:**
-- Updated to vitest@4.1.8 and @vitest/ui@4.1.8
-- **0 vulnerabilities** remaining
-- All tests passing
-
----
-
-## File Structure
+All tests live in `src/tests/`:
 
 ```
-IoM-Arch-Optimizer-Web/
-├── .github/workflows/
-│   └── ci.yml                      ← Enhanced with tests
-├── src/
-│   ├── tests/                            ← All tests live here
-│   │   ├── setup.js                      ← Global test setup
-│   │   ├── game_data.test.js             ← 6 tests (constants)
-│   │   ├── calculateUpgradeCost.test.js  ← 18 tests (cost function)
-│   │   ├── capEnforcement.test.js        ← 23 tests (critical caps)
-│   │   ├── ascensionLocks.test.js        ← 28 tests (unlock logic)
-│   │   ├── blockAndCurrency.test.js      ← 13 tests (data structures)
-│   │   ├── infernalBonuses.test.js       ← 19 tests (infernal bonuses)
-│   │   ├── storeProfiles.test.js         ← 15 tests (profile CRUD + edge cases)
-│   │   ├── storeSetters.test.js          ← 29 tests (setters + validation)
-│   │   ├── optimizer.test.js             ← 27 tests (optimization utilities)
-│   │   ├── engineWorkerPool.test.js      ← 18 tests (worker pool, mocked)
-│   │   ├── runOptimizationPhase.test.js  ← 17 tests (orchestration, mocked)
-│   │   └── pathfinderEngine.test.js      ← 25 tests (progression helpers)
-│   ├── game_data.js                      ← Application code (93% covered)
-│   ├── store.js                          ← Application code (70% covered)
-│   ├── utils/
-│   │   ├── optimizer.js            ← Application code (95% covered - complete!)
-│   │   └── pathfinder_engine.js    ← Application code (30% covered - helpers only)
-│   └── ...
-├── vitest.config.js                ← Test configuration
-├── package.json                    ← Test scripts added
-├── WASM_BUILD_GUIDE.md             ← WASM documentation
-└── TESTING_SETUP.md                ← This file
+src/tests/
+├── setup.js                      ← Global setup (mocks workers, IndexedDB)
+├── game_data.test.js             ← 6 tests
+├── calculateUpgradeCost.test.js  ← 18 tests
+├── capEnforcement.test.js        ← 23 tests
+├── ascensionLocks.test.js        ← 28 tests
+├── blockAndCurrency.test.js      ← 13 tests
+├── infernalBonuses.test.js       ← 19 tests
+├── storeProfiles.test.js         ← 15 tests
+├── storeSetters.test.js          ← 29 tests
+├── optimizer.test.js             ← 27 tests
+├── engineWorkerPool.test.js      ← 18 tests (mocked workers)
+├── runOptimizationPhase.test.js  ← 17 tests (mocked pool)
+└── pathfinderEngine.test.js      ← 25 tests
 ```
 
 ---
 
-## Quick Reference
+## Configuration
 
-### Run Tests
-```bash
-npm test                  # Run once
-npm run test:watch        # Watch mode
-npm run test:ui           # Visual UI
+### vitest.config.js
+- **Framework:** Vitest 4.1.8
+- **Environment:** jsdom (for browser globals)
+- **Setup:** `src/tests/setup.js` (mocks workers, IndexedDB)
+- **Include:** `src/tests/**/*.{test,spec}.{js,jsx}`
+- **Timeout:** 10 seconds (for slow tests)
+
+### Test Scripts (package.json)
+```json
+{
+  "test": "vitest run",
+  "test:watch": "vitest",
+  "test:ui": "vitest --ui",
+  "test:coverage": "vitest run --coverage"
+}
 ```
 
-### Write New Tests
+---
+
+## CI Integration
+
+Tests run automatically on:
+- Push to `main` or `dev` branches
+- Pull requests targeting `main` or `dev`
+
+**CI Steps:**
+1. Checkout code
+2. Setup Node.js (v20)
+3. Install dependencies (`npm ci`)
+4. Run linter
+5. Validate Python syntax
+6. **Run tests** ← 238 tests in ~3 seconds
+7. Build project
+8. [Conditional: WASM] WASM validation
+
+**CI-Friendly:** All tests pass in ~3 seconds with no external dependencies.
+
+---
+
+## Writing New Tests
+
+### Template:
 ```javascript
-// src/tests/your-feature.test.js
+// src/tests/yourFeature.test.js
 import { describe, it, expect } from 'vitest';
-import { yourFunction } from '../your-feature.js';
+import { yourFunction } from '../yourFeature.js';
 
 describe('Your Feature', () => {
-  it('should do something', () => {
-    expect(yourFunction()).toBe(expectedValue);
+  it('should do something specific', () => {
+    const result = yourFunction(input);
+    expect(result).toBe(expected);
   });
 });
 ```
 
-### Debug Failing Tests
+### For Zustand Store Tests:
+```javascript
+import { describe, it, expect, beforeEach } from 'vitest';
+import useStore from '../store.js';
+
+describe.sequential('Store Feature', () => {
+  beforeEach(() => {
+    useStore.getState().resetState();
+  });
+
+  it('should update state correctly', () => {
+    const store = useStore.getState();
+    store.setSomething(value);
+    expect(useStore.getState().something).toBe(value);
+  });
+});
+```
+
+**Note:** Use `describe.sequential()` for store tests to prevent parallel execution conflicts with singleton.
+
+---
+
+## Debugging Tests
+
 ```bash
-# Run with --reporter=verbose
+# Run with verbose output
 npx vitest --reporter=verbose
 
 # Run single test file
-npx vitest src/game_data.test.js
+npx vitest src/tests/optimizer.test.js
+
+# Run tests matching pattern
+npx vitest --grep "should calculate"
 
 # Update snapshots
 npx vitest -u
@@ -310,106 +345,54 @@ npx vitest -u
 
 ---
 
-## CI Badge (Optional)
+## Security
 
-Add to README.md:
-```markdown
-[![CI](https://github.com/your-username/IoM-Arch-Optimizer-Web/actions/workflows/ci.yml/badge.svg)](https://github.com/your-username/IoM-Arch-Optimizer-Web/actions/workflows/ci.yml)
+**Vitest Vulnerabilities:** ✅ Resolved
+
+- Initial install: 5 vulnerabilities (2 moderate, 1 high, 2 critical)
+- Fixed with: `npm audit fix --force`
+- Current state: **0 vulnerabilities**
+- Version: vitest@4.1.8, @vitest/ui@4.1.8
+
+---
+
+## FAQs
+
+**Q: Why not 100% coverage?**  
+A: We focus on high-value business logic. UI code (React components) and thin wrappers (web workers) are lower priority.
+
+**Q: Why mock workers?**  
+A: Real workers require Pyodide (2-5s boot), making tests slow and flaky. Mocks test orchestration logic, which is what matters for CI.
+
+**Q: Can I skip tests?**  
+A: No. CI will fail. Fix or remove broken tests instead.
+
+**Q: How do I test async code?**  
+A: Use `async`/`await` in test functions:
+```javascript
+it('should handle async operation', async () => {
+  const result = await asyncFunction();
+  expect(result).toBeDefined();
+});
 ```
+
+**Q: What about code coverage reports?**  
+A: Run `npm run test:coverage` to generate HTML report.
 
 ---
 
 ## Next Steps
 
-1. ✅ **Done:** Test framework setup
-2. ✅ **Done:** CI integration  
-3. ✅ **Done:** Game constants tests (6 tests)
-4. ✅ **Done:** calculateUpgradeCost tests (18 tests)
-5. ✅ **Done:** Cap enforcement tests (23 tests)
-6. ✅ **Done:** Ascension locks & unlock requirements (28 tests)
-7. ✅ **Done:** Block/currency data structures (13 tests)
-8. ✅ **Done:** Infernal bonuses calculations (19 tests)
-9. ✅ **Done:** game_data.js comprehensive coverage (107 tests, 93% coverage)
-10. ✅ **Done:** store.js critical functions (44 tests, 70% coverage)
-   - Profile management with edge cases (create, load, save, rename, delete)
-   - State setters with validation tests (base stats, upgrades, cards, settings)
-   - Input validation (arch_level ≥1, current_max_floor ≥1, speed_pool ≥0, boolean coercion)
-   - Ascension sanitization tests (asc1/asc2 cascading locks)
-   - External upgrade group setters
-   - resetState function
-11. ✅ **Done:** Parallel execution safety measures (`describe.sequential()`)
-12. ✅ **Done:** Verified test stability (10 consecutive runs, zero failures)
-13. ✅ **Done:** Added setSetting validation to store.js (defense in depth)
-14. ✅ **Done:** optimizer.js utility functions (27 tests, 45% coverage)
-   - generateDistributions (backtracking grid generation)
-   - countDistributions (fast combination counting)
-   - getExpectedRuns (successive halving calculation)
-   - topUpBuild (budget enforcement and cap respect)
-   - getOptimalStepProfile (auto-scaler with adaptive sizing)
-15. ✅ **Done:** EngineWorkerPool class (18 tests, 100% coverage with mocks)
-   - Worker initialization and lifecycle
-   - Task queuing and distribution
-   - State synchronization across workers
-   - Queue management and cleanup
-   - Error handling and boot failures
-16. ✅ **Done:** runOptimizationPhase function (17 tests, 100% coverage with mocks)
-   - Successive halving orchestration
-   - Progress tracking and callbacks
-   - Timeout handling and abort logic
-   - Target metric optimization
-   - Summary statistics generation
-17. ✅ **Done:** pathfinder_engine.js helpers (25 tests, ~30% coverage)
-   - getExpRequired - Experience requirement calculation
-   - isCrippledPhase - Ascension 2 macro-stepper detection
-   - getAvailableStatKeys - Dynamic stat list based on ascensions
-   - getEffectiveStatCaps - Stat caps with upgrade 45 bonuses
-   - formatBuildStr - Build formatting for logs
-   - enforceBudget - Budget enforcement and stat filling
-   - Note: Exported via __test__ object (doesn't affect application code)
-18. ⏳ **Next:** Optional - Test runPathfinderSimulation main loop (integration test)
-14. ⏳ **Next:** Write tests for `pathfinder_engine.js` (progression logic)
-15. 💭 **Future:** Component tests (React Testing Library)
-16. 💭 **Future:** E2E tests (Playwright)
+### Immediate:
+- ✅ All critical business logic tested
+- ✅ CI integration complete
+- ✅ Fast, reliable test suite
+
+### Optional Future Work:
+1. **Integration tests** for pathfinder main loop (requires worker pool)
+2. **Component tests** for critical React components (React Testing Library)
+3. **E2E tests** for full user workflows (Playwright)
 
 ---
 
-## Questions?
-
-- **"Why 6 tests?"** - Started with critical constants. More tests coming.
-- **"Why not test React components?"** - Business logic first, UI later.
-- **"Can I skip tests?"** - No, CI will fail. Fix or remove broken tests.
-- **"How do I test async code?"** - Use `async`/`await` in test functions.
-- **"What about code coverage?"** - Run `npm run test:coverage` to generate report.
-
----
-
-## What's Still Untested
-
-### High-Value Code Not Yet Covered:
-1. **pathfinder_engine.js runPathfinderSimulation** - Main progression loop (1400+ lines)
-   - Requires worker pool, complex state management
-   - Would need integration tests or extensive mocks
-   - Helpers are tested (25 tests), main loop is not
-
-### Low-Priority Code (Intentionally Skipped):
-1. **Web Workers** (calc_worker.js, engine_worker.js) - Thin glue code, ~500 lines total
-   - Requires Pyodide runtime (2-5 second boot)
-   - Failures are immediately obvious (app doesn't work)
-   - Python engine tested separately
-   
-2. **React Components** (~4500 lines) - UI rendering and event handlers
-   - Lower risk than business logic
-   - Would need React Testing Library
-   - Bugs are visually obvious
-
-### Coverage Summary:
-- ✅ **game_data.js:** 93% coverage (core game logic)
-- ✅ **store.js:** 70% coverage (state management, critical functions)
-- ✅ **optimizer.js:** 95% coverage (optimization algorithms - COMPLETE)
-- ✅ **pathfinder_engine.js:** 30% coverage (helpers tested, main loop not)
-- ⏸️ **Web Workers:** 0% coverage (thin wrappers, intentionally skipped)
-- ⏸️ **React Components:** 0% coverage (UI layer, lower priority)
-
----
-
-**Status:** Testing infrastructure is production-ready. Core business logic heavily tested. Add more tests as you develop new features.
+**Status:** ✅ Production-ready test infrastructure. Core business logic heavily tested. Add more tests as you develop new features.

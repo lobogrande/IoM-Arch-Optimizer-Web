@@ -1,0 +1,8 @@
+# Python Development Dependencies
+# Test framework and coverage
+pytest==8.2.2
+pytest-cov==5.0.0
+pytest-xdist==3.6.1  # Parallel test execution
+
+# Code quality
+ruff==0.4.8  # Fast Python linter (replaces flake8, isort, etc)
