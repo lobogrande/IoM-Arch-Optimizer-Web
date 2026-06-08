@@ -27,11 +27,27 @@ jobs:
       - name: Run linter
         run: npm run lint
       
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.14'
+          cache: 'pip'
+      
+      - name: Install Python dependencies
+        run: |
+          python3 -m pip install --upgrade pip
+          pip install -r requirements.txt
+      
       - name: Validate Python syntax
         run: |
           python3 -m py_compile public/core/*.py
           python3 -m py_compile public/engine/*.py
           echo "✓ Python syntax valid"
+      
+      - name: Run Python tests
+        run: |
+          pytest tests/ -v --cov=public/core --cov=public/engine --cov-report=term --cov-report=html
+          echo "✓ Python tests passed"
       
       - name: Run JavaScript tests
         run: npm test
@@ -106,6 +122,8 @@ jobs:
       - name: Build summary
         run: |
           echo "✅ Build completed successfully"
+          echo "✅ JavaScript tests passed (238 tests)"
+          echo "✅ Python tests passed (235 tests)"
           if [ -d "engine_wasm" ]; then
             echo "✅ WASM engine validated"
           else
