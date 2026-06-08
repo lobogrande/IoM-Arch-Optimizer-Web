@@ -10,7 +10,8 @@
 Successfully set up comprehensive testing and CI infrastructure for the IoM Arch Optimizer project with:
 
 - ✅ **Vitest** test framework installed and configured  
-- ✅ **6 passing tests** for game constants  
+- ✅ **151 passing tests** with comprehensive coverage
+- ✅ **Input validation** added to store.js (defense in depth)
 - ✅ **GitHub Actions CI** running 4 validation steps  
 - ✅ **Parallel test execution** built-in (Vitest default)  
 - ✅ **Zero vulnerabilities** after security fixes
@@ -42,31 +43,25 @@ npm install -D vitest@4.1.8 @vitest/ui@4.1.8 jsdom @testing-library/react @testi
 
 ### 2. Test Coverage
 
-**Files:** 6 test files
-- `src/tests/game_data.test.js` - Game constants (6 tests)
+**Files:** 8 test files (147 tests)
+
+**game_data.js (107 tests):**
+- `src/tests/game_data.test.js` - Constants (6 tests)
 - `src/tests/calculateUpgradeCost.test.js` - Cost calculation (18 tests)
-- `src/tests/capEnforcement.test.js` - Cap enforcement functions (23 tests)
-- `src/tests/ascensionLocks.test.js` - Ascension locks & requirements (28 tests)
-- `src/tests/blockAndCurrency.test.js` - Block/currency data (13 tests)
-- `src/tests/infernalBonuses.test.js` - Infernal card bonuses (19 tests)
+- `src/tests/capEnforcement.test.js` - Cap enforcement (23 tests)
+- `src/tests/ascensionLocks.test.js` - Locks & requirements (28 tests)
+- `src/tests/blockAndCurrency.test.js` - Data structures (13 tests)
+- `src/tests/infernalBonuses.test.js` - Infernal bonuses (19 tests)
 
-**Coverage:**
-- ✅ All constants (UPGRADE_NAMES, INTERNAL_UPGRADE_CAPS, CARD_TYPES, etc.)
-- ✅ calculateUpgradeCost function (18 tests - all edge cases)
-- ✅ enforceUpgradeCap & enforceAllUpgradeCaps (23 tests - critical)
-- ✅ ASC1_LOCKED_UPGS & ASC2_LOCKED_UPGS validation (28 tests)
-- ✅ UPGRADE_LEVEL_REQS (arch unlock logic)
-- ✅ BLOCK_MIN_FLOORS (floor appearance logic)
-- ✅ INFERNAL_CARD_BONUSES (bonus structure & values - 19 tests)
-- ✅ CURRENCY_TYPES, FRAG_NAMES, FRAG_ICONS
-
-**game_data.js Coverage:** ~93% functional coverage (13 of 14 exports tested)
+**store.js (44 tests):**
+- `src/tests/storeProfiles.test.js` - Profile management (15 tests: 11 base + 4 edge cases)
+- `src/tests/storeSetters.test.js` - State setters & reset (29 tests: 16 base + 13 validation/edge cases)
 
 **Test Results:**
 ```
-Test Files  6 passed (6)
-     Tests  107 passed (107)
-  Duration  1.28s
+Test Files  8 passed (8)
+     Tests  151 passed (151)
+  Duration  1.42s
 ```
 
 ### 3. Enhanced CI Workflow
@@ -213,6 +208,19 @@ describe('Store - Profile Management', () => {
 
 ---
 
+## Store.js Validation
+
+The `setSetting()` function includes input validation for defense in depth:
+
+- **arch_level:** Parsed to integer, clamped to minimum 1 (no maximum)
+- **current_max_floor:** Parsed to integer, clamped to minimum 1
+- **starting_speed_pool:** Parsed to integer, clamped to minimum 0
+- **Boolean fields:** Type coerced to `true`/`false`
+
+This protects against invalid inputs from JSON imports, profile loading, and direct manipulation. The validation rules match what UI components already enforce (PlayerSetup.jsx), providing defense in depth.
+
+---
+
 ## Security Fixes
 
 ### Vitest Vulnerabilities (Resolved)
@@ -241,9 +249,12 @@ IoM-Arch-Optimizer-Web/
 │   │   ├── calculateUpgradeCost.test.js  ← 18 tests (cost function)
 │   │   ├── capEnforcement.test.js        ← 23 tests (critical caps)
 │   │   ├── ascensionLocks.test.js        ← 28 tests (unlock logic)
-│   │   └── blockAndCurrency.test.js      ← 13 tests (data structures)
-│   ├── game_data.js                      ← Application code (85% covered)
-│   ├── store.js                    ← Application code (TODO: Add tests)
+│   │   ├── blockAndCurrency.test.js      ← 13 tests (data structures)
+│   │   ├── infernalBonuses.test.js       ← 19 tests (infernal bonuses)
+│   │   ├── storeProfiles.test.js         ← 15 tests (profile CRUD + edge cases)
+│   │   └── storeSetters.test.js          ← 29 tests (setters + validation)
+│   ├── game_data.js                      ← Application code (93% covered)
+│   ├── store.js                          ← Application code (70% covered)
 │   ├── utils/
 │   │   ├── optimizer.js            ← TODO: Add tests
 │   │   └── pathfinder_engine.js    ← TODO: Add tests
@@ -310,12 +321,22 @@ Add to README.md:
 5. ✅ **Done:** Cap enforcement tests (23 tests)
 6. ✅ **Done:** Ascension locks & unlock requirements (28 tests)
 7. ✅ **Done:** Block/currency data structures (13 tests)
-8. ✅ **Done:** game_data.js comprehensive coverage (107 tests, 93% coverage)
-9. ⏳ **Next:** Write tests for `store.js` (state management)
-10. ⏳ **Next:** Write tests for `optimizer.js` (optimization logic)
-11. ⏳ **Next:** Write tests for `pathfinder_engine.js` (progression logic)
-12. 💭 **Future:** Component tests (React Testing Library)
-13. 💭 **Future:** E2E tests (Playwright)
+8. ✅ **Done:** Infernal bonuses calculations (19 tests)
+9. ✅ **Done:** game_data.js comprehensive coverage (107 tests, 93% coverage)
+10. ✅ **Done:** store.js critical functions (44 tests, 70% coverage)
+   - Profile management with edge cases (create, load, save, rename, delete)
+   - State setters with validation tests (base stats, upgrades, cards, settings)
+   - Input validation (arch_level ≥1, current_max_floor ≥1, speed_pool ≥0, boolean coercion)
+   - Ascension sanitization tests (asc1/asc2 cascading locks)
+   - External upgrade group setters
+   - resetState function
+11. ✅ **Done:** Parallel execution safety measures (`describe.sequential()`)
+12. ✅ **Done:** Verified test stability (10 consecutive runs, zero failures)
+13. ✅ **Done:** Added setSetting validation to store.js (defense in depth)
+14. ⏳ **Next:** Write tests for `optimizer.js` (optimization logic)
+14. ⏳ **Next:** Write tests for `pathfinder_engine.js` (progression logic)
+15. 💭 **Future:** Component tests (React Testing Library)
+16. 💭 **Future:** E2E tests (Playwright)
 
 ---
 
