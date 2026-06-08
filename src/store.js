@@ -103,11 +103,6 @@ const useStore = create(
   sandbox_baseline: null,
   sandbox_baseline_stats: null,
 
-  // Simulation Tab State Persistenceopt_results: null,
-  run_history: [ ],
-  synth_history: [ ],
-  synthesis_result: null,
-
   // Simulation Tab State Persistence
   optGoal: "Max Floor Push",
   targetFrag: 0,
