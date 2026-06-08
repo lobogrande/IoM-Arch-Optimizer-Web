@@ -103,11 +103,6 @@ const useStore = create(
   sandbox_baseline: null,
   sandbox_baseline_stats: null,
 
-  // Simulation Tab State Persistenceopt_results: null,
-  run_history: [ ],
-  synth_history: [ ],
-  synthesis_result: null,
-
   // Simulation Tab State Persistence
   optGoal: "Max Floor Push",
   targetFrag: 0,
@@ -149,7 +144,29 @@ const useStore = create(
   // Actions (Equivalent to updating st.session_state)
   setPathfinderData: (data) => set({ pathfinder_data: data }),
   setSetting: (key, value) => set((state) => {
-    const updates = { [key]: value };
+    let updates = { [key]: value };
+
+    // --- TYPE COERCION & VALIDATION ---
+    // Numeric fields: parse and clamp to minimum
+    if (key === 'arch_level') {
+      const num = parseInt(value);
+      updates[key] = isNaN(num) ? 1 : Math.max(1, num);
+    }
+    
+    if (key === 'current_max_floor') {
+      const num = parseInt(value);
+      updates[key] = isNaN(num) ? 1 : Math.max(1, num);
+    }
+    
+    if (key === 'starting_speed_pool') {
+      const num = parseInt(value);
+      updates[key] = isNaN(num) ? 0 : Math.max(0, num);
+    }
+    
+    // Boolean fields: ensure boolean type
+    if (['asc1_unlocked', 'asc2_unlocked', 'geoduck_unlocked', 'hades_unlocked'].includes(key)) {
+      updates[key] = Boolean(value);
+    }
 
     // --- ENFORCE SANITIZATION FOR ASCENSION 2 ---
     if (key === 'asc2_unlocked' && value === false) {
@@ -298,7 +315,7 @@ const useStore = create(
   }),
   
   // Wipe all data to default baseline
-  resetState: () => set((state) => {
+  resetState: () => set((_state) => {
     const defaultExt = { };
     EXTERNAL_UI_GROUPS.forEach(g => {
       if (g.ui_type === 'pet') {

@@ -1,0 +1,7 @@
+# Python Testing Dependencies
+pytest==8.2.2
+pytest-cov==5.0.0
+pytest-xdist==3.6.1
+
+# Note: No runtime dependencies required for the Python simulation engine
+# The engine uses only Python standard library

@@ -1518,14 +1518,14 @@ export default function PathfinderTab() {
                         line: { color: '#f59e0b', width: 2, dash: 'dot' },
                         layer: 'below'
                     })) || [ ]),
-                    ...(diagnosticView.includes('crit') ? simulationInsights?.critPivots.map(p => ({
+                    ...(diagnosticView.includes('crit') && simulationInsights?.critPivots ? simulationInsights.critPivots.map(p => ({
                         type: 'line',
                         x0: p.sec, x1: p.sec,
                         y0: 0.1025, y1: 0.180, yref: 'paper', // Locked exclusively to Plot 9's domain
                         line: { color: '#f472b6', width: 1, dash: 'dash' },
                         layer: 'above'
                     })) : [ ]),
-                    ...(diagnosticView.includes('crit') ? simulationInsights?.floorPivots.map(p => ({
+                    ...(diagnosticView.includes('crit') && simulationInsights?.floorPivots ? simulationInsights.floorPivots.map(p => ({
                         type: 'line',
                         x0: p.sec, x1: p.sec,
                         y0: 0.1025, y1: 0.180, yref: 'paper', // Locked exclusively to Plot 9's domain
@@ -1578,7 +1578,7 @@ export default function PathfinderTab() {
                     )),
 
                     // Crit Engine Pivot Labels
-                    ...(diagnosticView.includes('crit') ? simulationInsights?.critPivots.map(p => ({
+                    ...(diagnosticView.includes('crit') && simulationInsights?.critPivots ? simulationInsights.critPivots.map(p => ({
                         x: p.sec, y: 0.180, yref: 'paper',
                         text: `${p.label}`,
                         showarrow: false,
@@ -1591,7 +1591,7 @@ export default function PathfinderTab() {
                     })) : [ ]),
 
                     // Floor Milestone Pivot Labels
-                    ...(diagnosticView.includes('crit') ? simulationInsights?.floorPivots.map(p => ({
+                    ...(diagnosticView.includes('crit') && simulationInsights?.floorPivots ? simulationInsights.floorPivots.map(p => ({
                         x: p.sec, y: 0.180, yref: 'paper',
                         text: `${p.label}`,
                         showarrow: false,
@@ -1929,21 +1929,21 @@ export default function PathfinderTab() {
                                   <div className="mt-3 border-t border-st-border pt-2">
                                     <strong className="text-yellow-400 border-b border-st-border pb-0.5 mb-2 block">Pending Card Drops (Hidden Engine Progress)</strong>
                                     <div className="flex flex-wrap gap-2">
-                                      {Object.entries(finalEvent.card_progress).filter(([k,v]) => v > 0).map(([k, v]) => {
-                                        const isT4 = k.endsWith('4');
-                                        const currentLvl = finalEvent.state_snapshot?.cards?.[k] || 0;
+                                      {Object.entries(finalEvent.card_progress).filter(([_cardId, progress]) => progress > 0).map(([cardId, progress]) => {
+                                        const isT4 = cardId.endsWith('4');
+                                        const currentLvl = finalEvent.state_snapshot?.cards?.[cardId] || 0;
                                         let target = 9.669; // Poly/Inf requirement
                                         let label = 'to Poly';
                                         
                                         if (currentLvl === 0) { target = 0.693; label = isT4 ? 'to Gild' : 'to Base'; }
                                         else if (currentLvl === 3) { label = 'to Inf'; }
                                         
-                                        const pct = Math.min(100, (v / target) * 100).toFixed(1);
+                                        const pct = Math.min(100, (progress / target) * 100).toFixed(1);
                                         if (pct < 1) return null; // hide negligible progress
                                         
                                         return (
-                                          <div key={k} className="bg-[#1e1e1e] border border-st-border px-2 py-1 rounded text-[10px]">
-                                            <span className="capitalize text-st-text">{k}:</span> <span className="text-st-orange font-bold">{pct}%</span> <span className="text-st-text-light">{label}</span>
+                                          <div key={cardId} className="bg-[#1e1e1e] border border-st-border px-2 py-1 rounded text-[10px]">
+                                            <span className="capitalize text-st-text">{cardId}:</span> <span className="text-st-orange font-bold">{pct}%</span> <span className="text-st-text-light">{label}</span>
                                           </div>
                                         );
                                       })}
