@@ -1616,3 +1616,11 @@ export async function runPathfinderSimulation(startState, targetLevel, initialFr
 
     return { history, final_state: state };
 }
+// Export internal helpers for testing only
+export const __test__ = {
+    isCrippledPhase,
+    getAvailableStatKeys,
+    getEffectiveStatCaps,
+    formatBuildStr,
+    enforceBudget
+};
