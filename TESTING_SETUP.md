@@ -40,29 +40,33 @@ npm install -D vitest@4.1.8 @vitest/ui@4.1.8 jsdom @testing-library/react @testi
 }
 ```
 
-### 2. Initial Tests
+### 2. Test Coverage
 
-**Files:**
+**Files:** 6 test files
 - `src/tests/game_data.test.js` - Game constants (6 tests)
-- `src/tests/calculateUpgradeCost.test.js` - Cost calculation function (18 tests)
+- `src/tests/calculateUpgradeCost.test.js` - Cost calculation (18 tests)
+- `src/tests/capEnforcement.test.js` - Cap enforcement functions (23 tests)
+- `src/tests/ascensionLocks.test.js` - Ascension locks & requirements (28 tests)
+- `src/tests/blockAndCurrency.test.js` - Block/currency data (13 tests)
+- `src/tests/infernalBonuses.test.js` - Infernal card bonuses (19 tests)
 
 **Coverage:**
-- ✅ UPGRADE_NAMES structure (51 upgrades)
-- ✅ INTERNAL_UPGRADE_CAPS validation (51 caps)
-- ✅ CARD_TYPES verification (7 types)
-- ✅ calculateUpgradeCost function - all edge cases
-- ✅ Currency handling (gems vs fragments)
-- ✅ Ascension tier support
-- ✅ Cost caps and rounding logic
-- ✅ Data integrity checks
+- ✅ All constants (UPGRADE_NAMES, INTERNAL_UPGRADE_CAPS, CARD_TYPES, etc.)
+- ✅ calculateUpgradeCost function (18 tests - all edge cases)
+- ✅ enforceUpgradeCap & enforceAllUpgradeCaps (23 tests - critical)
+- ✅ ASC1_LOCKED_UPGS & ASC2_LOCKED_UPGS validation (28 tests)
+- ✅ UPGRADE_LEVEL_REQS (arch unlock logic)
+- ✅ BLOCK_MIN_FLOORS (floor appearance logic)
+- ✅ INFERNAL_CARD_BONUSES (bonus structure & values - 19 tests)
+- ✅ CURRENCY_TYPES, FRAG_NAMES, FRAG_ICONS
 
-**Test Organization:** All tests live in `src/tests/` folder, separate from application code.
+**game_data.js Coverage:** ~93% functional coverage (13 of 14 exports tested)
 
 **Test Results:**
 ```
-Test Files  2 passed (2)
-     Tests  24 passed (24)
-  Duration  844ms
+Test Files  6 passed (6)
+     Tests  107 passed (107)
+  Duration  1.28s
 ```
 
 ### 3. Enhanced CI Workflow
@@ -231,11 +235,14 @@ IoM-Arch-Optimizer-Web/
 ├── .github/workflows/
 │   └── ci.yml                      ← Enhanced with tests
 ├── src/
-│   ├── tests/                      ← All tests live here
-│   │   ├── setup.js                ← Global test setup
-│   │   ├── game_data.test.js       ← 6 tests (constants)
-│   │   └── calculateUpgradeCost.test.js  ← 18 tests (cost function)
-│   ├── game_data.js                ← Application code
+│   ├── tests/                            ← All tests live here
+│   │   ├── setup.js                      ← Global test setup
+│   │   ├── game_data.test.js             ← 6 tests (constants)
+│   │   ├── calculateUpgradeCost.test.js  ← 18 tests (cost function)
+│   │   ├── capEnforcement.test.js        ← 23 tests (critical caps)
+│   │   ├── ascensionLocks.test.js        ← 28 tests (unlock logic)
+│   │   └── blockAndCurrency.test.js      ← 13 tests (data structures)
+│   ├── game_data.js                      ← Application code (85% covered)
 │   ├── store.js                    ← Application code (TODO: Add tests)
 │   ├── utils/
 │   │   ├── optimizer.js            ← TODO: Add tests
@@ -300,11 +307,15 @@ Add to README.md:
 2. ✅ **Done:** CI integration  
 3. ✅ **Done:** Game constants tests (6 tests)
 4. ✅ **Done:** calculateUpgradeCost tests (18 tests)
-5. ⏳ **Next:** Write tests for `optimizer.js`
-6. ⏳ **Next:** Write tests for `pathfinder_engine.js`
-7. ⏳ **Next:** Write tests for `store.js`
-8. 💭 **Future:** Component tests (React Testing Library)
-9. 💭 **Future:** E2E tests (Playwright)
+5. ✅ **Done:** Cap enforcement tests (23 tests)
+6. ✅ **Done:** Ascension locks & unlock requirements (28 tests)
+7. ✅ **Done:** Block/currency data structures (13 tests)
+8. ✅ **Done:** game_data.js comprehensive coverage (107 tests, 93% coverage)
+9. ⏳ **Next:** Write tests for `store.js` (state management)
+10. ⏳ **Next:** Write tests for `optimizer.js` (optimization logic)
+11. ⏳ **Next:** Write tests for `pathfinder_engine.js` (progression logic)
+12. 💭 **Future:** Component tests (React Testing Library)
+13. 💭 **Future:** E2E tests (Playwright)
 
 ---
 
