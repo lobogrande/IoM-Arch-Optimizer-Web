@@ -5,9 +5,9 @@
 Python test suite for the IoM Arch Optimizer simulation engine using pytest.
 
 - **Framework**: pytest 8.2.2 with coverage and parallel execution
-- **Test Files**: 3 (154 tests)  
-- **Coverage**: 91% of core modules (player, block, skills)
-- **Execution Time**: ~0.38 seconds
+- **Test Files**: 4 (184 tests)  
+- **Coverage**: 88% of testable modules (player, block, skills, floor_map)
+- **Execution Time**: ~0.46 seconds
 - **Python Version**: 3.14+ required
 
 ## Quick Start
@@ -202,6 +202,55 @@ Tests for `public/core/skills.py` - Skill manager for ability cooldowns and mech
 **Untested Areas in skills.py** (6% not covered):
 - Lines 130-132, 145-147: Flurry/Quake instacharge RNG branches
 
+### `tests/engine/test_floor_map.py` (30 tests, 78% coverage)
+
+Tests for `public/engine/floor_map.py` - Floor generation with ore spawning and boss floors.
+
+**Test Classes:**
+1. **TestFloorObject** (2 tests)
+   - Floor initialization and grid size validation
+
+2. **TestFloorGeneratorInitialization** (5 tests)
+   - Rarity prefix mapping (0-6 to dirt/com/rare/etc)
+   - Tier unlock structure and chance sets
+
+3. **TestPlayerModifierCaching** (3 tests)
+   - Cache creation, required keys, player value storage
+
+4. **TestBossFloorGeneration** (3 tests)
+   - Fixed boss type floors (all 24 slots same type)
+   - Mixed gauntlet floors (varied block types)
+   - Divine failsafe for pre-Asc1 players
+
+5. **TestNormalFloorGeneration** (5 tests)
+   - 24-slot grid generation
+   - Spawn probability system
+   - Tier boundary unlocks
+   - Ascension gating (no divine pre-Asc1, no tier 4 pre-Asc2)
+
+6. **TestGleamingFloorMechanics** (3 tests)
+   - Gleaming floor flag and multiplier
+   - Non-gleaming floors have 1.0x multiplier
+
+7. **TestBlockModifierRolling** (3 tests)
+   - Block modifier dict creation
+   - Required modifier keys (exp_multi, loot_multi, stamina_gain, speed)
+   - Exp modifier rolling (1.0 or exp_gain value)
+
+8. **TestTierProgression** (2 tests)
+   - Dirt tier progression through floors
+   - Divine unlock at floor 50
+
+9. **TestEdgeCases** (4 tests)
+   - Floor 1 minimum, Floor 200 high floor
+   - Empty slots possible based on spawn RNG
+   - Modifier cache persists across floors
+
+**Untested Areas in floor_map.py** (22% not covered):
+- Lines 20, 24: Path manipulation (infrastructure)
+- Lines 116, 158, 167: Specific code branches in generation
+- Lines 217-239: Manual test script (`if __name__ == "__main__"`)
+
 ## Coverage Details
 
 | File | Statements | Covered | Coverage | Notes |
@@ -209,11 +258,11 @@ Tests for `public/core/skills.py` - Skill manager for ability cooldowns and mech
 | `public/core/player.py` | 290 | 264 | 91% | ✅ Core logic tested |
 | `public/core/block.py` | 76 | 65 | 86% | ✅ Core logic tested |
 | `public/core/skills.py` | 99 | 93 | 94% | ✅ Core logic tested |
+| `public/engine/floor_map.py` | 94 | 73 | 78% | ✅ Core logic tested |
 | `public/engine/combat_loop.py` | 205 | 0 | 0% | ⏸️ Not yet tested |
-| `public/engine/floor_map.py` | 94 | 0 | 0% | ⏸️ Not yet tested |
 
-**Core Modules Coverage:** 91% (422/465 statements)  
-**Overall Coverage:** 55% (422/764 statements)
+**Testable Modules Coverage:** 88% (495/559 statements)  
+**Overall Coverage:** 65% (495/764 statements)
 
 ## Configuration Files
 
@@ -370,9 +419,9 @@ class TestMyFeature:
 
 ## FAQs
 
-### Why is coverage only 55%?
+### Why is coverage only 65%?
 
-We've completed comprehensive testing of the core modules (player, block, skills at 91% combined), but haven't started testing the engine modules yet:
+We've completed comprehensive testing of the testable modules (player, block, skills, floor_map at 88% combined), with only combat_loop.py remaining:
 - block.py (ore generation and scaling)
 - skills.py (ability cooldowns)
 - combat_loop.py (combat simulation)
@@ -380,7 +429,7 @@ We've completed comprehensive testing of the core modules (player, block, skills
 
 ### How fast should tests run?
 
-Current test suite runs in **~0.38 seconds** (154 tests: 77 player + 41 block + 36 skills). Target: <1 second for 200+ tests.
+Current test suite runs in **~0.46 seconds** (184 tests: 77 player + 41 block + 36 skills + 30 floor_map). Target: <1 second for 200+ tests.
 
 ### Why are some Player properties not tested?
 
@@ -400,10 +449,10 @@ Yes! Use `pytest -n auto` to run tests in parallel across all CPU cores.
 ### What's the difference between JavaScript and Python tests?
 
 - **JavaScript tests** (Vitest): 238 tests for UI logic, state management, game data
-- **Python tests** (pytest): 154 tests for simulation engine calculations (player, block, skills)
+- **Python tests** (pytest): 184 tests for simulation engine calculations (player, block, skills, floor_map)
 - Both use similar markers (unit, critical, validation, formulas)
 - Both target ~90% coverage for business logic
-- **Total:** 392 tests across both languages
+- **Total:** 422 tests across both languages
 
 ### Should I use unittest or pytest?
 
@@ -414,10 +463,10 @@ Use **pytest**. It's more modern, has better fixtures, cleaner syntax, and bette
 1. ✅ **player.py tests complete** (77 tests, 91% coverage)
 2. ✅ **block.py tests complete** (41 tests, 86% coverage)
 3. ✅ **skills.py tests complete** (36 tests, 94% coverage)
-4. ⏸️ **floor_map.py tests** (ore spawning, boss floors, restrictions)
-5. ⏸️ **combat_loop.py tests** (combat simulation - may be integration tests)
+4. ✅ **floor_map.py tests complete** (30 tests, 78% coverage)
+5. ⏸️ **combat_loop.py tests** (combat simulation - integration tests, complex)
 
-**Estimated effort:** 1-2 days per module (floor_map), 2-3 days for combat_loop.
+**Estimated effort:** 2-3 days for combat_loop (largest module, 205 statements).
 
 ## Related Documentation
 
