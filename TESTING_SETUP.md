@@ -5,8 +5,8 @@
 **Last Updated:** June 7, 2026  
 **Status:** ✅ Production Ready  
 **JavaScript Tests:** 238 passing  
-**Python Tests:** 77 passing  
-**Execution Time:** ~3 seconds (JS) + ~0.3 seconds (Python)  
+**Python Tests:** 154 passing (77 player + 41 block + 36 skills)  
+**Execution Time:** ~3 seconds (JS) + ~0.4 seconds (Python)  
 
 ---
 
@@ -31,16 +31,18 @@ Comprehensive test suite covering core business logic with 238 tests across 12 t
 
 ### Python Tests (pytest)
 
-Test suite for simulation engine with 77 tests covering player calculations.
+Test suite for simulation engine with 154 tests covering core game calculations.
 
 **Test Coverage:**
-- **player.py:** 77 tests (91% coverage) - Player stats, upgrades, cards, infernal bonuses, combat formulas
+- **player.py:** 77 tests (91% coverage) - Player stats, upgrades, cards, combat formulas
+- **block.py:** 41 tests (86% coverage) - Ore generation, floor scaling, card bonuses
+- **skills.py:** 36 tests (94% coverage) - Ability cooldowns, auto-cast, instacharge
 
 **Key Features:**
-- ✅ Fast execution (~0.30 seconds for 77 tests)
+- ✅ Fast execution (~0.38 seconds for 154 tests)
 - ✅ Comprehensive formula validation (damage, crit, modifiers, cooldowns)
+- ✅ GameMaker bug testing (Floor 150 armor skip, Floor 300 double-trigger)
 - ✅ Cap enforcement and ascension gating tests
-- ✅ GameMaker rounding behavior tests
 
 **See `PYTHON_TESTING.md` for full Python test documentation.**
 
