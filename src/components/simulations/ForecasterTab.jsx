@@ -813,7 +813,7 @@ export default function ForecasterTab() {
         }
       });
 
-      const pureExpUpgs = [ 4, 11, 38 ];
+      const pureExpUpgs = [ 4, 11, 35, 38 ];
       Object.keys(INTERNAL_UPGRADE_CAPS || {}).forEach(upgIdStr => {
         const upgId = parseInt(upgIdStr);
         const currentLvl = effState.upgrade_levels[upgId] || 0;

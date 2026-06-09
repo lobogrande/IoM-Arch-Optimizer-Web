@@ -236,9 +236,9 @@ export default function ResultsDashboard({ context }) {
       const baseVal = store.opt_results.final_summary_out[targetMetric];
       const bestFinal = store.opt_results.best_final;
 
-      const pureExpUpgs =[ 4, 11, 38 ];
+      const pureExpUpgs =[ 4, 11, 35, 38 ];
       const pureLootUpgs =[ 5, 16, 27, 42 ];
-      const pureEconUpgs =[ 4, 5, 11, 16, 19, 21, 27, 38, 42, 46 ];
+      const pureEconUpgs =[ 4, 5, 11, 16, 19, 21, 27, 35, 38, 42, 46 ];
 
       const baseStateDict = {
         asc1_unlocked: store.asc1_unlocked,
