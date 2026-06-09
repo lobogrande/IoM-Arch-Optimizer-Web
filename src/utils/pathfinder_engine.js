@@ -505,7 +505,7 @@ export async function runPathfinderSimulation(startState, targetLevel, initialFr
     let lastEventTime = initialArchSecs;
     
     let currentExp = initialExp;
-    let unspentPoints = 0;
+    // let unspentPoints = 0; // TODO: Track unspent stat points for future use
 
     const captureSnapshot = (s) => ({
         arch_level: s.arch_level,
@@ -1231,7 +1231,7 @@ export async function runPathfinderSimulation(startState, targetLevel, initialFr
                 currentPushYields = await getSmoothedYields(pool, pushActualTargetState, state.push_stats, 3);
                 await pool.syncState(state);
                 
-                unspentPoints = 0;
+                // unspentPoints = 0; // Tracked for future use
                 pushBuildIsStale = true; // Stat points added!
             } else {
                 // FAST-FORWARD MODE: Skip Simulated Annealing. 
@@ -1248,7 +1248,7 @@ export async function runPathfinderSimulation(startState, targetLevel, initialFr
                 currentPushYields = await getSmoothedYields(pool, pushActualTargetState, state.push_stats, 3);
                 await pool.syncState(state);
                 
-                unspentPoints = 0;
+                // unspentPoints = 0; // Tracked for future use
                 pushBuildIsStale = true;
             }
 
@@ -1529,24 +1529,21 @@ export async function runPathfinderSimulation(startState, targetLevel, initialFr
 
                     // Calculate newly unlocked upgrades across ALL floors gained in the jump!
                 const newUpgs = Object.entries(UPGRADE_LEVEL_REQS)
-                    .filter(([id, reqFlr]) => reqFlr > oldFloor && reqFlr <= state.current_max_floor)
-                    .map(([id]) => UPGRADE_NAMES[id] || `Upg ${id}`);
+                    .filter(([_upgId, reqFlr]) => reqFlr > oldFloor && reqFlr <= state.current_max_floor)
+                    .map(([upgId]) => UPGRADE_NAMES[upgId] || `Upg ${upgId}`);
 
                 // Calculate newly spawning blocks across ALL floors gained!
                 const newBlocks = Object.entries(BLOCK_MIN_FLOORS)
-                    .filter(([id, minFlr]) => minFlr > oldFloor && minFlr <= state.current_max_floor)
-                    .map(([id]) => {
-                        const type = id.replace(/[0-9]/g, '');
-                        const tier = id.replace(/[^0-9]/g, '');
+                    .filter(([_blockId, minFlr]) => minFlr > oldFloor && minFlr <= state.current_max_floor)
+                    .map(([blockId]) => {
+                        const type = blockId.replace(/[0-9]/g, '');
+                        const tier = blockId.replace(/[^0-9]/g, '');
                         return `${FRAG_NAMES_UI[type] || type} T${tier}`;
                     });
                 
                 const winRateStr = (pushResult.winRate * 100).toFixed(0);
                 
-                let timeCostStr = "";
-                if (pushResult.timePenaltySecs >= 1000000) timeCostStr = (pushResult.timePenaltySecs / 1000000).toFixed(2) + "m";
-                else if (pushResult.timePenaltySecs >= 1000) timeCostStr = (pushResult.timePenaltySecs / 1000).toFixed(1) + "k";
-                else timeCostStr = Math.floor(pushResult.timePenaltySecs).toString();
+                // timeCostStr calculation removed - not currently used in output
                 
                 let floorDesc = `Brute-forced ceiling with ${winRateStr}% win rate. (Jumped from ${oldFloor} to ${state.current_max_floor}!)`;
                 if (newUpgs.length > 0) floorDesc += ` Unlocks: ${newUpgs.join(', ')}.`;
@@ -1616,3 +1613,11 @@ export async function runPathfinderSimulation(startState, targetLevel, initialFr
 
     return { history, final_state: state };
 }
+// Export internal helpers for testing only
+export const __test__ = {
+    isCrippledPhase,
+    getAvailableStatKeys,
+    getEffectiveStatCaps,
+    formatBuildStr,
+    enforceBudget
+};

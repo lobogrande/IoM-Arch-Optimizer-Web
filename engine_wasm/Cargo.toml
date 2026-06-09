@@ -1,0 +1,28 @@
+[package]
+name = "engine_wasm"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+# cdylib produces a .wasm with raw extern "C" exports — no wasm-bindgen runtime.
+# rlib enables `cargo test` to link against internal modules (host target,
+# not WASM) for parity tests against Python goldens.
+crate-type = ["cdylib", "rlib"]
+
+# Dev-only — parity tests parse JSON fixtures generated from Python.
+# Does NOT affect the WASM bundle (these are host-target deps).
+[dev-dependencies]
+serde_json = "1"
+
+[profile.release]
+# Optimize for size + speed; LTO buys the most from this kind of pure-numeric code.
+opt-level = "z"
+lto = true
+codegen-units = 1
+panic = "abort"
+strip = "symbols"
+
+[profile.dev]
+# Dev builds are still WASM-compiled; we don't run unit tests here (those use the
+# host target via `cargo test`). Faster compile, no debug info.
+panic = "abort"

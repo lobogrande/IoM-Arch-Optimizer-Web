@@ -15,6 +15,11 @@ __pycache__/
 *$py.class
 *.pyc
 *.pyo
+.venv/
+*.egg-info/
+.pytest_cache/
+coverage_html/
+.coverage
 
 # Editor directories and files
 .vscode/
@@ -28,3 +33,12 @@ __pycache__/
 .env
 .env.local
 .env.*.local
+
+# JS-kernel baselines: regenerable via JS_KERNEL=1 npm run baseline
+baseline_results_js/
+
+# WASM-engine baselines: regenerable via WASM_ENGINE=1 npm run baseline
+baseline_results_wasm/
+
+# Rust build artifacts for engine_wasm — public/engine.wasm + Cargo.lock are committed
+engine_wasm/target/

@@ -415,9 +415,9 @@ export default function SandboxTab() {
                 autoSizeStrategy={sandboxAutoSizeStrategy}
                 columnDefs={sandboxColumns}
                 alwaysShowHorizontalScroll={true}
-                onFirstDataRendered={(p) => { try { p.api.autoSizeColumns(p.api.getColumns().map(c => c.getColId())); } catch(e){} }}
-                onRowDataUpdated={(p) => { try { p.api.autoSizeColumns(p.api.getColumns().map(c => c.getColId())); } catch(e){} }}
-                onNewColumnsLoaded={(p) => { try { p.api.autoSizeColumns(p.api.getColumns().map(c => c.getColId())); } catch(e){} }}
+                onFirstDataRendered={(p) => { try { p.api.autoSizeColumns(p.api.getColumns().map(c => c.getColId())); } catch(e){ console.warn('autoSizeColumns error:', e); } }}
+                onRowDataUpdated={(p) => { try { p.api.autoSizeColumns(p.api.getColumns().map(c => c.getColId())); } catch(e){ console.warn('autoSizeColumns error:', e); } }}
+                onNewColumnsLoaded={(p) => { try { p.api.autoSizeColumns(p.api.getColumns().map(c => c.getColId())); } catch(e){ console.warn('autoSizeColumns error:', e); } }}
               />
             )}
           </div>

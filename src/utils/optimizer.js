@@ -39,13 +39,19 @@ export class EngineWorkerPool {
         this.readyCount = 0;
     }
 
-    // Spawns Pyodide workers and waits for them to compile the Python environment
+    // Spawns workers and waits for them to be ready.  When useWasmEngine is
+    // set we pass engine=wasm so each worker skips the ~3s Pyodide boot and
+    // signals READY as soon as the WASM module + codec are wired (a few ms).
     init(onReady, onProgress) {
         return new Promise((resolve, reject) => {
-            // Pass version into the worker to explicitly cache-bust Python stat engine payloads
-            const APP_VERSION = "1.6.7"; 
+            // Pass version into the worker to explicitly cache-bust the Python stat
+            // engine + the WASM engine.  v1.7.3 = backticks-in-Python-comment fix
+            // (terminated the JS template literal early and broke worker parsing).
+            const APP_VERSION = "1.7.3";
+            const useWasmEngine = !!useStore.getState().useWasmEngine;
+            const workerUrl = `/engine_worker.js?v=${APP_VERSION}${useWasmEngine ? '&engine=wasm' : ''}`;
             for (let i = 0; i < this.size; i++) {
-                const w = new Worker(`/engine_worker.js?v=${APP_VERSION}`);
+                const w = new Worker(workerUrl);
                 w.onmessage = (e) => {
                     if (e.data.type === 'READY') {
                         this.readyCount++;
@@ -122,13 +128,21 @@ export class EngineWorkerPool {
 
     // Returns a promise that resolves when the worker finishes the Python simulation
     runTask(test_stats, test_upgrades = null, test_external = null, test_cards = null) {
+        const storeState = useStore.getState();
+        // null = entropy seed (normal Monte Carlo). Integer = deterministic Mersenne Twister.
+        const rng_seed = storeState.debugRngSeed ?? null;
+        // Dev-only: route the inner combat tick through public/combat_kernel.js
+        const use_js_kernel = !!storeState.useJsKernel;
+        // Dev-only: route the entire sim through the Rust-compiled WASM engine.
+        // Takes precedence over use_js_kernel.
+        const use_wasm_engine = !!storeState.useWasmEngine;
         return new Promise((resolve, reject) => {
             const id = ++this.taskIdSeq;
             this.callbacks.set(id, (data) => {
                 if (data.type === 'ERROR') reject(new Error(data.payload));
                 else resolve(data.payload);
             });
-            this.taskQueue.push({ msg: { command: 'RUN_TASK', taskId: id, test_stats, test_upgrades, test_external, test_cards } });
+            this.taskQueue.push({ msg: { command: 'RUN_TASK', taskId: id, test_stats, test_upgrades, test_external, test_cards, rng_seed, use_js_kernel, use_wasm_engine } });
             this.pump();
         });
     }

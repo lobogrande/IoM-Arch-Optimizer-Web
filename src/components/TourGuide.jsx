@@ -6,7 +6,7 @@ import useStore from '../store';
 
 const JoyrideComponent = JoyrideModule.default?.default || JoyrideModule.default || JoyrideModule.Joyride;
 
-const CustomTooltip = ({ index, step, backProps, primaryProps, isLastStep, tooltipProps }) => {
+const CustomTooltip = ({ index, step, isLastStep, tooltipProps }) => {
   const stopTour = useStore((state) => state.stopTour);
   const setTourStepIndex = useStore((state) => state.setTourStepIndex);
   

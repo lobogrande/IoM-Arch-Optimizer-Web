@@ -933,13 +933,13 @@ export default function SynthesisTab() {
                     try { 
                       const colsToSize = p.api.getColumns().filter(c => !c.getColDef().suppressAutoSize).map(c => c.getColId());
                       p.api.autoSizeColumns(colsToSize); 
-                    } catch(e){} 
+                    } catch(e){ console.warn('autoSizeColumns error:', e); } 
                   }}
                   onRowDataUpdated={(p) => { 
                     try { 
                       const colsToSize = p.api.getColumns().filter(c => !c.getColDef().suppressAutoSize).map(c => c.getColId());
                       p.api.autoSizeColumns(colsToSize); 
-                    } catch(e){} 
+                    } catch(e){ console.warn('autoSizeColumns error:', e); } 
                   }}
                 />
               </div>
