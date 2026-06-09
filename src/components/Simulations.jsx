@@ -19,6 +19,8 @@ export default function Simulations() {
   const setCpuProfile = (v) => store.setSimsState('cpuProfile', v);
   const simsPerSec = store.simsPerSec || 15;
   const setSimsPerSec = (v) => store.setSimsState('simsPerSec', v);
+  const useWasmEngine = !!store.useWasmEngine;
+  const setUseWasmEngine = store.setUseWasmEngine;
 
   const [isBenchmarking, setIsBenchmarking] = useState(false);
 
@@ -175,7 +177,7 @@ export default function Simulations() {
           <div className="w-full md:w-2/3">
             <label className="block text-sm font-bold mb-2">🔥 Global CPU Thermal Profile</label>
             <MobileSelect
-              value={cpuProfile} 
+              value={cpuProfile}
               onChange={(e) => setCpuProfile(e.target.value)}
               options={[
                 { value: 'eco', label: 'Eco Mode / Mobile (Max 1-2 Cores) - Saves Battery' },
@@ -187,12 +189,25 @@ export default function Simulations() {
             <div className="text-xs text-st-text-light mt-2">
               Caps the engine's background Web Workers to prevent your device from thermal-throttling or draining battery during Monte Carlo simulations.
             </div>
+            <label className="mt-4 flex items-start gap-2 text-sm cursor-pointer select-none">
+              <input
+                type="checkbox"
+                checked={useWasmEngine}
+                onChange={(e) => setUseWasmEngine(e.target.checked)}
+                className="mt-0.5 accent-st-orange flex-shrink-0"
+              />
+              <span>
+                <strong>⚡ Rust/WASM engine</strong>
+                <span className="text-st-text-light"> — experimental, ~20× faster than the Python engine and bit-identical to it (verified across 4,500 reference sims).
+                The toggle takes effect on the next simulation you run. Resets to off when you reload the page.</span>
+              </span>
+            </label>
           </div>
           <div className="w-full md:w-1/3 flex flex-col gap-2 bg-st-bg border border-st-border p-3 rounded shadow-sm">
             <div className="text-sm">
               ⚡ <strong>Hardware Speed:</strong><br/>{simsPerSec} sims/sec <em>(Calibrated)</em>
             </div>
-            <button 
+            <button
               onClick={handleRunBenchmark}
               disabled={isAnyRunning}
               className="w-full py-1 bg-st-secondary border border-st-border rounded hover:border-st-orange text-xs font-bold transition-colors disabled:opacity-50 disabled:cursor-not-allowed"

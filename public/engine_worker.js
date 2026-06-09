@@ -1,22 +1,33 @@
 // public/engine_worker.js
 
-postMessage({ type: 'STATUS', payload: 'Booting Core...' });
+// Parse params before any importScripts so we can decide whether to pay the
+// (large, ~5 MB) cost of fetching the Pyodide runtime.
+const urlParams = new URLSearchParams(self.location.search);
+const APP_VERSION = urlParams.get('v') || Date.now();
+const wasmOnlyMode = urlParams.get('engine') === 'wasm';
 
-importScripts("https://cdn.jsdelivr.net/pyodide/v0.25.0/full/pyodide.js");
+postMessage({ type: 'STATUS', payload: wasmOnlyMode ? 'Booting WASM...' : 'Booting Core...' });
+
+// Pyodide is only loaded for the Python engine path.  When the pool spawns
+// us with engine=wasm we skip it entirely — saves ~5 MB of CDN download +
+// ~3 s of interpreter warm-up per worker.
+if (!wasmOnlyMode) {
+    importScripts("https://cdn.jsdelivr.net/pyodide/v0.29.4/full/pyodide.js");
+}
+
+// Small JS deps — always loaded.  Combined ~10 KB; their cost is negligible.
+importScripts('/combat_kernel.js?v=' + APP_VERSION);
+importScripts('/wasm_state_codec.js?v=' + APP_VERSION);
 
 let pyodide;
-let run_sim; 
+let run_sim;
 let sync_player;
 
 async function initEngine() {
     pyodide = await loadPyodide();
-    
+
     pyodide.FS.mkdir("core");
     pyodide.FS.mkdir("engine");
-
-    // Extract version from worker URL if provided, otherwise fallback to an aggressive dev cache-buster
-    const urlParams = new URLSearchParams(self.location.search);
-    const APP_VERSION = urlParams.get('v') || Date.now();
 
     async function fetchAndWrite(filepath) {
         const response = await fetch('/' + filepath + '?v=' + APP_VERSION);
@@ -33,7 +44,6 @@ async function initEngine() {
 
     const pythonScript = `
 import sys
-import copy
 from core.player import Player
 from engine.combat_loop import CombatSimulator
 
@@ -66,14 +76,28 @@ def sync_base_player(state_proxy):
 
 import random
 
-def execute_simulation(test_stats_proxy, test_upgrades_proxy, test_external_proxy, test_cards_proxy):
+def execute_simulation(test_stats_proxy, test_upgrades_proxy, test_external_proxy, test_cards_proxy, rng_seed=None, js_kernel=None, js_rng=None):
     global base_player
-    
-    # Ensure true RNG variance across persistent Pyodide worker tasks
-    random.seed()
-    
-    # Blazing fast memory clone prevents re-parsing the giant JS dictionary!
-    p = copy.deepcopy(base_player)
+
+    # rng_seed=None: entropy seed (default — preserves Monte Carlo variance).
+    # rng_seed=int : seeded Mersenne Twister for reproducible runs. Used to compare
+    #                current Python output against a future JS-ported kernel.
+    #
+    # Try/except handles both Python None AND Pyodide 0.29+ JsNull (which is
+    # what JS null becomes on the Python side). 'is None' returns False for
+    # JsNull, but int(JsNull) raises TypeError, so we can branch on that.
+    try:
+        random.seed(int(rng_seed))
+    except (TypeError, ValueError):
+        random.seed()
+
+    # js_kernel / js_rng: when both provided, the inner combat micro-tick is
+    # routed through public/combat_kernel.js. Off by default; the Python loop
+    # remains the source of truth.
+
+    # fast_clone is ~10x faster than copy.deepcopy and produces an
+    # equivalent independent Player for applying the test overrides below.
+    p = base_player.fast_clone()
     
     test_stats = test_stats_proxy.to_py()
     for k, v in test_stats.items():
@@ -97,7 +121,7 @@ def execute_simulation(test_stats_proxy, test_upgrades_proxy, test_external_prox
         for k, v in test_cards.items():
             p.set_card_level(str(k), int(v))
             
-    sim = CombatSimulator(p)
+    sim = CombatSimulator(p, js_kernel=js_kernel, js_rng=js_rng)
     result = sim.run_simulation()
     
     # Calculate Arch Minutes based on True In-Game Time for accurate real-time yield projection
@@ -160,20 +184,142 @@ def execute_simulation(test_stats_proxy, test_upgrades_proxy, test_external_prox
     postMessage({ type: 'READY' });
 }
 
-initEngine().catch(err => postMessage({ type: 'ERROR', payload: err.message }));
+if (wasmOnlyMode) {
+    // No Pyodide path — signal ready as soon as the small JS deps loaded.
+    // Tasks that hit the Pyodide branch in this mode will throw.
+    postMessage({ type: 'READY' });
+} else {
+    initEngine().catch(err => postMessage({ type: 'ERROR', payload: err.message }));
+}
+
+// --- WASM engine (lazy-loaded on first use_wasm_engine task) ---------------
+let wasmExports = null;
+let wasmLoadPromise = null;
+function loadWasmEngine() {
+    if (wasmExports) return Promise.resolve(wasmExports);
+    if (wasmLoadPromise) return wasmLoadPromise;
+    wasmLoadPromise = (async () => {
+        const res = await fetch('/engine.wasm?v=' + APP_VERSION);
+        const buf = await res.arrayBuffer();
+        const { instance } = await WebAssembly.instantiate(buf);
+        if (instance.exports.engine_schema_version() !== self.IoMWasmStateCodec.SCHEMA_VERSION) {
+            throw new Error('engine.wasm schema mismatch: '
+                + 'wasm=' + instance.exports.engine_schema_version()
+                + ' codec=' + self.IoMWasmStateCodec.SCHEMA_VERSION);
+        }
+        wasmExports = instance.exports;
+        return wasmExports;
+    })();
+    return wasmLoadPromise;
+}
+
+// Last engine_state seen via SYNC_STATE.  WASM sims clone it + apply per-task
+// overrides; Pyodide path uses base_player (synced on the Python side).
+let lastSyncedState = null;
+
+/** Apply test_* overrides to a shallow-cloned engine_state. */
+function applyOverrides(base, test_stats, test_upgrades, test_external, test_cards) {
+    const out = {
+        ...base,
+        base_stats: { ...base.base_stats },
+        upgrade_levels: { ...base.upgrade_levels },
+        external_levels: { ...base.external_levels },
+        cards: { ...base.cards },
+    };
+    if (test_stats) {
+        for (const k in test_stats) out.base_stats[k] = test_stats[k];
+    }
+    if (test_upgrades) {
+        for (const k in test_upgrades) out.upgrade_levels[k] = test_upgrades[k];
+    }
+    if (test_external) {
+        // External row 21 is special — Player.set_external_level(21, lvl) also
+        // sets player.hades_idol_level, so we mirror that here.
+        for (const k in test_external) {
+            if (parseInt(k, 10) === 21) {
+                out.hades_idol_level = test_external[k];
+            }
+            out.external_levels[k] = test_external[k];
+        }
+    }
+    if (test_cards) {
+        for (const k in test_cards) out.cards[k] = test_cards[k];
+    }
+    return out;
+}
+
+async function runWasmSim({ test_stats, test_upgrades, test_external, test_cards, rng_seed }) {
+    const exports = await loadWasmEngine();
+    const codec = self.IoMWasmStateCodec;
+    if (!lastSyncedState) {
+        throw new Error('WASM sim called before SYNC_STATE');
+    }
+
+    const state = applyOverrides(lastSyncedState, test_stats, test_upgrades, test_external, test_cards);
+
+    const inputBytes = codec.packPlayerState(state);
+    const inputPtr = exports.engine_alloc(codec.INPUT_SIZE);
+    new Uint8Array(exports.memory.buffer, inputPtr, codec.INPUT_SIZE).set(inputBytes);
+
+    const seed = rng_seed != null
+        ? (rng_seed >>> 0)
+        : (Math.floor(Math.random() * 0xFFFFFFFF) >>> 0);
+
+    const resultPtr = exports.engine_run_simulation(inputPtr, codec.INPUT_SIZE, seed);
+    if (resultPtr === 0) {
+        exports.engine_free(inputPtr, codec.INPUT_SIZE);
+        throw new Error('engine_run_simulation returned null (deserialize failed)');
+    }
+    const resultLen = exports.engine_last_result_len();
+    const result = codec.decodeResult(exports.memory, resultPtr, resultLen, state.starting_speed_pool | 0);
+
+    exports.engine_free(inputPtr, codec.INPUT_SIZE);
+    return result;
+}
 
 self.onmessage = function(e) {
     if (e.data.command === 'SYNC_STATE') {
         try {
-            sync_player(e.data.state_dict);
+            // Always stash for the WASM path (lazy-cloned per RUN_TASK).
+            lastSyncedState = e.data.state_dict;
+            // In wasmOnlyMode there's no Pyodide to sync into — the JS-side
+            // stash above is the entire state of the world.
+            if (!wasmOnlyMode) {
+                sync_player(e.data.state_dict);
+            }
             postMessage({ type: 'SYNC_COMPLETE', syncId: e.data.syncId });
         } catch (err) {
             postMessage({ type: 'ERROR', payload: err.message });
         }
     } else if (e.data.command === 'RUN_TASK') {
-        const { taskId, test_stats, test_upgrades, test_external, test_cards } = e.data;
+        const { taskId, test_stats, test_upgrades, test_external, test_cards, rng_seed, use_js_kernel, use_wasm_engine } = e.data;
         try {
-            const resultProxy = run_sim(test_stats, test_upgrades || {}, test_external || {}, test_cards || {});
+            // Priority: WASM engine > Pyodide+JS kernel > Pyodide-only
+            if (use_wasm_engine) {
+                runWasmSim({ test_stats, test_upgrades, test_external, test_cards, rng_seed })
+                    .then(result => postMessage({ type: 'RESULT', taskId: taskId, payload: result }))
+                    .catch(err => postMessage({ type: 'ERROR', taskId: taskId, payload: err.message }));
+                return;
+            }
+            if (wasmOnlyMode) {
+                // Pool was spawned with engine=wasm but the task didn't ask for
+                // WASM.  Pyodide isn't loaded — surface this as a clear error
+                // rather than a TypeError on `run_sim`.
+                postMessage({ type: 'ERROR', taskId, payload: 'Worker spawned in WASM-only mode, but task did not set use_wasm_engine. Toggle the WASM checkbox before running, or reload to spawn a Pyodide-capable pool.' });
+                return;
+            }
+            // rng_seed: null/undefined = entropy; integer = deterministic Mersenne Twister
+            // use_js_kernel: when true AND a seed is set, route the inner micro-tick through
+            // self.IoMCombatKernel (public/combat_kernel.js). When seed is null we still allow
+            // it — kernel uses Date.now() as fallback so the run is still self-deterministic.
+            let js_kernel = null, js_rng = null;
+            if (use_js_kernel && self.IoMCombatKernel) {
+                js_kernel = self.IoMCombatKernel;
+                js_rng = self.IoMCombatKernel.createRng(
+                    rng_seed != null ? rng_seed : (Date.now() & 0xFFFFFFFF)
+                );
+            }
+            const resultProxy = run_sim(test_stats, test_upgrades || {}, test_external || {}, test_cards || {}, rng_seed ?? null, js_kernel, js_rng);
             const result = resultProxy.toJs({ dict_converter: Object.fromEntries });
             resultProxy.destroy();
             postMessage({ type: 'RESULT', taskId: taskId, payload: result });

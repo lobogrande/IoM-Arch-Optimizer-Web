@@ -114,6 +114,26 @@ const useStore = create(
   forecaster_simPrecision: 100,
   roi_precision: 15,
 
+  // Deterministic RNG seed for testing/validation. null = entropy (default Monte
+  // Carlo behavior). Set to an integer to seed Python's Mersenne Twister so runs
+  // reproduce exactly — used to compare current Python output against a future
+  // JS-ported combat kernel. Toggle via devtools: useStore.setState({ debugRngSeed: 42 })
+  debugRngSeed: null,
+  setDebugRngSeed: (seed) => set({ debugRngSeed: seed }),
+
+  // Dev-only toggle: when true, the engine worker routes the inner combat
+  // micro-tick through public/combat_kernel.js instead of the Python implementation.
+  // Off by default. Same use-pattern as debugRngSeed — set from devtools.
+  useJsKernel: false,
+  setUseJsKernel: (v) => set({ useJsKernel: !!v }),
+
+  // Dev-only toggle: when true, the engine worker routes the ENTIRE simulation
+  // through the Rust-compiled WASM module (public/engine.wasm) instead of
+  // Pyodide. Off by default. Takes precedence over useJsKernel — when both
+  // are set, WASM wins (it's the more complete replacement).
+  useWasmEngine: false,
+  setUseWasmEngine: (v) => set({ useWasmEngine: !!v }),
+
   // Ephemeral Tour State
   tourActive: false,
   activeTourId: null,
@@ -612,12 +632,20 @@ const useStore = create(
       name: 'iom-optimizer-storage', // The unique key used in the browser's IndexedDB
       storage: createJSONStorage(() => idbStorage),
       partialize: (state) => {
-        // Prevent ephemeral states (like the active tour) from saving to IndexedDB
-        const { tourActive, activeTourId, tourStepIndex, pathfinder_data, ...rest } = state;
+        // Prevent ephemeral states (like the active tour) from saving to IndexedDB.
+        // debugRngSeed and useJsKernel intentionally excluded: developer-only
+        // toggles that would silently change engine behavior across sessions.
+        const { tourActive, activeTourId, tourStepIndex, pathfinder_data, debugRngSeed, useJsKernel, useWasmEngine, ...rest } = state;
         return rest;
       },
     }
   )
 );
+
+// Expose the store on window in dev so debug toggles (e.g. debugRngSeed) are
+// reachable from the browser devtools console. Stripped from production builds.
+if (typeof window !== 'undefined' && import.meta.env.DEV) {
+  window.useStore = useStore;
+}
 
 export default useStore;
