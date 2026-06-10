@@ -155,3 +155,15 @@ fn check_save(save_name: &str) {
 #[test] fn mid_asc2_arch96_floor151_a() {
     check_save("mid_asc2_arch96_floor151_a.json");
 }
+
+#[test] fn early_asc0_arch52_floor24_preset_early() {
+    check_save("early_asc0_arch52_floor24_preset_early.json");
+}
+
+#[test] fn early_asc1_arch45_floor40_preset_mid() {
+    check_save("early_asc1_arch45_floor40_preset_mid.json");
+}
+
+#[test] fn mid_asc2_arch99_floor158_preset_late() {
+    check_save("mid_asc2_arch99_floor158_preset_late.json");
+}
