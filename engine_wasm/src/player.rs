@@ -197,8 +197,9 @@ pub struct Player {
     pub upgrades_h: [f64; 56],
 
     /// External upgrade levels, indexed by external ID.  IDs 0..=3 are
-    /// unused; valid IDs are 4..=21.
-    pub external_levels: [u32; 22],
+    /// unused; valid IDs are 4..=21. Can be -1 (not unlocked), 0 (unlocked),
+    /// or 1..=11 (upgraded).
+    pub external_levels: [i32; 22],
     /// Pre-computed external W values, indexed by external ID.
     /// Special: row 8 (Geoduck) stores the raw value here; `w()` applies
     /// the ascension-dependent cap on read.
@@ -280,7 +281,7 @@ impl Player {
         }
     }
 
-    pub fn set_external_level(&mut self, row: u8, lvl: u32) {
+    pub fn set_external_level(&mut self, row: u8, lvl: i32) {
         let row_idx = row as usize;
         if row_idx >= 22 {
             return;
@@ -313,7 +314,7 @@ impl Player {
                     _ => self.arch_ability_infernal_bonus, // lvl >= 4
                 };
             }
-            21 => self.hades_idol_level = lvl,
+            21 => self.hades_idol_level = lvl.max(0) as u32,
             _ => {}
         }
     }
@@ -366,7 +367,7 @@ impl Player {
         // stored value unless it's exactly 0.0 AND the caller asked for a
         // different default (matching dict.get() semantics).
         let stored = self.external_w[row as usize];
-        if stored == 0.0 && self.external_levels[row as usize] == 0 && default != 0.0 {
+        if stored == 0.0 && self.external_levels[row as usize] <= 0 && default != 0.0 {
             default
         } else {
             stored
@@ -584,10 +585,22 @@ impl Player {
 
     pub fn frag_loot_gain_mult(&self) -> f64 {
         let stat_calc = self.stat(Stat::Per) as f64 * 0.04;
-        let mut val = 1.0 + self.u_f(5) + self.u_h(21) + stat_calc;
-        val *= (1.0 + self.w(4)) * (1.0 + self.w(5)) * (1.0 + self.w(8));
-        val *= self.u_f(42) * self.w_or(15, 1.0) * (1.0 + self.inf(BlockId::Dirt3))
-            * (1.0 + self.inf(BlockId::Leg1));
+        let base_val = 1.0 + self.u_f(5) + self.u_h(21) + stat_calc;
+        
+        let w4 = self.w(4);
+        let w5 = self.w(5);
+        let w8 = self.w(8);
+        let mult1 = (1.0 + w4) * (1.0 + w5) * (1.0 + w8);
+        
+        let u_f_42 = self.u_f(42);
+        let w15 = self.w_or(15, 1.0);
+        let inf_dirt3 = self.inf(BlockId::Dirt3);
+        let inf_leg1 = self.inf(BlockId::Leg1);
+        let mult2 = u_f_42 * w15 * (1.0 + inf_dirt3) * (1.0 + inf_leg1);
+        
+        let mut val = base_val;
+        val *= mult1;
+        val *= mult2;
         gm_mult(val, 2)
     }
 

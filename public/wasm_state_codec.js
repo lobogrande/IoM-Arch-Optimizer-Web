@@ -64,10 +64,11 @@
     }
 
     // external_levels[22] — IDs 0..21; 0..3 unused but present in the buffer
+    // Note: -1 means "not unlocked", 0 means "unlocked but not upgraded"
     const ext = s.external_levels || {};
     for (let i = 0; i < 22; i++) {
       const v = ext[i] ?? ext[String(i)] ?? 0;
-      dv.setUint32(284 + i * 4, (v | 0), true);
+      dv.setInt32(284 + i * 4, (v | 0), true);  // Use setInt32 to preserve -1
     }
 
     // cards[28] — indexed by BlockId
@@ -143,6 +144,7 @@
 
     // Build the metrics dict in the exact shape execute_simulation returns.
     const arch_mins = total_time > 0 ? total_time / 60.0 : 1.0;
+    
     const metrics = {
       highest_floor,
       xp_per_min: total_xp / arch_mins,

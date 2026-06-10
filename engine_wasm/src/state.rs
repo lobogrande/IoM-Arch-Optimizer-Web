@@ -26,7 +26,7 @@
 //!  24   8     arch_ability_infernal_bonus (f64)
 //!  32   4×7   base_stats[7] (u32 each)  — Str/Agi/Per/Int/Luck/Div/Corr
 //!  60   4×56  upgrade_levels[56] (u32 each) — indexed by upgrade ID 0..55
-//!  284  4×22  external_levels[22] (u32 each) — IDs 0..21 (0..3 unused)
+//!  284  4×22  external_levels[22] (i32 each) — IDs 0..21 (0..3 unused, can be -1)
 //!  372  4×28  cards[28] (u32 each) — indexed by BlockId 0..27
 //!  484  END
 //! ```
@@ -86,6 +86,9 @@ pub enum DecodeError {
 #[inline] fn read_u32(b: &[u8], o: usize) -> u32 {
     u32::from_le_bytes(b[o..o + 4].try_into().unwrap())
 }
+#[inline] fn read_i32(b: &[u8], o: usize) -> i32 {
+    i32::from_le_bytes(b[o..o + 4].try_into().unwrap())
+}
 #[inline] fn read_f64(b: &[u8], o: usize) -> f64 {
     f64::from_le_bytes(b[o..o + 8].try_into().unwrap())
 }
@@ -127,8 +130,9 @@ pub fn deserialize_player(bytes: &[u8]) -> Result<Player, DecodeError> {
     }
 
     // external_levels[22] — IDs 0..3 unused, but slots present in the buffer.
+    // Can be -1 (not unlocked), 0 (unlocked), or positive (upgraded).
     for i in 0..22 {
-        let lvl = read_u32(bytes, 284 + i * 4);
+        let lvl = read_i32(bytes, 284 + i * 4);
         p.set_external_level(i as u8, lvl);
     }
 
