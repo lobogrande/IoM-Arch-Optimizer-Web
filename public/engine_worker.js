@@ -201,7 +201,7 @@ function loadWasmEngine() {
     wasmLoadPromise = (async () => {
         const res = await fetch('/engine.wasm?v=' + APP_VERSION);
         const buf = await res.arrayBuffer();
-        const { instance } = await WebAssembly.instantiate(buf);
+        const { instance } = await WebAssembly.instantiate(buf, {});
         if (instance.exports.engine_schema_version() !== self.IoMWasmStateCodec.SCHEMA_VERSION) {
             throw new Error('engine.wasm schema mismatch: '
                 + 'wasm=' + instance.exports.engine_schema_version()
