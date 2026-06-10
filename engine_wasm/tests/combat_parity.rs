@@ -41,7 +41,7 @@ fn build_player_from_engine_state(state: &Value) -> Player {
         p.set_upgrade_level(k.parse().unwrap(), v.as_u64().unwrap() as u32);
     }
     for (k, v) in state["external_levels"].as_object().unwrap() {
-        p.set_external_level(k.parse().unwrap(), v.as_u64().unwrap() as u32);
+        p.set_external_level(k.parse().unwrap(), v.as_u64().unwrap() as i32);
     }
     for (k, v) in state["cards"].as_object().unwrap() {
         if let Some(b) = BlockId::from_str(k) {
