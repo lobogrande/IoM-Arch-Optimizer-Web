@@ -1,9 +1,9 @@
 // src/components/simulations/DuelTab.jsx
-import { useState } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import useStore from '../../store';
 import { EngineWorkerPool } from '../../utils/optimizer';
 import MobileSelect from '../MobileSelect';
-import { FRAG_ICONS } from '../../game_data';
+import { FRAG_ICONS, BLOCK_MIN_FLOORS } from '../../game_data';
 
 // Helper to parse and strip leading zeros from numeric inputs
 const parseIntStrict = (value, defaultVal = 0) => {
@@ -16,7 +16,8 @@ const OPT_GOALS =[
   "Max Floor Push", 
   "Max EXP Yield", 
   "Fragment Farming", 
-  "Block Card Farming"
+  "Block Card Farming",
+  "Dino Quest"
 ];
 
 const FRAG_NAMES = {
@@ -39,6 +40,21 @@ export default function DuelTab() {
   const [duelProgressMsg, setDuelProgressMsg] = useState("");
   const[duelProgressPct, setDuelProgressPct] = useState(0);
   const [duelResults, setDuelResults] = useState(null);
+
+  const availableBlocks = useMemo(() => {
+    return Object.keys(BLOCK_MIN_FLOORS).filter(cardId => {
+      if (!store.asc1_unlocked && (cardId.startsWith('div') || cardId.endsWith('4'))) return false;
+      if (!store.asc2_unlocked && cardId.endsWith('4')) return false;
+      if (store.current_max_floor < BLOCK_MIN_FLOORS[cardId]) return false;
+      return true;
+    });
+  },[store.asc1_unlocked, store.asc2_unlocked, store.current_max_floor]);
+
+  useEffect(() => {
+    if (duelOptGoal === "Block Card Farming" && availableBlocks.length > 0 && !availableBlocks.includes(duelTargetBlock)) {
+      setDuelTargetBlock(availableBlocks[availableBlocks.length - 1]);
+    }
+  },[duelOptGoal, availableBlocks, duelTargetBlock]);
 
   const activeStats = [ 'Str', 'Agi', 'Per', 'Int', 'Luck' ];
   if (store.asc1_unlocked) activeStats.push('Div');
@@ -179,12 +195,15 @@ export default function DuelTab() {
             {duelOptGoal === "Block Card Farming" && (
               <>
                 <label className="block text-sm font-bold mb-1">Target Block ID</label>
-                <input 
-                  type="text" 
-                  value={duelTargetBlock} 
-                  onChange={(e) => setDuelTargetBlock(e.target.value.toLowerCase())}
-                  onBlur={(e) => { if (e.target.value.trim() === '') setDuelTargetBlock('myth3'); }}
-                  placeholder="e.g., com1, myth3"
+                <MobileSelect
+                  value={availableBlocks.includes(duelTargetBlock) ? duelTargetBlock : (availableBlocks[availableBlocks.length - 1] || "dirt1")} 
+                  onChange={(e) => setDuelTargetBlock(e.target.value)}
+                  options={availableBlocks.length === 0 ? 
+                    [{ value: 'dirt1', label: 'Dirt1' }] :
+                    availableBlocks.map(b => ({ 
+                      value: b, 
+                      label: `${b.charAt(0).toUpperCase() + b.slice(1)} (Min Floor ${BLOCK_MIN_FLOORS[b]})`
+                    }))}
                   className="w-full bg-st-bg border border-st-border rounded p-2 text-st-text focus:border-st-orange focus:outline-none"
                 />
               </>
@@ -202,21 +221,26 @@ export default function DuelTab() {
                 <label className="block text-xs mb-1 font-bold">
                   {stat} <span className="font-normal text-[10px] text-st-text-light">(Max: {MAX_STAT_CAPS[stat]})</span>
                 </label>
-                <input 
-                  type="text"
-                  inputMode="numeric"
-                  pattern="[0-9]*"
-                  value={duelStatsA[stat] !== undefined ? duelStatsA[stat] : 0} 
-                  onFocus={(e) => e.target.select()}
-                  onChange={(e) => setDuelStatsA({...duelStatsA, [stat]: parseIntStrict(e.target.value, 0)})}
-                  onBlur={(e) => {
-                    let parsed = parseIntStrict(e.target.value, 0);
-                    if (parsed > MAX_STAT_CAPS[stat]) parsed = MAX_STAT_CAPS[stat];
-                    if (parsed < 0) parsed = 0;
-                    setDuelStatsA({...duelStatsA,[stat]: parsed});
-                  }}
-                  className="st-input p-2 text-sm"
-                />
+                <div className="relative">
+                  <input 
+                    type="text"
+                    inputMode="numeric"
+                    pattern="[0-9]*"
+                    value={duelStatsA[stat] !== undefined ? duelStatsA[stat] : 0} 
+                    onFocus={(e) => e.target.select()}
+                    onChange={(e) => setDuelStatsA({...duelStatsA, [stat]: parseIntStrict(e.target.value, 0)})}
+                    onBlur={(e) => {
+                      let parsed = parseIntStrict(e.target.value, 0);
+                      if (parsed > MAX_STAT_CAPS[stat]) parsed = MAX_STAT_CAPS[stat];
+                      if (parsed < 0) parsed = 0;
+                      setDuelStatsA({...duelStatsA,[stat]: parsed});
+                    }}
+                    className="st-input p-2 pr-10 text-sm"
+                  />
+                  <span className="absolute right-2 top-1/2 -translate-y-1/2 text-st-text-light text-xs pointer-events-none select-none">
+                    /{MAX_STAT_CAPS[stat]}
+                  </span>
+                </div>
                 <div className="flex flex-wrap justify-center gap-0.5 mt-1 w-full">
                   <button onClick={() => setDuelStatsA({...duelStatsA, [stat]: Math.max(0, (duelStatsA[stat] || 0) - 1)})} className="flex-1 min-w-8 px-0.5 py-0.5 text-[10px] bg-st-secondary text-st-text rounded border border-st-border hover:border-st-orange transition-colors">-1</button>
                   <button onClick={() => setDuelStatsA({...duelStatsA, [stat]: Math.min(MAX_STAT_CAPS[stat], (duelStatsA[stat] || 0) + 1)})} className="flex-1 min-w-8 px-0.5 py-0.5 text-[10px] bg-st-secondary text-st-text rounded border border-st-border hover:border-st-orange transition-colors">+1</button>
@@ -234,21 +258,26 @@ export default function DuelTab() {
                 <label className="block text-xs mb-1 font-bold">
                   {stat} <span className="font-normal text-[10px] text-st-text-light">(Max: {MAX_STAT_CAPS[stat]})</span>
                 </label>
-                <input 
-                  type="text"
-                  inputMode="numeric"
-                  pattern="[0-9]*"
-                  value={duelStatsB[stat] !== undefined ? duelStatsB[stat] : 0} 
-                  onFocus={(e) => e.target.select()}
-                  onChange={(e) => setDuelStatsB({...duelStatsB, [stat]: parseIntStrict(e.target.value, 0)})}
-                  onBlur={(e) => {
-                    let parsed = parseIntStrict(e.target.value, 0);
-                    if (parsed > MAX_STAT_CAPS[stat]) parsed = MAX_STAT_CAPS[stat];
-                    if (parsed < 0) parsed = 0;
-                    setDuelStatsB({...duelStatsB, [stat]: parsed});
-                  }}
-                  className="st-input p-2 text-sm"
-                />
+                <div className="relative">
+                  <input 
+                    type="text"
+                    inputMode="numeric"
+                    pattern="[0-9]*"
+                    value={duelStatsB[stat] !== undefined ? duelStatsB[stat] : 0} 
+                    onFocus={(e) => e.target.select()}
+                    onChange={(e) => setDuelStatsB({...duelStatsB, [stat]: parseIntStrict(e.target.value, 0)})}
+                    onBlur={(e) => {
+                      let parsed = parseIntStrict(e.target.value, 0);
+                      if (parsed > MAX_STAT_CAPS[stat]) parsed = MAX_STAT_CAPS[stat];
+                      if (parsed < 0) parsed = 0;
+                      setDuelStatsB({...duelStatsB, [stat]: parsed});
+                    }}
+                    className="st-input p-2 pr-10 text-sm"
+                  />
+                  <span className="absolute right-2 top-1/2 -translate-y-1/2 text-st-text-light text-xs pointer-events-none select-none">
+                    /{MAX_STAT_CAPS[stat]}
+                  </span>
+                </div>
                 <div className="flex flex-wrap justify-center gap-0.5 mt-1 w-full">
                   <button onClick={() => setDuelStatsB({...duelStatsB, [stat]: Math.max(0, (duelStatsB[stat] || 0) - 1)})} className="flex-1 min-w-8 px-0.5 py-0.5 text-[10px] bg-st-secondary text-st-text rounded border border-st-border hover:border-st-orange transition-colors">-1</button>
                   <button onClick={() => setDuelStatsB({...duelStatsB, [stat]: Math.min(MAX_STAT_CAPS[stat], (duelStatsB[stat] || 0) + 1)})} className="flex-1 min-w-8 px-0.5 py-0.5 text-[10px] bg-st-secondary text-st-text rounded border border-st-border hover:border-st-orange transition-colors">+1</button>

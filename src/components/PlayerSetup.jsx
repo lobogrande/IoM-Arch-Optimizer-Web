@@ -17,10 +17,9 @@ const parseIntStrict = (value, defaultVal = 0) => {
 };
 
 export default function PlayerSetup() {
-  const { asc1_unlocked, asc2_unlocked, arch_level, current_max_floor, starting_speed_pool, base_stats, upgrade_levels, external_levels, cards, arch_ability_infernal_bonus, total_infernal_cards, geoduck_unlocked, hades_unlocked, calculated_stats, setSetting, setBaseStat, setUpgradeLevel, setCardLevel, setExternalGroup, loadStateFromJson, setSandboxStat, hideMaxed, setHideMaxed, activeSubTab, setActiveSubTab, setActiveTab, setSimActiveSubTab, profiles, activeProfileId, createProfile, loadProfile, saveToProfile, renameProfile, deleteProfile, resetState } = useStore();
+  const { asc1_unlocked, asc2_unlocked, arch_level, current_max_floor, starting_speed_pool, base_stats, upgrade_levels, external_levels, cards, arch_ability_infernal_bonus, total_infernal_cards, geoduck_unlocked, hades_unlocked, calculated_stats, setSetting, setBaseStat, setUpgradeLevel, setCardLevel, setExternalGroup, loadStateFromJson, setSandboxStat, hideMaxed, setHideMaxed, useGridLayout, setUseGridLayout, activeSubTab, setActiveSubTab, setActiveTab, setSimActiveSubTab, profiles, activeProfileId, createProfile, loadProfile, saveToProfile, renameProfile, deleteProfile, resetState } = useStore();
   const [isDragging, setIsDragging] = useState(false);
   const [showDiffModal, setShowDiffModal] = useState(false);
-  const [useGridLayout, setUseGridLayout] = useState(false);
 
   const diffs = useMemo(() => {
     if (!showDiffModal || !activeProfileId) return [ ];
@@ -237,16 +236,21 @@ export default function PlayerSetup() {
           />
         </div>
 
-        <input 
-          type="text"
-          inputMode="numeric"
-          pattern="[0-9]*"
-          className="st-input"
-          value={base_stats[statKey] !== undefined ? base_stats[statKey] : 0}
-          onFocus={(e) => e.target.select()}
-          onChange={(e) => setBaseStat(statKey, parseIntStrict(e.target.value, 0))}
-          onBlur={(e) => setBaseStat(statKey, Math.min(STAT_CAPS[statKey], Math.max(0, parseIntStrict(e.target.value, 0))))}
-        />
+        <div className="relative">
+          <input
+            type="text"
+            inputMode="numeric"
+            pattern="[0-9]*"
+            className="st-input pr-16"
+            value={base_stats[statKey] !== undefined ? base_stats[statKey] : 0}
+            onFocus={(e) => e.target.select()}
+            onChange={(e) => setBaseStat(statKey, parseIntStrict(e.target.value, 0))}
+            onBlur={(e) => setBaseStat(statKey, Math.min(STAT_CAPS[statKey], Math.max(0, parseIntStrict(e.target.value, 0))))}
+          />
+          <span className="absolute right-3 top-1/2 -translate-y-1/2 text-st-text-light text-sm pointer-events-none select-none">
+            / {STAT_CAPS[statKey]}
+          </span>
+        </div>
         <div className="flex gap-1 mt-2 w-full">
           <div className="flex flex-col gap-1 flex-1">
             <div className="flex gap-1">
@@ -793,16 +797,21 @@ export default function PlayerSetup() {
                          <div className="flex justify-between items-center"><span>To Max:</span> <span className="font-bold text-st-orange flex items-center gap-1">{costIcon}{totalCostStr}</span></div>
                       </div>
 
-                      <input 
-                        type="text"
-                        inputMode="numeric"
-                        pattern="[0-9]*"
-                        className="st-input"
-                        value={current_lvl}
-                        onFocus={(e) => e.target.select()}
-                        onChange={(e) => setUpgradeLevel(id, parseIntStrict(e.target.value, 0))}
-                        onBlur={(e) => setUpgradeLevel(id, Math.min(max_lvl, Math.max(0, parseIntStrict(e.target.value, 0))))}
-                      />
+                      <div className="relative">
+                        <input 
+                          type="text"
+                          inputMode="numeric"
+                          pattern="[0-9]*"
+                          className="st-input pr-14"
+                          value={current_lvl}
+                          onFocus={(e) => e.target.select()}
+                          onChange={(e) => setUpgradeLevel(id, parseIntStrict(e.target.value, 0))}
+                          onBlur={(e) => setUpgradeLevel(id, Math.min(max_lvl, Math.max(0, parseIntStrict(e.target.value, 0))))}
+                        />
+                        <span className="absolute right-3 top-1/2 -translate-y-1/2 text-st-text-light text-sm pointer-events-none select-none">
+                          / {max_lvl}
+                        </span>
+                      </div>
                       <div className="flex flex-wrap justify-center gap-1 mt-2 w-full">
                         <button onClick={() => setUpgradeLevel(id, Math.max(0, current_lvl - 5))} className="flex-1 min-w-10 px-1 py-1 text-xs bg-st-secondary text-st-text rounded border border-st-border hover:border-st-orange transition-colors">-5</button>
                         <button onClick={() => setUpgradeLevel(id, Math.max(0, current_lvl - 1))} className="flex-1 min-w-10 px-1 py-1 text-xs bg-st-secondary text-st-text rounded border border-st-border hover:border-st-orange transition-colors">-1</button>
@@ -843,7 +852,6 @@ export default function PlayerSetup() {
                           </div>
                         )}
                         {group.ui_type === 'card' && current_val === 0 && <span className="text-xs text-st-text-light">(Card Not Unlocked)</span>}
-                        {group.ui_type === 'pet' && current_val === -1 && <span className="text-xs text-st-text-light">Status: Not Owned</span>}
                         
                         {group.id === 'geoduck' && (
                           <>
@@ -854,6 +862,24 @@ export default function PlayerSetup() {
                             <span className="text-xs text-st-text-light mt-1 text-center">Enter Number of Mythic Chests Owned</span>
                           </>
                         )}
+                        
+                        {(group.id === 'axolotl' || group.id === 'dino') && (
+                          <label className="flex items-start gap-2 cursor-pointer font-bold mb-1 text-xs mt-2 text-left leading-tight">
+                            <input 
+                              type="checkbox" 
+                              checked={current_val >= 0} 
+                              onChange={(e) => {
+                                if (e.target.checked) {
+                                  setExternalGroup(group.rows, 0);
+                                } else {
+                                  setExternalGroup(group.rows, -1);
+                                }
+                              }} 
+                              className="w-5 h-5 accent-st-orange shrink-0 mt-0.5" 
+                            />
+                            <span>{group.id === 'axolotl' ? 'Axolotl Pet Unlocked' : 'Dino Pet Unlocked'}</span>
+                          </label>
+                        )}
                       </div>
 
                       {(group.ui_type === 'number' || group.ui_type === 'pet' || group.ui_type === 'card') && (
@@ -862,28 +888,48 @@ export default function PlayerSetup() {
                             type="text"
                             inputMode="numeric"
                             pattern="[0-9-]*"
-                            className={`st-input ${group.id === 'geoduck' && !geoduck_unlocked ? 'opacity-30 cursor-not-allowed' : ''}`} 
-                            value={current_val} 
-                            disabled={group.id === 'geoduck' && !geoduck_unlocked} 
+                            className={`st-input ${(group.id === 'geoduck' && !geoduck_unlocked) || ((group.id === 'axolotl' || group.id === 'dino') && current_val < 0) ? 'opacity-30 cursor-not-allowed' : ''}`} 
+                            value={current_val >= 0 ? current_val : 0} 
+                            disabled={(group.id === 'geoduck' && !geoduck_unlocked) || ((group.id === 'axolotl' || group.id === 'dino') && current_val < 0)} 
                             onFocus={(e) => e.target.select()}
-                            onChange={(e) => setExternalGroup(group.rows, parseIntStrict(e.target.value, group.ui_type === 'pet' ? -1 : 0))} 
-                            onBlur={(e) => setExternalGroup(group.rows, Math.min(group.max !== undefined ? group.max : 9999, Math.max(group.ui_type === 'pet' ? -1 : 0, parseIntStrict(e.target.value, 0))))}
+                            onChange={(e) => {
+                              const val = parseIntStrict(e.target.value, 0);
+                              if (group.id === 'axolotl' || group.id === 'dino') {
+                                setExternalGroup(group.rows, Math.max(0, val));
+                              } else {
+                                setExternalGroup(group.rows, val);
+                              }
+                            }} 
+                            onBlur={(e) => {
+                              const val = parseIntStrict(e.target.value, 0);
+                              if (group.id === 'axolotl' || group.id === 'dino') {
+                                setExternalGroup(group.rows, Math.min(group.max !== undefined ? group.max : 11, Math.max(0, val)));
+                              } else {
+                                setExternalGroup(group.rows, Math.min(group.max !== undefined ? group.max : 9999, Math.max(group.ui_type === 'pet' ? -1 : 0, val)));
+                              }
+                            }}
                           />
                           <div className="flex flex-wrap justify-center gap-1 mt-2 w-full">
                             <button 
-                              onClick={() => setExternalGroup(group.rows, Math.max(group.ui_type === 'pet' ? -1 : 0, current_val - 1))} 
-                              disabled={group.id === 'geoduck' && !geoduck_unlocked}
+                              onClick={() => {
+                                if (group.id === 'axolotl' || group.id === 'dino') {
+                                  setExternalGroup(group.rows, Math.max(0, current_val - 1));
+                                } else {
+                                  setExternalGroup(group.rows, Math.max(group.ui_type === 'pet' ? -1 : 0, current_val - 1));
+                                }
+                              }} 
+                              disabled={(group.id === 'geoduck' && !geoduck_unlocked) || ((group.id === 'axolotl' || group.id === 'dino') && current_val < 0)}
                               className="flex-1 min-w-10 px-1 py-1 text-xs bg-st-secondary text-st-text rounded border border-st-border hover:border-st-orange transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
                             >-1</button>
                             <button 
                               onClick={() => setExternalGroup(group.rows, Math.min(group.max !== undefined ? group.max : 9999, current_val + 1))} 
-                              disabled={group.id === 'geoduck' && !geoduck_unlocked}
+                              disabled={(group.id === 'geoduck' && !geoduck_unlocked) || ((group.id === 'axolotl' || group.id === 'dino') && current_val < 0)}
                               className="flex-1 min-w-10 px-1 py-1 text-xs bg-st-secondary text-st-text rounded border border-st-border hover:border-st-orange transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
                             >+1</button>
                             {(group.id === 'axolotl' || group.id === 'dino') && (
                               <button 
                                 onClick={() => setExternalGroup(group.rows, group.max)} 
-                                disabled={group.id === 'geoduck' && !geoduck_unlocked}
+                                disabled={current_val < 0}
                                 className="flex-1 min-w-10 px-1 py-1 text-xs font-bold bg-st-secondary text-st-text rounded border border-st-border hover:border-st-orange transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
                               >Max</button>
                             )}
@@ -952,13 +998,21 @@ export default function PlayerSetup() {
                   <button onClick={() => setSetting('total_infernal_cards', total_infernal_cards + 1)} className="flex-1 min-w-10 px-1 py-1 text-xs bg-st-secondary text-st-text rounded border border-st-border hover:border-st-orange transition-colors">+1</button>
                 </div>
               </div>
-              <div className="w-full sm:w-1/2 sm:border-l border-st-border sm:pl-6 text-center sm:text-left">
-                <span className="text-sm font-bold block mb-1">🔥 Infernal Arch Card Bonus</span>
-                <span className="text-lg font-bold text-st-orange">
-                  {calculated_stats?.infernal_multiplier 
-                    ? `${Number(calculated_stats.infernal_multiplier).toLocaleString(undefined, {minimumFractionDigits: 4, maximumFractionDigits: 4})}x` 
-                    : "(Syncing...)"}
-                </span>
+              <div className="w-full sm:w-1/2 sm:border-l border-st-border sm:pl-6">
+                <div className="text-center sm:text-left mb-3">
+                  <span className="text-sm font-bold block mb-1">🔥 Infernal Arch Card Bonus</span>
+                  <span className="text-lg font-bold text-st-orange">
+                    {calculated_stats?.infernal_multiplier 
+                      ? `${Number(calculated_stats.infernal_multiplier).toLocaleString(undefined, {minimumFractionDigits: 4, maximumFractionDigits: 4})}x` 
+                      : "(Syncing...)"}
+                  </span>
+                </div>
+                <button
+                  onClick={() => setActiveSubTab('idols')}
+                  className="w-full px-3 py-2 bg-st-secondary border border-st-orange text-st-orange font-bold text-xs rounded hover:bg-st-orange hover:text-[#2b2b2b] transition-colors"
+                >
+                  🗿 Enable Infernal Cards (Go to Arch Idols)
+                </button>
               </div>
             </div>
 
@@ -1064,22 +1118,30 @@ export default function PlayerSetup() {
             ) : (
               <div className="flex flex-col sm:flex-row gap-6 justify-start items-start">
                 <div id="setup-ext-hestia" className="st-container flex flex-col items-center p-4 w-full sm:w-64">
-                  <span className="font-bold mb-4">Hestia Idol</span>
+                  <div className="text-center mb-4">
+                    <span className="font-bold">Hestia Idol</span><br/>
+                    <span className="text-xs text-st-text-light">(Max: 3000)</span>
+                  </div>
                   <div className="w-full flex justify-center mb-4">
                     <img src="/assets/upgrades/idols/hestia_idol.png" alt="Hestia" className="h-auto object-contain" style={{ width: UI_EXT_IMG_STD, imageRendering: 'pixelated' }} onError={(e) => e.target.style.display = 'none'} />
                   </div>
                   <div className="w-full mt-auto">
                     <hr className="border-st-border mb-4"/>
-                    <input 
-                      type="text"
-                      inputMode="numeric"
-                      pattern="[0-9]*"
-                      className="st-input"
-                      value={external_levels[4] !== undefined ? external_levels[4] : 0} 
-                      onFocus={(e) => e.target.select()}
-                      onChange={(e) => setExternalGroup([4], parseIntStrict(e.target.value, 0))} 
-                      onBlur={(e) => setExternalGroup([4], Math.min(3000, Math.max(0, parseIntStrict(e.target.value, 0))))}
-                    />
+                    <div className="relative">
+                      <input 
+                        type="text"
+                        inputMode="numeric"
+                        pattern="[0-9]*"
+                        className="st-input pr-16"
+                        value={external_levels[4] !== undefined ? external_levels[4] : 0} 
+                        onFocus={(e) => e.target.select()}
+                        onChange={(e) => setExternalGroup([4], parseIntStrict(e.target.value, 0))} 
+                        onBlur={(e) => setExternalGroup([4], Math.min(3000, Math.max(0, parseIntStrict(e.target.value, 0))))}
+                      />
+                      <span className="absolute right-3 top-1/2 -translate-y-1/2 text-st-text-light text-sm pointer-events-none select-none">
+                        / 3000
+                      </span>
+                    </div>
                     <div className="flex flex-wrap justify-center gap-1 mt-2 w-full">
                       <button onClick={() => setExternalGroup([4], Math.max(0, (external_levels[4] || 0) - 1))} className="flex-1 min-w-10 px-1 py-1 text-xs bg-st-secondary text-st-text rounded border border-st-border hover:border-st-orange transition-colors">-1</button>
                       <button onClick={() => setExternalGroup([4], Math.min(3000, (external_levels[4] || 0) + 1))} className="flex-1 min-w-10 px-1 py-1 text-xs bg-st-secondary text-st-text rounded border border-st-border hover:border-st-orange transition-colors">+1</button>
@@ -1089,34 +1151,54 @@ export default function PlayerSetup() {
                 </div>
 
                 <div id="setup-ext-hades" className="st-container flex flex-col items-center p-4 w-full sm:w-64">
-                  <span className="font-bold mb-4">Hades Idol</span>
+                  <div className="text-center mb-4">
+                    <span className="font-bold">Hades Idol</span><br/>
+                    <span className="text-xs text-st-text-light">(Max: 6666)</span>
+                  </div>
                   <div className="w-full flex justify-center mb-4">
                     <img src="/assets/upgrades/idols/hades_idol.png" alt="Hades" className="h-auto object-contain" style={{ width: UI_EXT_IMG_STD, imageRendering: 'pixelated' }} onError={(e) => e.target.style.display = 'none'} />
                   </div>
                   <div className="w-full mt-auto">
                     <hr className="border-st-border mb-4"/>
                     
-                    <label className="flex items-start gap-2 cursor-pointer font-bold mb-3 text-xs text-left leading-tight">
+                    <label className="flex items-start gap-2 cursor-pointer font-bold mb-2 text-xs text-left leading-tight">
                       <input 
                         type="checkbox" 
                         checked={hades_unlocked} 
                         onChange={(e) => setSetting('hades_unlocked', e.target.checked)} 
                         className="w-5 h-5 accent-st-orange shrink-0 mt-0.5" 
                       />
-                      <span>Hades Idol Unlocked (Arch Lv 85 + Blackened Basker Leg Fish T2)</span>
+                      <span>
+                        Hades Idol Unlocked
+                        <span className="block text-st-text-light font-normal mt-1">
+                          Prerequisites: Arch Lv 85 + Blackened Basker Legendary Fish T2
+                        </span>
+                      </span>
                     </label>
                     
-                    <input 
-                      type="text"
-                      inputMode="numeric"
-                      pattern="[0-9]*"
-                      className={`st-input ${!hades_unlocked ? 'opacity-30 cursor-not-allowed' : ''}`}
-                      value={external_levels[21] !== undefined ? external_levels[21] : 0} 
-                      disabled={!hades_unlocked}
-                      onFocus={(e) => e.target.select()}
-                      onChange={(e) => setExternalGroup([21], parseIntStrict(e.target.value, 0))}
-                      onBlur={(e) => setExternalGroup([21], Math.min(6666, Math.max(0, parseIntStrict(e.target.value, 0))))}
-                    />
+                    <div className="bg-st-orange/10 border-l-4 border-st-orange p-2 rounded text-xs mb-3">
+                      <span className="font-bold text-st-orange">🔥 Enables Infernal Cards</span>
+                      <p className="text-st-text-light mt-1 leading-tight">
+                        Checking this box unlocks the Infernal tier (tier 4) for all block cards in the Block Cards tab.
+                      </p>
+                    </div>
+                    
+                    <div className="relative">
+                      <input 
+                        type="text"
+                        inputMode="numeric"
+                        pattern="[0-9]*"
+                        className={`st-input pr-16 ${!hades_unlocked ? 'opacity-30 cursor-not-allowed' : ''}`}
+                        value={external_levels[21] !== undefined ? external_levels[21] : 0} 
+                        disabled={!hades_unlocked}
+                        onFocus={(e) => e.target.select()}
+                        onChange={(e) => setExternalGroup([21], parseIntStrict(e.target.value, 0))}
+                        onBlur={(e) => setExternalGroup([21], Math.min(6666, Math.max(0, parseIntStrict(e.target.value, 0))))}
+                      />
+                      <span className={`absolute right-3 top-1/2 -translate-y-1/2 text-st-text-light text-sm pointer-events-none select-none ${!hades_unlocked ? 'opacity-30' : ''}`}>
+                        / 6666
+                      </span>
+                    </div>
                     <div className="flex flex-wrap justify-center gap-1 mt-2 w-full">
                       <button onClick={() => setExternalGroup([21], Math.max(0, (external_levels[21] || 0) - 1))} disabled={!hades_unlocked} className="flex-1 min-w-10 px-1 py-1 text-xs bg-st-secondary text-st-text rounded border border-st-border hover:border-st-orange transition-colors disabled:opacity-30 disabled:cursor-not-allowed">-1</button>
                       <button onClick={() => setExternalGroup([21], Math.min(6666, (external_levels[21] || 0) + 1))} disabled={!hades_unlocked} className="flex-1 min-w-10 px-1 py-1 text-xs bg-st-secondary text-st-text rounded border border-st-border hover:border-st-orange transition-colors disabled:opacity-30 disabled:cursor-not-allowed">+1</button>

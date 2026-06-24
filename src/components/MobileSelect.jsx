@@ -65,10 +65,15 @@ export default function MobileSelect({ value, onChange, options, className, rend
               type="button"
               onClick={(e) => {
                 e.stopPropagation();
-                onChange({ target: { value: opt.value } });
-                setIsOpen(false);
+                if (!opt.disabled) {
+                  onChange({ target: { value: opt.value } });
+                  setIsOpen(false);
+                }
               }}
-              className={`w-full text-left px-4 py-3 border-b border-st-border hover:bg-st-secondary transition-colors ${
+              disabled={opt.disabled}
+              className={`w-full text-left px-4 py-3 border-b border-st-border transition-colors ${
+                opt.disabled ? 'opacity-40 cursor-not-allowed' : 'hover:bg-st-secondary'
+              } ${
                 opt.value === value ? 'bg-st-orange/20 text-st-orange font-bold' : 'text-st-text'
               }`}
             >

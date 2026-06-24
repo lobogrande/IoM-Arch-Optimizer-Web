@@ -3,6 +3,7 @@ import { useState, useMemo, useEffect } from 'react';
 import useStore from '../../store';
 import { EngineWorkerPool, getOptimalStepProfile, runOptimizationPhase, topUpBuild } from '../../utils/optimizer';
 import ResultsDashboard from './ResultsDashboard';
+import RunHistoryTable from './RunHistoryTable';
 import { BLOCK_MIN_FLOORS, FRAG_ICONS } from '../../game_data';
 import MobileSelect from '../MobileSelect';
 
@@ -17,7 +18,8 @@ const OPT_GOALS =[
   "Max Floor Push", 
   "Max EXP Yield", 
   "Fragment Farming", 
-  "Block Card Farming"
+  "Block Card Farming",
+  "Dino Quest"
 ];
 
 const FRAG_NAMES = {
@@ -34,6 +36,8 @@ export default function OptimizerTab() {
   const lockedStats = store.lockedStats || {};
   const simsPerSec = store.simsPerSec || 15;
   const allowUnspent = store.allowUnspent || false;
+  const useWasmEngine = !!store.useWasmEngine;
+  const numRuns = store.numOptimizerRuns || 1;
 
   const setOptGoal = (v) => store.setSimsState('optGoal', v);
   const setTargetFrag = (v) => store.setSimsState('targetFrag', v);
@@ -42,6 +46,7 @@ export default function OptimizerTab() {
   const setLockedStats = (v) => store.setSimsState('lockedStats', v);
   const setSimsPerSec = (v) => store.setSimsState('simsPerSec', v);
   const setAllowUnspent = (v) => store.setSimsState('allowUnspent', v);
+  const setNumRuns = (v) => store.setNumOptimizerRuns(v);
 
   const availableBlocks = useMemo(() => {
     return Object.keys(BLOCK_MIN_FLOORS).filter(cardId => {
@@ -212,6 +217,24 @@ export default function OptimizerTab() {
     setLockedStats({ ...lockedStats, [stat]: newLock });
   };
 
+  const handleViewHistoryRun = (runData) => {
+    if (runData._restore_state) {
+      if (runData._restore_state.opt_results) {
+        store.setOptResults(runData._restore_state.opt_results);
+        store.setSimsState('synthesis_result', runData._restore_state.synthesis_result);
+      } else {
+        store.setOptResults(runData._restore_state);
+        store.setSimsState('synthesis_result', null);
+      }
+      
+      // Scroll to the results dashboard
+      setTimeout(() => {
+        const anchor = document.getElementById('dashboard-anchor-optimizer');
+        if (anchor) anchor.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }, 100);
+    }
+  };
+
   const handleRunOptimizer = async () => {
     setIsOptimizing(true);
     setOptProgressMsg("Calculating Execution Plan...");
@@ -219,70 +242,80 @@ export default function OptimizerTab() {
     store.setOptResults(null); // 🔒 Instantly locks any tour conditions relying on results!
     store.setSimsState('synthesis_result', null);
 
+    const actualNumRuns = useWasmEngine ? Math.max(1, Math.min(10, numRuns)) : 1;
+    const aggregateStartTime = Date.now();
+
     try {
-      const baseStateDict = {
-        asc1_unlocked: store.asc1_unlocked,
-        asc2_unlocked: store.asc2_unlocked,
-        arch_level: store.arch_level,
-        current_max_floor: store.current_max_floor,
-        starting_speed_pool: store.starting_speed_pool || 0,
-        arch_ability_infernal_bonus: parseFloat(store.arch_ability_infernal_bonus) / 100.0,
-        total_infernal_cards: store.total_infernal_cards,
-        base_stats: store.base_stats,
-        upgrade_levels: store.upgrade_levels,
-        external_levels: { ...store.external_levels, 8: store.geoduck_unlocked ? (store.external_levels[ 8 ] || 0) : 0 },
-        cards: store.cards
-      };
+      for (let runIndex = 0; runIndex < actualNumRuns; runIndex++) {
+        const runPrefix = actualNumRuns > 1 ? `[Run ${runIndex + 1}/${actualNumRuns}] ` : '';
+        
+        setOptProgressMsg(`${runPrefix}Calculating Execution Plan...`);
+        setOptProgressPct(0);
+        
+        const baseStateDict = {
+          asc1_unlocked: store.asc1_unlocked,
+          asc2_unlocked: store.asc2_unlocked,
+          arch_level: store.arch_level,
+          current_max_floor: store.current_max_floor,
+          starting_speed_pool: store.starting_speed_pool || 0,
+          arch_ability_infernal_bonus: parseFloat(store.arch_ability_infernal_bonus) / 100.0,
+          total_infernal_cards: store.total_infernal_cards,
+          base_stats: store.base_stats,
+          upgrade_levels: store.upgrade_levels,
+          external_levels: { ...store.external_levels, 8: store.geoduck_unlocked ? (store.external_levels[ 8 ] || 0) : 0 },
+          cards: store.cards
+        };
 
-      if (isImpossible) {
-        alert(`❌ Invalid Constraints: Your locks require between ${minSum} and ${maxSum} points, but your budget is exactly ${dynamicBudget}.`);
-        setIsOptimizing(false);
-        return;
-      }
-
-      if (!profData) {
-        alert("❌ Curse of Dimensionality! The AI could not find a mathematical step profile to fit the time limit. Lock more stats or increase the time limit.");
-        setIsOptimizing(false);
-        return;
-      }
-
-      const step2 = profData.step_2;
-      const step3 = profData.step_3;
-
-      setOptProgressMsg(`Booting Cores...`);
-      const pool = new EngineWorkerPool();
-      await pool.init(
-        () => {}, 
-        (ready, total) => setOptProgressMsg(`Booting Cores: ${ready}/${total}`)
-      );
-
-      setOptProgressMsg(`Synchronizing Player State...`);
-      await pool.syncState(baseStateDict);
-
-      const globalStartTime = Date.now();
-      const targetMetricKey = (optGoal === "Fragment Farming") ? `frag_${targetFrag}_per_min` 
-                            : (optGoal === "Block Card Farming") ? `block_${targetBlock}_per_min` 
-                            : (optGoal === "Max EXP Yield") ? "xp_per_min" 
-                            : "highest_floor";
-
-      const fixedStats = {};
-      Object.keys(store.base_stats).forEach(k => {
-        if (!optActiveStats.includes(k)) fixedStats[k] = store.base_stats[k];
-      });
-
-      let totalSimsExecuted = 0;
-      let lastProgressUpdate = 0;
-
-      const onProgressCb = (phase, rnd, totRnd, comp, tot) => {
-        totalSimsExecuted++;
-        const now = Date.now();
-        if (now - lastProgressUpdate > 500 || comp === tot) {
-          const elapsed = (now - globalStartTime) / 1000;
-          setOptProgressMsg(`⚙️ ${phase} | Round ${rnd}/${totRnd} | ${comp}/${tot} sims | ⏱️ Elapsed: ${elapsed.toFixed(1)}s / ${timeLimit}s`);
-          setOptProgressPct((comp / tot) * 100);
-          lastProgressUpdate = now;
+        if (isImpossible) {
+          alert(`❌ Invalid Constraints: Your locks require between ${minSum} and ${maxSum} points, but your budget is exactly ${dynamicBudget}.`);
+          setIsOptimizing(false);
+          return;
         }
-      };
+
+        if (!profData) {
+          alert("❌ Curse of Dimensionality! The AI could not find a mathematical step profile to fit the time limit. Lock more stats or increase the time limit.");
+          setIsOptimizing(false);
+          return;
+        }
+
+        const step2 = profData.step_2;
+        const step3 = profData.step_3;
+
+        setOptProgressMsg(`${runPrefix}Booting Cores...`);
+        const pool = new EngineWorkerPool();
+        await pool.init(
+          () => {}, 
+          (ready, total) => setOptProgressMsg(`${runPrefix}Booting Cores: ${ready}/${total}`)
+        );
+
+        setOptProgressMsg(`${runPrefix}Synchronizing Player State...`);
+        await pool.syncState(baseStateDict);
+
+        const globalStartTime = Date.now();
+        const targetMetricKey = (optGoal === "Fragment Farming") ? `frag_${targetFrag}_per_min` 
+                              : (optGoal === "Block Card Farming") ? `block_${targetBlock}_per_min` 
+                              : (optGoal === "Max EXP Yield") ? "xp_per_min"
+                              : (optGoal === "Dino Quest") ? "dino_quest_floors_per_sec"
+                              : "highest_floor";
+
+        const fixedStats = {};
+        Object.keys(store.base_stats).forEach(k => {
+          if (!optActiveStats.includes(k)) fixedStats[k] = store.base_stats[k];
+        });
+
+        let totalSimsExecuted = 0;
+        let lastProgressUpdate = 0;
+
+        const onProgressCb = (phase, rnd, totRnd, comp, tot) => {
+          totalSimsExecuted++;
+          const now = Date.now();
+          if (now - lastProgressUpdate > 500 || comp === tot) {
+            const elapsed = (now - globalStartTime) / 1000;
+            setOptProgressMsg(`${runPrefix}⚙️ ${phase} | Round ${rnd}/${totRnd} | ${comp}/${tot} sims | ⏱️ Elapsed: ${elapsed.toFixed(1)}s / ${timeLimit}s`);
+            setOptProgressPct((comp / tot) * 100);
+            lastProgressUpdate = now;
+          }
+        };
 
       let p1Budget = dynamicBudget - ((dynamicBudget - minSum) % step1);
       
@@ -360,64 +393,79 @@ export default function OptimizerTab() {
         if (bestP3) { bestFinal = bestP3; finalSummary = res3.summary; }
       }
 
-      const elapsed = (Date.now() - globalStartTime) / 1000;
-      pool.terminate();
-      
-      if (elapsed > 0 && totalSimsExecuted > 0) {
-          setSimsPerSec(Math.max(1, Math.floor(totalSimsExecuted / elapsed)));
-      }
-      
-      if (bestFinal && finalSummary) {
-          const chartHillScores = [sumP1 ? sumP1[targetMetricKey] : null, sumP2 ? sumP2[targetMetricKey] : null, finalSummary[targetMetricKey]].filter(x => x !== null);
-          const chartHillLabels =["P1 (Coarse)", sumP2 ? "P2 (Fine)" : null, "P3 (Exact)"].filter(x => x !== null);
-          const chartLoot = {};
-          if (finalSummary.avg_metrics) {
-              Object.entries(FRAG_NAMES).forEach(([tier, name]) => {
-                  const k = `frag_${tier}_per_min`;
-                  if (finalSummary.avg_metrics[k] > 0) chartLoot[name] = finalSummary.avg_metrics[k];
-              });
-          }
+        const elapsed = (Date.now() - globalStartTime) / 1000;
+        const aggregateElapsed = (Date.now() - aggregateStartTime) / 1000;
+        pool.terminate();
+        
+        if (elapsed > 0 && totalSimsExecuted > 0) {
+            setSimsPerSec(Math.max(1, Math.floor(totalSimsExecuted / elapsed)));
+        }
+        
+        if (bestFinal && finalSummary) {
+            const chartHillScores = [sumP1 ? sumP1[targetMetricKey] : null, sumP2 ? sumP2[targetMetricKey] : null, finalSummary[targetMetricKey]].filter(x => x !== null);
+            const chartHillLabels =["P1 (Coarse)", sumP2 ? "P2 (Fine)" : null, "P3 (Exact)"].filter(x => x !== null);
+            const chartLoot = {};
+            if (finalSummary.avg_metrics) {
+                Object.entries(FRAG_NAMES).forEach(([tier, name]) => {
+                    const k = `frag_${tier}_per_min`;
+                    if (finalSummary.avg_metrics[k] > 0) chartLoot[name] = finalSummary.avg_metrics[k];
+                });
+            }
 
-          const payload = {
-              run_id: Date.now(),
-              best_final: bestFinal,
-              final_summary_out: finalSummary,
-              elapsed: elapsed,
-              time_limit_secs: timeLimit,
-              run_target_metric: targetMetricKey,
-              worst_val: finalSummary.worst_val || 0,
-              avg_val: finalSummary.avg_val || 0,
-              runner_up_val: finalSummary.runner_up_val || 0,
-              chart_hist: finalSummary.floors.reduce((acc, f) => { acc[f] = (acc[f] || 0) + 1; return acc; }, {}),
-              chart_hill_scores: chartHillScores,
-              chart_hill_labels: chartHillLabels,
-              chart_loot: chartLoot,
-              show_loot: targetMetricKey !== 'highest_floor',
-              show_wall: targetMetricKey === 'highest_floor'
-          };
+            const payload = {
+                run_id: Date.now() + runIndex,  // Ensure unique IDs for multiple runs
+                best_final: bestFinal,
+                final_summary_out: finalSummary,
+                elapsed: elapsed,
+                aggregate_elapsed: aggregateElapsed,
+                num_runs: actualNumRuns,
+                current_run: runIndex + 1,
+                time_limit_secs: timeLimit,
+                run_target_metric: targetMetricKey,
+                worst_val: finalSummary.worst_val || 0,
+                avg_val: finalSummary.avg_val || 0,
+                runner_up_val: finalSummary.runner_up_val || 0,
+                chart_hist: finalSummary.floors.reduce((acc, f) => { acc[f] = (acc[f] || 0) + 1; return acc; }, {}),
+                chart_hill_scores: chartHillScores,
+                chart_hill_labels: chartHillLabels,
+                chart_loot: chartLoot,
+                show_loot: targetMetricKey !== 'highest_floor' && targetMetricKey !== 'dino_quest_floors_per_sec',
+                show_wall: targetMetricKey === 'highest_floor' || targetMetricKey === 'dino_quest_floors_per_sec'
+            };
 
-          store.setSimsState('synthesis_result', null);
-          store.setOptResults(payload);
-          store.addRunHistory({
-              Include: false,
-              Timestamp: Date.now(),
-              ProfileId: profileContext.id,
-              ProfileName: profileContext.name,
-              IsModified: profileContext.isModified,
-              Profile: profileContext.tag,
-              Target: targetMetricKey,
-              "Metric Score": finalSummary[targetMetricKey],
-              "Avg Floor": finalSummary.avg_floor,
-              "Max Floor": finalSummary.abs_max_floor,
-              ...bestFinal,
-              _restore_state: payload
-          });
+            // For the last run or single run, show results; for others, only save to history
+            if (runIndex === actualNumRuns - 1) {
+              store.setSimsState('synthesis_result', null);
+              store.setOptResults(payload);
+              store.setSimResTab('build');
+              store.setSimDataTab('performance');
+            }
+            
+            store.addRunHistory({
+                Include: false,
+                Timestamp: Date.now() + runIndex,  // Ensure unique timestamps
+                ProfileId: profileContext.id,
+                ProfileName: profileContext.name,
+                IsModified: profileContext.isModified,
+                Profile: profileContext.tag,
+                Target: targetMetricKey,
+                "Metric Score": finalSummary[targetMetricKey],
+                "Avg Floor": finalSummary.avg_floor,
+                "Max Floor": finalSummary.abs_max_floor,
+                ...bestFinal,
+                _restore_state: payload
+            });
 
-          store.setSimResTab('build');
-          store.setSimDataTab('performance');
-
-      } else {
-          alert("⚠️ Optimization aborted or failed to find a valid build.");
+        } else {
+            if (runIndex === actualNumRuns - 1) {
+              alert("⚠️ Optimization aborted or failed to find a valid build.");
+            }
+        }
+        
+        // Small delay between runs to allow UI updates
+        if (runIndex < actualNumRuns - 1) {
+          await new Promise(resolve => setTimeout(resolve, 500));
+        }
       }
       
     } catch (err) {
@@ -471,12 +519,35 @@ export default function OptimizerTab() {
           <MobileSelect
             data-tour="opt-goal"
             value={optGoal} 
-            onChange={(e) => setOptGoal(e.target.value)}
-            options={OPT_GOALS.map(g => ({ value: g, label: g }))}
+            onChange={(e) => {
+              const newGoal = e.target.value;
+              // Prevent selecting Dino Quest if requirement not met
+              if (newGoal === "Dino Quest" && store.current_max_floor <= 110) {
+                return;
+              }
+              setOptGoal(newGoal);
+            }}
+            options={OPT_GOALS.map(g => {
+              let label = g;
+              let disabled = false;
+              
+              if (g === "Dino Quest") {
+                if (store.current_max_floor <= 110) {
+                  label = `${g} (Requires Max Floor > 110)`;
+                  disabled = true;
+                }
+              }
+              
+              return { 
+                value: g, 
+                label: label,
+                disabled: disabled
+              };
+            })}
             className="w-full bg-st-bg border border-st-border rounded p-2 text-st-text focus:border-st-orange focus:outline-none"
           />
           
-          {optGoal !== "Max Floor Push" && (
+          {optGoal !== "Max Floor Push" && optGoal !== "Dino Quest" && (
             <label data-tour="opt-allow-unspent" className="flex items-center space-x-2 mt-4 cursor-pointer text-st-text-light hover:text-st-orange transition-colors">
             <input 
               type="checkbox"
@@ -791,6 +862,26 @@ export default function OptimizerTab() {
         ⚠️ <strong>CRITICAL:</strong> Unlike the old server version, you <strong>CAN</strong> safely change tabs while the AI is running! However, do not refresh or close this browser window or the simulation will be aborted.
       </div>
 
+      {useWasmEngine && (
+        <div className="mb-4 p-3 bg-st-secondary border border-st-border rounded">
+          <label className="block text-sm font-bold mb-2">
+            🔁 Sequential Runs <span className="text-st-text-light font-normal">(WASM only)</span>
+          </label>
+          <input
+            type="number"
+            min="1"
+            max="10"
+            value={numRuns}
+            onChange={(e) => setNumRuns(e.target.value)}
+            className="w-full bg-st-bg border border-st-border rounded p-2 text-st-text focus:border-st-orange focus:outline-none"
+            disabled={isOptimizing}
+          />
+          <div className="text-xs text-st-text-light mt-2">
+            Run the optimizer multiple times in sequence (1-10). Each run produces a separate result saved to history. Useful for finding different local optima or averaging results.
+          </div>
+        </div>
+      )}
+
       <div data-tour="opt-run-wrapper">
         {!isOptimizing ? (
           <button 
@@ -816,6 +907,12 @@ export default function OptimizerTab() {
       </div>
 
       {store.opt_results && !store.synthesis_result && !isOptimizing && <ResultsDashboard context="optimizer" />}
+
+      {!isOptimizing && (
+        <div className="mt-8">
+          <RunHistoryTable mode="optimizer" onViewRun={handleViewHistoryRun} />
+        </div>
+      )}
 
     </div>
   );

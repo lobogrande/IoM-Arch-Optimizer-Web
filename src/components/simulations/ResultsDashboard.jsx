@@ -86,9 +86,21 @@ export default function ResultsDashboard({ context }) {
   if (!store.opt_results || !store.opt_results.final_summary_out) return null;
   
   const runMetric = store.opt_results.run_target_metric;
-  const isFloorTarget = runMetric === 'highest_floor';
-  const scaleScore = (v) => isFloorTarget ? v : (v / 60.0) * 1000.0;
-  const unitLabel = isFloorTarget ? "Floor Reached" : "Yield per 1k Arch Secs";
+  const isFloorTarget = runMetric === 'highest_floor' || runMetric === 'dino_quest_floors_per_sec';
+  
+  // Scaling and labeling based on metric type
+  const scaleScore = (v) => {
+    if (runMetric === 'highest_floor') return v;  // Floor number, no scaling
+    if (runMetric === 'dino_quest_floors_per_sec') return v * 1000;  // Per second to per 1k seconds
+    return (v / 60.0) * 1000.0;  // Per minute to per 1k seconds
+  };
+  
+  const unitLabel = runMetric === 'highest_floor' 
+    ? "Floor Reached" 
+    : runMetric === 'dino_quest_floors_per_sec'
+      ? "Dino Quest Points per 1k Arch Secs"
+      : "Yield per 1k Arch Secs";
+  
   const finalSum = store.opt_results.final_summary_out;
 
   const innerTabs = [{ id: 'performance', label: '📈 Performance' }];
@@ -486,7 +498,14 @@ export default function ResultsDashboard({ context }) {
   return (
     <div className="mt-8 animate-fade-in space-y-6" id={`dashboard-anchor-${context}`}>
       <div className="bg-[#1e1e1e] border-l-4 border-l-green-500 p-4 rounded shadow">
-        <h3 className="text-xl font-bold text-green-400">✅ Simulation Complete in {store.opt_results.elapsed.toFixed(1)} seconds!</h3>
+        <h3 className="text-xl font-bold text-green-400">
+          ✅ Simulation Complete in {store.opt_results.elapsed.toFixed(1)} seconds!
+          {store.opt_results.num_runs > 1 && (
+            <span className="text-base font-normal text-st-text-light ml-2">
+              (Run {store.opt_results.current_run}/{store.opt_results.num_runs} • Total: {store.opt_results.aggregate_elapsed.toFixed(1)}s)
+            </span>
+          )}
+        </h3>
       </div>
 
       <div className="flex overflow-x-auto md:flex-wrap border-b border-st-border mb-8 md:mb-6 scrollbar-thin">
@@ -615,6 +634,20 @@ export default function ResultsDashboard({ context }) {
               <div className="lg:col-span-2 space-y-6">
                 {isFloorTarget ? (
                   <div data-tour="res-data-push" className="space-y-4">
+                    {runMetric === 'dino_quest_floors_per_sec' && (
+                      <div className="bg-gradient-to-r from-purple-900/30 to-blue-900/30 border-l-4 border-purple-500 p-4 rounded">
+                        <h4 className="font-bold text-lg text-purple-300 mb-2">🦖 Dino Quest Points per 1k Arch Seconds</h4>
+                        <div className="text-4xl font-mono font-bold text-purple-400">
+                          {avgMetrics.dino_quest_floors_per_sec 
+                            ? (avgMetrics.dino_quest_floors_per_sec * 1000).toFixed(2)
+                            : '0.00'}
+                        </div>
+                        <p className="text-xs text-st-text-light mt-2">
+                          Average floors reached above 110 per 1,000 Arch Seconds. Higher is better for quest progression.
+                        </p>
+                      </div>
+                    )}
+                    
                     <h4 className="font-bold text-lg border-b border-st-border pb-2 flex items-center gap-2">
                       🏆 Right-Tail Push Potential
                       <div className="group relative cursor-help text-st-text-light hover:text-st-orange font-normal">
@@ -859,7 +892,7 @@ export default function ResultsDashboard({ context }) {
                   <span className="text-2xl font-bold">Floor {finalSum.avg_floor.toFixed(1)}</span>
                 </div>
                 
-                {runMetric !== 'xp_per_min' && avgMetrics.xp_per_min && (
+                {runMetric !== 'xp_per_min' && runMetric !== 'dino_quest_floors_per_sec' && avgMetrics.xp_per_min && (
                   <>
                     <hr className="border-st-border" />
                     <div className="flex flex-col">
@@ -877,11 +910,11 @@ export default function ResultsDashboard({ context }) {
               <div className="lg:col-span-3 space-y-6">
                 <div className="border border-st-border rounded bg-st-bg p-2">
                   <h4 className="font-bold ml-2 mt-2">AI Convergence (Hill Climb)</h4>
-                  <p className="text-xs text-st-text-light ml-2 mb-2">Y-Axis: {unitLabel}</p>
+                  <p className="text-xs text-st-text-light ml-2 mb-2">How the AI improved across phases</p>
                   <Plot
                     data={[{
                       x: store.opt_results.chart_hill_labels,
-                      y: store.opt_results.chart_hill_scores,
+                      y: store.opt_results.chart_hill_scores.map(scaleScore),
                       type: 'scatter', mode: 'lines+markers',
                       line: { color: '#4CAF50' }, marker: { size: 10 }
                     }]}
@@ -889,7 +922,8 @@ export default function ResultsDashboard({ context }) {
                       autosize: true,
                       font: { color: store.theme === 'dark' ? '#FAFAFA' : '#31333F' },
                       paper_bgcolor: 'rgba(0,0,0,0)', plot_bgcolor: 'rgba(0,0,0,0)',
-                      margin: { t: 10, b: 30, l: 40, r: 20 },
+                      margin: { t: 10, b: 30, l: 50, r: 20 },
+                      yaxis: { title: { text: unitLabel, font: { size: 10 } } },
                       height: 250
                     }}
                     useResizeHandler={true} style={{ width: '100%' }} config={{ displayModeBar: false }}
@@ -897,7 +931,7 @@ export default function ResultsDashboard({ context }) {
                 </div>
                 <div className="border border-st-border rounded bg-st-bg p-2">
                   <h4 className="font-bold ml-2 mt-2">Engine Confidence Analysis</h4>
-                  <p className="text-xs text-st-text-light ml-2 mb-2">X-Axis: {unitLabel}</p>
+                  <p className="text-xs text-st-text-light ml-2 mb-2">Comparing tested builds</p>
                   <Plot
                     data={[{
                       y: ["Worst Tested", "Average", "Runner-Up", "🏆 Optimal"],
@@ -914,7 +948,8 @@ export default function ResultsDashboard({ context }) {
                       autosize: true,
                       font: { color: store.theme === 'dark' ? '#FAFAFA' : '#31333F' },
                       paper_bgcolor: 'rgba(0,0,0,0)', plot_bgcolor: 'rgba(0,0,0,0)',
-                      margin: { t: 10, b: 30, l: 100, r: 20 },
+                      margin: { t: 10, b: 40, l: 100, r: 20 },
+                      xaxis: { title: { text: unitLabel, font: { size: 10 } } },
                       height: 250
                     }}
                     useResizeHandler={true} style={{ width: '100%' }} config={{ displayModeBar: false }}
@@ -1214,7 +1249,29 @@ export default function ResultsDashboard({ context }) {
                             showlegend: traces.length > 1,
                             legend: { orientation: 'h', y: -0.35, x: 0.5, xanchor: 'center' },
                             xaxis: { title: { text: 'Floor Level', standoff: 15 }, color: chartFontColor, gridcolor: chartGridColor }, 
-                            yaxis: { title: { text: 'Stamina Remaining', standoff: 15 }, color: chartFontColor, gridcolor: chartGridColor }
+                            yaxis: { title: { text: 'Stamina Remaining', standoff: 15 }, color: chartFontColor, gridcolor: chartGridColor },
+                            shapes: runMetric === 'dino_quest_floors_per_sec' ? [{
+                              type: 'line',
+                              x0: 110, x1: 110,
+                              y0: 0, y1: 1,
+                              yref: 'paper',
+                              line: {
+                                color: '#a855f7',
+                                width: 2,
+                                dash: 'dash'
+                              }
+                            }] : [],
+                            annotations: runMetric === 'dino_quest_floors_per_sec' ? [{
+                              x: 110,
+                              y: 1,
+                              yref: 'paper',
+                              text: 'Floor 110<br>(Quest Start)',
+                              showarrow: false,
+                              xshift: 5,
+                              yshift: -10,
+                              xanchor: 'left',
+                              font: { size: 10, color: '#a855f7' }
+                            }] : []
                           }}
                           useResizeHandler={true} style={{ width: '100%', height: '100%' }} config={{ displayModeBar: false }}
                         />
@@ -1233,9 +1290,9 @@ export default function ResultsDashboard({ context }) {
         <div className="st-container animate-fade-in">
           <h3 className="text-2xl font-bold mb-4">🔮 Upgrade Guide (Marginal ROI)</h3>
           
-          {store.opt_results.run_target_metric === 'highest_floor' ? (
+          {(store.opt_results.run_target_metric === 'highest_floor' || store.opt_results.run_target_metric === 'dino_quest_floors_per_sec') ? (
             <div data-tour="res-roi-disabled" className="bg-yellow-900/40 border-l-4 border-yellow-500 p-4 rounded">
-              <p className="font-bold text-yellow-500">⚠️ ROI Analyzer is Disabled for Max Floor Push</p>
+              <p className="font-bold text-yellow-500">⚠️ ROI Analyzer is Disabled for Floor-Based Targets</p>
               <p className="text-sm mt-2">Because floor progression relies on large, discrete math 'Breakpoints', adding a single +1 to a stat rarely shows an immediate gain. To calculate exactly what stats you need to beat your current wall, send your build to Tab 6 (Hit Calculator Sandbox) and manually inspect the HP and Armor Breakpoints!</p>
             </div>
           ) : (

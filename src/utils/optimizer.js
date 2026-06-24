@@ -471,6 +471,12 @@ export async function runOptimizationPhase(
                     if (result.aborted) return; // Skip dumped tasks
 
                     const tr = tracker[key];
+                    
+                    // Calculate Dino Quest metric: floors above 110 per second
+                    if (!result.dino_quest_floors_per_sec && result.highest_floor && result.total_time) {
+                        result.dino_quest_floors_per_sec = Math.max(0, result.highest_floor - 110) / result.total_time;
+                    }
+                    
                     tr.sumTarget += (result[targetMetric] || 0.0);
                     tr.sumFloor += (result.highest_floor || 0.0);
                     tr.runs += 1;
@@ -518,7 +524,7 @@ export async function runOptimizationPhase(
         // Sort & Drop Losers
         activeKeys.sort((a, b) => {
             const ta = tracker[a], tb = tracker[b];
-            if (targetMetric === 'highest_floor') {
+            if (targetMetric === 'highest_floor' || targetMetric === 'dino_quest_floors_per_sec') {
                 const maxA = ta.floors.length ? Math.max(...ta.floors) : 0;
                 const maxB = tb.floors.length ? Math.max(...tb.floors) : 0;
                 if (maxA !== maxB) return maxB - maxA;
