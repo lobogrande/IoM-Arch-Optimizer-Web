@@ -842,7 +842,6 @@ export default function PlayerSetup() {
                           </div>
                         )}
                         {group.ui_type === 'card' && current_val === 0 && <span className="text-xs text-st-text-light">(Card Not Unlocked)</span>}
-                        {group.ui_type === 'pet' && current_val === -1 && <span className="text-xs text-st-text-light">Status: Not Owned</span>}
                         
                         {group.id === 'geoduck' && (
                           <>
@@ -853,6 +852,24 @@ export default function PlayerSetup() {
                             <span className="text-xs text-st-text-light mt-1 text-center">Enter Number of Mythic Chests Owned</span>
                           </>
                         )}
+                        
+                        {(group.id === 'axolotl' || group.id === 'dino') && (
+                          <label className="flex items-start gap-2 cursor-pointer font-bold mb-1 text-xs mt-2 text-left leading-tight">
+                            <input 
+                              type="checkbox" 
+                              checked={current_val >= 0} 
+                              onChange={(e) => {
+                                if (e.target.checked) {
+                                  setExternalGroup(group.rows, 0);
+                                } else {
+                                  setExternalGroup(group.rows, -1);
+                                }
+                              }} 
+                              className="w-5 h-5 accent-st-orange shrink-0 mt-0.5" 
+                            />
+                            <span>{group.id === 'axolotl' ? 'Axolotl Pet Unlocked' : 'Dino Pet Unlocked'}</span>
+                          </label>
+                        )}
                       </div>
 
                       {(group.ui_type === 'number' || group.ui_type === 'pet' || group.ui_type === 'card') && (
@@ -861,28 +878,48 @@ export default function PlayerSetup() {
                             type="text"
                             inputMode="numeric"
                             pattern="[0-9-]*"
-                            className={`st-input ${group.id === 'geoduck' && !geoduck_unlocked ? 'opacity-30 cursor-not-allowed' : ''}`} 
-                            value={current_val} 
-                            disabled={group.id === 'geoduck' && !geoduck_unlocked} 
+                            className={`st-input ${(group.id === 'geoduck' && !geoduck_unlocked) || ((group.id === 'axolotl' || group.id === 'dino') && current_val < 0) ? 'opacity-30 cursor-not-allowed' : ''}`} 
+                            value={current_val >= 0 ? current_val : 0} 
+                            disabled={(group.id === 'geoduck' && !geoduck_unlocked) || ((group.id === 'axolotl' || group.id === 'dino') && current_val < 0)} 
                             onFocus={(e) => e.target.select()}
-                            onChange={(e) => setExternalGroup(group.rows, parseIntStrict(e.target.value, group.ui_type === 'pet' ? -1 : 0))} 
-                            onBlur={(e) => setExternalGroup(group.rows, Math.min(group.max !== undefined ? group.max : 9999, Math.max(group.ui_type === 'pet' ? -1 : 0, parseIntStrict(e.target.value, 0))))}
+                            onChange={(e) => {
+                              const val = parseIntStrict(e.target.value, 0);
+                              if (group.id === 'axolotl' || group.id === 'dino') {
+                                setExternalGroup(group.rows, Math.max(0, val));
+                              } else {
+                                setExternalGroup(group.rows, val);
+                              }
+                            }} 
+                            onBlur={(e) => {
+                              const val = parseIntStrict(e.target.value, 0);
+                              if (group.id === 'axolotl' || group.id === 'dino') {
+                                setExternalGroup(group.rows, Math.min(group.max !== undefined ? group.max : 11, Math.max(0, val)));
+                              } else {
+                                setExternalGroup(group.rows, Math.min(group.max !== undefined ? group.max : 9999, Math.max(group.ui_type === 'pet' ? -1 : 0, val)));
+                              }
+                            }}
                           />
                           <div className="flex flex-wrap justify-center gap-1 mt-2 w-full">
                             <button 
-                              onClick={() => setExternalGroup(group.rows, Math.max(group.ui_type === 'pet' ? -1 : 0, current_val - 1))} 
-                              disabled={group.id === 'geoduck' && !geoduck_unlocked}
+                              onClick={() => {
+                                if (group.id === 'axolotl' || group.id === 'dino') {
+                                  setExternalGroup(group.rows, Math.max(0, current_val - 1));
+                                } else {
+                                  setExternalGroup(group.rows, Math.max(group.ui_type === 'pet' ? -1 : 0, current_val - 1));
+                                }
+                              }} 
+                              disabled={(group.id === 'geoduck' && !geoduck_unlocked) || ((group.id === 'axolotl' || group.id === 'dino') && current_val < 0)}
                               className="flex-1 min-w-10 px-1 py-1 text-xs bg-st-secondary text-st-text rounded border border-st-border hover:border-st-orange transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
                             >-1</button>
                             <button 
                               onClick={() => setExternalGroup(group.rows, Math.min(group.max !== undefined ? group.max : 9999, current_val + 1))} 
-                              disabled={group.id === 'geoduck' && !geoduck_unlocked}
+                              disabled={(group.id === 'geoduck' && !geoduck_unlocked) || ((group.id === 'axolotl' || group.id === 'dino') && current_val < 0)}
                               className="flex-1 min-w-10 px-1 py-1 text-xs bg-st-secondary text-st-text rounded border border-st-border hover:border-st-orange transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
                             >+1</button>
                             {(group.id === 'axolotl' || group.id === 'dino') && (
                               <button 
                                 onClick={() => setExternalGroup(group.rows, group.max)} 
-                                disabled={group.id === 'geoduck' && !geoduck_unlocked}
+                                disabled={current_val < 0}
                                 className="flex-1 min-w-10 px-1 py-1 text-xs font-bold bg-st-secondary text-st-text rounded border border-st-border hover:border-st-orange transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
                               >Max</button>
                             )}
