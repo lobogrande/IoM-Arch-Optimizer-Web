@@ -236,16 +236,21 @@ export default function PlayerSetup() {
           />
         </div>
 
-        <input 
-          type="text"
-          inputMode="numeric"
-          pattern="[0-9]*"
-          className="st-input"
-          value={base_stats[statKey] !== undefined ? base_stats[statKey] : 0}
-          onFocus={(e) => e.target.select()}
-          onChange={(e) => setBaseStat(statKey, parseIntStrict(e.target.value, 0))}
-          onBlur={(e) => setBaseStat(statKey, Math.min(STAT_CAPS[statKey], Math.max(0, parseIntStrict(e.target.value, 0))))}
-        />
+        <div className="relative">
+          <input
+            type="text"
+            inputMode="numeric"
+            pattern="[0-9]*"
+            className="st-input pr-16"
+            value={base_stats[statKey] !== undefined ? base_stats[statKey] : 0}
+            onFocus={(e) => e.target.select()}
+            onChange={(e) => setBaseStat(statKey, parseIntStrict(e.target.value, 0))}
+            onBlur={(e) => setBaseStat(statKey, Math.min(STAT_CAPS[statKey], Math.max(0, parseIntStrict(e.target.value, 0))))}
+          />
+          <span className="absolute right-3 top-1/2 -translate-y-1/2 text-st-text-light text-sm pointer-events-none select-none">
+            / {STAT_CAPS[statKey]}
+          </span>
+        </div>
         <div className="flex gap-1 mt-2 w-full">
           <div className="flex flex-col gap-1 flex-1">
             <div className="flex gap-1">
@@ -792,16 +797,21 @@ export default function PlayerSetup() {
                          <div className="flex justify-between items-center"><span>To Max:</span> <span className="font-bold text-st-orange flex items-center gap-1">{costIcon}{totalCostStr}</span></div>
                       </div>
 
-                      <input 
-                        type="text"
-                        inputMode="numeric"
-                        pattern="[0-9]*"
-                        className="st-input"
-                        value={current_lvl}
-                        onFocus={(e) => e.target.select()}
-                        onChange={(e) => setUpgradeLevel(id, parseIntStrict(e.target.value, 0))}
-                        onBlur={(e) => setUpgradeLevel(id, Math.min(max_lvl, Math.max(0, parseIntStrict(e.target.value, 0))))}
-                      />
+                      <div className="relative">
+                        <input 
+                          type="text"
+                          inputMode="numeric"
+                          pattern="[0-9]*"
+                          className="st-input pr-14"
+                          value={current_lvl}
+                          onFocus={(e) => e.target.select()}
+                          onChange={(e) => setUpgradeLevel(id, parseIntStrict(e.target.value, 0))}
+                          onBlur={(e) => setUpgradeLevel(id, Math.min(max_lvl, Math.max(0, parseIntStrict(e.target.value, 0))))}
+                        />
+                        <span className="absolute right-3 top-1/2 -translate-y-1/2 text-st-text-light text-sm pointer-events-none select-none">
+                          / {max_lvl}
+                        </span>
+                      </div>
                       <div className="flex flex-wrap justify-center gap-1 mt-2 w-full">
                         <button onClick={() => setUpgradeLevel(id, Math.max(0, current_lvl - 5))} className="flex-1 min-w-10 px-1 py-1 text-xs bg-st-secondary text-st-text rounded border border-st-border hover:border-st-orange transition-colors">-5</button>
                         <button onClick={() => setUpgradeLevel(id, Math.max(0, current_lvl - 1))} className="flex-1 min-w-10 px-1 py-1 text-xs bg-st-secondary text-st-text rounded border border-st-border hover:border-st-orange transition-colors">-1</button>
@@ -1108,22 +1118,30 @@ export default function PlayerSetup() {
             ) : (
               <div className="flex flex-col sm:flex-row gap-6 justify-start items-start">
                 <div id="setup-ext-hestia" className="st-container flex flex-col items-center p-4 w-full sm:w-64">
-                  <span className="font-bold mb-4">Hestia Idol</span>
+                  <div className="text-center mb-4">
+                    <span className="font-bold">Hestia Idol</span><br/>
+                    <span className="text-xs text-st-text-light">(Max: 3000)</span>
+                  </div>
                   <div className="w-full flex justify-center mb-4">
                     <img src="/assets/upgrades/idols/hestia_idol.png" alt="Hestia" className="h-auto object-contain" style={{ width: UI_EXT_IMG_STD, imageRendering: 'pixelated' }} onError={(e) => e.target.style.display = 'none'} />
                   </div>
                   <div className="w-full mt-auto">
                     <hr className="border-st-border mb-4"/>
-                    <input 
-                      type="text"
-                      inputMode="numeric"
-                      pattern="[0-9]*"
-                      className="st-input"
-                      value={external_levels[4] !== undefined ? external_levels[4] : 0} 
-                      onFocus={(e) => e.target.select()}
-                      onChange={(e) => setExternalGroup([4], parseIntStrict(e.target.value, 0))} 
-                      onBlur={(e) => setExternalGroup([4], Math.min(3000, Math.max(0, parseIntStrict(e.target.value, 0))))}
-                    />
+                    <div className="relative">
+                      <input 
+                        type="text"
+                        inputMode="numeric"
+                        pattern="[0-9]*"
+                        className="st-input pr-16"
+                        value={external_levels[4] !== undefined ? external_levels[4] : 0} 
+                        onFocus={(e) => e.target.select()}
+                        onChange={(e) => setExternalGroup([4], parseIntStrict(e.target.value, 0))} 
+                        onBlur={(e) => setExternalGroup([4], Math.min(3000, Math.max(0, parseIntStrict(e.target.value, 0))))}
+                      />
+                      <span className="absolute right-3 top-1/2 -translate-y-1/2 text-st-text-light text-sm pointer-events-none select-none">
+                        / 3000
+                      </span>
+                    </div>
                     <div className="flex flex-wrap justify-center gap-1 mt-2 w-full">
                       <button onClick={() => setExternalGroup([4], Math.max(0, (external_levels[4] || 0) - 1))} className="flex-1 min-w-10 px-1 py-1 text-xs bg-st-secondary text-st-text rounded border border-st-border hover:border-st-orange transition-colors">-1</button>
                       <button onClick={() => setExternalGroup([4], Math.min(3000, (external_levels[4] || 0) + 1))} className="flex-1 min-w-10 px-1 py-1 text-xs bg-st-secondary text-st-text rounded border border-st-border hover:border-st-orange transition-colors">+1</button>
@@ -1133,7 +1151,10 @@ export default function PlayerSetup() {
                 </div>
 
                 <div id="setup-ext-hades" className="st-container flex flex-col items-center p-4 w-full sm:w-64">
-                  <span className="font-bold mb-4">Hades Idol</span>
+                  <div className="text-center mb-4">
+                    <span className="font-bold">Hades Idol</span><br/>
+                    <span className="text-xs text-st-text-light">(Max: 6666)</span>
+                  </div>
                   <div className="w-full flex justify-center mb-4">
                     <img src="/assets/upgrades/idols/hades_idol.png" alt="Hades" className="h-auto object-contain" style={{ width: UI_EXT_IMG_STD, imageRendering: 'pixelated' }} onError={(e) => e.target.style.display = 'none'} />
                   </div>
@@ -1162,17 +1183,22 @@ export default function PlayerSetup() {
                       </p>
                     </div>
                     
-                    <input 
-                      type="text"
-                      inputMode="numeric"
-                      pattern="[0-9]*"
-                      className={`st-input ${!hades_unlocked ? 'opacity-30 cursor-not-allowed' : ''}`}
-                      value={external_levels[21] !== undefined ? external_levels[21] : 0} 
-                      disabled={!hades_unlocked}
-                      onFocus={(e) => e.target.select()}
-                      onChange={(e) => setExternalGroup([21], parseIntStrict(e.target.value, 0))}
-                      onBlur={(e) => setExternalGroup([21], Math.min(6666, Math.max(0, parseIntStrict(e.target.value, 0))))}
-                    />
+                    <div className="relative">
+                      <input 
+                        type="text"
+                        inputMode="numeric"
+                        pattern="[0-9]*"
+                        className={`st-input pr-16 ${!hades_unlocked ? 'opacity-30 cursor-not-allowed' : ''}`}
+                        value={external_levels[21] !== undefined ? external_levels[21] : 0} 
+                        disabled={!hades_unlocked}
+                        onFocus={(e) => e.target.select()}
+                        onChange={(e) => setExternalGroup([21], parseIntStrict(e.target.value, 0))}
+                        onBlur={(e) => setExternalGroup([21], Math.min(6666, Math.max(0, parseIntStrict(e.target.value, 0))))}
+                      />
+                      <span className={`absolute right-3 top-1/2 -translate-y-1/2 text-st-text-light text-sm pointer-events-none select-none ${!hades_unlocked ? 'opacity-30' : ''}`}>
+                        / 6666
+                      </span>
+                    </div>
                     <div className="flex flex-wrap justify-center gap-1 mt-2 w-full">
                       <button onClick={() => setExternalGroup([21], Math.max(0, (external_levels[21] || 0) - 1))} disabled={!hades_unlocked} className="flex-1 min-w-10 px-1 py-1 text-xs bg-st-secondary text-st-text rounded border border-st-border hover:border-st-orange transition-colors disabled:opacity-30 disabled:cursor-not-allowed">-1</button>
                       <button onClick={() => setExternalGroup([21], Math.min(6666, (external_levels[21] || 0) + 1))} disabled={!hades_unlocked} className="flex-1 min-w-10 px-1 py-1 text-xs bg-st-secondary text-st-text rounded border border-st-border hover:border-st-orange transition-colors disabled:opacity-30 disabled:cursor-not-allowed">+1</button>
