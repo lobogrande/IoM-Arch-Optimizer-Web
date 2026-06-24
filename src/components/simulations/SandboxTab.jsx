@@ -266,21 +266,26 @@ export default function SandboxTab() {
                     alt={stat} 
                     className="h-6 w-6 pixelated mb-2"
                   />
-                  <input
-                    type="text"
-                    inputMode="numeric"
-                    pattern="[0-9]*"
-                    value={store.sandbox_stats[stat] !== undefined ? store.sandbox_stats[stat] : 0}
-                    onFocus={(e) => e.target.select()}
-                    onChange={(e) => store.setSandboxStat(stat, parseIntStrict(e.target.value, 0))}
-                    onBlur={(e) => {
-                      let parsed = parseIntStrict(e.target.value, 0);
-                      if (parsed > MAX_STAT_CAPS[stat]) parsed = MAX_STAT_CAPS[stat];
-                      if (parsed < 0) parsed = 0;
-                      store.setSandboxStat(stat, parsed);
-                    }}
-                    className="st-input p-1 text-sm h-8"
-                  />
+                  <div className="relative">
+                    <input
+                      type="text"
+                      inputMode="numeric"
+                      pattern="[0-9]*"
+                      value={store.sandbox_stats[stat] !== undefined ? store.sandbox_stats[stat] : 0}
+                      onFocus={(e) => e.target.select()}
+                      onChange={(e) => store.setSandboxStat(stat, parseIntStrict(e.target.value, 0))}
+                      onBlur={(e) => {
+                        let parsed = parseIntStrict(e.target.value, 0);
+                        if (parsed > MAX_STAT_CAPS[stat]) parsed = MAX_STAT_CAPS[stat];
+                        if (parsed < 0) parsed = 0;
+                        store.setSandboxStat(stat, parsed);
+                      }}
+                      className="st-input p-1 pr-8 text-sm h-8"
+                    />
+                    <span className="absolute right-1 top-1/2 -translate-y-1/2 text-st-text-light text-[10px] pointer-events-none select-none">
+                      /{MAX_STAT_CAPS[stat]}
+                    </span>
+                  </div>
                   <div className="flex justify-center gap-1 mt-2 w-full">
                     <button onClick={() => store.setSandboxStat(stat, Math.max(0, (store.sandbox_stats[stat] || 0) - 1))} className="flex-1 min-w-10 px-1 py-1 text-[10px] bg-st-secondary text-st-text rounded border border-st-border hover:border-st-orange transition-colors">-1</button>
                     <button onClick={() => store.setSandboxStat(stat, Math.min(MAX_STAT_CAPS[stat], (store.sandbox_stats[stat] || 0) + 1))} className="flex-1 min-w-10 px-1 py-1 text-[10px] bg-st-secondary text-st-text rounded border border-st-border hover:border-st-orange transition-colors">+1</button>

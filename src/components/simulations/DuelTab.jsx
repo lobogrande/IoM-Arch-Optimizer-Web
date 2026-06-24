@@ -221,21 +221,26 @@ export default function DuelTab() {
                 <label className="block text-xs mb-1 font-bold">
                   {stat} <span className="font-normal text-[10px] text-st-text-light">(Max: {MAX_STAT_CAPS[stat]})</span>
                 </label>
-                <input 
-                  type="text"
-                  inputMode="numeric"
-                  pattern="[0-9]*"
-                  value={duelStatsA[stat] !== undefined ? duelStatsA[stat] : 0} 
-                  onFocus={(e) => e.target.select()}
-                  onChange={(e) => setDuelStatsA({...duelStatsA, [stat]: parseIntStrict(e.target.value, 0)})}
-                  onBlur={(e) => {
-                    let parsed = parseIntStrict(e.target.value, 0);
-                    if (parsed > MAX_STAT_CAPS[stat]) parsed = MAX_STAT_CAPS[stat];
-                    if (parsed < 0) parsed = 0;
-                    setDuelStatsA({...duelStatsA,[stat]: parsed});
-                  }}
-                  className="st-input p-2 text-sm"
-                />
+                <div className="relative">
+                  <input 
+                    type="text"
+                    inputMode="numeric"
+                    pattern="[0-9]*"
+                    value={duelStatsA[stat] !== undefined ? duelStatsA[stat] : 0} 
+                    onFocus={(e) => e.target.select()}
+                    onChange={(e) => setDuelStatsA({...duelStatsA, [stat]: parseIntStrict(e.target.value, 0)})}
+                    onBlur={(e) => {
+                      let parsed = parseIntStrict(e.target.value, 0);
+                      if (parsed > MAX_STAT_CAPS[stat]) parsed = MAX_STAT_CAPS[stat];
+                      if (parsed < 0) parsed = 0;
+                      setDuelStatsA({...duelStatsA,[stat]: parsed});
+                    }}
+                    className="st-input p-2 pr-10 text-sm"
+                  />
+                  <span className="absolute right-2 top-1/2 -translate-y-1/2 text-st-text-light text-xs pointer-events-none select-none">
+                    /{MAX_STAT_CAPS[stat]}
+                  </span>
+                </div>
                 <div className="flex flex-wrap justify-center gap-0.5 mt-1 w-full">
                   <button onClick={() => setDuelStatsA({...duelStatsA, [stat]: Math.max(0, (duelStatsA[stat] || 0) - 1)})} className="flex-1 min-w-8 px-0.5 py-0.5 text-[10px] bg-st-secondary text-st-text rounded border border-st-border hover:border-st-orange transition-colors">-1</button>
                   <button onClick={() => setDuelStatsA({...duelStatsA, [stat]: Math.min(MAX_STAT_CAPS[stat], (duelStatsA[stat] || 0) + 1)})} className="flex-1 min-w-8 px-0.5 py-0.5 text-[10px] bg-st-secondary text-st-text rounded border border-st-border hover:border-st-orange transition-colors">+1</button>
@@ -253,21 +258,26 @@ export default function DuelTab() {
                 <label className="block text-xs mb-1 font-bold">
                   {stat} <span className="font-normal text-[10px] text-st-text-light">(Max: {MAX_STAT_CAPS[stat]})</span>
                 </label>
-                <input 
-                  type="text"
-                  inputMode="numeric"
-                  pattern="[0-9]*"
-                  value={duelStatsB[stat] !== undefined ? duelStatsB[stat] : 0} 
-                  onFocus={(e) => e.target.select()}
-                  onChange={(e) => setDuelStatsB({...duelStatsB, [stat]: parseIntStrict(e.target.value, 0)})}
-                  onBlur={(e) => {
-                    let parsed = parseIntStrict(e.target.value, 0);
-                    if (parsed > MAX_STAT_CAPS[stat]) parsed = MAX_STAT_CAPS[stat];
-                    if (parsed < 0) parsed = 0;
-                    setDuelStatsB({...duelStatsB, [stat]: parsed});
-                  }}
-                  className="st-input p-2 text-sm"
-                />
+                <div className="relative">
+                  <input 
+                    type="text"
+                    inputMode="numeric"
+                    pattern="[0-9]*"
+                    value={duelStatsB[stat] !== undefined ? duelStatsB[stat] : 0} 
+                    onFocus={(e) => e.target.select()}
+                    onChange={(e) => setDuelStatsB({...duelStatsB, [stat]: parseIntStrict(e.target.value, 0)})}
+                    onBlur={(e) => {
+                      let parsed = parseIntStrict(e.target.value, 0);
+                      if (parsed > MAX_STAT_CAPS[stat]) parsed = MAX_STAT_CAPS[stat];
+                      if (parsed < 0) parsed = 0;
+                      setDuelStatsB({...duelStatsB, [stat]: parsed});
+                    }}
+                    className="st-input p-2 pr-10 text-sm"
+                  />
+                  <span className="absolute right-2 top-1/2 -translate-y-1/2 text-st-text-light text-xs pointer-events-none select-none">
+                    /{MAX_STAT_CAPS[stat]}
+                  </span>
+                </div>
                 <div className="flex flex-wrap justify-center gap-0.5 mt-1 w-full">
                   <button onClick={() => setDuelStatsB({...duelStatsB, [stat]: Math.max(0, (duelStatsB[stat] || 0) - 1)})} className="flex-1 min-w-8 px-0.5 py-0.5 text-[10px] bg-st-secondary text-st-text rounded border border-st-border hover:border-st-orange transition-colors">-1</button>
                   <button onClick={() => setDuelStatsB({...duelStatsB, [stat]: Math.min(MAX_STAT_CAPS[stat], (duelStatsB[stat] || 0) + 1)})} className="flex-1 min-w-8 px-0.5 py-0.5 text-[10px] bg-st-secondary text-st-text rounded border border-st-border hover:border-st-orange transition-colors">+1</button>
