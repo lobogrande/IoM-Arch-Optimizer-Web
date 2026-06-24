@@ -1103,15 +1103,27 @@ export default function PlayerSetup() {
                   <div className="w-full mt-auto">
                     <hr className="border-st-border mb-4"/>
                     
-                    <label className="flex items-start gap-2 cursor-pointer font-bold mb-3 text-xs text-left leading-tight">
+                    <label className="flex items-start gap-2 cursor-pointer font-bold mb-2 text-xs text-left leading-tight">
                       <input 
                         type="checkbox" 
                         checked={hades_unlocked} 
                         onChange={(e) => setSetting('hades_unlocked', e.target.checked)} 
                         className="w-5 h-5 accent-st-orange shrink-0 mt-0.5" 
                       />
-                      <span>Hades Idol Unlocked (Arch Lv 85 + Blackened Basker Leg Fish T2)</span>
+                      <span>
+                        Hades Idol Unlocked
+                        <span className="block text-st-text-light font-normal mt-1">
+                          Prerequisites: Arch Lv 85 + Blackened Basker Legendary Fish T2
+                        </span>
+                      </span>
                     </label>
+                    
+                    <div className="bg-st-orange/10 border-l-4 border-st-orange p-2 rounded text-xs mb-3">
+                      <span className="font-bold text-st-orange">🔥 Enables Infernal Cards</span>
+                      <p className="text-st-text-light mt-1 leading-tight">
+                        Checking this box unlocks the Infernal tier (tier 4) for all block cards in the Block Cards tab.
+                      </p>
+                    </div>
                     
                     <input 
                       type="text"
