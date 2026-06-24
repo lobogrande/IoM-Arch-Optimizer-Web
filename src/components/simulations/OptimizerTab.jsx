@@ -223,6 +223,7 @@ export default function OptimizerTab() {
     store.setSimsState('synthesis_result', null);
 
     const actualNumRuns = useWasmEngine ? Math.max(1, Math.min(10, numRuns)) : 1;
+    const aggregateStartTime = Date.now();
 
     try {
       for (let runIndex = 0; runIndex < actualNumRuns; runIndex++) {
@@ -372,6 +373,7 @@ export default function OptimizerTab() {
       }
 
         const elapsed = (Date.now() - globalStartTime) / 1000;
+        const aggregateElapsed = (Date.now() - aggregateStartTime) / 1000;
         pool.terminate();
         
         if (elapsed > 0 && totalSimsExecuted > 0) {
@@ -394,6 +396,9 @@ export default function OptimizerTab() {
                 best_final: bestFinal,
                 final_summary_out: finalSummary,
                 elapsed: elapsed,
+                aggregate_elapsed: aggregateElapsed,
+                num_runs: actualNumRuns,
+                current_run: runIndex + 1,
                 time_limit_secs: timeLimit,
                 run_target_metric: targetMetricKey,
                 worst_val: finalSummary.worst_val || 0,

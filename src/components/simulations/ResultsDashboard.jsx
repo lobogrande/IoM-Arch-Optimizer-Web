@@ -486,7 +486,14 @@ export default function ResultsDashboard({ context }) {
   return (
     <div className="mt-8 animate-fade-in space-y-6" id={`dashboard-anchor-${context}`}>
       <div className="bg-[#1e1e1e] border-l-4 border-l-green-500 p-4 rounded shadow">
-        <h3 className="text-xl font-bold text-green-400">✅ Simulation Complete in {store.opt_results.elapsed.toFixed(1)} seconds!</h3>
+        <h3 className="text-xl font-bold text-green-400">
+          ✅ Simulation Complete in {store.opt_results.elapsed.toFixed(1)} seconds!
+          {store.opt_results.num_runs > 1 && (
+            <span className="text-base font-normal text-st-text-light ml-2">
+              (Run {store.opt_results.current_run}/{store.opt_results.num_runs} • Total: {store.opt_results.aggregate_elapsed.toFixed(1)}s)
+            </span>
+          )}
+        </h3>
       </div>
 
       <div className="flex overflow-x-auto md:flex-wrap border-b border-st-border mb-8 md:mb-6 scrollbar-thin">

@@ -199,7 +199,7 @@ export default function Simulations() {
               <span>
                 <strong>⚡ Rust/WASM engine</strong>
                 <span className="text-st-text-light"> — experimental, ~20× faster than the Python engine and bit-identical to it (verified across 4,500 reference sims).
-                The toggle takes effect on the next simulation you run. Resets to off when you reload the page.</span>
+                Enables multi-run optimizations for exploring multiple local optima. The toggle takes effect on the next simulation you run. Resets to off when you reload the page.</span>
               </span>
             </label>
           </div>
