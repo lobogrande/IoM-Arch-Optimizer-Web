@@ -1,9 +1,9 @@
 // src/components/simulations/DuelTab.jsx
-import { useState } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import useStore from '../../store';
 import { EngineWorkerPool } from '../../utils/optimizer';
 import MobileSelect from '../MobileSelect';
-import { FRAG_ICONS } from '../../game_data';
+import { FRAG_ICONS, BLOCK_MIN_FLOORS } from '../../game_data';
 
 // Helper to parse and strip leading zeros from numeric inputs
 const parseIntStrict = (value, defaultVal = 0) => {
@@ -39,6 +39,21 @@ export default function DuelTab() {
   const [duelProgressMsg, setDuelProgressMsg] = useState("");
   const[duelProgressPct, setDuelProgressPct] = useState(0);
   const [duelResults, setDuelResults] = useState(null);
+
+  const availableBlocks = useMemo(() => {
+    return Object.keys(BLOCK_MIN_FLOORS).filter(cardId => {
+      if (!store.asc1_unlocked && (cardId.startsWith('div') || cardId.endsWith('4'))) return false;
+      if (!store.asc2_unlocked && cardId.endsWith('4')) return false;
+      if (store.current_max_floor < BLOCK_MIN_FLOORS[cardId]) return false;
+      return true;
+    });
+  },[store.asc1_unlocked, store.asc2_unlocked, store.current_max_floor]);
+
+  useEffect(() => {
+    if (duelOptGoal === "Block Card Farming" && availableBlocks.length > 0 && !availableBlocks.includes(duelTargetBlock)) {
+      setDuelTargetBlock(availableBlocks[availableBlocks.length - 1]);
+    }
+  },[duelOptGoal, availableBlocks, duelTargetBlock]);
 
   const activeStats = [ 'Str', 'Agi', 'Per', 'Int', 'Luck' ];
   if (store.asc1_unlocked) activeStats.push('Div');
@@ -179,12 +194,15 @@ export default function DuelTab() {
             {duelOptGoal === "Block Card Farming" && (
               <>
                 <label className="block text-sm font-bold mb-1">Target Block ID</label>
-                <input 
-                  type="text" 
-                  value={duelTargetBlock} 
-                  onChange={(e) => setDuelTargetBlock(e.target.value.toLowerCase())}
-                  onBlur={(e) => { if (e.target.value.trim() === '') setDuelTargetBlock('myth3'); }}
-                  placeholder="e.g., com1, myth3"
+                <MobileSelect
+                  value={availableBlocks.includes(duelTargetBlock) ? duelTargetBlock : (availableBlocks[availableBlocks.length - 1] || "dirt1")} 
+                  onChange={(e) => setDuelTargetBlock(e.target.value)}
+                  options={availableBlocks.length === 0 ? 
+                    [{ value: 'dirt1', label: 'Dirt1' }] :
+                    availableBlocks.map(b => ({ 
+                      value: b, 
+                      label: `${b.charAt(0).toUpperCase() + b.slice(1)} (Min Floor ${BLOCK_MIN_FLOORS[b]})`
+                    }))}
                   className="w-full bg-st-bg border border-st-border rounded p-2 text-st-text focus:border-st-orange focus:outline-none"
                 />
               </>
