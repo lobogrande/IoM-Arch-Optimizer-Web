@@ -48,6 +48,7 @@ const useStore = create(
       // Global Settings
   theme: 'dark',
   hideMaxed: false,
+  useGridLayout: false,
   activeTab: 'welcome',
   activeSubTab: 'stats',
   simActiveSubTab: 'optimizer',
@@ -268,6 +269,7 @@ const useStore = create(
   }),
 
   setHideMaxed: (val) => set({ hideMaxed: val }),
+  setUseGridLayout: (val) => set({ useGridLayout: val }),
   setActiveTab: (val) => set({ activeTab: val }),
   setActiveSubTab: (val) => set({ activeSubTab: val }),
   setSimActiveSubTab: (val) => set({ simActiveSubTab: val }),
