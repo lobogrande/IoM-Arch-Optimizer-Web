@@ -697,9 +697,13 @@ export default function SynthesisTab() {
             </div>
           </div>
 
-          <div className="st-container">
+          <div>
+            <RunHistoryTable mode="synthesis" onViewRun={(runData) => handleRestore(runData, false)} />
+          </div>
+
+          <div className="st-container mt-8">
             <h4 className="text-lg font-bold mb-2">🏆 Run Tie-Breaker Tournament</h4>
-            <p className="text-sm text-st-text-light mb-4">Once you have checked the <strong>Include</strong> box for a few of your top runs (recommend to use 2 to 5) in the history table below, click Synthesize to merge them.</p>
+            <p className="text-sm text-st-text-light mb-4">Once you have checked the <strong>Include</strong> box for a few of your top runs in the history table above, click Synthesize to merge them.</p>
             
             {checkedRuns.some(r => r.Unassigned !== undefined) && (
               <div className="bg-red-900/20 border-l-4 border-red-500 p-3 rounded text-sm text-red-500 mb-4">
@@ -727,10 +731,6 @@ export default function SynthesisTab() {
                 </div>
               )}
             </div>
-          </div>
-
-          <div>
-            <RunHistoryTable mode="synthesis" onViewRun={(runData) => handleRestore(runData, false)} />
           </div>
 
           <div id="synth-results-anchor" className="mt-8"></div>
