@@ -224,9 +224,28 @@ const useStore = create(
       upgrade_levels: { ...state.upgrade_levels, [id]: enforcedValue }
     };
   }),
-  setCardLevel: (id, value) => set((state) => ({
-    cards: { ...state.cards,[id]: value === '' ? '' : (parseInt(value) || 0) }
-  })),
+  setCardLevel: (id, value) => set((state) => {
+    const oldValue = state.cards[id] || 0;
+    const newValue = value === '' ? 0 : (parseInt(value) || 0);
+    
+    // Auto-adjust total_infernal_cards when upgrading to/from Infernal (tier 4)
+    let newTotalInfernal = state.total_infernal_cards || 0;
+    const wasInfernal = oldValue === 4;
+    const isInfernal = newValue === 4;
+    
+    if (!wasInfernal && isInfernal) {
+      // Upgraded to Infernal
+      newTotalInfernal = newTotalInfernal + 1;
+    } else if (wasInfernal && !isInfernal) {
+      // Downgraded from Infernal
+      newTotalInfernal = Math.max(0, newTotalInfernal - 1);
+    }
+    
+    return {
+      cards: { ...state.cards, [id]: newValue },
+      total_infernal_cards: newTotalInfernal
+    };
+  }),
   setExternalGroup: (rows, value) => set((state) => {
     const newExt = { ...state.external_levels };
     rows.forEach(r => newExt[r] = value === '' ? '' : (parseInt(value) || 0));

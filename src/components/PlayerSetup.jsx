@@ -951,13 +951,21 @@ export default function PlayerSetup() {
                   <button onClick={() => setSetting('total_infernal_cards', total_infernal_cards + 1)} className="flex-1 min-w-10 px-1 py-1 text-xs bg-st-secondary text-st-text rounded border border-st-border hover:border-st-orange transition-colors">+1</button>
                 </div>
               </div>
-              <div className="w-full sm:w-1/2 sm:border-l border-st-border sm:pl-6 text-center sm:text-left">
-                <span className="text-sm font-bold block mb-1">🔥 Infernal Arch Card Bonus</span>
-                <span className="text-lg font-bold text-st-orange">
-                  {calculated_stats?.infernal_multiplier 
-                    ? `${Number(calculated_stats.infernal_multiplier).toLocaleString(undefined, {minimumFractionDigits: 4, maximumFractionDigits: 4})}x` 
-                    : "(Syncing...)"}
-                </span>
+              <div className="w-full sm:w-1/2 sm:border-l border-st-border sm:pl-6">
+                <div className="text-center sm:text-left mb-3">
+                  <span className="text-sm font-bold block mb-1">🔥 Infernal Arch Card Bonus</span>
+                  <span className="text-lg font-bold text-st-orange">
+                    {calculated_stats?.infernal_multiplier 
+                      ? `${Number(calculated_stats.infernal_multiplier).toLocaleString(undefined, {minimumFractionDigits: 4, maximumFractionDigits: 4})}x` 
+                      : "(Syncing...)"}
+                  </span>
+                </div>
+                <button
+                  onClick={() => setActiveSubTab('idols')}
+                  className="w-full px-3 py-2 bg-st-secondary border border-st-orange text-st-orange font-bold text-xs rounded hover:bg-st-orange hover:text-[#2b2b2b] transition-colors"
+                >
+                  🗿 Enable Infernal Cards (Go to Arch Idols)
+                </button>
               </div>
             </div>
 
