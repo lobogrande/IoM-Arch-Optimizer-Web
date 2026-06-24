@@ -8,8 +8,10 @@ import { FRAG_ICONS } from '../../game_data';
  * 
  * @param {string} mode - Either 'synthesis' (with checkboxes) or 'optimizer' (with view buttons)
  * @param {function} onViewRun - Callback when a run is selected to view (optimizer mode only)
+ * @param {array} viewTargets - Optional controlled filter state for visible targets
+ * @param {function} onViewTargetsChange - Optional callback when filter changes
  */
-export default function RunHistoryTable({ mode = 'synthesis', onViewRun }) {
+export default function RunHistoryTable({ mode = 'synthesis', onViewRun, viewTargets: controlledViewTargets, onViewTargetsChange }) {
   const store = useStore();
   
   const activeStats = [ 'Str', 'Agi', 'Per', 'Int', 'Luck' ];
@@ -20,7 +22,12 @@ export default function RunHistoryTable({ mode = 'synthesis', onViewRun }) {
   const uniqueTargets = [...new Set(history.map(r => r.Target))];
   const lastTgt = store.opt_results?.run_target_metric;
   
-  const [viewTargets, setViewTargets] = useState(null);
+  // Use controlled state if provided, otherwise use internal state
+  const [internalViewTargets, setInternalViewTargets] = useState(null);
+  const isControlled = controlledViewTargets !== undefined;
+  const viewTargets = isControlled ? controlledViewTargets : internalViewTargets;
+  const setViewTargets = isControlled ? onViewTargetsChange : setInternalViewTargets;
+  
   const currentViewTargets = viewTargets !== null ? viewTargets : (lastTgt && uniqueTargets.includes(lastTgt) ? [lastTgt] : uniqueTargets);
   const visibleHistory = history.map((r, idx) => ({ ...r, _global_idx: idx })).filter(r => currentViewTargets.includes(r.Target));
   const checkedRuns = mode === 'synthesis' ? visibleHistory.filter(r => r.Include) : [];
@@ -67,6 +74,53 @@ export default function RunHistoryTable({ mode = 'synthesis', onViewRun }) {
   return (
     <div>
       <h4 className="text-lg font-bold mb-1">📋 Run History Table</h4>
+      
+      {/* Filter UI */}
+      {uniqueTargets.length > 1 && (
+        <div className="mb-4 flex flex-col md:flex-row gap-4 items-start">
+          <div className="w-full md:w-2/3">
+            <label className="block text-sm font-bold mb-1">🔍 Filter visible runs by optimization target:</label>
+            <select
+              multiple
+              value={currentViewTargets}
+              onChange={(e) => setViewTargets(Array.from(e.target.selectedOptions, option => option.value))}
+              className="w-full bg-st-bg border border-st-border rounded p-2 text-st-text focus:border-st-orange focus:outline-none"
+              style={{ height: '80px' }}
+            >
+              {uniqueTargets.map(t => <option key={t} value={t}>{t}</option>)}
+            </select>
+            <div className="flex gap-2 mt-2">
+              <button
+                onClick={() => setViewTargets(uniqueTargets)}
+                className="flex-1 px-2 py-1 text-xs bg-st-secondary text-st-text rounded border border-st-border hover:border-st-orange transition-colors font-bold"
+              >
+                ☑️ Select All
+              </button>
+              <button
+                onClick={() => setViewTargets([])}
+                className="flex-1 px-2 py-1 text-xs bg-st-secondary text-st-text rounded border border-st-border hover:border-st-orange transition-colors font-bold"
+              >
+                ❌ Clear All
+              </button>
+            </div>
+            <div className="text-xs text-st-text-light mt-1">Hold Ctrl/Cmd to select multiple (or use buttons above)</div>
+          </div>
+          {mode === 'synthesis' && (
+            <div className="w-full md:w-1/3 mt-0 md:mt-[28px]">
+              <button 
+                onClick={() => {
+                  const newHistory = [...history];
+                  visibleHistory.forEach(r => { newHistory[r._global_idx].Include = !r.Include; });
+                  store.setSimsState('run_history', newHistory);
+                }}
+                className="w-full py-2 bg-st-secondary border border-st-border text-st-text font-bold rounded hover:border-st-orange transition-colors"
+              >
+                ☑️ Toggle All Visible
+              </button>
+            </div>
+          )}
+        </div>
+      )}
       
       <div className="flex flex-col md:flex-row gap-4 items-center justify-between mb-4">
         <div className="text-sm text-st-text-light">
@@ -145,7 +199,12 @@ export default function RunHistoryTable({ mode = 'synthesis', onViewRun }) {
                 <tr><td colSpan={mode === 'synthesis' ? tableStats.length + 9 : tableStats.length + 9} className="p-4 text-center text-st-text-light">No runs match current filter.</td></tr>
               ) : visibleHistory.map((r) => {
                 const isFloor = r.Target === 'highest_floor';
-                const score = isFloor ? r['Metric Score'] : ((r['Metric Score'] / 60.0) * 1000.0).toFixed(1);
+                const isDinoQuest = r.Target === 'dino_quest_floors_per_sec';
+                const score = isFloor 
+                  ? r['Metric Score']  // Floor number, no scaling
+                  : isDinoQuest 
+                    ? (r['Metric Score'] * 1000).toFixed(2)  // Per second to per 1k seconds
+                    : ((r['Metric Score'] / 60.0) * 1000.0).toFixed(1);  // Per minute to per 1k seconds
                 const runTime = r.Timestamp || r._restore_state?.opt_results?.run_id || r._restore_state?.run_id;
                 const timeStr = runTime ? new Date(runTime).toLocaleString(undefined, { year: 'numeric', month: 'numeric', day: 'numeric', hour: 'numeric', minute: '2-digit' }) : '-';
                 

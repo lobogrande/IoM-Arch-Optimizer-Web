@@ -87,8 +87,20 @@ export default function ResultsDashboard({ context }) {
   
   const runMetric = store.opt_results.run_target_metric;
   const isFloorTarget = runMetric === 'highest_floor' || runMetric === 'dino_quest_floors_per_sec';
-  const scaleScore = (v) => isFloorTarget ? v : (v / 60.0) * 1000.0;
-  const unitLabel = isFloorTarget ? "Floor Reached" : "Yield per 1k Arch Secs";
+  
+  // Scaling and labeling based on metric type
+  const scaleScore = (v) => {
+    if (runMetric === 'highest_floor') return v;  // Floor number, no scaling
+    if (runMetric === 'dino_quest_floors_per_sec') return v * 1000;  // Per second to per 1k seconds
+    return (v / 60.0) * 1000.0;  // Per minute to per 1k seconds
+  };
+  
+  const unitLabel = runMetric === 'highest_floor' 
+    ? "Floor Reached" 
+    : runMetric === 'dino_quest_floors_per_sec'
+      ? "Dino Quest Points per 1k Arch Secs"
+      : "Yield per 1k Arch Secs";
+  
   const finalSum = store.opt_results.final_summary_out;
 
   const innerTabs = [{ id: 'performance', label: '📈 Performance' }];

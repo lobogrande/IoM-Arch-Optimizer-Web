@@ -655,50 +655,13 @@ export default function SynthesisTab() {
         </div>
       ) : (
         <>
-          <div className="flex flex-col md:flex-row gap-4 items-start">
-            <div data-tour="synth-filter" className="w-full md:w-2/3">
-              <label className="block text-sm font-bold mb-1">🔍 Filter visible runs by optimization target:</label>
-              <select
-                multiple
-                value={currentViewTargets}
-                onChange={(e) => setViewTargets(Array.from(e.target.selectedOptions, option => option.value))}
-                className="w-full bg-st-bg border border-st-border rounded p-2 text-st-text focus:border-st-orange focus:outline-none"
-                style={{ height: '80px' }}
-              >
-                {uniqueTargets.map(t => <option key={t} value={t}>{t}</option>)}
-              </select>
-              <div className="flex gap-2 mt-2">
-                <button
-                  onClick={() => setViewTargets(uniqueTargets)}
-                  className="flex-1 px-2 py-1 text-xs bg-st-secondary text-st-text rounded border border-st-border hover:border-st-orange transition-colors font-bold"
-                >
-                  ☑️ Select All
-                </button>
-                <button
-                  onClick={() => setViewTargets([])}
-                  className="flex-1 px-2 py-1 text-xs bg-st-secondary text-st-text rounded border border-st-border hover:border-st-orange transition-colors font-bold"
-                >
-                  ❌ Clear All
-                </button>
-              </div>
-              <div className="text-xs text-st-text-light mt-1">Hold Ctrl/Cmd to select multiple (or use buttons above)</div>
-            </div>
-            <div className="w-full md:w-1/3 mt-0 md:mt-[28px]">
-              <button 
-                onClick={() => {
-                  const newHistory = [...history];
-                  visibleHistory.forEach(r => { newHistory[r._global_idx].Include = !r.Include; });
-                  store.setSimsState('run_history', newHistory);
-                }}
-                className="w-full py-2 bg-st-secondary border border-st-border text-st-text font-bold rounded hover:border-st-orange transition-colors"
-              >
-                ☑️ Toggle All Visible
-              </button>
-            </div>
-          </div>
-
           <div>
-            <RunHistoryTable mode="synthesis" onViewRun={(runData) => handleRestore(runData, false)} />
+            <RunHistoryTable 
+              mode="synthesis" 
+              onViewRun={(runData) => handleRestore(runData, false)}
+              viewTargets={viewTargets}
+              onViewTargetsChange={setViewTargets}
+            />
           </div>
 
           <div className="st-container mt-8">
@@ -738,7 +701,11 @@ export default function SynthesisTab() {
           {store.synthesis_result && !isSynthesizing && (() => {
             const sr = store.synthesis_result;
             const isFloorTarget = sr.metric_name === 'highest_floor' || sr.metric_name === 'dino_quest_floors_per_sec';
-            const scaleScore = (v) => isFloorTarget ? v : (v / 60.0) * 1000.0;
+            const scaleScore = (v) => {
+              if (sr.metric_name === 'highest_floor') return v;
+              if (sr.metric_name === 'dino_quest_floors_per_sec') return v * 1000;
+              return (v / 60.0) * 1000.0;
+            };
             
             const chartLabels = sr.history_scores.map((_, i) => `Run ${i + 1}`).concat(["🧬 Meta-Build"]);
             const chartScores = sr.history_scores.map(s => scaleScore(s)).concat([scaleScore(sr.meta_score)]);

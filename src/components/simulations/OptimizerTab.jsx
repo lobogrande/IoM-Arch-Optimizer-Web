@@ -429,8 +429,8 @@ export default function OptimizerTab() {
                 chart_hill_scores: chartHillScores,
                 chart_hill_labels: chartHillLabels,
                 chart_loot: chartLoot,
-                show_loot: targetMetricKey !== 'highest_floor',
-                show_wall: targetMetricKey === 'highest_floor'
+                show_loot: targetMetricKey !== 'highest_floor' && targetMetricKey !== 'dino_quest_floors_per_sec',
+                show_wall: targetMetricKey === 'highest_floor' || targetMetricKey === 'dino_quest_floors_per_sec'
             };
 
             // For the last run or single run, show results; for others, only save to history
