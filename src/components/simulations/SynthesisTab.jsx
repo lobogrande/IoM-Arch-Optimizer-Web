@@ -137,11 +137,11 @@ export default function SynthesisTab() {
         field: "Ceiling Score", headerName: "Ceiling Score",
         valueFormatter: p => {
           if (p.value === undefined || p.value === null) return "0";
-          const isFloor = p.data.Target === 'highest_floor';
+          const isFloor = p.data.Target === 'highest_floor' || p.data.Target === 'dino_quest_floors_per_sec';
           return isFloor ? p.value.toFixed(2) : ((p.value / 60.0) * 1000.0).toFixed(1);
         },
         cellRenderer: p => {
-          const isFloor = p.data.Target === 'highest_floor';
+          const isFloor = p.data.Target === 'highest_floor' || p.data.Target === 'dino_quest_floors_per_sec';
           const value = isFloor ? p.value.toFixed(2) : ((p.value / 60.0) * 1000.0).toFixed(1);
           let fragIcon = null;
           if (p.data.Target && p.data.Target.includes('frag_')) {
@@ -463,7 +463,7 @@ export default function SynthesisTab() {
 
           if (!round.isFinal) {
               let sortedBIds = [...currentPoolIds];
-              if (runTargetMetric === "highest_floor") {
+              if (runTargetMetric === "highest_floor" || runTargetMetric === "dino_quest_floors_per_sec") {
                   sortedBIds.sort((a, b) => getCeilingScore(buildRes.get(b).floors, 3) - getCeilingScore(buildRes.get(a).floors, 3));
               } else {
                   sortedBIds.sort((a, b) => buildRes.get(b).sum_t - buildRes.get(a).sum_t);
@@ -490,7 +490,7 @@ export default function SynthesisTab() {
       if (synthElapsed > 0) setSimsPerSec(Math.max(1, Math.floor(totalSims / synthElapsed)));
 
       let finalSortedIds = [...currentPoolIds];
-      if (runTargetMetric === "highest_floor") {
+      if (runTargetMetric === "highest_floor" || runTargetMetric === "dino_quest_floors_per_sec") {
           finalSortedIds.sort((a, b) => getCeilingScore(buildRes.get(b).floors, 5) - getCeilingScore(buildRes.get(a).floors, 5));
       } else {
           finalSortedIds.sort((a, b) => buildRes.get(b).sum_t - buildRes.get(a).sum_t);
@@ -506,7 +506,7 @@ export default function SynthesisTab() {
       for(const [mk, mv] of Object.entries(bestData.metricsSum)) avgMetrics[mk] = mv / 500.0;
 
       const allSynthScores = currentPoolIds.map(bId => {
-          if (runTargetMetric === "highest_floor") return getCeilingScore(buildRes.get(bId).floors, 5);
+          if (runTargetMetric === "highest_floor" || runTargetMetric === "dino_quest_floors_per_sec") return getCeilingScore(buildRes.get(bId).floors, 5);
           else return buildRes.get(bId).sum_t / 500.0;
       }).sort((a, b) => b - a);
 
@@ -517,7 +517,7 @@ export default function SynthesisTab() {
       const sortedFloors = [...bestData.floors].sort((a,b) => a - b);
       const medianFloor = sortedFloors[Math.floor(sortedFloors.length / 2)];
       
-      const synthSummary = { [runTargetMetric]: runTargetMetric === "highest_floor" ? absMax : bestData.sum_t / 500.0,
+      const synthSummary = { [runTargetMetric]: (runTargetMetric === "highest_floor" || runTargetMetric === "dino_quest_floors_per_sec") ? absMax : bestData.sum_t / 500.0,
           avg_floor: avgF,
           abs_max_floor: absMax,
           abs_max_chance: bestData.floors.filter(f => f === absMax).length / 500.0,
@@ -533,12 +533,12 @@ export default function SynthesisTab() {
 
       const sameTargetRuns = sanitizedRuns.map(r => {
           const bId = JSON.stringify(statKeys.reduce((acc, s) => { acc[s] = r[s]; return acc; }, {}));
-          if (runTargetMetric === "highest_floor") return getCeilingScore(buildRes.get(bId).floors, 5);
+          if (runTargetMetric === "highest_floor" || runTargetMetric === "dino_quest_floors_per_sec") return getCeilingScore(buildRes.get(bId).floors, 5);
           else return buildRes.get(bId).sum_t / 500.0;
       });
 
       let metaScore, chartLabel;
-      if (runTargetMetric === "highest_floor") {
+      if (runTargetMetric === "highest_floor" || runTargetMetric === "dino_quest_floors_per_sec") {
           metaScore = getCeilingScore(bestData.floors, 5);
           chartLabel = "🏆 Theoretical Peak";
       } else {
@@ -602,7 +602,7 @@ export default function SynthesisTab() {
           "Sources Data": checkedRuns,
           ...finalMetaDist
       };
-      if (runTargetMetric === "highest_floor") {
+      if (runTargetMetric === "highest_floor" || runTargetMetric === "dino_quest_floors_per_sec") {
           synthEntry["Theoretical Peak"] = absMax;
           synthEntry["Peak Probability"] = absMaxChance;
           synthEntry["Arch Secs Cost"] = archSecsCost;
@@ -737,7 +737,7 @@ export default function SynthesisTab() {
           
           {store.synthesis_result && !isSynthesizing && (() => {
             const sr = store.synthesis_result;
-            const isFloorTarget = sr.metric_name === 'highest_floor';
+            const isFloorTarget = sr.metric_name === 'highest_floor' || sr.metric_name === 'dino_quest_floors_per_sec';
             const scaleScore = (v) => isFloorTarget ? v : (v / 60.0) * 1000.0;
             
             const chartLabels = sr.history_scores.map((_, i) => `Run ${i + 1}`).concat(["🧬 Meta-Build"]);

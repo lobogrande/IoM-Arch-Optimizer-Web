@@ -18,7 +18,8 @@ const OPT_GOALS =[
   "Max Floor Push", 
   "Max EXP Yield", 
   "Fragment Farming", 
-  "Block Card Farming"
+  "Block Card Farming",
+  "Dino Quest"
 ];
 
 const FRAG_NAMES = {
@@ -293,7 +294,8 @@ export default function OptimizerTab() {
         const globalStartTime = Date.now();
         const targetMetricKey = (optGoal === "Fragment Farming") ? `frag_${targetFrag}_per_min` 
                               : (optGoal === "Block Card Farming") ? `block_${targetBlock}_per_min` 
-                              : (optGoal === "Max EXP Yield") ? "xp_per_min" 
+                              : (optGoal === "Max EXP Yield") ? "xp_per_min"
+                              : (optGoal === "Dino Quest") ? "dino_quest_floors_per_sec"
                               : "highest_floor";
 
         const fixedStats = {};
@@ -517,12 +519,35 @@ export default function OptimizerTab() {
           <MobileSelect
             data-tour="opt-goal"
             value={optGoal} 
-            onChange={(e) => setOptGoal(e.target.value)}
-            options={OPT_GOALS.map(g => ({ value: g, label: g }))}
+            onChange={(e) => {
+              const newGoal = e.target.value;
+              // Prevent selecting Dino Quest if requirement not met
+              if (newGoal === "Dino Quest" && store.current_max_floor <= 110) {
+                return;
+              }
+              setOptGoal(newGoal);
+            }}
+            options={OPT_GOALS.map(g => {
+              let label = g;
+              let disabled = false;
+              
+              if (g === "Dino Quest") {
+                if (store.current_max_floor <= 110) {
+                  label = `${g} (Requires Max Floor > 110)`;
+                  disabled = true;
+                }
+              }
+              
+              return { 
+                value: g, 
+                label: label,
+                disabled: disabled
+              };
+            })}
             className="w-full bg-st-bg border border-st-border rounded p-2 text-st-text focus:border-st-orange focus:outline-none"
           />
           
-          {optGoal !== "Max Floor Push" && (
+          {optGoal !== "Max Floor Push" && optGoal !== "Dino Quest" && (
             <label data-tour="opt-allow-unspent" className="flex items-center space-x-2 mt-4 cursor-pointer text-st-text-light hover:text-st-orange transition-colors">
             <input 
               type="checkbox"

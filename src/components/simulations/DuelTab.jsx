@@ -16,7 +16,8 @@ const OPT_GOALS =[
   "Max Floor Push", 
   "Max EXP Yield", 
   "Fragment Farming", 
-  "Block Card Farming"
+  "Block Card Farming",
+  "Dino Quest"
 ];
 
 const FRAG_NAMES = {

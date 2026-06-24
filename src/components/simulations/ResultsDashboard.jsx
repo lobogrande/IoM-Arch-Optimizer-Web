@@ -86,7 +86,7 @@ export default function ResultsDashboard({ context }) {
   if (!store.opt_results || !store.opt_results.final_summary_out) return null;
   
   const runMetric = store.opt_results.run_target_metric;
-  const isFloorTarget = runMetric === 'highest_floor';
+  const isFloorTarget = runMetric === 'highest_floor' || runMetric === 'dino_quest_floors_per_sec';
   const scaleScore = (v) => isFloorTarget ? v : (v / 60.0) * 1000.0;
   const unitLabel = isFloorTarget ? "Floor Reached" : "Yield per 1k Arch Secs";
   const finalSum = store.opt_results.final_summary_out;
@@ -1240,9 +1240,9 @@ export default function ResultsDashboard({ context }) {
         <div className="st-container animate-fade-in">
           <h3 className="text-2xl font-bold mb-4">🔮 Upgrade Guide (Marginal ROI)</h3>
           
-          {store.opt_results.run_target_metric === 'highest_floor' ? (
+          {(store.opt_results.run_target_metric === 'highest_floor' || store.opt_results.run_target_metric === 'dino_quest_floors_per_sec') ? (
             <div data-tour="res-roi-disabled" className="bg-yellow-900/40 border-l-4 border-yellow-500 p-4 rounded">
-              <p className="font-bold text-yellow-500">⚠️ ROI Analyzer is Disabled for Max Floor Push</p>
+              <p className="font-bold text-yellow-500">⚠️ ROI Analyzer is Disabled for Floor-Based Targets</p>
               <p className="text-sm mt-2">Because floor progression relies on large, discrete math 'Breakpoints', adding a single +1 to a stat rarely shows an immediate gain. To calculate exactly what stats you need to beat your current wall, send your build to Tab 6 (Hit Calculator Sandbox) and manually inspect the HP and Armor Breakpoints!</p>
             </div>
           ) : (
