@@ -133,7 +133,9 @@ const useStore = create(
   // Pyodide. Off by default. Takes precedence over useJsKernel — when both
   // are set, WASM wins (it's the more complete replacement).
   useWasmEngine: false,
+  numOptimizerRuns: 1,
   setUseWasmEngine: (v) => set({ useWasmEngine: !!v }),
+  setNumOptimizerRuns: (v) => set({ numOptimizerRuns: Math.max(1, Math.min(10, parseInt(v) || 1)) }),
 
   // Ephemeral Tour State
   tourActive: false,
