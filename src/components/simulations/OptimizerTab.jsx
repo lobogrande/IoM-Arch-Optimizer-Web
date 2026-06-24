@@ -3,6 +3,7 @@ import { useState, useMemo, useEffect } from 'react';
 import useStore from '../../store';
 import { EngineWorkerPool, getOptimalStepProfile, runOptimizationPhase, topUpBuild } from '../../utils/optimizer';
 import ResultsDashboard from './ResultsDashboard';
+import RunHistoryTable from './RunHistoryTable';
 import { BLOCK_MIN_FLOORS, FRAG_ICONS } from '../../game_data';
 import MobileSelect from '../MobileSelect';
 
@@ -213,6 +214,24 @@ export default function OptimizerTab() {
     }
 
     setLockedStats({ ...lockedStats, [stat]: newLock });
+  };
+
+  const handleViewHistoryRun = (runData) => {
+    if (runData._restore_state) {
+      if (runData._restore_state.opt_results) {
+        store.setOptResults(runData._restore_state.opt_results);
+        store.setSimsState('synthesis_result', runData._restore_state.synthesis_result);
+      } else {
+        store.setOptResults(runData._restore_state);
+        store.setSimsState('synthesis_result', null);
+      }
+      
+      // Scroll to the results dashboard
+      setTimeout(() => {
+        const anchor = document.getElementById('dashboard-anchor-optimizer');
+        if (anchor) anchor.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }, 100);
+    }
   };
 
   const handleRunOptimizer = async () => {
@@ -863,6 +882,12 @@ export default function OptimizerTab() {
       </div>
 
       {store.opt_results && !store.synthesis_result && !isOptimizing && <ResultsDashboard context="optimizer" />}
+
+      {!isOptimizing && (
+        <div className="mt-8">
+          <RunHistoryTable mode="optimizer" onViewRun={handleViewHistoryRun} />
+        </div>
+      )}
 
     </div>
   );
