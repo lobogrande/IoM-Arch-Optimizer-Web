@@ -173,7 +173,13 @@ export default function PlayerSetup() {
     // 2. Format External Upgrades back to string keys
     const external_upgrades = {};
     EXTERNAL_UI_GROUPS.forEach(group => {
-      external_upgrades[group.name] = state.external_levels[group.rows[0]] || 0;
+      // Special handling for Kromak which has two independent values
+      if (group.id === 'kromak') {
+        external_upgrades["Kromak Statue"] = state.external_levels[group.rows[0]] || 0;  // Row 23: toggle
+        external_upgrades["W4 Statues Gilded"] = state.external_levels[group.rows[1]] || 0;  // Row 24: count
+      } else {
+        external_upgrades[group.name] = state.external_levels[group.rows[0]] || 0;
+      }
     });
     external_upgrades["Geoduck Unlocked"] = !!state.geoduck_unlocked;
     external_upgrades["Hades Unlocked"] = !!state.hades_unlocked;
@@ -186,6 +192,21 @@ export default function PlayerSetup() {
         const cid = `${ot}${tier}`;
         ordered_cards[cid] = state.cards[cid] || 0;
       });
+    });
+
+    // 4. Sync profiles with missing external_levels (backwards compatibility)
+    const syncedProfiles = (state.profiles || []).map(profile => {
+      const syncedProfile = JSON.parse(JSON.stringify(profile)); // Deep clone
+      if (syncedProfile.data && syncedProfile.data.external_levels) {
+        // Add missing rows 22-27 with default value 0
+        if (syncedProfile.data.external_levels[22] === undefined) syncedProfile.data.external_levels[22] = 0;  // Lynx Star
+        if (syncedProfile.data.external_levels[23] === undefined) syncedProfile.data.external_levels[23] = 0;  // Kromak Statue
+        if (syncedProfile.data.external_levels[24] === undefined) syncedProfile.data.external_levels[24] = 0;  // W4 Statues Gilded
+        if (syncedProfile.data.external_levels[25] === undefined) syncedProfile.data.external_levels[25] = 0;  // World Quest 22
+        if (syncedProfile.data.external_levels[26] === undefined) syncedProfile.data.external_levels[26] = 0;  // Divine Challenge 14
+        if (syncedProfile.data.external_levels[27] === undefined) syncedProfile.data.external_levels[27] = 0;  // Divine Challenge 17
+      }
+      return syncedProfile;
     });
 
     const exportData = {
@@ -201,7 +222,7 @@ export default function PlayerSetup() {
       internal_upgrades: internal_upgrades,
       external_upgrades: external_upgrades,
       cards: ordered_cards,
-      profiles: state.profiles,
+      profiles: syncedProfiles,
       activeProfileId: state.activeProfileId
     };
 
@@ -966,6 +987,64 @@ export default function PlayerSetup() {
                               setSetting('arch_ability_infernal_bonus', val.toString());
                             }}
                           />
+                        </div>
+                      )}
+
+                      {/* Kromak Statue Special UI: Toggle + Gilded Count */}
+                      {group.id === 'kromak' && (
+                        <div className="w-full space-y-3 mt-2">
+                          <label className="flex items-center gap-2 cursor-pointer font-medium">
+                            <input 
+                              type="checkbox" 
+                              checked={current_val === 1} 
+                              onChange={(e) => setExternalGroup([group.rows[0]], e.target.checked ? 1 : 0)} 
+                              className="w-4 h-4 accent-st-orange" 
+                            />
+                            Kromak Statue Upgraded
+                          </label>
+                          <div className={`space-y-2 ${current_val === 0 ? 'opacity-30' : ''}`}>
+                            <span className="text-xs text-st-text-light block text-center">W4 Statues Gilded (0-9)</span>
+                            <input 
+                              type="text"
+                              inputMode="numeric"
+                              pattern="[0-9]*"
+                              className="st-input"
+                              value={external_levels[group.rows[1]] ?? 0} 
+                              disabled={current_val === 0}
+                              onFocus={(e) => e.target.select()}
+                              onChange={(e) => {
+                                const val = parseIntStrict(e.target.value, 0);
+                                setExternalGroup([group.rows[1]], val);
+                              }} 
+                              onBlur={(e) => {
+                                const val = parseIntStrict(e.target.value, 0);
+                                setExternalGroup([group.rows[1]], Math.min(group.max, Math.max(0, val)));
+                              }}
+                            />
+                            <div className="flex gap-1 w-full">
+                              <button 
+                                onClick={() => {
+                                  const gilded = external_levels[group.rows[1]] ?? 0;
+                                  setExternalGroup([group.rows[1]], Math.max(0, gilded - 1));
+                                }} 
+                                disabled={current_val === 0}
+                                className="flex-1 px-1 py-1 text-xs bg-st-secondary text-st-text rounded border border-st-border hover:border-st-orange transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                              >-1</button>
+                              <button 
+                                onClick={() => {
+                                  const gilded = external_levels[group.rows[1]] ?? 0;
+                                  setExternalGroup([group.rows[1]], Math.min(group.max, gilded + 1));
+                                }} 
+                                disabled={current_val === 0}
+                                className="flex-1 px-1 py-1 text-xs bg-st-secondary text-st-text rounded border border-st-border hover:border-st-orange transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                              >+1</button>
+                              <button 
+                                onClick={() => setExternalGroup([group.rows[1]], group.max)} 
+                                disabled={current_val === 0}
+                                className="flex-1 px-1 py-1 text-xs font-bold bg-st-secondary text-st-text rounded border border-st-border hover:border-st-orange transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                              >Max</button>
+                            </div>
+                          </div>
                         </div>
                       )}
                     </div>

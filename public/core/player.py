@@ -91,7 +91,13 @@ class Player:
         18: ("Store VPs", "Ascension Bundle VP (Loot Mod Chance)"),
         19: ("Store VPs", "Ascension Bundle VP (Golden Crosshair Chance)"),
         20: ("Cards", "Arch Ability Misc Card (Ability Cooldown Reduction)"),
-        21: ("Idol", "Hades Idol (Infernal Multiplier)")
+        21: ("Idol", "Hades Idol (Infernal Multiplier)"),
+        22: ("Star", "Lynx Star (Infernal Card Multiplier)"),
+        23: ("Statue", "Kromak Statue Upgraded (Infernal Card Multiplier)"),
+        24: ("Statue Count", "W4 Statues Gilded (Infernal Card Multiplier)"),
+        25: ("World Quest", "World Quest 22 (Infernal Card Multiplier)"),
+        26: ("Divine Challenge", "Divine Challenge 14 (Fragment Gain)"),
+        27: ("Divine Challenge", "Divine Challenge 17 (Infernal Card Multiplier)")
     }
 
     def __init__(self):
@@ -271,13 +277,39 @@ class Player:
         return sum(1 for lvl in self.cards.values() if lvl == 4)
     @property
     def infernal_multiplier(self):
+        # Base arch bonus from cards
+        arch_bonus = 1.0 + (0.04 * self.arch_infernal_cards) + (0.002 * self.total_infernal_cards)
+        
+        # Hades Idol (row 21): 0.0045% per level (max 6666 = 29.997% ≈ 30%)
         # FIX: Hades Idol applies if Asc1 is unlocked, not Asc2
         hades_bonus = (self.hades_idol_level * 0.000045) if self.asc1_unlocked else 0.0
-        arch_bonus = 1.0 + (0.04 * self.arch_infernal_cards) + (0.002 * self.total_infernal_cards)
+        hades_mult = 1.0 + hades_bonus
+        
+        # Lynx Star (row 22): 0.25% per level, max 50 = 12.5% boost
+        lynx_level = self.external_levels.get(22, 0)
+        lynx_mult = 1.0 + (lynx_level * 0.0025)
+        
+        # Kromak Statue (rows 23 + 24): Kromak enabled (0/1) × (1% per W4 statue gilded)
+        # Row 23: Kromak Statue upgrade status (the specific statue named "Kromak")
+        # Row 24: Count of ALL W4 statues gilded across the game (each has different names, max 9)
+        # If Kromak is not upgraded (row 23 = 0), bonus is 0%
+        # If Kromak is upgraded (row 23 = 1), bonus is 1% per W4 statue gilded (row 24, max 9)
+        kromak_enabled = self.external_levels.get(23, 0)
+        w4_statues_gilded = self.external_levels.get(24, 0)
+        kromak_bonus = (w4_statues_gilded * 0.01) if kromak_enabled else 0.0
+        kromak_mult = 1.0 + kromak_bonus
+        
+        # World Quest 22 (row 25): 2% bonus (0 or 1)
+        wq22_completed = self.external_levels.get(25, 0)
+        wq22_mult = 1.02 if wq22_completed else 1.0
+        
+        # Divine Challenge 17 (row 27): 5% bonus (0 or 1)
+        challenge17_completed = self.external_levels.get(27, 0)
+        challenge17_mult = 1.05 if challenge17_completed else 1.0
         
         # Do NOT artificially round/ceil this to 4 decimal places! 
         # The game applies the raw floating point product directly to the card bases.
-        return arch_bonus * (1.0 + hades_bonus)
+        return arch_bonus * hades_mult * lynx_mult * kromak_mult * wq22_mult * challenge17_mult
 
     # ==============================================================================
     # PHASE 11 OPTIMIZATION: Infernal Bonus Caching
@@ -484,7 +516,12 @@ class Player:
         val = (1 + self.u('F5') + self.u('H21') + stat_calc)
         # The cap for W8 (Geoduck) is handled natively inside the self.w() method based on ascension
         val *= (1 + self.w('W4')) * (1 + self.w('W5')) * (1 + self.w('W8'))
-        val *= self.u('F42') * self.w('W15', default=1.0) * (1.0 + self.inf('dirt3')) * (1.0 + self.inf('leg1'))
+        
+        # Divine Challenge 14 (row 26): 10% bonus to fragment gain (0 or 1)
+        challenge14_completed = self.external_levels.get(26, 0)
+        challenge14_mult = 1.1 if challenge14_completed else 1.0
+        
+        val *= self.u('F42') * self.w('W15', default=1.0) * challenge14_mult * (1.0 + self.inf('dirt3')) * (1.0 + self.inf('leg1'))
         return self._gm_mult(val, 2)
 
     @property
@@ -526,7 +563,7 @@ class Player:
     @property
     def enrage_cooldown(self): 
         val = (60 + self.u('H18') + self.u('H29') + self.u('H32') + self.w('W10')) * (1 + self.w('W20'))
-        return self._gm_int(val, drift=1)
+        return self._gm_int(val, drift=0)
         
     @property
     def enrage_bonus_dmg(self): return 0.2 + self.u('F18')
@@ -539,7 +576,7 @@ class Player:
     def flurry_cooldown(self): 
         # GAME BUG (v0.6.2+): Upgrade 32 (H32) is only supposed to apply to Enrage, but currently applies to Flurry too.
         val = (120 + self.u('H22') + self.u('H29') + self.u('H32') + self.w('W10')) * (1 + self.w('W20'))
-        return self._gm_int(val, drift=1)
+        return self._gm_int(val, drift=0)
         
     @property
     def flurry_bonus_atk_spd(self): return 1.0
@@ -552,6 +589,6 @@ class Player:
     def quake_cooldown(self): 
         # GAME BUG (v0.6.2+): Upgrade 32 (H32) is only supposed to apply to Enrage, but currently applies to Quake too.
         val = (180 + self.u('H29') + self.u('H31') + self.u('H32') + self.w('W10')) * (1 + self.w('W20'))
-        return self._gm_int(val, drift=1)
+        return self._gm_int(val, drift=0)
     @property
     def quake_dmg_to_all(self): return 0.2

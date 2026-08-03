@@ -98,6 +98,11 @@ export const EXTERNAL_UI_GROUPS =[
     {id: "geoduck", name: "Geoduck Tribute", rows: [8], ui_type: "number", max: 9999, img: "8_geoduck.png"},
     {id: "avada", name: "Avada Keda- Skill", rows:[9, 10, 11], ui_type: "skill", imgs:["9_11_avada-keda_1.png", "9_11_avada-keda_2.png"]},
     {id: "block", name: "Block Bonker Skill", rows:[12, 13, 14], ui_type: "skill", imgs:["12_14_block-bonker_1.png", "12_14_block-bonker_2.png"]},
+    {id: "lynx", name: "Lynx Star", rows:[22], ui_type: "number", max: 50, img: "22_Lynx.png"},
+    {id: "kromak", name: "Kromak Statue", rows:[23, 24], ui_type: "kromak", max: 9},
+    {id: "world_quest_22", name: "World Quest 22", rows:[25], ui_type: "bundle"},
+    {id: "challenge_14", name: "Divine Challenge 14", rows:[26], ui_type: "bundle"},
+    {id: "challenge_17", name: "Divine Challenge 17", rows:[27], ui_type: "bundle"},
     {id: "arch_bundle", name: "Archaeology Bundle", rows: [15], ui_type: "bundle"},
     {id: "asc_bundle", "name": "Ascension Bundle", rows:[16, 17, 18, 19], ui_type: "bundle"},
     {id: "arch_card", name: "Arch Ability Card", rows: [20], ui_type: "card", max: 4}

@@ -480,9 +480,33 @@ const useStore = create(
       const newExt = {};
       EXTERNAL_UI_GROUPS.forEach(group => {
         if (data.external_upgrades[group.name] !== undefined) {
-          group.rows.forEach(r => newExt[r] = data.external_upgrades[group.name]);
+          // Special handling for Kromak which has two independent values
+          if (group.id === 'kromak') {
+            // Row 23: Kromak Statue toggle
+            newExt[group.rows[0]] = data.external_upgrades["Kromak Statue"] !== undefined 
+              ? data.external_upgrades["Kromak Statue"] 
+              : 0;
+            // Row 24: W4 Statues Gilded count
+            newExt[group.rows[1]] = data.external_upgrades["W4 Statues Gilded"] !== undefined 
+              ? data.external_upgrades["W4 Statues Gilded"] 
+              : 0;
+          } else {
+            group.rows.forEach(r => newExt[r] = data.external_upgrades[group.name]);
+          }
+        } else {
+          // Default to 0 for missing groups
+          group.rows.forEach(r => newExt[r] = 0);
         }
       });
+      
+      // Explicit defaults for new infernal multiplier upgrades (backwards compatibility)
+      // Ensure these are set to 0 if not present in imported player state
+      if (newExt[22] === undefined) newExt[22] = 0;  // Lynx Star
+      if (newExt[23] === undefined) newExt[23] = 0;  // Kromak Statue (toggle OFF)
+      if (newExt[24] === undefined) newExt[24] = 0;  // W4 Statues Gilded
+      if (newExt[25] === undefined) newExt[25] = 0;  // World Quest 22
+      if (newExt[26] === undefined) newExt[26] = 0;  // Divine Challenge 14
+      if (newExt[27] === undefined) newExt[27] = 0;  // Divine Challenge 17
 
       // Legacy Fallback for very old Streamlit JSON files where Hades was inside settings
       if (data.settings && data.settings.hades_idol_level !== undefined && newExt[21] === undefined) {
