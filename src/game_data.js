@@ -41,6 +41,24 @@ export const ASC2_LOCKED_UPGS =[19, 27, 34, 46, 52, 55];
 
 export const CARD_TYPES =['dirt', 'com', 'rare', 'epic', 'leg', 'myth', 'div'];
 
+// ==============================================================================
+// CARD DROP ODDS (1 in X chance per block kill)
+// ==============================================================================
+export const CARD_DROP_ODDS = {
+  // Tier 1-3 blocks (regular, gilded, poly)
+  tier_1_3: {
+    base_card: 1500,        // 1 in 1,500 for base card drop
+    poly_fragment: 7500,    // 1 in 7,500 for poly fragment drop
+    infernal_fragment: 75000 // 1 in 75,000 for infernal fragment drop
+  },
+  // Tier 4 blocks (infernal)
+  tier_4: {
+    base_card: 5000,        // 1 in 5,000 for base card drop
+    poly_fragment: 35000,   // 1 in 35,000 for poly fragment drop
+    infernal_fragment: 75000 // 1 in 75,000 for infernal fragment drop
+  }
+};
+
 export const INFERNAL_CARD_BONUSES = {
   'dirt1': { text: "Loot Mod Gain", base: 0.1, dec: 4, isPct: true },
   'dirt2': { text: "Exp Gain Mult", base: 0.12, dec: 4, isPct: true },

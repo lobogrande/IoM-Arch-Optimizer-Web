@@ -1,5 +1,8 @@
 // public/engine_worker.js
 
+// Import card drop odds from centralized game data
+import { CARD_DROP_ODDS } from '../src/game_data.js';
+
 // Parse params before any importScripts so we can decide whether to pay the
 // (large, ~5 MB) cost of fetching the Pyodide runtime.
 const urlParams = new URLSearchParams(self.location.search);
@@ -162,9 +165,9 @@ def execute_simulation(test_stats_proxy, test_upgrades_proxy, test_external_prox
             metrics[f"raw_block_{block_id}"] = count
             
             is_t4 = block_id.endswith('4')
-            base_odds = 15000 if is_t4 else 1500
-            poly_odds = 75000 if is_t4 else 7500
-            inf_odds  = 200000
+            base_odds = CARD_DROP_ODDS.tier_4.base_card if is_t4 else CARD_DROP_ODDS.tier_1_3.base_card
+            poly_odds = CARD_DROP_ODDS.tier_4.poly_fragment if is_t4 else CARD_DROP_ODDS.tier_1_3.poly_fragment
+            inf_odds  = CARD_DROP_ODDS.tier_4.infernal_fragment if is_t4 else CARD_DROP_ODDS.tier_1_3.infernal_fragment
             
             metrics[f"card_base_{block_id}_per_min"] = b_pm / base_odds
             metrics[f"card_poly_{block_id}_per_min"] = b_pm / poly_odds
