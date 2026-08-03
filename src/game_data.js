@@ -114,9 +114,9 @@ export const UPGRADE_LEVEL_REQS = {
 export const CURRENCY_TYPES =['gems', 'com', 'rare', 'epic', 'leg', 'myth', 'div'];
 
 export const UPGRADE_COST_DATA = {
-  3: { currency: 'gems', base:[300, 15000, 30000], mult: 1.05, cap:[1000, null, null] },
-  4: { currency: 'gems', base:[400, 20000, 40000], mult: 1.05, cap: [1000, null, null] },
-  5: { currency: 'gems', base:[500, 25000, 50000], mult: 1.05, cap: [1000, null, null] },
+  3: { currency: 'gems', base:[300, 7500, 15000], mult: 1.05, cap:[1000, null, null] },
+  4: { currency: 'gems', base:[400, 10000, 20000], mult: 1.05, cap: [1000, null, null] },
+  5: { currency: 'gems', base:[500, 12500, 25000], mult: 1.05, cap: [1000, null, null] },
   8: { type: 'custom', costs: [
       { currency: 'com', amount:[0.10, 0.50, 1.00] },
       { currency: 'rare', amount:[0.75, 3.75, 7.50] },
