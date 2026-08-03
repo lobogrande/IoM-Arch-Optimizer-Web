@@ -13,6 +13,21 @@
 (function (global) {
   'use strict';
 
+  // Card drop odds (centralized from game_data.js)
+  // Note: Inline copy needed since this file is loaded via importScripts()
+  const CARD_DROP_ODDS = {
+    tier_1_3: {
+      base_card: 1500,
+      poly_fragment: 7500,
+      infernal_fragment: 75000
+    },
+    tier_4: {
+      base_card: 5000,
+      poly_fragment: 35000,
+      infernal_fragment: 75000
+    }
+  };
+
   const SCHEMA_VERSION = 1;
   const INPUT_SIZE = 484;
 
@@ -184,9 +199,9 @@
       metrics['block_' + bid + '_per_min'] = b_pm;
       metrics['raw_block_' + bid] = cnt;
       const is_t4 = bid.charCodeAt(bid.length - 1) === 52; // '4'
-      const base_odds = is_t4 ? 15000 : 1500;
-      const poly_odds = is_t4 ? 75000 : 7500;
-      const inf_odds  = 200000;
+      const base_odds = is_t4 ? CARD_DROP_ODDS.tier_4.base_card : CARD_DROP_ODDS.tier_1_3.base_card;
+      const poly_odds = is_t4 ? CARD_DROP_ODDS.tier_4.poly_fragment : CARD_DROP_ODDS.tier_1_3.poly_fragment;
+      const inf_odds  = is_t4 ? CARD_DROP_ODDS.tier_4.infernal_fragment : CARD_DROP_ODDS.tier_1_3.infernal_fragment;
       metrics['card_base_' + bid + '_per_min'] = b_pm / base_odds;
       metrics['card_poly_' + bid + '_per_min'] = b_pm / poly_odds;
       metrics['card_inf_' + bid + '_per_min']  = b_pm / inf_odds;

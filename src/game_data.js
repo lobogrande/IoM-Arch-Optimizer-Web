@@ -41,6 +41,24 @@ export const ASC2_LOCKED_UPGS =[19, 27, 34, 46, 52, 55];
 
 export const CARD_TYPES =['dirt', 'com', 'rare', 'epic', 'leg', 'myth', 'div'];
 
+// ==============================================================================
+// CARD DROP ODDS (1 in X chance per block kill)
+// ==============================================================================
+export const CARD_DROP_ODDS = {
+  // Tier 1-3 blocks (regular, gilded, poly)
+  tier_1_3: {
+    base_card: 1500,        // 1 in 1,500 for base card drop
+    poly_fragment: 7500,    // 1 in 7,500 for poly fragment drop
+    infernal_fragment: 75000 // 1 in 75,000 for infernal fragment drop
+  },
+  // Tier 4 blocks (infernal)
+  tier_4: {
+    base_card: 5000,        // 1 in 5,000 for base card drop
+    poly_fragment: 35000,   // 1 in 35,000 for poly fragment drop
+    infernal_fragment: 75000 // 1 in 75,000 for infernal fragment drop
+  }
+};
+
 export const INFERNAL_CARD_BONUSES = {
   'dirt1': { text: "Loot Mod Gain", base: 0.1, dec: 4, isPct: true },
   'dirt2': { text: "Exp Gain Mult", base: 0.12, dec: 4, isPct: true },
@@ -80,6 +98,11 @@ export const EXTERNAL_UI_GROUPS =[
     {id: "geoduck", name: "Geoduck Tribute", rows: [8], ui_type: "number", max: 9999, img: "8_geoduck.png"},
     {id: "avada", name: "Avada Keda- Skill", rows:[9, 10, 11], ui_type: "skill", imgs:["9_11_avada-keda_1.png", "9_11_avada-keda_2.png"]},
     {id: "block", name: "Block Bonker Skill", rows:[12, 13, 14], ui_type: "skill", imgs:["12_14_block-bonker_1.png", "12_14_block-bonker_2.png"]},
+    {id: "lynx", name: "Lynx Star", rows:[22], ui_type: "number", max: 50, img: "22_Lynx.png"},
+    {id: "kromak", name: "Kromak Statue", rows:[23, 24], ui_type: "kromak", max: 9},
+    {id: "world_quest_22", name: "World Quest 22", rows:[25], ui_type: "bundle"},
+    {id: "challenge_14", name: "Divine Challenge 14", rows:[26], ui_type: "bundle"},
+    {id: "challenge_17", name: "Divine Challenge 17", rows:[27], ui_type: "bundle"},
     {id: "arch_bundle", name: "Archaeology Bundle", rows: [15], ui_type: "bundle"},
     {id: "asc_bundle", "name": "Ascension Bundle", rows:[16, 17, 18, 19], ui_type: "bundle"},
     {id: "arch_card", name: "Arch Ability Card", rows: [20], ui_type: "card", max: 4}
@@ -96,9 +119,9 @@ export const UPGRADE_LEVEL_REQS = {
 export const CURRENCY_TYPES =['gems', 'com', 'rare', 'epic', 'leg', 'myth', 'div'];
 
 export const UPGRADE_COST_DATA = {
-  3: { currency: 'gems', base:[300, 15000, 30000], mult: 1.05, cap:[1000, null, null] },
-  4: { currency: 'gems', base:[400, 20000, 40000], mult: 1.05, cap: [1000, null, null] },
-  5: { currency: 'gems', base:[500, 25000, 50000], mult: 1.05, cap: [1000, null, null] },
+  3: { currency: 'gems', base:[300, 7500, 15000], mult: 1.05, cap:[1000, null, null] },
+  4: { currency: 'gems', base:[400, 10000, 20000], mult: 1.05, cap: [1000, null, null] },
+  5: { currency: 'gems', base:[500, 12500, 25000], mult: 1.05, cap: [1000, null, null] },
   8: { type: 'custom', costs: [
       { currency: 'com', amount:[0.10, 0.50, 1.00] },
       { currency: 'rare', amount:[0.75, 3.75, 7.50] },

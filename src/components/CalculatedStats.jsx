@@ -312,13 +312,16 @@ export default function CalculatedStats() {
                       let effStr = "";
                       if (val !== 0) {
                         const cardText = INFERNAL_CARD_BONUSES[c]?.text || "";
-                        const cardDec = INFERNAL_CARD_BONUSES[c]?.dec || 4;
-                        // Integer infernal bonuses (dec=0) are displayed as floored values
-                        // but full precision is used in calculations
+                        const cardDec = INFERNAL_CARD_BONUSES[c]?.dec ?? 4;
+                        const isPct = INFERNAL_CARD_BONUSES[c]?.isPct ?? true;
+                        // Integer infernal bonuses (dec=0) are displayed as whole numbers using standard rounding
+                        // (full precision is used in calculations)
                         if (cardDec === 0) {
-                          effStr = `(+${Math.floor(val)} ${cardText})`;
-                        } else {
+                          effStr = `(+${Math.round(val)} ${cardText})`;
+                        } else if (isPct) {
                           effStr = `(+${(val * 100).toFixed(2)}% ${cardText})`;
+                        } else {
+                          effStr = `(+${val.toFixed(cardDec)} ${cardText})`;
                         }
                       } else {
                         effStr = "(Infernal not yet obtained)";

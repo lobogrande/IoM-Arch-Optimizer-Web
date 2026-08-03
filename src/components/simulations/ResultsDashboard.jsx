@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react';
 import useStore from '../../store';
 import { EngineWorkerPool } from '../../utils/optimizer';
 import PlotWrapper from 'react-plotly.js';
-import { INTERNAL_UPGRADE_CAPS, UPGRADE_NAMES, ASC1_LOCKED_UPGS, ASC2_LOCKED_UPGS, UPGRADE_LEVEL_REQS, EXTERNAL_UI_GROUPS, calculateUpgradeCost, CURRENCY_TYPES, BLOCK_MIN_FLOORS, FRAG_ICONS } from '../../game_data';
+import { INTERNAL_UPGRADE_CAPS, UPGRADE_NAMES, ASC1_LOCKED_UPGS, ASC2_LOCKED_UPGS, UPGRADE_LEVEL_REQS, EXTERNAL_UI_GROUPS, calculateUpgradeCost, CURRENCY_TYPES, BLOCK_MIN_FLOORS, FRAG_ICONS, CARD_DROP_ODDS } from '../../game_data';
 import { UI_BLOCK_CARD_WIDTH, UI_BLOCK_CARD_X_OFFSET, UI_BLOCK_CARD_Y_OFFSET, UI_CARD_CBLOCK_SCALE } from '../../ui_config';
 import MobileSelect from '../MobileSelect';
 
@@ -1009,9 +1009,9 @@ export default function ResultsDashboard({ context }) {
 
                     const isTier4 = selB.endsWith('4');
                     const drops =[
-                      { name: "Base Card", odds: isTier4 ? 15000 : 1500, bg: "1", isFrag: false },
-                      { name: "Poly Fragments", odds: isTier4 ? 75000 : 7500, bg: "3", isFrag: true, count: polyFrags, setCount: setPolyFrags },
-                      { name: "Infernal Fragments", odds: 200000, bg: "4", isFrag: true, count: infFrags, setCount: setInfFrags }
+                      { name: "Base Card", odds: isTier4 ? CARD_DROP_ODDS.tier_4.base_card : CARD_DROP_ODDS.tier_1_3.base_card, bg: "1", isFrag: false },
+                      { name: "Poly Fragments", odds: isTier4 ? CARD_DROP_ODDS.tier_4.poly_fragment : CARD_DROP_ODDS.tier_1_3.poly_fragment, bg: "3", isFrag: true, count: polyFrags, setCount: setPolyFrags },
+                      { name: "Infernal Fragments", odds: isTier4 ? CARD_DROP_ODDS.tier_4.infernal_fragment : CARD_DROP_ODDS.tier_1_3.infernal_fragment, bg: "4", isFrag: true, count: infFrags, setCount: setInfFrags }
                     ];
 
                     return (
