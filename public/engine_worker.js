@@ -1,7 +1,18 @@
 // public/engine_worker.js
 
-// Import card drop odds from centralized game data
-import { CARD_DROP_ODDS } from '../src/game_data.js';
+// Card drop odds (copied from game_data.js - cannot use ES6 imports in web workers)
+const CARD_DROP_ODDS = {
+  tier_1_3: {
+    base_card: 1500,
+    poly_fragment: 7500,
+    infernal_fragment: 75000
+  },
+  tier_4: {
+    base_card: 5000,
+    poly_fragment: 35000,
+    infernal_fragment: 75000
+  }
+};
 
 // Parse params before any importScripts so we can decide whether to pay the
 // (large, ~5 MB) cost of fetching the Pyodide runtime.
