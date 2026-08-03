@@ -312,7 +312,7 @@ export default function CalculatedStats() {
                       let effStr = "";
                       if (val !== 0) {
                         const cardText = INFERNAL_CARD_BONUSES[c]?.text || "";
-                        const cardDec = INFERNAL_CARD_BONUSES[c]?.dec || 4;
+                        const cardDec = INFERNAL_CARD_BONUSES[c]?.dec ?? 4;
                         const isPct = INFERNAL_CARD_BONUSES[c]?.isPct ?? true;
                         // Integer infernal bonuses (dec=0) are displayed as whole numbers using standard rounding
                         // (full precision is used in calculations)
