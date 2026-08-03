@@ -13,9 +13,9 @@
 (function (global) {
   'use strict';
 
-  // Card drop odds (centralized from game_data.js)
-  // Note: Inline copy needed since this file is loaded via importScripts()
-  const CARD_DROP_ODDS = {
+  // Card drop odds - use global if available (from game_constants.js), otherwise define inline
+  // This allows both web worker context (with game_constants.js) and Node.js vm sandbox
+  const CARD_DROP_ODDS = (typeof self !== 'undefined' && self.CARD_DROP_ODDS) || {
     tier_1_3: {
       base_card: 1500,
       poly_fragment: 7500,
