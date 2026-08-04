@@ -43,6 +43,8 @@ export const CARD_TYPES =['dirt', 'com', 'rare', 'epic', 'leg', 'myth', 'div'];
 
 // ==============================================================================
 // CARD DROP ODDS (1 in X chance per block kill)
+// ⚠️ IMPORTANT: If you change these values, also update public/game_constants.js
+// (Web workers load from that file since they can't use ES6 imports)
 // ==============================================================================
 export const CARD_DROP_ODDS = {
   // Tier 1-3 blocks (regular, gilded, poly)

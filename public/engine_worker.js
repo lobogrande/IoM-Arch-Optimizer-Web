@@ -1,24 +1,13 @@
 // public/engine_worker.js
 
-// Card drop odds (copied from game_data.js - cannot use ES6 imports in web workers)
-const CARD_DROP_ODDS = {
-  tier_1_3: {
-    base_card: 1500,
-    poly_fragment: 7500,
-    infernal_fragment: 75000
-  },
-  tier_4: {
-    base_card: 5000,
-    poly_fragment: 35000,
-    infernal_fragment: 75000
-  }
-};
-
 // Parse params before any importScripts so we can decide whether to pay the
 // (large, ~5 MB) cost of fetching the Pyodide runtime.
 const urlParams = new URLSearchParams(self.location.search);
 const APP_VERSION = urlParams.get('v') || Date.now();
 const wasmOnlyMode = urlParams.get('engine') === 'wasm';
+
+// Load shared game constants (uses importScripts for web worker compatibility)
+importScripts('/game_constants.js?v=' + APP_VERSION);
 
 postMessage({ type: 'STATUS', payload: wasmOnlyMode ? 'Booting WASM...' : 'Booting Core...' });
 
@@ -60,6 +49,20 @@ async function initEngine() {
 import sys
 from core.player import Player
 from engine.combat_loop import CombatSimulator
+
+# Card drop odds (copied from game_data.js)
+CARD_DROP_ODDS = {
+    'tier_1_3': {
+        'base_card': 1500,
+        'poly_fragment': 7500,
+        'infernal_fragment': 75000
+    },
+    'tier_4': {
+        'base_card': 5000,
+        'poly_fragment': 35000,
+        'infernal_fragment': 75000
+    }
+}
 
 base_player = None
 
@@ -176,9 +179,9 @@ def execute_simulation(test_stats_proxy, test_upgrades_proxy, test_external_prox
             metrics[f"raw_block_{block_id}"] = count
             
             is_t4 = block_id.endswith('4')
-            base_odds = CARD_DROP_ODDS.tier_4.base_card if is_t4 else CARD_DROP_ODDS.tier_1_3.base_card
-            poly_odds = CARD_DROP_ODDS.tier_4.poly_fragment if is_t4 else CARD_DROP_ODDS.tier_1_3.poly_fragment
-            inf_odds  = CARD_DROP_ODDS.tier_4.infernal_fragment if is_t4 else CARD_DROP_ODDS.tier_1_3.infernal_fragment
+            base_odds = CARD_DROP_ODDS['tier_4']['base_card'] if is_t4 else CARD_DROP_ODDS['tier_1_3']['base_card']
+            poly_odds = CARD_DROP_ODDS['tier_4']['poly_fragment'] if is_t4 else CARD_DROP_ODDS['tier_1_3']['poly_fragment']
+            inf_odds  = CARD_DROP_ODDS['tier_4']['infernal_fragment'] if is_t4 else CARD_DROP_ODDS['tier_1_3']['infernal_fragment']
             
             metrics[f"card_base_{block_id}_per_min"] = b_pm / base_odds
             metrics[f"card_poly_{block_id}_per_min"] = b_pm / poly_odds
